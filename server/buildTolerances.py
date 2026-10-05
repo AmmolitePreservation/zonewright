@@ -44,3 +44,7 @@ levelProbeLift = 2.0
 # Rock beside and around a cave's cut, and the walls a branch passes out through, are probed this far over its floor, clear of the
 # ground or floor it lies on.
 probeOverFloor = 2.0
+# A point given with its height finds the ground from this far above it, so a height read off a floor or a little under it still
+# stands on that floor, down to groundSearchDistance below it: standAt, entries, and the lane's seeds and teleport landings.
+groundSearchAbove = 3.0
+groundSearchDistance = 50.0

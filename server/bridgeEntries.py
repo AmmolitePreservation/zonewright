@@ -32,10 +32,9 @@ up = bridgeMeshAccess.up
 
 
 class ShippedGround:
-  """Footing on what the zone ships and the client collides with (bridgeExport.collisionTriangles)."""
+  """Footing on what the zone ships and the client collides with (bridgeExport.collisionTriangles' collision)."""
 
-  def __init__(self):
-    collision = bridgeExport.collisionTriangles()
+  def __init__(self, collision):
     self.surfaces = bridgeExport.collisionSurfaces(collision)
     heights = collision["positions"][collision["triangles"].ravel(), 2]
     self.bottom, self.top = (float(heights.min()), float(heights.max())) if len(heights) else (None, None)
@@ -172,7 +171,7 @@ def requireEntryValues(name, at, headingDegrees, kind, fromZone, fromNumber, iso
 def placeEntry(name, at, headingDegrees, kind, fromZone, fromNumber, isolated):
   """Place an entry at its footing, turned to its heading; placing an existing entry's name replaces it."""
   requireEntryValues(name, at, headingDegrees, kind, fromZone, fromNumber, isolated)
-  ground = ShippedGround()
+  ground = ShippedGround(bridgeExport.collisionTriangles())
   footing = ground.footing(at)
   problem = footingProblem(footing, at)
   if problem is not None:
@@ -219,9 +218,12 @@ def teleportLandings(shortName):
 
 
 def getEntries():
-  """Every stored and derived entry with its point, heading, source, and state (onFooting, or offFooting with the footing found and
-  how far off), and the zone lines leading back into the zone whose landing cannot be placed."""
-  ground = ShippedGround()
+  return listEntries(ShippedGround(bridgeExport.collisionTriangles()))
+
+
+def listEntries(ground):
+  """Every stored and derived entry with its point, heading, source, and state on ground (onFooting, or offFooting with the footing
+  found and how far off), and the zone lines leading back into the zone whose landing cannot be placed."""
   zone = bridgeCommands.readZoneProperties(bpy.context.scene)
   entries = [describeEntry(entry, ground) for entry in entryObjects()]
   if "safePoint" in zone:

@@ -46,9 +46,11 @@ import eqWorldFile
 import eqZones
 import exportPipeline
 import extensionCatalog
+import laneDrawing
 import loadTimeLight
 import machineProfile
 import planDrawing
+import playerReach
 import playerScale
 import recastHelper
 import skyDrawing
@@ -2376,9 +2378,13 @@ async def renderSketch(
   each over a pale floor of its own, so a run passing over another hides what lies under it), water (as players see it, not where a
   surface runs on tucked under its banks: blue, lava orange), swim (the swim volumes, dashed, cyan water and magenta lava, each
   named inside itself where its name fits clear of the other labels, else by its number; `unnamedSwimVolumes` lists those in the
-  drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled), and
-  zoneLines (their boxes faintly green, named). Labels are placed clear of one another, and beside the spot heights rather than over
-  them where they can be; an area is named only where it reaches into the drawing."""
+  drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled),
+  zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problems
+  and regions: walk green, swim blue, slide orange, squeeze violet, traps hatched orange, walkable floor never reached cross-hatched,
+  leak edges magenta, zone lines filled when reached, seeds as white arrows, with its legend in a band under the plan; the result's
+  laneState says whether the lane was computed or reused, the constants it used, what it does not model, and its limits). Labels are
+  placed clear of one another, and beside the spot heights rather than over them where they can be; an area is named only where it
+  reaches into the drawing. frameSize is the plan's size in pixels, above any legend band."""
   if len(center) != 2 or width <= 0:
     raise ToolError(f"center is [x, y] and width positive, got {center} and {width}")
   zone = await callBridge(context, "getZoneProperties", {})
@@ -2388,15 +2394,23 @@ async def renderSketch(
     "bandHeight": bandHeight, "guides": False, "sky": await zoneSky(zone), "swimVolumes": False, "labels": None, "emitters": None,
   })
   spots = planDrawing.gridCrossings(center, width, base["height"] / base["width"]) if spotHeights else []
-  overlays = await callBridge(context, "planOverlays", {"sheets": sheets, "layers": layers, "spots": spots})
+  overlays = await callBridge(context, "planOverlays", {"sheets": sheets, "layers": [layer for layer in layers if layer != "lane"], "spots": spots})
+  lanePlan, laneState = None, None
+  if "lane" in layers:
+    lane, description, status, seconds, analysis = await sceneLane(context)
+    lanePlan = laneDrawing.LanePlan(analysis, description, None, False)
+    laneState = {"lane": status, "seconds": seconds} | playerReach.laneTerms(lane, description)
   outputPath = newRenderPath()
-  drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, outputPath, center, width, overlays)
+  drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, outputPath, center, width, overlays, lanePlan)
   basePath.unlink()
+  if lanePlan is not None:
+    await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, lanePlan, planDrawing.PlanFrame(center, width, drawn["size"]))
   return [Image(data=outputPath.read_bytes(), format="png"), {
     "outputPath": str(outputPath), "center": center, "width": width, "unitsPerPixel": round(width / drawn["size"][0], 4), "heightRange": base["heightRange"],
     "bandHeight": bandHeight, "gridStep": drawn["gridStep"], "sheetColors": drawn["sheetColors"],
     "shapes": {sheet["sheet"]: len(sheet["shapes"]) for sheet in overlays["sheets"]}, "unnamedSwimVolumes": drawn["unnamedSwimVolumes"],
-  }]
+    "frameSize": drawn["size"],
+  } | ({} if laneState is None else {"laneState": laneState})]
 
 
 @guardedTool()
@@ -2854,6 +2868,151 @@ async def getEntries(context: Context):
   notFollowed lists the zone lines whose landing cannot be placed, with why (a kept coordinate, or no shortName to tell which lead
   back here)."""
   return await callBridge(context, "getEntries", {})
+
+
+problemViewCount = 8
+lanePlanLayers = ["water", "swim", "boundaries"]
+problemViewFrame = {"size": [960, 540], "verticalFieldOfViewDegrees": 50.0}
+# A sight to a problem counts as clear when nothing blocks it short of this far before its target.
+problemSightShort = 2.0
+
+
+async def sceneLane(context):
+  """The open scene's lane (playerReach.currentLane) and its analysis: (lane, description, status, seconds, analysis)."""
+  status = await callBridge(context, "getStatus", {})
+  inputPath = playerReach.reachRoot(toolingRoot) / f"input-{newRenderPath().stem}.npz"
+  inputPath.parent.mkdir(parents=True, exist_ok=True)
+  try:
+    await callBridge(context, "laneInput", {"outputPath": str(inputPath)})
+    lane, description, laneStatus, seconds = await anyio.to_thread.run_sync(
+      callReportingFailures, playerReach.currentLane, toolingRoot, status["filePath"], inputPath, progressReporter(context),
+    )
+  finally:
+    inputPath.unlink(missing_ok=True)
+  analysis = await anyio.to_thread.run_sync(playerReach.analyse, lane, description)
+  return lane, description, laneStatus, seconds, analysis
+
+
+def requireLevel(level):
+  if level is None:
+    return None
+  if not isinstance(level, dict) or set(level) != {"bottom", "top"} or not all(isinstance(level[key], (int, float)) and not isinstance(level[key], bool) and math.isfinite(level[key]) for key in level):
+    raise ToolError(f"level is {{bottom, top}}, two heights, got {level!r}")
+  if level["top"] <= level["bottom"]:
+    raise ToolError(f"level's top must lie above its bottom, got {level}")
+  return level
+
+
+async def chooseProblemViews(context, analysis, description, zone):
+  """For each problem playerReach.viewedProblems picks, the first of its playerReach.problemSights the bridge finds clear of the zone's
+  collision, from no further than half the nearer of the zone's far clip and its fog's end: [(problem, view or None, radius,
+  distance)]."""
+  chosen = playerReach.viewedProblems(analysis["problems"], problemViewCount)
+  standing = await anyio.to_thread.run_sync(playerReach.walkPlaces, analysis["nodes"])
+  farthest = min(zone["maxClip"], zone["fogEnd"] if zone["fogOn"] else zone["maxClip"]) / 2
+  sights = [playerReach.problemSights(standing, problem, description, farthest) for problem in chosen]
+  asked = [[candidate["eye"], candidate["target"]] for candidates, _, _ in sights for candidate in candidates]
+  clear = iter((await callBridge(context, "clearSights", {"sights": asked, "short": problemSightShort}))["clear"])
+  views = []
+  for problem, (candidates, radius, distance) in zip(chosen, sights):
+    found = [candidate for candidate, isClear in zip(candidates, clear) if isClear]
+    views.append((problem, found[0] if found else None, radius, distance))
+  return views
+
+
+async def lanePlanRender(context, center, width, lanePlan, layers, sky):
+  """The lane plan over renderSketch's relief, `width` across about `center`, with the plan's own layers and the lane's legend in a band
+  under it: (path, base render, drawn plan)."""
+  basePath = newRenderPath()
+  base = await callBridge(context, "renderView", {
+    "view": {"map": {"center": center, "width": width}}, "outputPath": str(basePath), "figureModel": None, "shading": "relief",
+    "bandHeight": 25.0, "guides": False, "sky": sky, "swimVolumes": False, "labels": None, "emitters": None,
+  })
+  overlays = await callBridge(context, "planOverlays", {"sheets": [], "layers": layers, "spots": []})
+  planPath = newRenderPath()
+  drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, planPath, center, width, overlays, lanePlan)
+  basePath.unlink()
+  await anyio.to_thread.run_sync(laneDrawing.legendUnder, planPath, lanePlan, planDrawing.PlanFrame(center, width, drawn["size"]))
+  return planPath, base, drawn
+
+
+@guardedTool()
+async def mapReach(context: Context, center: list[float] | None = None, width: float | None = None, level: dict | None = None, problemViews: bool = True):
+  """Where players can go in the zone, as the lane: every place reached from where players arrive (the safe point and the stored zoneIn
+  and landing entries, each on the lane's node at its footing) by walking (floors within the step of each other, faces no steeper than
+  walkable), dropping off ledges, sliding down steeper faces (only down), entering a swim box whose bottom lies within a player's height
+  of the floor, swimming between touching boxes, sinking, climbing out onto floor up to the step over a box's top, and being carried by
+  a zone line leading back into the zone; a zone line's box takes whoever reaches it, and any move onto floor under the underworld is a
+  leak. Computed by the Recast helper over what the zone ships
+  (the archive's collision: no reference content, guides, regions, or what players pass through) on a grid of columns (reachGrid), for
+  the whole zone at once, and reused while nothing it depends on changed. Picture 1, the lane plan over renderSketch's relief, `width`
+  across about `center` (default: everything the zone ships), with only the nodes whose height lies in `level` {bottom, top} when given
+  (caves, stacked floors): walk green, swim blue, slide orange, squeeze (only a smaller player fits) violet, traps (one way in, no way
+  back) hatched orange, walkable floor never reached cross-hatched dark, columns reached at a level under a higher one dotted (violet
+  where only a smaller player fits under it), leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where
+  a zone line catches a fall green, zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated),
+  plot entrances as ticks (a red X when unreached), water and swim boxes, boundaries red, region outlines in their access colors, and
+  the problems ringed and numbered, with a legend band under the plan (plan.frameSize is the plan's own size in pixels). Picture 2 (problemViews, when there are
+  problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
+  its problem (ringed in the middle of the view) from a clear sight framing it, the eye raised no more than it must be and turned from
+  the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives the constants used (value and source),
+  what is not modelled and the lane's limits, reachGrid, whether the lane was computed or reused and the seconds, each entry and
+  whether it is connected (reached from the safe point and reaching back), the reached area by label, per region its access, reached
+  share of its play floor, and unreached play floor (walkable floor open space joins to the lane, never a boundary's top or floor under
+  the underworld), zone lines, plot entrances, and swim boxes reached or not, and the problems, numbered, each with its kind, center,
+  extent, area or length, and region: leaks (voidEdge, belowUnderworld, noneRegion, outsideRegions), disconnectedEntry, unreachedPlot,
+  trap, viewRegion, unreachedZoneLine, unreachedSwim, unreachedPlayFloor, and undecidedWater (a pool or river without swim boxes whose
+  bed is walked); the largest twenty of a kind are listed, the rest counted in moreProblems. Refused:
+  no seeds, an entry off its footing, a seed with no lane node at its footing, the helper missing or stale (run syncTooling), no
+  collision triangles, and a grid too large for the helper."""
+  if center is not None and (len(center) != 2 or not all(math.isfinite(value) for value in center)):
+    raise ToolError(f"center is [x, y], got {center}")
+  if width is not None and not (math.isfinite(width) and width > 0):
+    raise ToolError(f"width is a positive length, got {width}")
+  level = requireLevel(level)
+  lane, description, status, seconds, analysis = await sceneLane(context)
+  bounds = description["bounds"]
+  if center is None:
+    center = [(bounds["minimum"][axis] + bounds["maximum"][axis]) / 2 for axis in (0, 1)]
+  zone = await callBridge(context, "getZoneProperties", {})
+  sky = await zoneSky(zone)
+  lanePlan = laneDrawing.LanePlan(analysis, description, level, True)
+  planWidth = width if width is not None else (bounds["maximum"][1] - bounds["minimum"][1]) * 1.05
+  planPath, base, drawn = await lanePlanRender(context, center, planWidth, lanePlan, lanePlanLayers, sky)
+  across = (bounds["maximum"][0] - bounds["minimum"][0]) * 1.05
+  if width is None and across > planWidth * base["height"] / base["width"]:
+    planPath.unlink()
+    planWidth = across * base["width"] / base["height"]
+    planPath, base, drawn = await lanePlanRender(context, center, planWidth, lanePlan, lanePlanLayers, sky)
+  result = playerReach.report(lane, description, analysis, status, seconds)
+  result["plan"] = {
+    "outputPath": str(planPath), "center": center, "width": round(planWidth, 2), "unitsPerPixel": round(planWidth / drawn["size"][0], 4), "level": level,
+    "frameSize": drawn["size"],
+  }
+  images = [Image(data=planPath.read_bytes(), format="png")]
+  result["problemSheet"] = None
+  if problemViews and analysis["problems"]:
+    emitters = await previewEmitterAssets()
+    cells, views = [], []
+    for problem, view, radius, distance in await chooseProblemViews(context, analysis, description, zone):
+      if view is None:
+        views.append({"number": problem["number"], "view": None, "why": f"every sight to it from {len(playerReach.problemViewElevations) * len(playerReach.problemViewBearings)} eyes {distance:g} away is blocked"})
+        continue
+      viewPath = newRenderPath()
+      await callBridge(context, "renderView", {
+        "view": view, "outputPath": str(viewPath), "figureModel": None, "shading": "client", "bandHeight": 50.0, "guides": True, "sky": sky,
+        "swimVolumes": False, "labels": None, "emitters": emitters, "frame": problemViewFrame,
+      })
+      image = viewSheets.openRender(viewPath)
+      laneDrawing.ringProblem(image, radius / distance, problemViewFrame["verticalFieldOfViewDegrees"], problem["number"])
+      cells.append((image, f"{problem['number']} {problem['kind']}"))
+      views.append({"number": problem["number"], "view": view, "outputPath": str(viewPath)})
+    cells.append((viewSheets.openRender(planPath), "the lane plan"))
+    sheetPath = newRenderPath().with_suffix(".jpg")
+    size = viewSheets.writeGrid(cells, 3, sheetPath)
+    result["problemSheet"] = {"outputPath": str(sheetPath), "views": views} | size
+    images.append(Image(data=sheetPath.read_bytes(), format="jpeg"))
+  return [*images, result]
 
 
 @guardedTool()
