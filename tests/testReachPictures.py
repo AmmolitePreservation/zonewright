@@ -13,7 +13,7 @@ import laneDrawing
 import planDrawing
 import playerReach
 from testCaves import caveCanyon, hall
-from testReach import cellHeight, reachCourse
+from testReach import cellHeight, cellSize, reachCourse
 from testWater import environment
 
 
@@ -43,17 +43,32 @@ def orangeShare(pixels):
   return float(((pixels[:, 0] > pixels[:, 1] + 30) & (pixels[:, 1] > pixels[:, 2] + 30)).mean())
 
 
+def violetShare(pixels):
+  """The share of pixels tinted the lane's squeeze violet: red and blue well over green."""
+  return float(((pixels[:, 0] > pixels[:, 1] + 30) & (pixels[:, 2] > pixels[:, 1] + 30)).mean())
+
+
 def colorShare(pixels, color):
   return float((numpy.abs(pixels - numpy.array(color)).max(axis=1) <= 40).mean())
 
 
-def ringShare(image, plan, point):
+def ringShare(image, plan, point, radius=laneDrawing.problemRing):
   """The share of sixteen points on a problem ring's circle about where a zone point falls that are drawn in the ring's color."""
   x, y = planFrame(plan).pixel(point)
   pixels = numpy.asarray(image.convert("RGB")).astype(int)
   angles = numpy.linspace(0, 2 * math.pi, 16, endpoint=False)
-  circle = [pixels[round(y + laneDrawing.problemRing * math.sin(angle)), round(x + laneDrawing.problemRing * math.cos(angle))] for angle in angles]
+  circle = [pixels[round(y + radius * math.sin(angle)), round(x + radius * math.cos(angle))] for angle in angles]
   return colorShare(numpy.array(circle), laneDrawing.problemColor)
+
+
+def pixelsAlong(image, plan, start, end, half=2):
+  """The drawing's pixels within half of the plan line from one zone point to another, as an [n, 3] array."""
+  frame = planFrame(plan)
+  (x0, y0), (x1, y1) = frame.pixel(start), frame.pixel(end)
+  pixels = numpy.asarray(image.convert("RGB")).astype(int)
+  rows = slice(round(min(y0, y1)) - half, round(max(y0, y1)) + half + 1)
+  columns = slice(round(min(x0, x1)) - half, round(max(x0, x1)) + half + 1)
+  return pixels[rows, columns].reshape(-1, 3)
 
 
 def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
@@ -61,7 +76,7 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
     await reachCourse(session, tmp_path)
     whole, _ = await session.call("mapReach", {})
     framed = await session.expectImage("mapReach", {"center": [60, 40], "width": 240, "problemViews": False})
-    west = await session.expectImage("mapReach", {"center": [-110, 60], "width": 240, "problemViews": False})
+    west = await session.expectImage("mapReach", {"center": [-137, 40], "width": 240, "problemViews": False})
     edge = await session.expectImage("mapReach", {"center": [-215, 20], "width": 160, "problemViews": False})
     ford = await session.expectImage("mapReach", {"center": [-110, -40], "width": 100, "problemViews": False})
     leveled = await session.expectImage("mapReach", {"center": [160, 40], "width": 80, "level": {"bottom": 9, "top": 11}, "problemViews": False})
@@ -107,25 +122,46 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   stepOver = next(problem for problem in planReport["problems"] if problem["kind"] == "unreachedPlayFloor" and abs(problem["center"][1] - 70) < 3)
   assert ringShare(stations, planReport["plan"], stepOver["center"]) > 0.8
 
-  # West of the safe point the pool is swum and the bank over a swimmer's climb is never reached; at the ground's west edge the open
-  # stretch falls onto nothing, and the face sliding off it is drawn sliding.
+  # West of the safe point the pool is swum, the bank over a swimmer's climb is never reached, and the low bank is walked, outlined by
+  # the ledge it stands over the ground by; the shallow box is waded, and the bank only a swimmer climbs onto out of it is squeeze; the
+  # stacked boxes are one water, swum and not dotted, and the floating box is swum, dotted over the ground it stands clear of. The
+  # stranded entry's ring goes round its arrow.
   westImage, westReport = west
-  westPlan = Image.open(io.BytesIO(westImage))
+  westPlan, westFrame = Image.open(io.BytesIO(westImage)), westReport["plan"]
   westPlan.save(tmp_path / "courseStationsWest.png")
-  assert blueShare(pixelsAround(westPlan, westReport["plan"], [-124, 40])) > 0.5
-  assert colorShare(pixelsAround(westPlan, westReport["plan"], [-105, 46]), laneDrawing.unreachedColor) > 0.1
+  assert blueShare(pixelsAround(westPlan, westFrame, [-124, 40])) > 0.5
+  assert colorShare(pixelsAround(westPlan, westFrame, [-105, 46]), laneDrawing.unreachedColor) > 0.1
+  assert greenShare(pixelsAround(westPlan, westFrame, [-105, 34])) > 0.9
+  # The bank's north face at x -100 runs through the middles of the columns along it, which take its top, so the ledge runs half a
+  # column past it.
+  assert colorShare(pixelsAlong(westPlan, westFrame, [-100 + cellSize / 2, 31], [-100 + cellSize / 2, 37]), laneDrawing.ledgeColor) > 0.2
+  shallowWater = pixelsAround(westPlan, westFrame, [-120, 10], 6)
+  assert greenShare(shallowWater) > 0.4 and blueShare(shallowWater) > 0.2
+  assert violetShare(pixelsAround(westPlan, westFrame, [-105, 10])) > 0.9
+  stacked, floating = pixelsAround(westPlan, westFrame, [-150, 10], 6), pixelsAround(westPlan, westFrame, [-170, 40], 6)
+  assert blueShare(stacked) > 0.9 and colorShare(stacked, laneDrawing.layeredColor) == 0
+  assert blueShare(floating) > 0.8 and colorShare(floating, laneDrawing.layeredColor) > 0
+  # Boxes too small in the drawing to hold their names are listed; the pool holds its own.
+  assert "AWT_floating" in westFrame["unnamedSwimVolumes"] and "AWT_pool" not in westFrame["unnamedSwimVolumes"]
+  stranded = next(problem for problem in westReport["problems"] if problem["kind"] == "disconnectedEntry")
+  assert ringShare(westPlan, westFrame, stranded["center"], laneDrawing.entryRing) > 0.8
   edgeImage, edgeReport = edge
   edgePlan = Image.open(io.BytesIO(edgeImage))
   edgePlan.save(tmp_path / "courseStationsEdge.png")
   assert colorShare(pixelsAround(edgePlan, edgeReport["plan"], [-240.5, -30], 2), laneDrawing.voidColor) > 0.2
   assert orangeShare(pixelsAround(edgePlan, edgeReport["plan"], [-241.5, 66], 2)) > 0.2
-  # In one swim box, the ford's shelf, under water shallower than players swim in, is walked green and the deeper water beside it is
-  # swum blue.
+  # In one swim box, the ford's shelf, under water shallower than players swim in, is walked green lined with the swim blue as water
+  # waded, and the deeper water beside it is swum blue; the box's outline, white under its dashes over every fill, shows alike along
+  # the shelf and the deep water.
   fordImage, fordReport = ford
   fordPlan = Image.open(io.BytesIO(fordImage))
   fordPlan.save(tmp_path / "courseFord.png")
-  assert greenShare(pixelsAround(fordPlan, fordReport["plan"], [-120, -40])) > 0.9 and blueShare(pixelsAround(fordPlan, fordReport["plan"], [-120, -40])) == 0
+  shelf = pixelsAround(fordPlan, fordReport["plan"], [-120, -40], 6)
+  assert greenShare(shelf) > 0.4 and blueShare(shelf) > 0.2
   assert blueShare(pixelsAround(fordPlan, fordReport["plan"], [-100, -40])) > 0.9
+  for low, high in ((-128, -112), (-108, -92)):
+    edge = pixelsAlong(fordPlan, fordReport["plan"], [low, -30], [high, -30])
+    assert colorShare(edge, laneDrawing.swimBoxHalo) > 0.2 and colorShare(edge, planDrawing.swimColors["water"]) > 0.1
 
   # Kept to the band from 9 to 11, the plan draws the ledge's top and not the ground beside it.
   levelImage, levelReport = leveled

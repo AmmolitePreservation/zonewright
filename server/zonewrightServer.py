@@ -2380,7 +2380,7 @@ async def renderSketch(
   named inside itself where its name fits clear of the other labels, else by its number; `unnamedSwimVolumes` lists those in the
   drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled),
   zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problems
-  and regions, over the regions' fills and the caves' floors: walk green, swim blue, water waded lined blue, slide orange, squeeze violet, traps hatched orange, walkable floor never reached cross-hatched,
+  and regions, over the regions' fills and the caves' floors: walk green, swim blue, water waded lined blue, slide orange, squeeze violet, traps hatched orange, walkable floor never reached cross-hatched, ledges black,
   leak edges magenta, zone lines filled when reached, swim boxes dashed, seeds as white arrows, with its legend in a band under the plan; the result's
   laneState says whether the lane was computed or reused, the constants it used, what it does not model, and its limits). Labels are
   placed clear of one another, and beside the spot heights rather than over them where they can be; an area is named only where it
@@ -2957,11 +2957,12 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   (caves, stacked floors): walk green, swim blue, water the design player wades lined blue over its floor's fill, slide orange,
   squeeze (only a smaller player fits) violet, traps (one way in, no way back) hatched orange, walkable floor never reached
   cross-hatched dark, columns reached at a level under a higher one, or under water standing clear of it, dotted (violet where only a
-  smaller player fits under it), leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where
+  smaller player fits under it), ledges (reached floors side by side more than the step apart) black, leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where
   a zone line catches a fall green, zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated),
   plot entrances as ticks (a red X when unreached), water, swim boxes dashed over the fill, boundaries red, region outlines in their
   access colors, and the problems ringed and numbered (an entry's ring round its arrow), with a legend band under the plan naming every
-  mark and the relief (plan.frameSize is the plan's own size in pixels). Picture 2 (problemViews, when there are
+  mark and the relief (plan.frameSize is the plan's own size in pixels; plan.unnamedSwimVolumes the boxes in it too small for their
+  names). Picture 2 (problemViews, when there are
   problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
   its problem (ringed in the middle of the view) from a clear sight framing it, the eye raised no more than it must be and turned from
   the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives the constants used (value and source),
@@ -2996,7 +2997,7 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   result = playerReach.report(lane, description, analysis, status, seconds)
   result["plan"] = {
     "outputPath": str(planPath), "center": center, "width": round(planWidth, 2), "unitsPerPixel": round(planWidth / drawn["size"][0], 4), "level": level,
-    "frameSize": drawn["size"],
+    "frameSize": drawn["size"], "unnamedSwimVolumes": drawn["unnamedSwimVolumes"],
   }
   images = [Image(data=planPath.read_bytes(), format="png")]
   result["problemSheet"] = None

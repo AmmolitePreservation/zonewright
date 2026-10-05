@@ -12,7 +12,7 @@ import laneDrawing
 import playerReach
 import serverMapFiles
 import serverNav
-from playerScale import stepHeight
+from playerScale import minimumSwimDepth, stepHeight
 
 pytestmark = pytest.mark.clientData("serverMaps")
 # Peridot's zone row gives the safe point in server axes.
@@ -74,9 +74,10 @@ def testHighpassHoldsZoneLinesAreReachedFromItsSafePoint(recastToolingRoot, tmp_
   traps = len(analysis["problems"])
   assert [problem["kind"] for problem in analysis["problems"]] == ["trap"] * traps
   marks = [
-    "walk", "swim", "slide (too steep to stand)", "squeeze (only a smaller player)", "taken by a zone line", "trap (no way back)", "walkable, never reached",
-    "reached under a higher level", "only a smaller player under it", "leak edge (onto nothing or under the underworld)", "a zone line catches the fall", "zone line reached",
-    "zone line not reached", "seed: where players arrive", "isolated seed", "plot entrance reached", "plot entrance not reached",
+    "walk", "swim", f"water waded: no deeper than {minimumSwimDepth:g}", "slide (too steep to stand)", "squeeze (only a smaller player)", "taken by a zone line",
+    "trap (no way back)", "walkable, never reached", "reached under a higher level", "only a smaller player under it", "leak edge (onto nothing or under the underworld)",
+    f"ledge: reached floors more than the step ({stepHeight:g}) apart", "a zone line catches the fall", "zone line reached", "zone line not reached",
+    "swim box (lava's magenta)", "seed: where players arrive", "isolated seed", "plot entrance reached", "plot entrance not reached",
     "play region", "view region", "none region", "undecided region",
   ]
   assert drawn["legends"] == [

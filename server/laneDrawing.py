@@ -1,9 +1,11 @@
 """The player's lane in plan: where players reach, by label (walk green, swim blue, slide orange, squeeze violet, traps hatched orange),
-walkable floor they never reach cross-hatched dark, columns reached at a level under a higher one dotted (black where the design player
-fits there, violet where only a smaller one does), leak edges (onto nothing or under the underworld) magenta, the edges where a zone
-line catches a fall green, zone lines filled green when reached and dashed when not, seeds as white arrows (hollow when isolated), plot
-entrances as ticks (a red X when unreached), region outlines in their access colors, and the problems ringed black and numbered, each
-number by its ring or led to it by a line; with a legend band below. LanePlan lays it over planDrawing.drawPlan's plan; drawLaneBesideNav draws a lane from server files
+water the design player wades lined blue over its floor's fill, walkable floor they never reach cross-hatched dark, columns reached at a
+level under a higher one or under water standing clear of it dotted (black where the design player fits there, violet where only a
+smaller one does), ledges (reached floors side by side more than the step apart) black, leak edges (onto nothing or under the
+underworld) magenta, the edges where a zone line catches a fall green, zone lines filled green when reached and dashed when not, swim
+boxes dashed over the fill, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X when unreached), region
+outlines in their access colors, and the problems ringed black and numbered, each number by its ring or led to it by a line; with a
+legend band below. LanePlan lays it over planDrawing.drawPlan's plan; drawLaneBesideNav draws a lane from server files
 over the floors it reaches beside the server's NPC nav."""
 import math
 
@@ -63,10 +65,12 @@ trapFlag, layeredFlag, unreachedFlag, squeezeLayeredFlag, wadedFlag = 1, 2, 4, 8
 wadedColor = labelColors[playerReach.swimLabel]
 wadedSpacing = 6
 swimBoxHalo = (255, 255, 255)
+# Where reached floors side by side lie more than the step apart, a line along their shared edge.
+ledgeColor = (20, 20, 20)
 
 
 class LanePlan:
-  """A lane drawn over a plan: fill (the labels, hatches, and dots as one layer), strokes (void and catch edges, zone lines, seeds, plot
+  """A lane drawn over a plan: fill (the labels, hatches, dots, and ledges as one layer), strokes (void and catch edges, zone lines, seeds, plot
   entrances, region outlines, problem rings), labels (problem numbers, seed and region names), and its legend. level {bottom, top} keeps
   only nodes whose height lies in it. Drawn as a layer of another plan (complete false), the problems and the regions, which that plan
   draws its own way, are left out."""
@@ -79,6 +83,7 @@ class LanePlan:
     inBand = numpy.ones(lane.nodeCount, dtype=bool) if level is None else (nodes.height >= level["bottom"]) & (nodes.height <= level["top"])
     self.label = numpy.zeros(lane.columns, dtype=numpy.uint8)
     self.flags = numpy.zeros(lane.columns, dtype=numpy.uint8)
+    self.floorTop = numpy.zeros(lane.columns, dtype=numpy.uint16)
     layered = numpy.zeros(lane.columns, dtype=bool)
     squeezeLayered = numpy.zeros(lane.columns, dtype=bool)
     unreached = numpy.zeros(lane.columns, dtype=bool)
@@ -99,6 +104,7 @@ class LanePlan:
         columns = flat[reached]
         top = numpy.append(columns[1:] != columns[:-1], True)
         self.label[columns[top]] = nodes.label[part][reached[top]]
+        self.floorTop[columns[top]] = numpy.where(wet[reached[top]], 0, nodes.low[part][reached[top]])
         waded = ~nodes.wet[part] & (nodes.box[part] >= 0) & nodes.shallow[part]
         self.flags[columns[top]] = (numpy.where(nodes.trap[part][reached[top]], trapFlag, 0) | numpy.where(waded[reached[top]], wadedFlag, 0)).astype(numpy.uint8)
         levels = reached[~wet[reached] | floating[reached]]
@@ -120,6 +126,7 @@ class LanePlan:
     self.flags[unreached] |= unreachedFlag
     self.label = self.label.reshape(lane.columnsZ, lane.columnsX)
     self.flags = self.flags.reshape(lane.columnsZ, lane.columnsX)
+    self.floorTop = self.floorTop.reshape(lane.columnsZ, lane.columnsX)
     self.fromColumns = (nodes.x[lane.events[:, 1]].astype(numpy.int64), nodes.z[lane.events[:, 1]].astype(numpy.int64)) if len(lane.events) else None
 
   def sample(self, frame, size):
@@ -153,6 +160,19 @@ class LanePlan:
     dots = (across % layeredSpacing == 0) & (down % layeredSpacing == 0)
     pixels[dots & ((flags & layeredFlag) != 0)] = (*layeredColor, 255)
     pixels[dots & ((flags & squeezeLayeredFlag) != 0)] = (*squeezeLayeredColor, 255)
+    floors = numpy.where(inside, self.floorTop[rows, columns], 0).astype(numpy.int32)
+    climb = playerScale.stepHeight / self.lane.cellHeight
+    ledge = numpy.zeros(floors.shape, dtype=bool)
+    for axis in (0, 1):
+      first, second = (floors[:-1], floors[1:]) if axis == 0 else (floors[:, :-1], floors[:, 1:])
+      apart = (first > 0) & (second > 0) & (numpy.abs(second - first) > climb)
+      if axis == 0:
+        ledge[:-1] |= apart
+        ledge[1:] |= apart
+      else:
+        ledge[:, :-1] |= apart
+        ledge[:, 1:] |= apart
+    pixels[ledge] = (*ledgeColor, 255)
     return Image.fromarray(pixels, "RGBA")
 
   def surface(self):
@@ -289,6 +309,7 @@ class LanePlan:
       ("fill", labelColors[playerReach.zoneLineLabel], "taken by a zone line"), ("hatch", trapColor, "trap (no way back)"),
       ("crossHatch", unreachedColor, "walkable, never reached"), ("dots", layeredColor, "reached under a higher level"),
       ("dots", squeezeLayeredColor, "only a smaller player under it"), ("line", voidColor, "leak edge (onto nothing or under the underworld)"),
+      ("line", ledgeColor, f"ledge: reached floors more than the step ({playerScale.stepHeight:g}) apart"),
       ("line", catchColor, "a zone line catches the fall"), ("box", zoneLineColor, "zone line reached"), ("dashedBox", zoneLineColor, "zone line not reached"),
       ("swimBox", planDrawing.swimColors["water"], "swim box (lava's magenta)"),
       ("arrow", seedOutline, "seed: where players arrive"), ("hollowArrow", seedOutline, "isolated seed"), ("plus", plotColor, "plot entrance reached"),
