@@ -2957,7 +2957,7 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   (caves, stacked floors): walk green, swim blue, water the design player wades lined blue over its floor's fill, slide orange,
   squeeze (only a smaller player fits) violet, traps (one way in, no way back) hatched orange, walkable floor never reached
   cross-hatched dark, columns reached at a level under a higher one, or under water standing clear of it, dotted (violet where only a
-  smaller player fits under it), ledges (reached floors side by side more than the step apart) black, leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where
+  smaller player fits under it), ledges (walkable floors reached side by side more than the step apart, where the plan resolves columns) black, leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where
   a zone line catches a fall green, zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated),
   plot entrances as ticks (a red X when unreached), water, swim boxes dashed over the fill, boundaries red, region outlines in their
   access colors, and the problems ringed and numbered (an entry's ring round its arrow), with a legend band under the plan naming every

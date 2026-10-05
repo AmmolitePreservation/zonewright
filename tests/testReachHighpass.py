@@ -76,7 +76,7 @@ def testHighpassHoldsZoneLinesAreReachedFromItsSafePoint(recastToolingRoot, tmp_
   marks = [
     "walk", "swim", f"water waded: no deeper than {minimumSwimDepth:g}", "slide (too steep to stand)", "squeeze (only a smaller player)", "taken by a zone line",
     "trap (no way back)", "walkable, never reached", "reached under a higher level", "only a smaller player under it", "leak edge (onto nothing or under the underworld)",
-    f"ledge: reached floors more than the step ({stepHeight:g}) apart", "a zone line catches the fall", "zone line reached", "zone line not reached",
+    f"ledge: walked floors more than the step ({stepHeight:g}) apart", "a zone line catches the fall", "zone line reached", "zone line not reached",
     "swim box (lava's magenta)", "seed: where players arrive", "isolated seed", "plot entrance reached", "plot entrance not reached",
     "play region", "view region", "none region", "undecided region",
   ]
