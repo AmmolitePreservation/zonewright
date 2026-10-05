@@ -9,10 +9,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import eqgFiles
 import playerReach
 import serverMapFiles
+import structurePlots
 from playerScale import playerHeight, steepestWalkableDegrees, stepHeight
 from testHousing import decision
 from testWalkRoute import rampArguments
 from testModelsAndDressing import freshScene
+from testStructures import bridge, kitAndPlot
 from testWater import environment, liquidMaterials
 from conftest import writePNG
 
@@ -544,3 +546,25 @@ def testLaneKeyFollowsSwimBoxesZoneLinesAndTheUnderworld(stageBlenderServer):
   assert [status for status, _ in lanes] == ["computed", "reused", "computed", "computed", "computed", "computed"]
   files = [path for _, path in lanes]
   assert files[0] == files[1] and len(set(files)) == 5
+
+
+
+def testLaneWalksABridgeDeckOverTheGorgeItSpans(stageBlenderServer, tmp_path):
+  async def steps(session):
+    kitPath = await kitAndPlot(session, tmp_path)
+    await session.expectSuccess("buildBridge", {"name": "gorgeBridge", "kitPath": kitPath} | bridge)
+    await session.expectSuccess("setZoneProperties", environment | {"safePoint": [-110, 0, 0, 90]})
+    _, reached = await session.expectImage("mapReach", {"problemViews": False})
+    return reached
+
+  reached = stageBlenderServer.session(steps)
+  lane = playerReach.Lane(reached["laneFile"])
+  nodes = playerReach.Nodes(lane)
+  # Over the gorge's middle the highest floor is the bridge's deck, walked at the rims' height from the safe point; the gorge's floor
+  # under it is walked too, its open space closed by the deck's underside.
+  middle = sum(structurePlots.gorgeFloor) / 2
+  deck, floor = nodes.floorNodeAt([middle, 0]), nodes.floorNodeAt([middle, 0, -structurePlots.gorgeDepth])
+  assert [playerReach.labelNames[nodes.label[node]] for node in (deck, floor)] == ["walk", "walk"]
+  assert int(lane.read("originSeed")[deck]) == 0 and abs(float(nodes.height[deck]) - bridge["start"][2]) <= cellHeight
+  assert abs(float(nodes.height[floor]) + structurePlots.gorgeDepth) <= cellHeight
+  assert float(nodes.height[floor]) < float(lane.height(nodes.high[floor])) < float(nodes.height[deck])

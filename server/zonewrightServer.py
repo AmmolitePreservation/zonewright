@@ -2380,7 +2380,7 @@ async def renderSketch(
   named inside itself where its name fits clear of the other labels, else by its number; `unnamedSwimVolumes` lists those in the
   drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled),
   zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problems
-  and regions: walk green, swim blue, slide orange, squeeze violet, traps hatched orange, walkable floor never reached cross-hatched,
+  and regions, over the regions' fills and the caves' floors: walk green, swim blue, slide orange, squeeze violet, traps hatched orange, walkable floor never reached cross-hatched,
   leak edges magenta, zone lines filled when reached, seeds as white arrows, with its legend in a band under the plan; the result's
   laneState says whether the lane was computed or reused, the constants it used, what it does not model, and its limits). Labels are
   placed clear of one another, and beside the spot heights rather than over them where they can be; an area is named only where it

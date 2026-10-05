@@ -12,7 +12,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import laneDrawing
 import planDrawing
 import playerReach
-from testReach import reachCourse
+from testCaves import caveCanyon, hall
+from testReach import cellHeight, reachCourse
+from testWater import environment
 
 
 def planFrame(plan):
@@ -137,3 +139,37 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   assert greenShare(pixelsAround(sketch, sketchReport, [20, -10])) > 0.9
   assert greenShare(pixelsAround(bare, plainReport, [20, -10])) == 0
   assert colorShare(pixelsAround(sketch, sketchReport, [125, 103]), laneDrawing.unreachedColor) > 0.1
+
+
+def testLaneWalksACaveUnderItsVaultAndShowsThroughItsPlanFloor(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await caveCanyon(session, tmp_path)
+    await session.expectSuccess("cutCave", hall)
+    await session.expectSuccess("setZoneProperties", environment | {"safePoint": [0, -100, 2, 0]})
+    _, reached = await session.expectImage("mapReach", {"problemViews": False})
+    sketched = await session.expectImage("renderSketch", {"center": [0, 120], "width": 360, "layers": ["caves", "entries", "lane"]})
+    plain = await session.expectImage("renderSketch", {"center": [0, 120], "width": 360, "layers": ["caves", "entries"]})
+    return reached, sketched, plain
+
+  reached, sketched, plain = stageBlenderServer.session(steps)
+  lane = playerReach.Lane(reached["laneFile"])
+  nodes = playerReach.Nodes(lane)
+  # The room is walked from the safe point on its lining's floor, under its vault (the room's height within its breakup), with the
+  # hill's top over it.
+  (roomX, roomStart, roomFloor), (_, roomEnd, _) = hall["path"][3:5]
+  roomPoint = [roomX, (roomStart + roomEnd) / 2]
+  room = nodes.floorNodeAt([*roomPoint, roomFloor])
+  assert (playerReach.labelNames[nodes.label[room]], int(lane.read("originSeed")[room])) == ("walk", 0)
+  assert abs(float(nodes.height[room]) - roomFloor) <= cellHeight
+  vault = float(lane.height(nodes.high[room]))
+  assert abs(vault - float(nodes.height[room]) - hall["heights"][3]) <= hall["breakup"]["amplitude"] + cellHeight
+  assert float(nodes.height[nodes.floorNodeAt(roomPoint)]) > vault
+  # In plan the lane's fill lies over the cave's pale floor: the room shows walked green, dotted as a level under a higher one, where
+  # the plan without the lane shows the pale floor alone.
+  sketchImage, sketchReport = sketched
+  plainImage, plainReport = plain
+  sketch, bare = Image.open(io.BytesIO(sketchImage)), Image.open(io.BytesIO(plainImage))
+  sketch.save(tmp_path / "caveSketchLane.png")
+  inRoom = pixelsAround(sketch, sketchReport, roomPoint)
+  assert greenShare(inRoom) > 0.9 and colorShare(inRoom, laneDrawing.layeredColor) > 0
+  assert greenShare(pixelsAround(bare, plainReport, roomPoint)) == 0
