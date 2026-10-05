@@ -215,9 +215,11 @@ def testALeakRefusesTheGameExportAndSaysWhere(stageBlenderServer, tmp_path):
     await session.expectSuccess("saveFile", {})
     refused = await session.expectError("exportZone", archive | {"purpose": "game"})
     checked = await session.expectSuccess("checkExport", archive | {"purpose": "game"})
-    return opened, openOnly, refused, checked
+    plan, mapped = await session.expectImage("mapReach", {"problemViews": False})
+    (tmp_path / "leaksPlan.png").write_bytes(plan)
+    return opened, openOnly, refused, checked, mapped
 
-  opened, openOnly, refused, checked = stageBlenderServer.session(steps)
+  opened, openOnly, refused, checked, mapped = stageBlenderServer.session(steps)
   # With the south wall gone, its edge is a leak the check refuses, numbered as mapReach numbers it on the lane mapReach left.
   edges = [problem for problem in opened["problems"] if problem["kind"] == "voidEdge"]
   assert [failure["failure"] for failure in openOnly["failures"]] == ["voidEdge"] and openOnly["containment"]["lane"] == "reused"
@@ -231,6 +233,11 @@ def testALeakRefusesTheGameExportAndSaysWhere(stageBlenderServer, tmp_path):
   assert [failure["failure"] for failure in checked["failures"]] == kinds
   found = {failure["failure"]: failure for failure in checked["failures"]}
   assert sorted(failure["number"] for failure in checked["failures"]) == list(range(1, 6))
+  # mapReach on the same lane, reused, numbers and places them as the export does.
+  assert mapped["lane"] == "reused" and mapped["laneFile"] == checked["containment"]["laneFile"]
+  assert [(problem["kind"], problem["number"], problem["center"]) for problem in mapped["problems"] if problem["kind"] in kinds] == [
+    (failure["failure"], failure["number"], failure["center"]) for failure in checked["failures"]
+  ]
   assert near(found["voidEdge"]["center"], [-half - cellSize, 0])
   assert found["noneRegion"]["region"] == "pond" and near(found["noneRegion"]["center"], [20, -50])
   assert found["noneRegion"]["area"] == centersWithin(10, 30) * centersWithin(-60, -40) * cellSize ** 2
