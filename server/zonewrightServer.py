@@ -2559,20 +2559,21 @@ async def viewFromLane(context: Context, target: str | list[float] | None = None
   and its rules hold, so later tours show the same views. With a target (a region's or an object's name, or a point [x, y] or [x, y,
   z] on the lane's floor), up to `count` eyes (at most 6, and 6 unless given) that see it, the best of each bearing sector it is seen
   from (seeing most of it, then standing nearest 2.5 of its radii from its middle, where the view holds it whole), spread round it,
-  each looking at its middle; what players see of it is tried from the 32 eyes nearest it in each of 16 bearing sectors, by sights
-  cast against what the zone ships as collision to points on it: on an object's bounds or a point's player (each taken at least
-  playerHeight tall, a player standing there) on its north (+X), east (-Y), south (-X), and west (+Y) sides and its top, each seen
-  only from in front of it; on a region's highest floor, each point's side the side of the region's middle it lies toward. Picture:
-  one sheet of client-shaded views, each labelled with its number, its label (walk or swim), and its heading (tour) or its bearing
-  from the target, and the lane plan (renderSketch's lane layer) with the eyes as numbered yellow discs, each arrow the way it looks,
-  a target outlined, and the bearings no player sees it from shaded red; the plan with its legend is written whole at plan.outputPath.
-  The JSON gives the constants used with their sources, what is not modelled, and the limits; whether the lane and the tour were
-  computed or reused; the far sight; how many candidates; the arrivals a tour spreads from; and each eye's standing point, eye, label,
-  heading and run (tour) or bearing from it, distance from its middle, and seen share (target), its view (renderView renders it), and
-  its render. For a target: its bounds, the seen share of each side (null for a side it has no points on) and of the whole, and the
-  bearing sectors (headings from it to where a player would stand) no player sees it from, blocked or with no reached floor within the
-  far sight. Refused: mapReach's refusals, a count out of range, a target that is neither a region nor an object, a point off the
-  lane's grid or over no floor, a region holding no floor in its band, and a lane with nowhere for an eye to stand."""
+  each looking at the middle of what it sees of it; what players see of it is tried from the 32 eyes nearest it in each of 16 bearing
+  sectors, by sights cast against what the zone ships as collision to points on it: on an object's bounds or a point's player (each
+  taken at least playerHeight tall, a player standing there) on its north (+X), east (-Y), south (-X), and west (+Y) sides and its
+  top, each seen only from in front of it; on a region's highest floor, each point's side the side of the region's middle it lies
+  toward. Picture: one sheet of client-shaded views, each labelled with its number, its label (walk or swim), and its heading (tour)
+  or its bearing from the target, and the lane plan (renderSketch's lane layer) with the eyes as numbered yellow discs, each arrow the
+  way it looks, a target outlined, and the bearings no player sees it from shaded red; the plan with its legend is written whole at
+  plan.outputPath. The JSON gives the constants used with their sources, what is not modelled, and the limits; whether the lane and
+  the tour were computed or reused; the far sight; how many candidates; the arrivals a tour spreads from; and each eye's standing
+  point, eye, label, heading and run (tour) or bearing from it, distance from its middle, and seen share (target), its view
+  (renderView renders it), and its render. For a target: its bounds, the seen share of each side (null for a side it has no points on)
+  and of the whole, and the bearing sectors (headings from it to where a player would stand) no player sees it from, blocked or with
+  no reached floor within the far sight. Refused: mapReach's refusals, a count out of range, a target that is neither a region nor an
+  object, a point off the lane's grid or over no floor, a region holding no floor in its band, and a lane with nowhere for an eye to
+  stand."""
   most = laneViews.tourEyes if target is None else laneViews.targetEyes
   if count is None:
     count = most

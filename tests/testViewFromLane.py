@@ -87,8 +87,11 @@ def testLaneTourSpreadsAwayFromTheEntries(stageBlenderServer, tmp_path):
   # The flat plot is judged as tall as a player standing on it.
   assert target["bounds"]["maximum"][2] - target["bounds"]["minimum"][2] == pytest.approx(playerHeight, abs=0.011)
   assert 1 <= len(plotReport["eyes"]) <= laneViews.targetEyes and all(eye["seenShare"] > 0 for eye in plotReport["eyes"])
+  # Each eye looks at the middle of what it sees of the plot, inside the plot's bounds.
   bearings = [eye["bearingDegrees"] for eye in plotReport["eyes"]]
-  assert bearings == sorted(bearings) and all(eye["view"]["target"] == target["center"] for eye in plotReport["eyes"])
+  assert bearings == sorted(bearings)
+  low, high = numpy.array(target["bounds"]["minimum"]), numpy.array(target["bounds"]["maximum"])
+  assert all(((low - 0.01 <= eye["view"]["target"]) & (eye["view"]["target"] <= high + 0.01)).all() for eye in plotReport["eyes"])
   assert "tour" not in plotReport and set(plotReport["sides"]) == set(laneViews.sideNames)
 
 

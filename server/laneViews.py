@@ -84,11 +84,13 @@ def limits(far, targeted):
     f"eyes look no farther than the far sight, {far:g}: maxClip, or the fog's end when fog is on and nearer",
   ]
   if targeted:
-    stated.append(
+    stated += [
       f"what players see of the target is tried from the {sightsPerSector} eyes nearest it in each of {bearings} bearing sectors, by sights cast"
       " against what the zone ships as collision (bridgeLane.clearSights): a boundary blocks a sight though players see through it, and"
-      " cutout cards, water, and what players pass through block none"
-    )
+      " cutout cards, water, and what players pass through block none",
+      "an object or a point is judged by its bounds (at least playerHeight tall): a sight reaching a point on them counts as seeing it,"
+      " so bounds that take in ground or air round the object (a span across a canyon, a tree's crown) read seen where only that is",
+    ]
   return stated
 
 
@@ -110,11 +112,13 @@ def lowestReached(nodes):
 
 
 def eyeCandidates(nodes, description):
-  """Where eyes may stand: per eyeBlock block of reached walkable floor (label walk) and of reached water (label swim) whose box's top
-  lies open to the air at the eye, the member nearest the block's middle. Returns {node, label, standing, eye} arrays: a floor's eye
-  eyeHeight over it, a swimmer's swimEyeAboveSurface over the box's top, where the lane floats him."""
+  """Where eyes may stand: per block eyeBlock across (in columns from the lane's grid corner) and eyeBlock tall (from height 0) of
+  reached walkable floor (label walk) and of reached water (label swim) whose box's top lies open to the air at the eye, the member
+  nearest the block's middle (ties to the first). Returns {node, label, standing, eye} arrays: a floor's eye eyeHeight over it, a
+  swimmer's swimEyeAboveSurface over the box's top, where the lane floats him. Read a run of whole tiles at a time, which hold whole
+  blocks when a tile is a whole number of blocks across."""
   lane = nodes.lane
-  floors = numpy.flatnonzero(nodes.label == playerReach.walkLabel)
+  eligible = nodes.label == playerReach.walkLabel
   wet = numpy.flatnonzero(nodes.wet & (nodes.label == playerReach.swimLabel))
   holder = wet - 1
   while True:
@@ -125,29 +129,47 @@ def eyeCandidates(nodes, description):
   safe = numpy.maximum(holder, 0)
   sameColumn = (holder >= 0) & (nodes.x[safe] == nodes.x[wet]) & (nodes.z[safe] == nodes.z[wet])
   boxTops = numpy.array([box["high"][2] for box in description["swimBoxes"]], dtype=numpy.float64)
-  surface = boxTops[nodes.box[wet]]
-  ceiling = lane.height(nodes.high[safe])
-  wet = wet[sameColumn & (surface + playerScale.swimEyeAboveSurface <= ceiling)]
-  surface = boxTops[nodes.box[wet]]
-  chosen = numpy.concatenate([floors, wet])
-  planX, planY = nodes.plan(chosen)
-  height = numpy.concatenate([nodes.height[floors].astype(numpy.float64), surface])
+  eligible[wet[sameColumn & (boxTops[nodes.box[wet]] + playerScale.swimEyeAboveSurface <= lane.height(nodes.high[safe]))]] = True
+  across = max(1, round(eyeBlock / lane.cellSize))
+  side = across * lane.cellSize
+  rows = lane.columnsX // across + 1
+  # A block's members are ranked by their distance from its middle in steps this fine, so a block and a rank sort as one integer.
+  steps = 64
+  ranks = math.ceil(math.sqrt(2 * side * side + eyeBlock * eyeBlock) / 2 * steps) + 1
+  perTile = lane.tileCells * lane.tileCells
+  tileStarts = nodes.columnStart[::perTile]
+  picked, heights = [], []
+  tile = 0
+  while tile < len(tileStarts) - 1:
+    last = tile + 1
+    while last < len(tileStarts) - 1 and tileStarts[last + 1] - tileStarts[tile] <= laneDrawing.chunkNodes:
+      last += 1
+    start = int(tileStarts[tile])
+    members = start + numpy.flatnonzero(eligible[start:int(tileStarts[last])])
+    tile = last
+    if not len(members):
+      continue
+    height = nodes.height[members].astype(numpy.float64)
+    water = nodes.wet[members]
+    height[water] = boxTops[nodes.box[members[water]]]
+    columnZ, columnX = nodes.z[members].astype(numpy.int64), nodes.x[members].astype(numpy.int64)
+    level = numpy.floor(height / eyeBlock).astype(numpy.int64)
+    offCenter = numpy.sqrt(
+      ((columnZ % across + 0.5) * lane.cellSize - side / 2) ** 2 + ((columnX % across + 0.5) * lane.cellSize - side / 2) ** 2
+      + (height - (level + 0.5) * eyeBlock) ** 2
+    )
+    block = ((columnZ // across) * rows + columnX // across) * (int(level.max() - level.min()) + 1) + (level - level.min())
+    order = numpy.argsort(block * ranks + numpy.rint(offCenter * steps).astype(numpy.int64), kind="stable")
+    first = order[numpy.append(True, block[order][1:] != block[order][:-1])]
+    picked.append(members[first])
+    heights.append(height[first])
+  if not picked:
+    return {"node": numpy.zeros(0, dtype=numpy.int64), "label": numpy.zeros(0, dtype=numpy.uint8), "standing": numpy.zeros((0, 3)), "eye": numpy.zeros((0, 3))}
+  picked, height = numpy.concatenate(picked), numpy.concatenate(heights)
+  planX, planY = nodes.plan(picked)
   standing = numpy.stack([planX, planY, height], axis=1)
-  if not len(chosen):
-    return {"node": chosen, "label": numpy.zeros(0, dtype=numpy.uint8), "standing": standing, "eye": standing.copy()}
-  lift = numpy.concatenate([numpy.full(len(floors), playerScale.eyeHeight), numpy.full(len(wet), playerScale.swimEyeAboveSurface)])
-  keys = numpy.floor(standing / eyeBlock).astype(numpy.int64)
-  _, group = numpy.unique(keys, axis=0, return_inverse=True)
-  group = group.ravel()
-  counts = numpy.bincount(group).astype(numpy.float64)
-  middles = numpy.stack([numpy.bincount(group, weights=standing[:, axis]) / counts for axis in range(3)], axis=1)
-  offCenter = numpy.linalg.norm(standing - middles[group], axis=1)
-  order = numpy.lexsort((numpy.arange(len(group)), offCenter, group))
-  first = order[numpy.append(True, group[order][1:] != group[order][:-1])]
-  return {
-    "node": chosen[first], "label": nodes.label[chosen[first]], "standing": standing[first],
-    "eye": standing[first] + numpy.stack([numpy.zeros(len(first)), numpy.zeros(len(first)), lift[first]], axis=1),
-  }
+  lift = numpy.where(nodes.wet[picked], playerScale.swimEyeAboveSurface, playerScale.eyeHeight)
+  return {"node": picked, "label": nodes.label[picked], "standing": standing, "eye": standing + numpy.stack([numpy.zeros(len(lift)), numpy.zeros(len(lift)), lift], axis=1)}
 
 
 def spread(points, chosenAlready, count):
@@ -339,7 +361,9 @@ def sightPlan(subject, candidates, far):
   eyes = candidates["eye"]
   center = subject["center"]
   if subject["kind"] == "region":
-    nearest = numpy.min(numpy.linalg.norm(eyes[:, None, :] - subject["points"][None, :, :], axis=2), axis=1)
+    nearest = numpy.full(len(eyes), numpy.inf)
+    for point in subject["points"]:
+      nearest = numpy.minimum(nearest, numpy.linalg.norm(eyes - point, axis=1))
     outside = numpy.ones(len(eyes), dtype=bool)
   else:
     nearest = numpy.linalg.norm(eyes - numpy.clip(eyes, subject["low"], subject["high"]), axis=1)
@@ -398,7 +422,7 @@ def sectorsApart(sector, chosen):
 def judge(subject, candidates, plan, clear, count):
   """What the sights found: each side's seen share, the unseen bearing runs, and up to count eyes that see the subject, the best eye of
   each sector it is seen from (the most points, then the nearest framingRadii of its radii from its middle), spread round it (each next
-  the sector farthest round from those chosen), in bearing order, each looking at its middle."""
+  the sector farthest round from those chosen), in bearing order, each looking at the middle of the points it sees."""
   seen = numpy.zeros((len(plan["tried"]), len(subject["points"])), dtype=bool)
   seen[plan["eyeIndex"], plan["pointIndex"]] = numpy.asarray(clear, dtype=bool)
   pointSeen = seen.any(axis=0)
@@ -430,7 +454,8 @@ def judge(subject, candidates, plan, clear, count):
     eyes.append({
       "number": number, "label": playerReach.labelNames[candidates["label"][candidate]], "standing": roundedPoint(candidates["standing"][candidate]),
       "eye": roundedPoint(eye), "bearingDegrees": round(float(plan["bearing"][index]), 1), "distance": round(float(plan["distance"][index]), 1),
-      "seenShare": round(float(sees[index]) / len(subject["points"]), 3), "view": {"eye": roundedPoint(eye), "target": roundedPoint(subject["center"])},
+      "seenShare": round(float(sees[index]) / len(subject["points"]), 3),
+      "view": {"eye": roundedPoint(eye), "target": roundedPoint(subject["points"][seen[index]].mean(axis=0))},
     })
   return {
     "sides": sides, "seenShare": round(float(pointSeen.mean()), 3), "unseenSectors": unseenRuns(sectorSeen, plan["sectorHasEyes"]),
@@ -465,8 +490,8 @@ def planFraming(points, margin, least):
 
 
 class EyePlan(laneDrawing.LanePlan):
-  """A lane plan (renderSketch's lane layer) with the eyes marked: each a numbered yellow disc with an arrow the way it looks; for a
-  target, the target outlined and the bearings no player sees it from shaded red out from its middle."""
+  """A lane plan (renderSketch's lane layer) with the eyes marked: each a numbered yellow disc with an arrow the way its view looks; for
+  a target, the target outlined and the bearings no player sees it from shaded red out from its middle."""
 
   def __init__(self, analysis, description, eyes, subject=None, unseen=()):
     super().__init__(analysis, description, None, False)
@@ -497,7 +522,7 @@ class EyePlan(laneDrawing.LanePlan):
       if self.subject is None:
         heading = eye["headingDegrees"]
       else:
-        heading = float(headingOf(self.subject["center"][0] - eye["eye"][0], self.subject["center"][1] - eye["eye"][1]))
+        heading = float(headingOf(eye["view"]["target"][0] - eye["eye"][0], eye["view"]["target"][1] - eye["eye"][1]))
       ahead = planDrawing.pixelDirection(heading)
       tip = (x + ahead[0] * eyeArrowLength, y + ahead[1] * eyeArrowLength)
       side = (-ahead[1], ahead[0])
