@@ -2566,8 +2566,9 @@ async def viewFromLane(context: Context, target: str | list[float] | None = None
   toward. Picture: one sheet of client-shaded views, each labelled with its number, its label (walk or swim), and its heading (tour)
   or its bearing from the target, and the lane plan (renderSketch's lane layer) with the eyes as numbered yellow discs, each arrow the
   way it looks, a target outlined, and the bearings no player sees it from shaded red; the plan with its legend is written whole at
-  plan.outputPath. The JSON gives the constants used with their sources, what is not modelled, and the limits; whether the lane and
-  the tour were computed or reused; the far sight; how many candidates; the arrivals a tour spreads from; and each eye's standing
+  plan.outputPath. The JSON gives the constants used with their sources, what is not modelled (doors among it: taken as open, though
+  the client collides with a closed one, so an eye may stand behind a door players must open first), and the limits; whether the lane
+  and the tour were computed or reused; the far sight; how many candidates; the arrivals a tour spreads from; and each eye's standing
   point, eye, label, heading and run (tour) or bearing from it, distance from its middle, and seen share (target), its view
   (renderView renders it), and its render. For a target: its bounds, the seen share of each side (null for a side it has no points on)
   and of the whole, and the bearing sectors (headings from it to where a player would stand) no player sees it from, blocked or with
