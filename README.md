@@ -60,7 +60,7 @@ The grid (`playerReach.reachGrid`: columns 1 across, cells 0.25 tall, tiles of 2
 | | 1 | 37.9 M | 36.2 M | 14.3 | 1.1 GB | 35.6 M square units |
 | | 0.5 | 149 M | 145 M | 56.2 | 4.4 GB | within 1% of 1 |
 
-A column of 0.5 reaches what one of 1 reaches at four times the time and memory, past 30 s and 2 GB on the canyon; columns of 4 and 8 cut every face steeper than about 48 and 29 degrees, whose rise across a column passes the 4.5 step (a 71.9 degree face rises 12.2 and 24.5), and close every gap under 8 and 16. At 1 a 71.9 degree face rises 3.1 a column, and a gap of 2 always keeps an open column. Rasterizing is 1.2 s of the canyon's 14: the floods, which are global, take the rest, so no per-tile cache is kept (a local edit's recompute is the whole run). `mapReach` on the canyon copy computes its lane in 17 s (the bridge collecting the collision, the helper, and reading it) and reuses it in 0.2 s.
+A column of 0.5 reaches what one of 1 reaches at four times the time and memory, past 30 s and 2 GB on the canyon; columns of 4 and 8 cut every face steeper than about 48 and 29 degrees, whose rise across a column passes the 4.5 step (a 71.9 degree face rises 12.2 and 24.5), and close every gap under 8 and 16. At 1 a 71.9 degree face rises 3.1 a column, and a gap of 2 always keeps an open column. Rasterizing is 1.2 s of the canyon's 14: the floods, which are global, take the rest, so no per-tile cache is kept (a local edit's recompute is the whole run). `mapReach` on the canyon copy computes its lane in 17 s (the bridge collecting the collision, the helper, and reading it) and reuses it in 0.2 s; judging it against the regions and drawing its plan take 11 s and 1.3 GB more in the server.
 
 ## Scale
 

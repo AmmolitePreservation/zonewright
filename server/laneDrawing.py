@@ -36,6 +36,7 @@ problemColor = (190, 0, 0)
 problemRing = 9
 regionColors = {"play": planDrawing.regionColor, "view": planDrawing.accessColors["view"], "none": planDrawing.accessColors["none"], None: planDrawing.accessColors[None]}
 legendRowHeight = 22
+chunkNodes = 1 << 22
 
 
 class LanePlan:
@@ -48,21 +49,32 @@ class LanePlan:
     self.lane = lane = nodes.lane
     self.analysis, self.description, self.numbered = analysis, description, numbered
     inBand = numpy.ones(lane.nodeCount, dtype=bool) if level is None else (nodes.height >= level["bottom"]) & (nodes.height <= level["top"])
-    # A column's nodes lie together, lowest first, so the last reached one of a run is the column's top.
-    flat = nodes.z.astype(numpy.int32) * lane.columnsX + nodes.x
-    reached = numpy.flatnonzero(nodes.reached & inBand)
     self.label = numpy.zeros(lane.columns, dtype=numpy.uint8)
     self.flags = numpy.zeros(lane.columns, dtype=numpy.uint8)
-    if len(reached):
-      columns = flat[reached]
-      top = numpy.append(columns[1:] != columns[:-1], True)
-      self.label[columns[top]] = nodes.label[reached[top]]
-      self.flags[columns[top][nodes.trap[reached[top]]]] |= 1
-      floors = flat[reached[~nodes.wet[reached]]]
-      self.flags[floors[1:][floors[1:] == floors[:-1]]] |= 2
-    walkable = numpy.flatnonzero(nodes.walkable & ~nodes.wet & ((nodes.shape & playerReach.absorbedShape) == 0) & inBand)
+    layered = numpy.zeros(lane.columns, dtype=bool)
     unreached = numpy.zeros(lane.columns, dtype=bool)
-    unreached[flat[walkable]] = True
+    lastFloor = -1
+    # A column's nodes lie together, lowest first, so the last reached one of a run is the column's top; a column split between two
+    # chunks has its higher nodes in the later one, which writes over the earlier.
+    for start in range(0, lane.nodeCount, chunkNodes):
+      part = slice(start, min(lane.nodeCount, start + chunkNodes))
+      flat = nodes.z[part].astype(numpy.int32) * lane.columnsX + nodes.x[part]
+      band = inBand[part]
+      reached = numpy.flatnonzero(nodes.reached[part] & band)
+      if len(reached):
+        columns = flat[reached]
+        top = numpy.append(columns[1:] != columns[:-1], True)
+        self.label[columns[top]] = nodes.label[part][reached[top]]
+        self.flags[columns[top]] = numpy.where(nodes.trap[part][reached[top]], 1, 0).astype(numpy.uint8)
+        floors = columns[~nodes.wet[part][reached]]
+        if len(floors):
+          layered[floors[1:][floors[1:] == floors[:-1]]] = True
+          layered[floors[0]] |= floors[0] == lastFloor
+          lastFloor = floors[-1]
+      walkable = nodes.walkable[part] & ~nodes.wet[part] & ((nodes.shape[part] & playerReach.absorbedShape) == 0) & band
+      unreached[flat[walkable]] = True
+    self.flags[layered] |= 2
+    del layered
     unreached[self.label > 0] = False
     self.flags[unreached] |= 4
     self.label = self.label.reshape(lane.columnsZ, lane.columnsX)

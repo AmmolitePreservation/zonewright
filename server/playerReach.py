@@ -168,12 +168,16 @@ def keepNewest(folder):
     stale.unlink()
 
 
+def requireTriangles(triangles):
+  if len(triangles) == 0:
+    raise ToolError("The zone ships no collision triangles, so players stand on nothing: there is no lane")
+
+
 def computeLane(toolingRoot, folder, triangles, description, reportProgress):
   """The lane for collision triangles (zone axes, [n, 3, 3]) and a description (swimBoxes, zoneLines, seeds, underworld), reused when
   one of its key is kept: (Lane, "computed" or "reused", seconds)."""
   started = time.perf_counter()
-  if len(triangles) == 0:
-    raise ToolError("The zone ships no collision triangles, so players stand on nothing: there is no lane")
+  requireTriangles(triangles)
   if not description["seeds"]:
     raise ToolError("The lane has no seeds: set the safe point (setZoneProperties safePoint) or placeEntry where players arrive")
   key = laneKey(helperFingerprint(toolingRoot), triangles, description)
@@ -278,26 +282,24 @@ def sceneDescription(inputPath):
   footing, a seed without footing."""
   with numpy.load(inputPath, allow_pickle=False) as loaded:
     triangles = loaded["collision"]
-    if len(triangles) == 0:
-      raise ToolError("The zone ships no collision triangles, so players stand on nothing: there is no lane")
+    requireTriangles(triangles)
     scene = json.loads(str(loaded["description"]))
     bodies = [{"name": name, "triangles": loaded[f"undecided{index}"]} for index, name in enumerate(scene["undecidedBodies"])]
-  seeds, plots, teleports = [], [], []
+  seeds, plots = [], []
   for entry in scene["entries"]:
     if entry["kind"] in ("zoneIn", "landing"):
       if entry["state"] != "onFooting":
-        raise ToolError(f"Entry '{entry['name']}' stands off its footing ({entry.get('distance')} from {entry.get('footing')}): place it again (placeEntry) before mapping reach")
+        raise ToolError(f"Entry '{entry['name']}' stands off its footing ({entry['distance']} from {entry['footing']}): place it again (placeEntry) before mapping reach")
     if entry["kind"] in ("safePoint", "zoneIn", "landing"):
       if entry["seedFooting"] is None:
         raise ToolError(f"The {'safe point' if entry['kind'] == 'safePoint' else 'entry ' + repr(entry['name'])} at {entry['at']} has no footing on what the zone ships, so the lane has no node there to start from")
       seeds.append({
         "name": entry["name"], "kind": entry["kind"], "point": entry["at"], "footing": entry["seedFooting"]["point"],
-        "tolerance": seedTolerance(entry["seedFooting"]["normalZ"]), "isolated": bool(entry.get("isolated", False)), "headingDegrees": entry["headingDegrees"],
+        "tolerance": seedTolerance(entry["seedFooting"]["normalZ"]), "isolated": entry["kind"] != "safePoint" and entry["isolated"],
+        "headingDegrees": entry["headingDegrees"],
       })
     elif entry["kind"] == "plotEntrance":
       plots.append({"name": entry["name"], "point": entry["at"]})
-    elif entry["kind"] == "teleport":
-      teleports.append(entry["name"])
   seeds.sort(key=lambda seed: seed["kind"] != "safePoint")
   zoneLines = []
   for line in scene["zoneLines"]:
@@ -481,26 +483,26 @@ def nodeRegions(nodes, regions):
     return found
   first = numpy.full((nodes.lane.columnsZ, nodes.lane.columnsX), -1, dtype=numpy.int16)
   shared = numpy.zeros(first.shape, dtype=bool)
-  masks = []
   for index in precedence(regions):
-    region = regions[index]
-    mask = polygonMask(nodes.lane, region["outline"])
+    mask = polygonMask(nodes.lane, regions[index]["outline"])
     shared |= mask & (first >= 0)
     first[mask & (first < 0)] = index
-    masks.append((index, mask))
   candidate = first[nodes.z, nodes.x]
+  del first
   bottoms = numpy.array([region["bottom"] for region in regions] + [numpy.inf], dtype=numpy.float32)
   tops = numpy.array([region["top"] for region in regions] + [-numpy.inf], dtype=numpy.float32)
   inside = (nodes.height >= bottoms[candidate]) & (nodes.height <= tops[candidate])
   found[inside] = candidate[inside]
   del candidate, inside
   crowded = numpy.flatnonzero(shared[nodes.z, nodes.x])
+  del shared
   if len(crowded):
     found[crowded] = -1
-    for index, mask in masks:
+    for index in precedence(regions):
       region = regions[index]
       pending = crowded[found[crowded] < 0]
-      holds = mask[nodes.z[pending], nodes.x[pending]] & (nodes.height[pending] >= region["bottom"]) & (nodes.height[pending] <= region["top"])
+      holds = polygonMask(nodes.lane, region["outline"])[nodes.z[pending], nodes.x[pending]]
+      holds &= (nodes.height[pending] >= region["bottom"]) & (nodes.height[pending] <= region["top"])
       found[pending[holds]] = index
   return found
 
