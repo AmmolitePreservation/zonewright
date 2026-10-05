@@ -2090,7 +2090,7 @@ async def renderSketch(
   lanePlan, laneState = None, None
   if "lane" in layers:
     lane, description, status, seconds, analysis = await sceneLane(context)
-    lanePlan = laneDrawing.LanePlan(analysis, description, numbered=False)
+    lanePlan = laneDrawing.LanePlan(analysis, description, None, False)
     laneState = {"lane": status, "seconds": seconds}
   outputPath = newRenderPath()
   drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, outputPath, center, width, overlays, lanePlan)
@@ -2617,7 +2617,7 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
     center = [(bounds["minimum"][axis] + bounds["maximum"][axis]) / 2 for axis in (0, 1)]
   zone = await callBridge(context, "getZoneProperties", {})
   sky = await zoneSky(zone)
-  lanePlan = laneDrawing.LanePlan(analysis, description, level)
+  lanePlan = laneDrawing.LanePlan(analysis, description, level, True)
   planWidth = width if width is not None else (bounds["maximum"][1] - bounds["minimum"][1]) * 1.05
   planPath, base, drawn = await lanePlanRender(context, center, planWidth, lanePlan, ["boundaries"], sky)
   across = (bounds["maximum"][0] - bounds["minimum"][0]) * 1.05

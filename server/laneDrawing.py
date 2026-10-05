@@ -42,12 +42,14 @@ chunkNodes = 1 << 22
 class LanePlan:
   """A lane drawn over a plan: fill (the labels, hatches, and dots as one layer), strokes (void edges, zone lines, seeds, plot entrances,
   region outlines, problem rings), and labels (problem numbers, seed and region names). level {bottom, top} keeps only nodes whose height
-  lies in it; numbered false leaves the problems out."""
+  lies in it. Drawn as a layer of another plan (complete false), the problems and the regions, which that plan draws its own way, are
+  left out."""
 
-  def __init__(self, analysis, description, level=None, numbered=True):
+  def __init__(self, analysis, description, level, complete):
     nodes = analysis["nodes"]
     self.lane = lane = nodes.lane
-    self.analysis, self.description, self.numbered = analysis, description, numbered
+    self.analysis, self.description, self.complete = analysis, description, complete
+    self.regions = description["regions"] if complete else []
     inBand = numpy.ones(lane.nodeCount, dtype=bool) if level is None else (nodes.height >= level["bottom"]) & (nodes.height <= level["top"])
     self.label = numpy.zeros(lane.columns, dtype=numpy.uint8)
     self.flags = numpy.zeros(lane.columns, dtype=numpy.uint8)
@@ -113,7 +115,7 @@ class LanePlan:
 
   def strokes(self, draw, frame):
     lane = self.lane
-    for region in self.description["regions"]:
+    for region in self.regions:
       points = [frame.pixel(point) for point in region["outline"]]
       planDrawing.dashedLine(draw, points + points[:1], (*regionColors[region["access"]], 255), 3)
     if self.fromColumns is not None:
@@ -140,20 +142,20 @@ class LanePlan:
         draw.line([(x - plotMark, y + plotMark), (x + plotMark, y - plotMark)], fill=(*unreachedPlotColor, 255), width=4)
     for seed, entry in zip(self.description["seeds"], self.analysis["entries"]):
       drawSeed(draw, frame.pixel(entry["at"]), seed.get("headingDegrees"), seed["isolated"])
-    if self.numbered:
+    if self.complete:
       for problem in self.analysis["problems"]:
         x, y = frame.pixel(problem["center"])
         draw.ellipse([x - problemRing, y - problemRing, x + problemRing, y + problemRing], outline=(*problemColor, 255), width=3)
 
   def labels(self, board, frame):
-    if self.numbered:
+    if self.complete:
       for problem in self.analysis["problems"]:
         x, y = frame.pixel(problem["center"])
         board.place((x + problemRing + 2, y - problemRing - 2), str(problem["number"]), problemColor, 17, "lb")
     for entry in self.analysis["entries"]:
       x, y = frame.pixel(entry["at"])
       board.place((x + seedLength, y), "S" if entry["kind"] == "safePoint" else entry["name"], seedOutline, 13, "lm")
-    for region in self.description["regions"]:
+    for region in self.regions:
       board.place(planDrawing.centroidOf([frame.pixel(point) for point in region["outline"]]), region["name"], regionColors[region["access"]], 13)
 
   def legend(self):
