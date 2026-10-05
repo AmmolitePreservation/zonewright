@@ -987,12 +987,17 @@ async def scaleFigureModel(zone, view):
   " boundaries (walls, lids, floors) stand, which the client never draws, a wall as a slab thick enough to show from above, and green"
   " where the zone lines stand, seen through the water but hidden behind and under the ground; with swimVolumes, the view is tinted"
   " where the swim volumes stand (cyan water, magenta lava), each box seen through the water, so its top shows evenly under a surface"
-  " it meets or lies just below, but hidden behind and under the ground; with lane, the view is tinted where players reach floor, as"
-  " mapReach's lane colors it (walk green, swim blue for a floor in a swim box, slide orange, squeeze violet, taken by a zone line dark"
-  " green), each column within the view's far clip at its floor, the lane's columns merged per label and level into rectangles laid a"
-  " cell height over their floors, seen through the water but hidden behind and under the ground, under the swim volumes' and the"
-  " guides' tints; the result's laneState gives whether the lane was computed or reused, the constants, what is not modelled, and the"
-  " limits as mapReach does, and laneTint how many columns and rectangles the view holds within its far clip. Liquids draw as they"
+  " it meets or lies just below, but hidden behind and under the ground; with lane, the view is tinted where it shows floor players"
+  f" reach, {round(laneDrawing.tintAlpha * 100)}% toward the color mapReach's lane gives it (walk green, swim blue for a floor in a"
+  " swim box, slide orange, squeeze pink, taken by a zone line yellow), pixel by pixel: each pixel's point is placed from the view's"
+  " depth, and one on a face no steeper than"
+  f" {math.degrees(math.acos(buildTolerances.laneTintNormalZ)):.0f} degrees that lies on a reached floor of its column"
+  " (within a cell height of it, and down the face's slope across the column under it) is tinted, the floor under the water through"
+  " it, never the scale figure, the walls, or what stands on the floor, nor what the guides' tint covers, under the swim volumes'"
+  " tint; a band under the render names the labels it tints. The result's laneState gives whether the lane was computed or reused,"
+  " the lane file, the constants, what is not modelled, and the limits as mapReach does, and laneTint how many of the lane's columns"
+  " the view holds within its far clip and field, the share of its pixels tinted, and the labels. A perspective view's result gives"
+  " its vertical field of view. Liquids draw as they"
   " stand at effect time 0, or at"
   " `liquidTime` seconds on the client's effect clock, each layer scrolled by its slides as the client's effects scroll it (time"
   " modulo 100): two views a second or two apart show which way and how fast a fall or river moves (liquid materials made before"
@@ -2404,11 +2409,13 @@ async def renderSketch(
   drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled),
   zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problems
   and regions, over the regions' fills and the caves' pale floors and under the caves' walls: walk green, swim blue, slide orange,
-  squeeze violet, traps hatched orange, walkable floor never reached cross-hatched, leak edges magenta, zone lines filled when
-  reached, seeds as white arrows, with its legend in a band under the plan; the result's laneState says whether the lane was computed
-  or reused, the constants it used, what it does not model, and its limits). Labels are placed clear of one another, and beside the
-  spot heights rather than over them where they can be; an area is named only where it reaches into the drawing. frameSize is the
-  plan's size in pixels, above any legend band."""
+  squeeze pink, taken by a zone line yellow, traps hatched orange, walkable floor never reached cross-hatched (alone, or over a level
+  reached under it), leak edges magenta, zone lines filled when reached, seeds as white arrows, with a legend in a band under the plan
+  of what it shows; the result's laneState says whether the lane was computed or reused, the constants it used, what it does not
+  model, and its limits). A cave run's end its cut rounded off closes in a half circle; `caveEndsUnknown` names the caves cut before
+  their records kept which ends were rounded, whose ends are drawn open (cut them again with editCave). Labels are placed clear of one
+  another, and beside the spot heights rather than over them where they can be; an area is named only where it reaches into the
+  drawing. frameSize is the plan's size in pixels, above any legend band."""
   if len(center) != 2 or width <= 0:
     raise ToolError(f"center is [x, y] and width positive, got {center} and {width}")
   zone = await callBridge(context, "getZoneProperties", {})
@@ -2434,7 +2441,7 @@ async def renderSketch(
     "outputPath": str(outputPath), "center": center, "width": width, "unitsPerPixel": round(width / drawn["size"][0], 4), "heightRange": base["heightRange"],
     "bandHeight": bandHeight, "gridStep": drawn["gridStep"], "sheetColors": drawn["sheetColors"],
     "shapes": {sheet["sheet"]: len(sheet["shapes"]) for sheet in overlays["sheets"]}, "unnamedSwimVolumes": drawn["unnamedSwimVolumes"],
-    "frameSize": drawn["size"],
+    "frameSize": drawn["size"], "caveEndsUnknown": sorted({cave["label"] for cave in overlays["caves"] if not cave["endsKnown"]}),
   } | ({} if laneState is None else {"laneState": laneState})]
 
 
@@ -2710,11 +2717,13 @@ async def renderSection(
   unknown cave or run. The result also gives the cuts as numbers (s along the line, z height), closedSpaces (how many closed shapes
   the ground makes in it: rooms and passages cut across, one over another), and at each bend the ground's heights where its two legs
   meet (groundAtJoins). Asked for, the `lane` layer draws where the line crosses the lane mapReach maps: each reached floor as a bar
-  standing on its height in its label's color (walk green, swim blue for a floor in a swim box, slide orange, squeeze violet, taken by
-  a zone line dark green), reached water as a blue band from its bottom to its top, walkable floor never reached dashed grey, and leak
-  edges as magenta ticks down from the floor a fall onto nothing or under the underworld starts from, with a legend in a band under
-  the section; its laneState gives whether the lane was computed or reused, the constants, what is not modelled, and the limits as
-  mapReach does, the counts of each, and laneCut, a file holding them (s along the line, z height, label)."""
+  standing just over its height in its label's color (walk green, swim blue for a floor in a swim box, slide orange, squeeze pink,
+  taken by a zone line yellow), reached water as a blue band from its bottom to its top across its swim box, walkable floor never
+  reached dashed grey, a floor's ends kept to the block's edge where the lane's columns run past it, and leak edges as magenta ticks
+  down from the floor a fall onto nothing or under the underworld starts from, with a legend in a band under the section of what it
+  shows, the section's own layers among them; its laneState gives whether the lane was computed or reused, the constants, what is not
+  modelled, and the limits as mapReach does, the counts of each, and laneCut, a file holding them (s along the line, z height,
+  label)."""
   outputPath, cuts, drawn, laneState = await drawnSection(context, {"start": start, "end": end, "path": path, "cave": cave, "bottom": bottom, "top": top}, layers)
   summary = {
     "outputPath": str(outputPath), "length": cuts["length"], "bottom": cuts["bottom"], "top": cuts["top"], "bends": cuts["bends"],
@@ -3012,12 +3021,13 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   (the archive's collision: no reference content, guides, regions, or what players pass through) on a grid of columns (reachGrid), for
   the whole zone at once, and reused while nothing it depends on changed. Picture 1, the lane plan over renderSketch's relief, `width`
   across about `center` (default: everything the zone ships), with only the nodes whose height lies in `level` {bottom, top} when given
-  (caves, stacked floors): walk green, swim blue, slide orange, squeeze (only a smaller player fits) violet, traps (one way in, no way
-  back) hatched orange, walkable floor never reached cross-hatched dark, columns reached at a level under a higher one dotted (violet
-  where only a smaller player fits under it), leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where
-  a zone line catches a fall green, zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated),
-  plot entrances as ticks (a red X when unreached), water and swim boxes, boundaries red, region outlines in their access colors, and
-  the problems ringed and numbered, with a legend band under the plan (plan.frameSize is the plan's own size in pixels). Picture 2 (problemViews, when there are
+  (caves, stacked floors): walk green, swim blue, slide orange, squeeze (only a smaller player fits) pink, taken by a zone line yellow,
+  traps (one way in, no way back) hatched orange, walkable floor never reached (open space joins it to the lane) cross-hatched dark,
+  alone or over a level reached under it, columns reached at a level under a higher one dotted (pink where only a smaller player fits
+  under it), leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where a zone line catches a fall green,
+  zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X
+  when unreached), water and swim boxes, boundaries red, region outlines in their access colors, and the problems ringed and numbered,
+  with a legend band under the plan naming what it shows (plan.frameSize is the plan's own size in pixels). Picture 2 (problemViews, when there are
   problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
   its problem (ringed in the middle of the view) from a clear sight framing it, the eye raised no more than it must be and turned from
   the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives the constants used (value and source),
@@ -3147,23 +3157,36 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   the arrival whose flood reached it first, as legs, each a run of one move into one label (walk; step, a walk rising more than any
   walkable face rises across a column, a riser, steps with less than a player's height of walking between them one climb run counting
   its steps; drop; slide; enterWater; swim; climbOut; sink; teleport, carried by a zone line home), with its start, end, rise (a fall
-  negative), plan length, and moves; and its decisive moves numbered, each by its leg: every drop, slide, entering or leaving water,
-  teleport, and the first step of each climb run. Picture 1, the route over the lane plan as a ribbon in its labels' colors, each
-  decisive move ringed and numbered, the point ringed red, with the legend; picture 2, eye-level frames of up to five decisive moves
-  (spread from the first to the last when there are more), each standing on the route 12 before its move (from its start when nearer;
-  in water, floating over it) and looking at where the move ends, a teleport's from its landing along the route on, each labelled with
-  its number, move, and rise. Unreached: the reached node nearest it (players a zone line took do not count), and what separates the
-  two along the plan line between them, read from the lane's nodes and the shipped collision, in order along the line, one running
-  over columns side by side named once with how many and where it ends (through): boundary (a boundary a cast across meets, by name),
-  rise (a floor higher than the step, by how much over it, or a swim box's bottom higher than a player over the floor), headroom (a
-  gap under the step lower than the containment headroom, with its clearance), steep (a face steeper than walkable, in degrees), water
-  (no bank within the step of the box's top: the box, its top, the bank, and how far over the climb), zoneLine (a box that takes
-  players on the way), noFloor (columns with nothing at all). Picture 1, renderSection's section from the nearest node to the point,
-  run on 12 past each, with the traced lane as its lane layer, the nearest node marked with a white disc, the point with a red ring,
-  and each separation with a dark diamond named by its kind; picture 2, an eye-level view facing the point from the reached floor up
-  to 12 back from the nearest node, away from the point, as far as the lane joins it. Every result gives the constants, what is not
-  modelled (doors taken as open among them: the client collides with a closed door), the limits, and whether the lane was computed or
-  reused. Refused: `to` not [x, y] or [x, y, z], or outside what the zone ships; an unknown fromEntry; and mapReach's refusals."""
+  negative), plan length, and moves (legCount counts them; a route of more than 40 lists them in legsFile instead); and its decisive
+  moves numbered: every drop, slide, entering or leaving water (a drop into it, climbing out; not sinking, which stays in it),
+  teleport, and the first step of each climb run, those of one kind with less than 24 of the route between them one move counting
+  them (a stair of terraces), each with its first and last leg and a caption. Picture 1, the route over the lane plan (with the
+  ground's spot heights) as a ribbon in its labels' colors, each decisive move ringed and numbered where it starts, rings that would
+  overlap sharing one numbered with their run ("5-9"), the point ringed black, labels kept off the ribbon, with a legend of what the
+  plan shows; picture 2, eye-level frames of up to five decisive moves (spread from the first to the last when there are more), the
+  swim boxes tinted, each standing on the route 12 before its move (from its start when nearer; in water, floating over it) and
+  looking at where the move ends, a drop's or a slide's at where the route stands 12 past it, as the floor at a fall's foot hides
+  under its brink, the scale figure standing where it looks (not in water, nor nearer than a player's height), a teleport's from its
+  landing along the route on, each captioned with its number, move (a climb by its steps), and rise. Unreached: the reached node
+  nearest it (players a zone line took do not count, nor, for a point with a height, places straight under or over floor no one
+  reaches within the step of its height: the point's level overhead or underfoot), and what separates the two along the plan line
+  between them, read from the lane's nodes and the shipped collision, in order along the line, one running over columns side by side
+  named once with how many and where it ends (through, at alongThrough): boundary (a boundary a cast across meets, by name, with the
+  floor it was cast over), rise (a floor higher than the step, by how much over it, or a swim box's bottom higher than a player over
+  the floor), headroom (a gap lower than the containment headroom, with its clearance, standing for a rise only where the gap's floor
+  is the level the line goes for; gaps at one level one after another are one), steep (a face steeper than walkable, in degrees),
+  ceiling (the floor a drop would land on lies under a ceiling lower than the floor it is made from), water (no bank within the step of
+  the box's top: the box, its top, the bank, and how far over the climb), zoneLine (a box that takes players on the way), noFloor
+  (columns with nothing at all), sealed (the point's floor lies inside a closed solid or a sealed room, open space joining it to
+  nothing reached, and nothing else on the line stops players). Picture 1, renderSection's section from the nearest node to the point,
+  run on 12 past each and from 12 under the lowest of them and what separates them to 12 over the highest, with the traced lane as its
+  lane layer, the nearest node marked with a white disc, the point with a black ring, and each separation with a dark diamond (and a
+  dashed line to where a run ends) named with its measure, the name led back to it where it is set off; picture 2, an eye-level view
+  from the reached floor up to 12 back from the nearest node, away from the point, as far as the lane joins it, facing the point and
+  pitched to the middle of the span between the nearest node's floor and it, the swim boxes tinted and the scale figure standing on
+  the nearest node (a player's height or more off). Every result gives the constants, what is not modelled (doors taken as open among
+  them: the client collides with a closed door), the limits, and whether the lane was computed or reused. Refused: `to` not [x, y] or
+  [x, y, z], or outside what the zone ships; an unknown fromEntry; no reached place beside the point; and mapReach's refusals."""
   if len(to) not in (2, 3) or not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in to):
     raise ToolError(f"to is [x, y] or [x, y, z], got {to}")
   lane, description, status, seconds = await sceneLaneOnly(context, fromEntry)

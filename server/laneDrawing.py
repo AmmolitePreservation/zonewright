@@ -74,7 +74,9 @@ decisiveRadius = 10
 decisiveSpacing = 4
 decisiveFill = (255, 255, 255)
 decisiveNumberSize = 13
-targetColor = (220, 20, 20)
+# The traced point is a black ring round a dot on a white halo, apart from the boundaries' red and the decisive moves' white discs.
+targetColor = (15, 15, 15)
+targetHalo = (255, 255, 255)
 targetRadius = 9
 sectionBarHeight = 6
 # A section's bars stand this many pixels over their floors, so the ground's line under them shows.
@@ -375,8 +377,7 @@ class RoutePlan(LanePlan):
       if leg["move"] == "teleport":
         planDrawing.dashedLine(draw, [pixels[leg["first"]], pixels[leg["last"]]], (*teleportColor, 255), 3)
         self.shown.add("teleport")
-    x, y = frame.pixel(self.target)
-    draw.ellipse([x - targetRadius, y - targetRadius, x + targetRadius, y + targetRadius], outline=(*targetColor, 255), width=4)
+    drawTarget(draw, frame.pixel(self.target))
     for box, _ in self.rings(frame):
       draw.rounded_rectangle(box, radius=decisiveRadius, fill=(*decisiveFill, 255), outline=(*ribbonCasing, 255), width=2)
 
@@ -497,7 +498,7 @@ class SectionLane:
         draw.ellipse([x - radius, y - radius, x + radius, y + radius], fill=(*decisiveFill, 255), outline=(*ribbonCasing, 255), width=2)
         avoided.append([x - radius - 2, y - radius - 2, x + radius + 2, y + radius + 2])
       elif mark["kind"] == "point":
-        draw.ellipse([x - targetRadius, y - targetRadius, x + targetRadius, y + targetRadius], outline=(*targetColor, 255), width=3)
+        drawTarget(draw, (x, y))
         avoided.append([x - targetRadius - 2, y - targetRadius - 2, x + targetRadius + 2, y + targetRadius + 2])
     return avoided, names
 
@@ -578,6 +579,13 @@ def numberRuns(numbers):
       runs.append(str(start) if start == number else f"{start}-{number}")
       start = None
   return ", ".join(runs)
+
+
+def drawTarget(draw, at):
+  x, y = at
+  draw.ellipse([x - targetRadius - 2, y - targetRadius - 2, x + targetRadius + 2, y + targetRadius + 2], outline=(*targetHalo, 255), width=7)
+  draw.ellipse([x - targetRadius, y - targetRadius, x + targetRadius, y + targetRadius], outline=(*targetColor, 255), width=3)
+  draw.ellipse([x - 2, y - 2, x + 2, y + 2], fill=(*targetColor, 255))
 
 
 def drawRing(draw, at, radius):
@@ -666,6 +674,7 @@ def drawLegendItem(draw, left, top, item):
     draw.polygon([(center, bottom - 8), (center - 5, bottom), (center + 5, bottom)], fill=color)
   elif kind == "target":
     draw.ellipse([left + 2, top + 2, right - 2, bottom - 2], outline=color, width=3)
+    draw.ellipse([(left + right) / 2 - 2, middle - 2, (left + right) / 2 + 2, middle + 2], fill=color)
   elif kind == "disc":
     draw.ellipse([left + 4, top + 4, right - 4, bottom - 4], fill=decisiveFill, outline=color, width=2)
   elif kind == "diamond":

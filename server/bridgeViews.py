@@ -763,10 +763,11 @@ def laneTintColumns(preview, tint):
 
 def laneDecal(preview, tint, columns, dataPath):
   """Where a view shows the lane's reached floor, pixel by pixel (columns: laneTintColumns): the view's surface data (surfaceData)
-  places each pixel's point from its depth by the camera's projection, and a pixel showing the zone faced up at least laneTintNormalZ
-  takes its column's reached floor that it lies on: within a cell height of the floor, which the lane knows to a cell height, and down
-  to the floor's reach at the pixel's slope under it besides (tint's slopeReach: the column's floor is the highest ground in it). Returns the cover
-  (tint's alpha where tinted) and colors over the frame, rows bottom to top as readImagePixels gives them, and the labels tinted."""
+  places each pixel's point from its depth by the camera's projection, and a pixel showing the zone on a face whose normal z is at
+  least laneTintNormalZ takes its column's reached floor that it lies on: within a cell height of the floor, which the lane knows to a
+  cell height, and down the floor's reach at the pixel's slope under it besides (tint's slopeReach: the column's floor is the highest
+  ground in it). Returns the cover (tint's alpha where tinted) and colors over the frame, rows bottom to top as readImagePixels gives
+  them, and the labels tinted."""
   depth, normalZ, covered = preview.surfaceData(dataPath)
   height, width = depth.shape
   camera = preview.camera

@@ -177,3 +177,9 @@ def testLaneWalksACaveUnderItsVaultAndShowsThroughItsPlanFloor(stageBlenderServe
   wall = [roomPoint[0] + hall["widths"][3] / 2, roomPoint[1]]
   assert colorShare(pixelsAround(sketch, sketchReport, wall, 2), planDrawing.caveColor) > 0.2
   assert colorShare(pixelsAround(bare, plainReport, wall, 2), planDrawing.caveColor) > 0.2
+  # The room's blind end, which the cut rounds off over half its width beyond its last point, closes in a half circle there, and the
+  # walked floor reaches round under it.
+  (endX, endY, _), half = hall["path"][-1], hall["widths"][-1] / 2
+  capWall = [endX + half * math.cos(math.radians(45)), endY + half * math.sin(math.radians(45))]
+  assert sketchReport["caveEndsUnknown"] == [] and colorShare(pixelsAround(sketch, sketchReport, capWall, 2), planDrawing.caveColor) > 0.2
+  assert greenShare(pixelsAround(sketch, sketchReport, [endX, endY + half / 2])) > 0.9

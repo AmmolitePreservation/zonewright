@@ -339,7 +339,7 @@ def pixelDirection(headingDegrees):
 
 
 def caveFloorOutline(frame, cave):
-  return [frame.pixel(point) for point in cave["left"] + cave["right"][::-1]]
+  return [frame.pixel(point) for point in cave["left"] + cave["endCap"] + cave["right"][::-1] + cave["startCap"]]
 
 
 def drawCaveFloors(draw, frame, caves):
@@ -349,9 +349,9 @@ def drawCaveFloors(draw, frame, caves):
 
 
 def caveLines(size, frame, caves):
-  """Caves' runs in plan on one layer, lowest floor first: their walls at floor height, their middles dotted, their floor strokes'
-  outlines, and their junctions; each run's floor clears what the runs under it drew there, so a run passing over another hides what
-  lies under it as a level over a level."""
+  """Caves' runs in plan on one layer, lowest floor first: their walls at floor height, closed round their rounded ends, their middles
+  dashed, their floor strokes' outlines, and their junctions; each run's floor clears what the runs under it drew there, so a run
+  passing over another hides what lies under it as a level over a level."""
   layer = Image.new("RGBA", size, (0, 0, 0, 0))
   for cave in sorted(caves, key=lambda cave: cave["meanFloor"]):
     mask = Image.new("L", size, 0)
@@ -364,8 +364,9 @@ def caveLines(size, frame, caves):
         dashedLine(draw, points + points[:1], (*strokeColors["rough"], 255), 2)
       else:
         draw.polygon(points, fill=(*strokeColors[stroke["kind"]], 70), outline=(*strokeColors[stroke["kind"]], 255), width=2)
-    for side in ("left", "right"):
-      draw.line([frame.pixel(point) for point in cave[side]], fill=(*caveColor, 255), width=2)
+    for side in ("left", "right", "endCap", "startCap"):
+      if cave[side]:
+        draw.line([frame.pixel(point) for point in cave[side]], fill=(*caveColor, 255), width=2)
     dashedLine(draw, [frame.pixel(point) for point in cave["middle"]], (*caveColor, 255), 2)
     for meeting in (cave["junction"], cave["opening"]):
       if meeting is not None:
@@ -533,9 +534,9 @@ def drawPlan(basePath, outputPath, center, width, overlays, lane=None):
   regions' access fills, the caves' pale floors, the lane's fill (lane, a laneDrawing.LanePlan, when given) over them, boundaries, zone
   lines, the regions' outlines, the caves' runs, then every sheet's area fills, footprint fills and path widths each composited in turn,
   then every line and mark (the entries' arrows, then the lane's marks last), then the labels, clear of the lane's marks: swim volumes'
-  names inside them first, then the lane's, the sketch's, the entries', the plots', the boundaries' (each whose spot lies in the drawing), the zone lines', the
-  regions' (each where enough of it shows to hold its name), and the caves' (their floor heights and names), each set beside the
-  ground's spot heights where it can be, and the spot heights giving way to them where it cannot."""
+  names inside them first, then the lane's, the sketch's, the entries', the plots', the boundaries' (each whose spot lies in the
+  drawing), the zone lines', the regions' (each where enough of it shows to hold its name), and the caves' (their floor heights and
+  names), each set beside the ground's spot heights where it can be, and the spot heights giving way to them where it cannot."""
   with Image.open(basePath) as base:
     size = (round(base.width * planScale), round(base.height * planScale))
     image = base.convert("RGB").resize(size, Image.Resampling.BICUBIC).convert("RGBA")
@@ -715,7 +716,9 @@ def sectionImage(cuts, size, scale, title=None, lane=None):
   junctions marked, a run crossing the line as a dashed box), at one scale across and up, with a height grid, the distance along the
   line, its bends marked by their point numbers, and its two ends named by their coordinates; each label just above what it names.
   lane (a laneDrawing.SectionLane), when given, lays its water bands over the swim volumes and its bars and marks over the ground and
-  the caves' floors, under the boundaries and the rest."""
+  the caves' floors, under the boundaries and the rest, its names placed first and led back to their marks (ledLabel); every label
+  keeps clear of the lane's marks and the boundaries' lines where it can. A dashed run of segments end to end dashes as one line, a
+  boundary is named over its first wall, and a distance along the line under a bend's mark is left out."""
   width, height = size
   padX, padY = sectionPadding
   length, bottom, top = cuts["length"], cuts["bottom"], cuts["top"]

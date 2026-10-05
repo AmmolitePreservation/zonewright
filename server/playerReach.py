@@ -1268,7 +1268,7 @@ def separations(nodes, found, crossed, profiles, targetLevel):
   under a rise, a gap within the step of the floor left from that is lower than the containment headroom (headroom, with its
   clearance) when the gap's floor is the level the line goes for (within the step of targetLevel, or of the floor left from for a point
   without a height), else the rise; a rise by how much it passes its limit; a steep face by its degrees; a ceiling over the floor a drop
-  would land on; water no bank within the step of the box's top leaves; a zone line's box; no floor at all."""
+  would land on; water no bank within the step of the box's top leaves; a zone line's box; no floor at all; floor sealed off."""
   lane = nodes.lane
   moving = movement()
   stated = []
