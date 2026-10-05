@@ -75,11 +75,11 @@ def testHighpassHoldsZoneLinesAreReachedFromItsSafePoint(recastToolingRoot, tmp_
   assert [problem["kind"] for problem in analysis["problems"]] == ["trap"] * traps
   marks = [
     "walk", "swim", "slide (too steep to stand)", "squeeze (only a smaller player)", "taken by a zone line", "trap (no way back)", "walkable, never reached",
-    "reached under a higher level", "only a smaller player under it", "void edge (a fall onto nothing)", "a zone line catches the fall", "zone line reached",
+    "reached under a higher level", "only a smaller player under it", "leak edge (onto nothing or under the underworld)", "a zone line catches the fall", "zone line reached",
     "zone line not reached", "seed: where players arrive", "isolated seed", "plot entrance reached", "plot entrance not reached",
     "play region", "view region", "none region", "undecided region",
   ]
   assert drawn["legends"] == [
-    marks + [f"1-{traps} trap", "plan: +X (north) up, +Y left"],
+    ["relief: the highest reached floor, else the highest floor", "no floor at all"] + marks + [f"1-{traps} trap", "plan: +X (north) up, +Y left"],
     ["main piece: 3,677 polygons", "640 islands, 297 at snap risk", "Disabled and zone line: 53 polygons"],
   ]

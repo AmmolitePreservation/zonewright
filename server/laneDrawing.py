@@ -1,9 +1,9 @@
 """The player's lane in plan: where players reach, by label (walk green, swim blue, slide orange, squeeze violet, traps hatched orange),
 walkable floor they never reach cross-hatched dark, columns reached at a level under a higher one dotted (black where the design player
-fits there, violet where only a smaller one does), void edges magenta, the edges where a zone line catches a fall green, zone lines
-filled green when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X when
-unreached), region outlines in their access colors, and the problems ringed black and numbered, each number by its ring or led to it by
-a line; with a legend band below. LanePlan lays it over planDrawing.drawPlan's plan; drawLaneBesideNav draws a lane from server files
+fits there, violet where only a smaller one does), leak edges (onto nothing or under the underworld) magenta, the edges where a zone
+line catches a fall green, zone lines filled green when reached and dashed when not, seeds as white arrows (hollow when isolated), plot
+entrances as ticks (a red X when unreached), region outlines in their access colors, and the problems ringed black and numbered, each
+number by its ring or led to it by a line; with a legend band below. LanePlan lays it over planDrawing.drawPlan's plan; drawLaneBesideNav draws a lane from server files
 over the floors it reaches beside the server's NPC nav."""
 import math
 
@@ -261,7 +261,7 @@ class LanePlan:
       ("fill", labelColors[playerReach.slideLabel], "slide (too steep to stand)"), ("fill", labelColors[playerReach.squeezeLabel], "squeeze (only a smaller player)"),
       ("fill", labelColors[playerReach.zoneLineLabel], "taken by a zone line"), ("hatch", trapColor, "trap (no way back)"),
       ("crossHatch", unreachedColor, "walkable, never reached"), ("dots", layeredColor, "reached under a higher level"),
-      ("dots", squeezeLayeredColor, "only a smaller player under it"), ("line", voidColor, "void edge (a fall onto nothing)"),
+      ("dots", squeezeLayeredColor, "only a smaller player under it"), ("line", voidColor, "leak edge (onto nothing or under the underworld)"),
       ("line", catchColor, "a zone line catches the fall"), ("box", zoneLineColor, "zone line reached"), ("dashedBox", zoneLineColor, "zone line not reached"),
       ("arrow", seedOutline, "seed: where players arrive"), ("hollowArrow", seedOutline, "isolated seed"), ("plus", plotColor, "plot entrance reached"),
       ("cross", unreachedPlotColor, "plot entrance not reached"),
@@ -408,7 +408,8 @@ def drawLaneBesideNav(outputPath, serverTriangles, lanePlan, inspection, titles,
   left = lanePanel(frame, lanePlan.relief(frame, frame.size), lanePlan)
   navPanel = serverMapDrawing.componentPanel(titles[1], inspection)
   right, _ = serverMapDrawing.drawNavPanel(navPanel, frame)
-  legends = [lanePlan.legend(frame), [("fill", color, text) for color, text in navPanel["legend"]]]
+  relief = [("fill", reliefHigh, "relief: the highest reached floor, else the highest floor"), ("fill", serverMapDrawing.backgroundColor, "no floor at all")]
+  legends = [relief + lanePlan.legend(frame), [("fill", color, text) for color, text in navPanel["legend"]]]
   layouts = [legendLayout(frame.size[0], legend) for legend in legends]
   gap = serverMapDrawing.panelGap
   legendHeight = max(height for _, height in layouts)

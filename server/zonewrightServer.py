@@ -2074,7 +2074,7 @@ async def renderSketch(
   drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled),
   zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problems
   and regions: walk green, swim blue, slide orange, squeeze violet, traps hatched orange, walkable floor never reached cross-hatched,
-  void edges magenta, zone lines filled when reached, seeds as white arrows, with its legend in a band under the plan; the result's
+  leak edges magenta, zone lines filled when reached, seeds as white arrows, with its legend in a band under the plan; the result's
   laneState says whether the lane was computed or reused, the constants it used, what it does not model, and its limits). Labels are
   placed clear of one another, and beside the spot heights rather than over them where they can be; an area is named only where it
   reaches into the drawing. frameSize is the plan's size in pixels, above any legend band."""
@@ -2598,10 +2598,10 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   across about `center` (default: everything the zone ships), with only the nodes whose height lies in `level` {bottom, top} when given
   (caves, stacked floors): walk green, swim blue, slide orange, squeeze (only a smaller player fits) violet, traps (one way in, no way
   back) hatched orange, walkable floor never reached cross-hatched dark, columns reached at a level under a higher one dotted (violet
-  where only a smaller player fits under it), void edges (a fall onto nothing) magenta, edges where a zone line catches a fall green,
-  zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X
-  when unreached), water and swim boxes, boundaries red, region outlines in their access colors, and the problems ringed and numbered,
-  with a legend band under the plan (plan.frameSize is the plan's own size in pixels). Picture 2 (problemViews, when there are
+  where only a smaller player fits under it), leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where
+  a zone line catches a fall green, zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated),
+  plot entrances as ticks (a red X when unreached), water and swim boxes, boundaries red, region outlines in their access colors, and
+  the problems ringed and numbered, with a legend band under the plan (plan.frameSize is the plan's own size in pixels). Picture 2 (problemViews, when there are
   problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
   its problem (ringed in the middle of the view) from a clear sight framing it, the eye raised no more than it must be and turned from
   the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives the constants used (value and source),
