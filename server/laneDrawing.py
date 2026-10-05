@@ -340,7 +340,7 @@ class RoutePlan(LanePlan):
   """A route over the lane (LanePlan as another plan's layer): the lane's fill and marks, then the route as a ribbon through its nodes'
   columns in its legs' label colors over a dark casing (a teleport dashed from its zone line to its landing), each decisive move ringed
   white where it starts and numbered, rings that would overlap at the plan's scale sharing one numbered with their run ("5-9"), and the
-  traced point ringed red; labels keep clear of the ribbon and the rings. points are the route's nodes (playerReach.routeLegs), legs
+  traced point ringed black; labels keep clear of the ribbon and the rings. points are the route's nodes (playerReach.routeLegs), legs
   its legs, decisive its decisive moves (playerReach.decisiveLegs), target the traced point."""
 
   def __init__(self, analysis, description, points, legs, decisive, target):
@@ -416,7 +416,7 @@ class SectionLane:
   walkable floor never reached dashed grey, each end on the ground's steep face within a column of it, where the lane's columns run
   past a block's edge; and leak edges as magenta ticks down from the floor a fall starts from; each kept to the section's frame (length
   along, bottom to top) and placed by pixel(s, z). marks ({kind, s, z, text, and for a separation over columns s1, z1}) are a trace's:
-  the reached place nearest (a white disc), the traced point (a red ring), and what separates them (a dark diamond named by its kind,
+  the reached place nearest (a white disc), the traced point (a black ring round a dot), and what separates them (a dark diamond named by its kind,
   a dashed line to a second diamond where it ends); the disc and ring lie over the diamonds, and every name keeps clear of the marks.
   The legend names what the cut and the marks hold."""
 
