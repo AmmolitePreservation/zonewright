@@ -1,9 +1,14 @@
 import io
+import sys
+from pathlib import Path
 
 from PIL import Image
 
 from conftest import writePNG
 from testModelsAndDressing import freshScene
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
+import viewSheets
 
 environment = {
   "ambientColor": [0.3, 0.3, 0.3], "specialAmbientColor": [0, 0, 0], "bounceColor": [0, 0, 0], "sunColor": [0.6, 0.6, 0.6],
@@ -46,5 +51,7 @@ def testAFrameViewCentersItsObjectsAndCompareShowsOnlyWhatMoved(stageBlenderServ
   assert unchanged[1]["changedShare"] == 0 and unchanged[1]["changedBounds"] is None
   left, top, right, bottom = moved[1]["changedBounds"]
   assert 0 < moved[1]["changedShare"] < 0.5 and left < 480 < right and top < 270 < bottom
-  assert Image.open(io.BytesIO(moved[0])).size == (1952, 396)
-  assert Image.open(io.BytesIO(orbit[0])).size == (2600, 396) and orbit[1]["views"] == 4
+  (cellWidth, cellHeight), gap = viewSheets.cellSize, viewSheets.gap
+  rowHeight = gap + cellHeight + viewSheets.labelHeight + gap
+  assert Image.open(io.BytesIO(moved[0])).size == (gap + 3 * (cellWidth + gap), rowHeight)
+  assert Image.open(io.BytesIO(orbit[0])).size == (gap + 4 * (cellWidth + gap), rowHeight) and orbit[1]["views"] == 4
