@@ -46,7 +46,8 @@ leaderReach = 2 * problemRing
 regionColors = {"play": planDrawing.regionColor, "view": planDrawing.accessColors["view"], "none": planDrawing.accessColors["none"], None: planDrawing.accessColors[None]}
 legendRowHeight = 22
 legendSwatch = 18
-legendColumn = 290
+# Legend columns are as wide as the widest entry and this much apart.
+legendColumnGap = 20
 legendPadding = 8
 legendTextSize = 14
 legendBackground = (250, 250, 247)
@@ -364,9 +365,12 @@ def drawLegendItem(draw, left, top, item):
 
 
 def legendLayout(width, items):
-  """Where each legend entry goes in a band `width` wide: rows of as many columns of legendColumn as fit; (places, height)."""
-  columns = max(1, (width - 2 * legendPadding) // legendColumn)
-  places = [(legendPadding + (index % columns) * legendColumn, legendPadding + (index // columns) * legendRowHeight) for index in range(len(items))]
+  """Where each legend entry goes in a band `width` wide: rows of as many columns as fit, each as wide as the widest entry; (places,
+  height)."""
+  font = planDrawing.fontOf(legendTextSize)
+  column = max(font.getlength(text) + (0 if kind == "text" else legendSwatch + 8) for kind, _, text in items) + legendColumnGap
+  columns = max(1, int((width - 2 * legendPadding) // column))
+  places = [(legendPadding + (index % columns) * column, legendPadding + (index // columns) * legendRowHeight) for index in range(len(items))]
   rows = -(-len(items) // columns)
   return places, 2 * legendPadding + rows * legendRowHeight
 
