@@ -1233,7 +1233,8 @@ def standBack(nodes, description, start, targetPoint):
 def separationProbes(nodes, found):
   """What the collision is asked about each stop separationWalk found: a cast across it at half a player's height over the floor it is
   left from, reaching past the far column's middle; and, for a rise or a steep face, every face up a line inside the far column (or the
-  steep one) around that floor. Each list holds None where nothing is asked."""
+  steep one) around that floor. Each list holds None where nothing is asked: no cast across a stop within one column, from a floor to
+  the floor over or under it."""
   lane = nodes.lane
   moving = movement()
   crossings, columns = [], []
@@ -1243,20 +1244,20 @@ def separationProbes(nodes, found):
       columns.append(None)
       continue
     near, far = nodePoint(nodes, stop["from"]), nodePoint(nodes, stop["to"])
+    across = math.hypot(far[0] - near[0], far[1] - near[1])
     level = float(lane.height(nodes.low[stop["from"]]))
     height = level + moving["playerHeight"] / 2
-    crossings.append([[near[0], near[1], height], [near[0] + 1.5 * (far[0] - near[0]), near[1] + 1.5 * (far[1] - near[1]), height]])
+    crossings.append(None if across < 1e-6 else [[near[0], near[1], height], [near[0] + 1.5 * (far[0] - near[0]), near[1] + 1.5 * (far[1] - near[1]), height]])
     probed = stop.get("steepNode", stop["to"]) if stop["kind"] in ("rise", "steep") else None
     if probed is None:
       columns.append(None)
       continue
     # A column's floor is the highest ground anywhere in it, and the face rising to it can cross the column at its middle; a quarter
     # column further from the floor on the other side, the line stands over the probed floor rather than on that face.
-    away = (0.25 if probed == stop["to"] else -0.25) * lane.cellSize
-    across = math.hypot(far[0] - near[0], far[1] - near[1])
+    away = 0.0 if across < 1e-6 else (0.25 if probed == stop["to"] else -0.25) * lane.cellSize / across
     center = nodePoint(nodes, probed)
     columns.append([
-      center[0] + away * (far[0] - near[0]) / across, center[1] + away * (far[1] - near[1]) / across, level - moving["stepHeight"],
+      center[0] + away * (far[0] - near[0]), center[1] + away * (far[1] - near[1]), level - moving["stepHeight"],
       max(float(lane.height(nodes.low[probed])), level + moving["stepHeight"]) + lane.cellHeight,
     ])
   return crossings, columns

@@ -535,7 +535,7 @@ def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
   for name, move in (("tower", "teleport"), ("slideFace", "slide"), ("pool", "enterWater")):
     route = results[name]
     assert route["reached"] is True, name
-    assert move in [leg["move"] for leg in route["legs"]] and [decisive["move"] for decisive in route["decisive"]][-1] == move, (name, route["decisive"])
+    assert move in [leg["move"] for leg in route["legs"]] and [decisive["move"] for decisive in route["decisive"]][-1:] == [move], (name, route["decisive"])
   # The steep ramp's face is steeper than walkable, by its own degrees.
   steep = results["steepRamp"]["separations"]
   assert [stop["kind"] for stop in steep] == ["steep"] and abs(steep[0]["degrees"] - steepDegrees) <= 0.5, steep
