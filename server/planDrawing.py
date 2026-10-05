@@ -22,6 +22,9 @@ swimLabelMargin = 2
 gridColor = (255, 255, 255)
 labelHalo = (255, 255, 255)
 gridSteps = (10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000)
+# A section's heights take a step of their own, finer than its distances' where it is low, with at most heightLines lines.
+heightSteps = (1, 2, 5) + gridSteps
+heightLines = 16
 dashLength = 10
 gapLength = 6
 spotColor = (90, 30, 0)
@@ -702,7 +705,8 @@ def sectionImage(cuts, size, scale, title=None):
     labels.append(((x, y - sectionLabelLift), text, color, size))
 
   step = gridStepFor(max(length, top - bottom))
-  for z in range(math.ceil(bottom / step) * step, math.floor(top) + 1, step):
+  heightStep = min(step, next(candidate for candidate in heightSteps if (top - bottom) / candidate <= heightLines))
+  for z in range(math.ceil(bottom / heightStep) * heightStep, math.floor(top) + 1, heightStep):
     y = pixel(0, z)[1]
     draw.line([(left, y), (left + length * scale, y)], fill=(205, 205, 205, 255), width=1)
     board.write((left - 6, y), str(z), (60, 60, 60), 13, "rm")
@@ -710,6 +714,7 @@ def sectionImage(cuts, size, scale, title=None):
     x = pixel(s, 0)[0]
     draw.line([(x, pixel(0, top)[1]), (x, pixel(0, bottom)[1])], fill=(218, 218, 218, 255), width=1)
     board.write((x, pixel(0, bottom)[1] + 12), str(s), (60, 60, 60), 12)
+  board.place((left + length * scale / 2, pixel(0, bottom)[1] + 28), "distance along the line", (60, 60, 60), 12)
   for bend in cuts["bends"]:
     x = pixel(bend["s"], 0)[0]
     dashedLine(draw, [(x, pixel(0, top)[1]), (x, pixel(0, bottom)[1])], (*bendColor, 160), 1)
@@ -785,7 +790,29 @@ def sectionImage(cuts, size, scale, title=None):
     nameAbove(kept, entry["name"], plotColor, 12, True)
   for position, text, color, size in labels:
     board.place(position, text, color, size, "mb")
-  return image, {"gridStep": step, "unitsPerPixel": round(1 / scale, 4)}
+  return image, {"gridStep": step, "heightStep": heightStep, "unitsPerPixel": round(1 / scale, 4)}
+
+
+def sectionLegend(cuts):
+  """What a section draws, as legend entries (mark, color, words), for the kinds its cuts hold."""
+  items = [("line", groundColor, "ground players stand on (all that collides)")] if cuts["ground"] else []
+  if cuts["water"]:
+    items.append(("line", waterColor, "water surface"))
+  for liquid in sorted({box["liquid"] for box in cuts["swim"]}):
+    items.append(("dashedBox", swimColors[liquid], f"swim volume ({liquid})"))
+  if cuts["zoneLines"]:
+    items.append(("box", zoneLineColor, "zone line"))
+  if cuts["boundaries"]:
+    items.append(("line", boundaryColor, "boundary"))
+  if cuts["massing"]:
+    items.append(("line", massingColor, "sketch massing"))
+  if cuts["sketch"]:
+    items.append(("dashed", sheetColors[0], "sketch areas (dashed) and paths, in their sheets' colors"))
+  if cuts["plots"]:
+    items.append(("line", plotColor, "plot pad"))
+  if cuts["caves"]:
+    items.append(("line", caveColor, "cave floor (its vault dashed)"))
+  return items
 
 
 def drawSection(outputPath, cuts):

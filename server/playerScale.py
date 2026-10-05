@@ -38,9 +38,11 @@ sources = {
     " origin floated 0.10 under the swim box's top, which does not give the design player's eye"
   ),
   "minimumSwimDepth": (
-    f"measured: {rof2Walk}: walking into the water of the Freeport Sewers and High Pass Hold he walked the bed where the swim box's top"
-    " stood 3.74 over it and swam where it stood 4.59, so swimming starts at a depth in (3.74, 4.59]; the client swims a player only"
-    " where the water over the floor is deeper than his avatarHeight, so the depth is his, 3.75, the shallowest the bracket allows; one"
-    " character size only, so a smaller race may swim shallower water"
+    f"measured: {rof2Walk}: walking into the Freeport Sewers' water on two paths, he walked the bed where the swim box's top stood 3.74"
+    " over it and swam from where it stood 4.59, so swimming starts at a depth in (3.74, 4.59] (in High Pass Hold he swam only over"
+    " water 10 or more deep, which does not narrow it); swimming, his feet floated 3.76 to 3.93 under the box's top. The value is his"
+    " avatarHeight, 3.75, at the shallow end of the bracket, so the lane errs toward swimming; that the client's threshold follows"
+    " avatarHeight (or avatarHeight + 0.10, near where his float put his feet) is a guess the walk does not test; one character size"
+    " only, so a smaller race may swim shallower water"
   ),
 }

@@ -207,12 +207,12 @@ def buildSwimVolumes(body, area, replaceEdited):
   ground = bridgeWater.Ground()
   cells, shallow, spacing = bodyCells(bodyObject, ground, area)
   if not cells:
-    where = " inside the area" if area is not None else ""
+    where = "" if area is None else f" inside the area {json.dumps(area)}"
     if shallow:
-      raise ValueError(
-        f"'{body}' has no water over its bed{where} deeper than players swim in ({playerScale.minimumSwimDepth:g}, playerScale"
-        f" minimumSwimDepth): players wade all {shallow} of its cells; mark it not swimmable (editWater swimmable false)"
-      )
+      deeper = f"deeper than players swim in ({playerScale.minimumSwimDepth:g}, playerScale minimumSwimDepth)"
+      if area is None:
+        raise ValueError(f"'{body}' has no water over its bed {deeper}: players wade all {shallow} of its cells; mark it not swimmable (editWater swimmable false)")
+      raise ValueError(f"'{body}' has no water over its bed{where} {deeper}: players wade all {shallow} of its cells there, which take no swim volume")
     raise ValueError(f"'{body}' has no water over its bed{where}")
   for box in inScope:
     bpy.data.objects.remove(box)

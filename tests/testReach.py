@@ -42,6 +42,10 @@ floatPlatform = floatTop + 2 * heightMargin
 # Swim boxes on the ground stand a margin deeper than players swim in; in one, a shelf leaves the water over it a margin shallower.
 poolTop = minimumSwimDepth + heightMargin
 fordShelf = 2 * heightMargin
+# A box on the ground a margin shallower than players swim in, which the design player wades and a smaller one may float in; and two boxes
+# stacked on the ground, the lower one shallow alone and the water they make together deep.
+shallowTop = minimumSwimDepth - heightMargin
+stackJoin = minimumSwimDepth / 2
 # The diagonal wall runs along x - y = diagonalLine through grid corners between its ends, so it rasterizes as cells meeting only at their
 # corners, which a move between diagonal neighbours slips between.
 diagonalLine = 440.0
@@ -132,6 +136,11 @@ async def reachCourse(session, folder):
   # One swim box over a ford, a shelf players wade, and the pool beside it.
   await session.expectSuccess("placeSwimVolume", {"name": "ford", "liquid": "water", "minimum": [-130, -50, -1], "maximum": [-90, -30, poolTop]})
   await cube(session, "fordShelf", [-130, -50, 0], [-110, -30, fordShelf])
+  # A shallow box banked by a block a margin under its top plus the step, which only a swimmer climbs onto; and two stacked boxes.
+  await session.expectSuccess("placeSwimVolume", {"name": "shallow", "liquid": "water", "minimum": [-130, 5, -1], "maximum": [-110, 15, shallowTop]})
+  await cube(session, "shallowBank", [-110, 5, 0], [-100, 15, shallowTop + stepHeight - heightMargin])
+  await session.expectSuccess("placeSwimVolume", {"name": "stackLow", "liquid": "water", "minimum": [-160, 5, -1], "maximum": [-140, 15, stackJoin]})
+  await session.expectSuccess("placeSwimVolume", {"name": "stackHigh", "liquid": "water", "minimum": [-160, 5, stackJoin], "maximum": [-140, 15, poolTop]})
   # A swim box floating higher over the ground than players reach into, beside a platform they walk off.
   await rampAlongY(session, "floatRamp", -180, 35 - floatPlatform, floatPlatform, 45)
   await cube(session, "floatPlatform", [-185, 35, 0], [-175, 45, floatPlatform])
@@ -206,6 +215,9 @@ probes = {
   "high bank": ([-105, 46, poolTop + stepHeight + heightMargin], "unreached"),
   "ford": ([-120, -40, fordShelf], "walk"),
   "beside the ford": ([-100, -40, 0], "swim"),
+  "shallow pool": ([-120, 10, 0], "walk"),
+  "shallow bank": ([-105, 10, shallowTop + stepHeight - heightMargin], "squeeze"),
+  "under the stacked boxes": ([-150, 10, 0], "swim"),
   "float platform": ([-180, 40, floatPlatform], "walk"),
   "lake bed": ([-180, -100, -10], "walk"),
   "yard": ([40, -60, 0], "walk"),
@@ -225,7 +237,11 @@ probes = {
   "far strip": ([0, 220, 0], "walk"),
   "deck": ([120, -30, 0], "walk"),
 }
-wetProbes = {"floating box": ([-170, 40, (floatBottom + floatTop) / 2], "swim"), "water beside the ford": ([-100, -40, poolTop / 2], "swim")}
+wetProbes = {
+  "floating box": ([-170, 40, (floatBottom + floatTop) / 2], "swim"), "water beside the ford": ([-100, -40, poolTop / 2], "swim"),
+  "water over the ford": ([-120, -40, (fordShelf + poolTop) / 2], "squeeze"), "shallow water": ([-120, 10, shallowTop / 2], "squeeze"),
+  "lower stacked box": ([-150, 10, stackJoin / 2], "swim"), "upper stacked box": ([-150, 10, (stackJoin + poolTop) / 2], "swim"),
+}
 
 
 def nodeAt(nodes, point, wet=False):
@@ -279,11 +295,21 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   moves = lane.read("move")
   assert playerReach.moveNames[moves[floating]] in ("drop", "swim")
   assert playerReach.moveNames[moves[tower]] == "teleport"
-  # The ford's water is too shallow to swim in: it holds no wet node and its shelf is walked onto, while the box's deeper water beside it
-  # is swum.
-  assert nodeAt(nodes, [-120, -40, (fordShelf + poolTop) / 2], wet=True) is None
+  # The ford's water is too shallow for the design player to swim in: he walks onto its shelf, and only containment, a smaller player
+  # floating in shallower water, swims over it; the box's deeper water beside it is swum. The shallow box's water is so too, and the
+  # bank beside it is reached only by climbing out of it, a swimmer's move.
+  state = lane.read("state")
+  for name in ("water over the ford", "shallow water"):
+    node = nodeAt(nodes, wetProbes[name][0], wet=True)
+    assert nodes.shallow[node] and state[node] & playerReach.reachedFullState == 0 and state[node] & playerReach.reachedState
   assert playerReach.moveNames[moves[nodes.floorNodeAt(probes["ford"][0])]] == "walk"
   assert playerReach.moveNames[moves[nodeAt(nodes, wetProbes["water beside the ford"][0], wet=True)]] in ("enterWater", "drop", "swim")
+  predecessor, node = lane.read("predecessor"), nodes.floorNodeAt(probes["shallow bank"][0])
+  while playerReach.moveNames[moves[node]] == "walk":
+    node = predecessor[node]
+  assert playerReach.moveNames[moves[node]] == "climbOut" and nodes.wet[predecessor[node]] and nodes.shallow[predecessor[node]]
+  # Stacked boxes are one water, its depth taken from the upper box's top: the lower box, shallow alone, is swum over the floor.
+  assert not nodes.shallow[nodeAt(nodes, wetProbes["lower stacked box"][0], wet=True)]
   # The hermit's block is its own lane, started from its entry; the stranded entry is a seed the safe point never reaches.
   origins = lane.read("originSeed")
   seedNames = [entry["name"] for entry in reached["entries"]]
@@ -297,7 +323,7 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
     {"name": "ATP_4_home", "reached": True, "teleport": {"landing": [90.0, -120.0, 30.0], "followed": True}},
     {"name": "ATP_5_catch", "reached": True},
   ]
-  assert reached["swimBoxes"] == [{"name": "AWT_floating", "reached": True}, {"name": "AWT_ford", "reached": True}, {"name": "AWT_pool", "reached": True}]
+  assert reached["swimBoxes"] == [{"name": f"AWT_{name}", "reached": True} for name in ("floating", "ford", "pool", "shallow", "stackHigh", "stackLow")]
   assert [(plot["name"], plot["reached"]) for plot in reached["plotEntrances"]] == [("1 Open Street", True), ("2 Closed Street", False)]
   assert reached["reachGrid"] == playerReach.reachGrid
   assert set(reached["constants"]) == {"playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight", "minimumSwimDepth", "smallestPlayerHeight"}
@@ -340,10 +366,15 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   blocks = sorted([((-105, 46), (-110, -100, 42, 50)), ((40, 70), (35, 45, 65, 75)), ((110, steepTop + 5), (105, 115, steepTop, steepTop + 10))])
   for (found, area), (expected, (lowX, highX, lowY, highY)) in zip(unreachedFloors, blocks):
     assert near(found, expected) and area == columnsOver(lowX, highX) * columnsOver(lowY, highY) * cellSize ** 2
-  # Floor too small to be a place is counted apart: the cell where the diagonal wall joins the east edge wall, whose top reads as
-  # walkable. Where it joins the south wall, the cell's top reads so or not by the order the walls' triangles rasterize in, which a block
-  # added anywhere in the course changes.
-  assert reached["moreProblems"] == {"unreachedPlayFloorSlivers": {"count": 1, "area": cellSize ** 2, "under": (2 * cellSize) ** 2}}
+  # The walls are faces standing on the ground, so their tops are no floor, where the diagonal wall joins the edge walls too: there the
+  # ground's faces and a wall's merge within the climb, and Recast's own merge, raising a span's top before it compares tops, carried the
+  # ground's walkable area up to the wall's top by the order the faces came in. So no floor too small to be a place is left over.
+  tops = numpy.flatnonzero(~nodes.wet & (nodes.height > wallHeight - 1))
+  topX, topY = nodes.plan(tops)
+  for corner in ([edge, -200], [200, -edge]):
+    joined = tops[numpy.hypot(topX - corner[0], topY - corner[1]) <= 3]
+    assert len(joined) > 2 and not nodes.walkable[joined].any()
+  assert reached["moreProblems"] == {}
   assert byKind["undecidedWater"][0]["body"] == "lake" and near(byKind["undecidedWater"][0]["center"], [-180, -100])
   # Everything reached is labelled; the area of each label sums to the reached nodes.
   area = cellSize * cellSize
@@ -442,10 +473,13 @@ def testSceneAndServerFilesGiveTheSameLane(stageBlenderServer, tmp_path):
     planX, planY = nodes.plan(chosen)
     return numpy.stack([planX, planY, nodes.height[chosen], nodes.wet[chosen], nodes.label[chosen]], axis=1)
 
-  # The archive's collision, rebuilt as the server rebuilds it, and its .wtr boxes give the scene's lane node for node.
+  # The archive's collision, rebuilt as the server rebuilds it, and its .wtr boxes give the scene's lane node for node; the pond's water
+  # over its rim, shallower than players swim in, is swum only by containment.
   fromScene, fromFiles = reachedNodes(scene), reachedNodes(lane)
   assert len(fromScene) > 0 and numpy.array_equal(fromScene, fromFiles)
-  assert set(numpy.unique(fromScene[:, 4]).astype(int)) == {playerReach.walkLabel, playerReach.swimLabel, playerReach.zoneLineLabel}
+  assert set(numpy.unique(fromScene[:, 4]).astype(int)) == {playerReach.walkLabel, playerReach.swimLabel, playerReach.squeezeLabel, playerReach.zoneLineLabel}
+  squeezed = fromScene[fromScene[:, 4] == playerReach.squeezeLabel]
+  assert squeezed[:, 3].all() and (squeezed[:, 2] > -2 - minimumSwimDepth).all()
 
 
 def testLaneKeySurvivesSaveReopenAndRestart(freshBlenderServer, tmp_path):

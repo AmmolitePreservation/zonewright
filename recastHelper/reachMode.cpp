@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -42,7 +43,9 @@ enum Move : uint8_t {
   unreachedMove = 0, seedMove = 1, walkMove = 2, dropMove = 3, slideMove = 4, enterWaterMove = 5, swimMove = 6, climbOutMove = 7,
   sinkMove = 8, teleportMove = 9,
 };
-enum Shape : uint8_t { wetShape = 1, walkableShape = 2, absorbedShape = 4, touchesLineShape = 8, boundaryShape = 16 };
+// shallowShape: a wet node, or a floor under a box's water, where that water stands no deeper than minimumSwimDepth over the floor: the
+// design player wades it, and only the containment floods swim in it.
+enum Shape : uint8_t { wetShape = 1, walkableShape = 2, absorbedShape = 4, touchesLineShape = 8, boundaryShape = 16, shallowShape = 32 };
 enum State : uint8_t {
   reachedFullState = 1, reachedState = 2, trapState = 4, fromSafeState = 8, toSafeState = 16, markState = 32, seedState = 64, openState = 128,
 };
@@ -50,6 +53,8 @@ const uint8_t laneStates = reachedFullState | reachedState | trapState | fromSaf
 // A walkable face of a boundary rasterizes with this area, under RC_WALKABLE_AREA, so where a floor and a boundary meet within the climb
 // Recast's merge keeps the floor's.
 const unsigned char boundaryWalkableArea = 1;
+// Each kind of face rasterizes into a heightfield of its own, so Recast never merges two kinds; mergeColumn merges them.
+const unsigned char faceAreas[3] = {RC_WALKABLE_AREA, boundaryWalkableArea, RC_NULL_AREA};
 enum EventKind : uint8_t { voidEvent = 1, belowUnderworldEvent = 2, absorbedEvent = 3 };
 
 struct Box {
@@ -264,7 +269,7 @@ struct Model {
   const ReachInput& input;
   Grid grid;
   int climb, playerCells, headroomCells;
-  float underworldCells, swimDepthCells;
+  float underworldCells, swimDepthCells, touchingCells;
   std::vector<GridBox> swimBoxes, lineBoxes;
   std::vector<int> swimTops;
   std::vector<std::vector<uint8_t>> touching;
@@ -280,11 +285,15 @@ struct Model {
     return static_cast<uint32_t>(low.size());
   }
 
-  // Whether a player on a floor swims in a box over it: the client swims him only where the water over the floor is deeper than
-  // minimumSwimDepth. A floor's top lies anywhere in the cell under its height, so the water is taken from that cell's bottom: the lane
-  // errs toward swimming, which only adds moves. Over no floor the water is bottomless.
-  bool swum(int floor, const GridBox& box) const {
-    return floor == noFloor || box.highY - static_cast<float>(floor - 1) > swimDepthCells;
+  // Whether the design player on a floor swims in water whose surface stands at a height over it: only where it is deeper than
+  // minimumSwimDepth. A floor's top lies anywhere in the cell under its height, so the water is taken from that cell's bottom, which errs
+  // toward swimming. Over no floor the water is bottomless.
+  bool swum(int floor, float surface) const {
+    return floor == noFloor || surface - static_cast<float>(floor - 1) > swimDepthCells;
+  }
+
+  bool shallow(uint32_t node) const {
+    return (shape[node] & shallowShape) != 0;
   }
 
   bool walkable(uint32_t node) const {
@@ -352,21 +361,46 @@ Grid planGrid(const ReachInput& input) {
   return grid;
 }
 
-void mergeSpan(std::vector<Span>& merged, const Span& span, int flagMerge) {
-  if (!merged.empty() && span.low <= merged.back().high) {
-    Span& last = merged.back();
-    if (std::abs(span.high - last.high) <= flagMerge) {
-      last.area = std::max(last.area, span.area);
-    } else if (span.high > last.high) {
-      last.area = span.area;
+// A column's spans from every heightfield (each holding one kind of face, so none of them merged two kinds), merged where they overlap or
+// touch: a merged span takes the most walkable area of its spans whose tops lie within the climb of its top, so its area follows its top
+// whatever order the faces came in (Recast's own merge raises a span's top before comparing tops, which can carry a floor's area up a
+// wall); then, as rcFilterLowHangingWalkableObstacles does, a span that is not walkable takes the area of a walkable one under it whose
+// top lies within the climb of its own.
+void mergeColumn(std::vector<Span>& spans, std::vector<Span>& merged, int climb) {
+  std::sort(spans.begin(), spans.end(), [](const Span& first, const Span& second) {
+    return first.low != second.low ? first.low < second.low : first.high < second.high;
+  });
+  merged.clear();
+  size_t start = 0;
+  while (start < spans.size()) {
+    Span group = spans[start];
+    size_t end = start + 1;
+    while (end < spans.size() && spans[end].low <= group.high) {
+      group.high = std::max(group.high, spans[end].high);
+      ++end;
     }
-    last.high = std::max(last.high, span.high);
-    return;
+    group.area = RC_NULL_AREA;
+    for (size_t index = start; index < end; ++index) {
+      if (group.high - spans[index].high <= climb) {
+        group.area = std::max(group.area, spans[index].area);
+      }
+    }
+    merged.push_back(group);
+    start = end;
   }
-  merged.push_back(span);
+  bool previousWalkable = false;
+  unsigned char previousArea = RC_NULL_AREA;
+  for (size_t index = 0; index < merged.size(); ++index) {
+    const bool walkable = merged[index].area != RC_NULL_AREA;
+    if (!walkable && previousWalkable && merged[index].high - merged[index - 1].high <= climb) {
+      merged[index].area = previousArea;
+    }
+    previousWalkable = walkable;
+    previousArea = merged[index].area;
+  }
 }
 
-TileNodes buildTile(const Model& model, const rcChunkyTriMesh& chunks, const std::vector<unsigned char>& chunkAreas, const std::vector<int>& chunkWalkable,
+TileNodes buildTile(const Model& model, const rcChunkyTriMesh& chunks, const std::vector<unsigned char>& chunkAreas, const std::vector<std::array<int, 3>>& chunkCounts,
     std::vector<int>& chunkIDs, int tileX, int tileZ) {
   const ReachInput& input = model.input;
   const Grid& grid = model.grid;
@@ -389,25 +423,27 @@ TileNodes buildTile(const Model& model, const rcChunkyTriMesh& chunks, const std
       rcFreeHeightField(solid);
     }
   };
+  std::vector<int> solidOffsets;
   for (int slab = 0; slab < grid.slabs && chunkCount > 0; ++slab) {
     bmin[1] = grid.origin[1] + static_cast<float>(slab) * slabCells * grid.cellHeight;
     bmax[1] = bmin[1] + slabCells * grid.cellHeight;
-    solids.push_back(rcAllocHeightfield());
-    rcHeightfield* solid = solids.back();
-    if (!solid || !rcCreateHeightfield(&context, *solid, side, side, bmin, bmax, grid.cellSize, grid.cellHeight)) {
-      release();
-      result.error = "rcCreateHeightfield failed for reach tile (" + std::to_string(tileX) + ", " + std::to_string(tileZ) + ")";
-      return result;
-    }
-    // Every walkable triangle goes in before any other: a span merged over a lower one keeps the area of whichever is added last when
-    // their tops differ by more than the climb, so in this order a merged span is walkable exactly when its top is.
-    for (const bool walkable : {true, false}) {
+    for (int kind = 0; kind < 3; ++kind) {
+      solids.push_back(rcAllocHeightfield());
+      solidOffsets.push_back(slab * slabCells);
+      rcHeightfield* solid = solids.back();
+      if (!solid || !rcCreateHeightfield(&context, *solid, side, side, bmin, bmax, grid.cellSize, grid.cellHeight)) {
+        release();
+        result.error = "rcCreateHeightfield failed for reach tile (" + std::to_string(tileX) + ", " + std::to_string(tileZ) + ")";
+        return result;
+      }
       for (int chunk = 0; chunk < chunkCount; ++chunk) {
         const int nodeIndex = chunkIDs[chunk];
-        const rcChunkyTriMeshNode& node = chunks.nodes[nodeIndex];
-        const int first = walkable ? node.i : node.i + chunkWalkable[nodeIndex];
-        const int count = walkable ? chunkWalkable[nodeIndex] : node.n - chunkWalkable[nodeIndex];
-        if (count > 0 && !rcRasterizeTriangles(&context, input.vertices.data(), vertexCount, &chunks.tris[first * 3], &chunkAreas[first], count, *solid, model.climb)) {
+        const std::array<int, 3>& counts = chunkCounts[nodeIndex];
+        int first = chunks.nodes[nodeIndex].i;
+        for (int before = 0; before < kind; ++before) {
+          first += counts[before];
+        }
+        if (counts[kind] > 0 && !rcRasterizeTriangles(&context, input.vertices.data(), vertexCount, &chunks.tris[first * 3], &chunkAreas[first], counts[kind], *solid, model.climb)) {
           release();
           result.error = "rcRasterizeTriangles failed for reach tile (" + std::to_string(tileX) + ", " + std::to_string(tileZ) + ")" +
             (context.errors.empty() ? "" : ": " + context.errors);
@@ -415,7 +451,6 @@ TileNodes buildTile(const Model& model, const rcChunkyTriMesh& chunks, const std
         }
       }
     }
-    rcFilterLowHangingWalkableObstacles(&context, model.climb, *solid);
   }
 
   std::vector<int> boxesHere, linesHere;
@@ -440,19 +475,20 @@ TileNodes buildTile(const Model& model, const rcChunkyTriMesh& chunks, const std
     result.box.push_back(static_cast<int16_t>(box));
     result.shape.push_back(shape);
   };
-  std::vector<Span> spans;
+  std::vector<Span> pieces, spans;
+  std::vector<std::pair<int, float>> water;
   for (int z = 0; z < tile; ++z) {
     for (int x = 0; x < tile; ++x) {
       const size_t local = static_cast<size_t>(z) * tile + x;
       const int columnX = tileX * tile + x;
       const int columnZ = tileZ * tile + z;
-      spans.clear();
-      for (size_t slab = 0; slab < solids.size(); ++slab) {
-        const int offset = static_cast<int>(slab) * slabCells;
-        for (const rcSpan* span = solids[slab]->spans[(x + tileBorder) + (z + tileBorder) * side]; span; span = span->next) {
-          mergeSpan(spans, {offset + static_cast<int>(span->smin), offset + static_cast<int>(span->smax), static_cast<unsigned char>(span->area)}, model.climb);
+      pieces.clear();
+      for (size_t solid = 0; solid < solids.size(); ++solid) {
+        for (const rcSpan* span = solids[solid]->spans[(x + tileBorder) + (z + tileBorder) * side]; span; span = span->next) {
+          pieces.push_back({solidOffsets[solid] + static_cast<int>(span->smin), solidOffsets[solid] + static_cast<int>(span->smax), static_cast<unsigned char>(span->area)});
         }
       }
+      mergeColumn(pieces, spans, model.climb);
       const size_t before = result.low.size();
       if (!spans.empty()) {
         result.bottomTop[local] = static_cast<uint16_t>(spans.front().low);
@@ -460,18 +496,45 @@ TileNodes buildTile(const Model& model, const rcChunkyTriMesh& chunks, const std
       for (size_t interval = 0; interval <= spans.size(); ++interval) {
         const int floor = interval == 0 ? noFloor : spans[interval - 1].high;
         const int ceiling = interval == spans.size() ? openSky : spans[interval].low;
+        // The boxes holding the column whose water reaches into the interval, lowest first, each with the surface of the water it stands
+        // in: boxes touching one over another are one water, whose depth over the floor is taken from the highest top.
+        water.clear();
+        for (const int index : boxesHere) {
+          const GridBox& box = model.swimBoxes[index];
+          if (box.holdsColumn(columnX, columnZ) && box.highY >= floor && box.lowY <= ceiling) {
+            water.emplace_back(index, box.highY);
+          }
+        }
+        std::sort(water.begin(), water.end(), [&](const std::pair<int, float>& first, const std::pair<int, float>& second) {
+          const float firstLow = model.swimBoxes[first.first].lowY, secondLow = model.swimBoxes[second.first].lowY;
+          return firstLow != secondLow ? firstLow < secondLow : first.first < second.first;
+        });
+        for (bool raised = true; raised;) {
+          raised = false;
+          for (auto& first : water) {
+            for (const auto& second : water) {
+              if (model.swimBoxes[second.first].lowY <= first.second + model.touchingCells && model.swimBoxes[first.first].lowY <= second.second + model.touchingCells &&
+                  second.second > first.second) {
+                first.second = second.second;
+                raised = true;
+              }
+            }
+          }
+        }
         if (floor != noFloor && ceiling - floor >= model.headroomCells) {
           const float point = static_cast<float>(floor + 1);
           int holding = -1;
-          for (const int index : boxesHere) {
+          bool shallow = false;
+          for (const auto& [index, surface] : water) {
             const GridBox& box = model.swimBoxes[index];
-            if (box.holdsColumn(columnX, columnZ) && point >= box.lowY && point <= box.highY && model.swum(floor, box)) {
+            if (point >= box.lowY && point <= box.highY) {
               holding = index;
+              shallow = !model.swum(floor, surface);
               break;
             }
           }
           const unsigned char area = spans[interval - 1].area;
-          uint8_t shape = (area != RC_NULL_AREA ? walkableShape : 0) | (area == boundaryWalkableArea ? boundaryShape : 0);
+          uint8_t shape = (area != RC_NULL_AREA ? walkableShape : 0) | (area == boundaryWalkableArea ? boundaryShape : 0) | (shallow ? shallowShape : 0);
           for (const int index : linesHere) {
             const GridBox& line = model.lineBoxes[index];
             if (line.holdsColumn(columnX, columnZ) && point >= line.lowY && point <= line.highY) {
@@ -484,17 +547,14 @@ TileNodes buildTile(const Model& model, const rcChunkyTriMesh& chunks, const std
         if (ceiling - floor < model.headroomCells) {
           continue;
         }
-        for (const int index : boxesHere) {
+        for (const auto& [index, surface] : water) {
           const GridBox& box = model.swimBoxes[index];
-          if (!box.holdsColumn(columnX, columnZ) || !model.swum(floor, box)) {
-            continue;
-          }
           const int wetLow = std::max(floor, static_cast<int>(std::floor(box.lowY)));
           const int wetHigh = std::min(ceiling, static_cast<int>(std::ceil(box.highY)));
           if (wetHigh - wetLow < model.headroomCells) {
             continue;
           }
-          uint8_t shape = wetShape;
+          uint8_t shape = wetShape | (model.swum(floor, surface) ? 0 : shallowShape);
           for (const int lineIndex : linesHere) {
             const GridBox& line = model.lineBoxes[lineIndex];
             if (!line.holdsColumn(columnX, columnZ) || line.highY < wetLow || line.lowY > wetHigh) {
@@ -538,7 +598,9 @@ void rasterize(Model& model) {
     const bool boundary = input.boundaryTriangles[chunks.tris[index * 3] / 3] != 0;
     chunkAreas[index] = length > 0.0f && std::fabs(normal[1]) / length >= input.walkableNormalZ ? (boundary ? boundaryWalkableArea : RC_WALKABLE_AREA) : RC_NULL_AREA;
   }
-  std::vector<int> chunkWalkable(static_cast<size_t>(chunks.nnodes), 0);
+  // Each leaf's triangles in the order of faceAreas, with how many of each kind it holds.
+  auto kindOf = [](unsigned char area) { return static_cast<int>(std::find(faceAreas, faceAreas + 3, area) - faceAreas); };
+  std::vector<std::array<int, 3>> chunkCounts(static_cast<size_t>(chunks.nnodes), std::array<int, 3>{0, 0, 0});
   for (int nodeIndex = 0; nodeIndex < chunks.nnodes; ++nodeIndex) {
     const rcChunkyTriMeshNode& node = chunks.nodes[nodeIndex];
     if (node.i < 0) {
@@ -548,13 +610,13 @@ void rasterize(Model& model) {
     for (int index = 0; index < node.n; ++index) {
       order[index] = node.i + index;
     }
-    std::stable_partition(order.begin(), order.end(), [&](int triangle) { return chunkAreas[triangle] != RC_NULL_AREA; });
+    std::stable_sort(order.begin(), order.end(), [&](int first, int second) { return kindOf(chunkAreas[first]) < kindOf(chunkAreas[second]); });
     std::vector<int> triangles(static_cast<size_t>(node.n) * 3);
     std::vector<unsigned char> areas(static_cast<size_t>(node.n));
     for (int index = 0; index < node.n; ++index) {
       std::memcpy(&triangles[static_cast<size_t>(index) * 3], &chunks.tris[order[index] * 3], 3 * sizeof(int));
       areas[index] = chunkAreas[order[index]];
-      chunkWalkable[nodeIndex] += areas[index] != RC_NULL_AREA ? 1 : 0;
+      ++chunkCounts[nodeIndex][kindOf(areas[index])];
     }
     std::memcpy(&chunks.tris[node.i * 3], triangles.data(), triangles.size() * sizeof(int));
     std::memcpy(&chunkAreas[node.i], areas.data(), areas.size());
@@ -573,7 +635,7 @@ void rasterize(Model& model) {
       if (tile >= tileCount) {
         return;
       }
-      results[static_cast<size_t>(tile)] = buildTile(model, chunks, chunkAreas, chunkWalkable, chunkIDs, static_cast<int>(tile % grid.tilesX), static_cast<int>(tile / grid.tilesX));
+      results[static_cast<size_t>(tile)] = buildTile(model, chunks, chunkAreas, chunkCounts, chunkIDs, static_cast<int>(tile % grid.tilesX), static_cast<int>(tile / grid.tilesX));
       const long long done = ++builtCount;
       std::lock_guard<std::mutex> guard(progressLock);
       const long long percent = done * 100 / tileCount;
@@ -640,6 +702,13 @@ struct Event {
 struct Queued {
   uint32_t node;
   uint32_t column;
+};
+
+// The player a flood moves: the open space he needs, and whether he wades water no deeper than minimumSwimDepth (the design player) or
+// swims in a box at any depth (containment, which errs toward reach: a smaller race may float in shallower water).
+struct Player {
+  int headroom;
+  bool wades;
 };
 
 // Runs a task over numbered chunks on the helper's threads, the caller's among them, and returns when every chunk is done.
@@ -856,16 +925,21 @@ public:
     return true;
   }
 
+  // Whether a player can be in a node as water: a wet node, deep enough for him to swim in unless he swims at any depth.
+  bool swimsIn(uint32_t node, const Player& player) const {
+    return model.wet(node) && !(player.wades && model.shallow(node));
+  }
+
   // A fall in a column from height start through one of its open intervals, down to its floor node (or nothing when the interval is
-  // the bottom one): it lands in the first swim box or zone line it meets on the way, else on the floor; under the underworld or onto
-  // nothing it is an event.
+  // the bottom one): it lands in the first swim box the player swims in or zone line it meets on the way, else on the floor; under the
+  // underworld or onto nothing it is an event.
   template <class Visit, class Record>
-  void fall(uint32_t from, long long column, int start, int intervalLow, int intervalHigh, int64_t floorNode, int64_t self, uint8_t kind, int headroom,
+  void fall(uint32_t from, long long column, int start, int intervalLow, int intervalHigh, int64_t floorNode, int64_t self, uint8_t kind, const Player& player,
       Visit& visit, Record& record) const {
     int64_t wetLanding = -1;
     int wetHeight = -1;
     for (uint32_t node = model.columnStart[static_cast<size_t>(column)]; node < model.columnStart[static_cast<size_t>(column) + 1]; ++node) {
-      if (!model.wet(node) || node == self || model.intervalLow[node] != intervalLow || model.intervalHigh[node] != intervalHigh || model.low[node] > start) {
+      if (!swimsIn(node, player) || node == self || model.intervalLow[node] != intervalLow || model.intervalHigh[node] != intervalHigh || model.low[node] > start) {
         continue;
       }
       const int height = std::min<int>(model.high[node], start);
@@ -897,7 +971,7 @@ public:
       return;
     }
     if (wetLanding >= 0) {
-      if (model.space(static_cast<uint32_t>(wetLanding)) >= headroom) {
+      if (model.space(static_cast<uint32_t>(wetLanding)) >= player.headroom) {
         visit(static_cast<uint32_t>(wetLanding), static_cast<uint32_t>(column), kind);
       }
       return;
@@ -910,7 +984,7 @@ public:
       record(belowUnderworldEvent, from, column, model.low[floorNode], -1);
       return;
     }
-    if (model.space(static_cast<uint32_t>(floorNode)) >= headroom) {
+    if (model.space(static_cast<uint32_t>(floorNode)) >= player.headroom) {
       visit(static_cast<uint32_t>(floorNode), static_cast<uint32_t>(column), kind);
     }
   }
@@ -919,9 +993,10 @@ public:
     return !model.wet(node) && model.input.hasUnderworld && static_cast<float>(model.low[node]) < model.underworldCells;
   }
 
-  // Every move out of a node at a headroom, into one column only when only >= 0.
+  // Every move of a player out of a node, into one column only when only >= 0.
   template <class Visit, class Record>
-  void successors(uint32_t node, long long column, int headroom, long long only, Visit& visit, Record& record) const {
+  void successors(uint32_t node, long long column, const Player& player, long long only, Visit& visit, Record& record) const {
+    const int headroom = player.headroom;
     if (model.shape[node] & absorbedShape) {
       const int line = lineOfNode(node);
       if (line >= 0 && landing[line] >= 0) {
@@ -945,7 +1020,7 @@ public:
       const bool walkable = model.walkable(node);
       if (only < 0 || only == column) {
         for (uint32_t other = first; other < last; ++other) {
-          if (model.wet(other) && model.intervalLow[other] == low && model.intervalHigh[other] == high && model.low[other] - low <= model.playerCells &&
+          if (swimsIn(other, player) && model.intervalLow[other] == low && model.intervalHigh[other] == high && model.low[other] - low <= model.playerCells &&
               model.space(other) >= headroom) {
             visit(other, static_cast<uint32_t>(column), enterWaterMove);
           }
@@ -979,11 +1054,11 @@ public:
               arrive(other, next, slideMove);
             }
           } else {
-            fall(node, next, low, otherLow, model.high[other], other, -1, dropMove, headroom, visit, record);
+            fall(node, next, low, otherLow, model.high[other], other, -1, dropMove, player, visit, record);
           }
         }
         if (model.bottomTop[static_cast<size_t>(next)] >= low + headroom) {
-          fall(node, next, low, noFloor, model.bottomTop[static_cast<size_t>(next)], -1, -1, dropMove, headroom, visit, record);
+          fall(node, next, low, noFloor, model.bottomTop[static_cast<size_t>(next)], -1, -1, dropMove, player, visit, record);
         }
       }
       return;
@@ -998,7 +1073,7 @@ public:
           floorNode = other;
         }
       }
-      fall(node, column, low, model.intervalLow[node], ceiling, floorNode, node, sinkMove, headroom, visit, record);
+      fall(node, column, low, model.intervalLow[node], ceiling, floorNode, node, sinkMove, player, visit, record);
     }
     for (int direction = 0; direction < 4; ++direction) {
       long long next;
@@ -1008,7 +1083,7 @@ public:
       const uint32_t nextFirst = model.columnStart[static_cast<size_t>(next)];
       const uint32_t nextLast = model.columnStart[static_cast<size_t>(next) + 1];
       for (uint32_t other = nextFirst; other < nextLast; ++other) {
-        if (!model.wet(other)) {
+        if (!swimsIn(other, player)) {
           continue;
         }
         const int otherBox = model.box[other];
@@ -1031,11 +1106,11 @@ public:
             arrive(other, next, climbOutMove);
           }
         } else if (model.high[other] >= low + headroom && ceiling >= low + headroom) {
-          fall(node, next, low, otherLow, model.high[other], other, -1, dropMove, headroom, visit, record);
+          fall(node, next, low, otherLow, model.high[other], other, -1, dropMove, player, visit, record);
         }
       }
       if (model.bottomTop[static_cast<size_t>(next)] >= low + headroom && ceiling >= low + headroom) {
-        fall(node, next, low, noFloor, model.bottomTop[static_cast<size_t>(next)], -1, -1, dropMove, headroom, visit, record);
+        fall(node, next, low, noFloor, model.bottomTop[static_cast<size_t>(next)], -1, -1, dropMove, player, visit, record);
       }
     }
   }
@@ -1055,10 +1130,10 @@ public:
     });
   }
 
-  // A forward flood at a headroom from the queued nodes, already marked, marking each node it reaches. A node it reaches that is no seed
+  // A forward flood of a player from the queued nodes, already marked, marking each node it reaches. A node it reaches that is no seed
   // takes its predecessor, move, and origin seed from it, unless only nodes the full flood missed take them (assignAll false); and the
   // void, underworld, and zone line events met on the way are kept when recordEvents.
-  void forwardFlood(std::vector<Queued> frontier, uint8_t mark, int headroom, bool assignAll, bool recordEvents) {
+  void forwardFlood(std::vector<Queued> frontier, uint8_t mark, const Player& player, bool assignAll, bool recordEvents) {
     forEachNode([&](uint32_t node) { claim[node].store(unclaimed, std::memory_order_relaxed); });
     auto quiet = [](uint8_t, uint32_t, long long, int, int) {};
     while (!frontier.empty()) {
@@ -1079,7 +1154,7 @@ public:
               while (claimer < held && !claim[target].compare_exchange_weak(held, claimer, std::memory_order_relaxed)) {
               }
             };
-            successors(frontier[index].node, frontier[index].column, headroom, -1, visit, quiet);
+            successors(frontier[index].node, frontier[index].column, player, -1, visit, quiet);
           }
         });
       }
@@ -1116,7 +1191,7 @@ public:
               eventParts[chunk].push_back({kind, from, static_cast<uint32_t>(column), height, line});
             }
           };
-          successors(entry.node, entry.column, headroom, -1, visit, record);
+          successors(entry.node, entry.column, player, -1, visit, record);
         }
       });
       frontier.clear();
@@ -1127,9 +1202,9 @@ public:
     }
   }
 
-  // A reverse flood at a headroom over the reached nodes, from the queued nodes, already marked, back along every move into them;
+  // A reverse flood of a player over the reached nodes, from the queued nodes, already marked, back along every move into them;
   // teleports are (landing, source) pairs sorted by landing.
-  void reverseFlood(std::vector<Queued> frontier, uint8_t mark, int headroom, const std::vector<std::pair<uint32_t, uint32_t>>& teleports) {
+  void reverseFlood(std::vector<Queued> frontier, uint8_t mark, const Player& player, const std::vector<std::pair<uint32_t, uint32_t>>& teleports) {
     auto quiet = [](uint8_t, uint32_t, long long, int, int) {};
     while (!frontier.empty()) {
       const size_t chunkCount = chunksFor(frontier.size());
@@ -1147,7 +1222,7 @@ public:
             auto check = [&](uint32_t reached, uint32_t, uint8_t) {
               found = found || reached == entry.node;
             };
-            successors(candidate, candidateColumn, headroom, static_cast<long long>(entry.column), check, quiet);
+            successors(candidate, candidateColumn, player, static_cast<long long>(entry.column), check, quiet);
             if (found && !(state[candidate].fetch_or(mark, std::memory_order_relaxed) & mark)) {
               nextParts[chunk].push_back({candidate, static_cast<uint32_t>(candidateColumn)});
             }
@@ -1320,6 +1395,8 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
   model.headroomCells = std::max(1, static_cast<int>(std::ceil(input.containmentHeadroom / input.cellHeight - 1e-4f)));
   model.underworldCells = grid.cellsAt(input.underworld);
   model.swimDepthCells = input.minimumSwimDepth / input.cellHeight;
+  const float touchingGap = 1e-3f;
+  model.touchingCells = touchingGap / input.cellHeight;
   for (const Box& box : input.swimBoxes) {
     model.swimBoxes.push_back(gridBox(grid, box));
     model.swimTops.push_back(static_cast<int>(std::ceil(model.swimBoxes.back().highY)));
@@ -1327,7 +1404,6 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
   for (const ZoneLine& line : input.zoneLines) {
     model.lineBoxes.push_back(gridBox(grid, line.box));
   }
-  const float touchingGap = 1e-3f;
   model.touching.assign(input.swimBoxes.size(), std::vector<uint8_t>(input.swimBoxes.size(), 0));
   for (size_t first = 0; first < input.swimBoxes.size(); ++first) {
     for (size_t second = 0; second < input.swimBoxes.size(); ++second) {
@@ -1407,7 +1483,9 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
       frontier.push_back(seed);
     }
   }
-  flooder.forwardFlood(frontier, reachedFullState, model.playerCells, true, false);
+  const Player designPlayer{model.playerCells, true};
+  const Player containedPlayer{model.headroomCells, false};
+  flooder.forwardFlood(frontier, reachedFullState, designPlayer, true, false);
   const double fullSeconds = secondsSince(floodStart);
   reportProgress("flooding the lane", 1, 5);
 
@@ -1424,7 +1502,7 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
         phaseFrontier.push_back(seed);
       }
     }
-    flooder.forwardFlood(phaseFrontier, reachedState, model.headroomCells, false, true);
+    flooder.forwardFlood(phaseFrontier, reachedState, containedPlayer, false, true);
     if (phase == &first && !first.empty()) {
       flooder.forEachNode([&](uint32_t node) {
         if (flooder.has(node, reachedState)) {
@@ -1460,7 +1538,7 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
   if (input.safeSeed >= 0) {
     const uint32_t safeNode = static_cast<uint32_t>(seedNodes[input.safeSeed]);
     flooder.set(safeNode, toSafeState);
-    flooder.reverseFlood({{safeNode, flooder.columnOfNode(safeNode)}}, toSafeState, model.headroomCells, teleports);
+    flooder.reverseFlood({{safeNode, flooder.columnOfNode(safeNode)}}, toSafeState, containedPlayer, teleports);
   }
   const double safeSeconds = secondsSince(safeStart);
   reportProgress("flooding the lane", 3, 5);
@@ -1473,7 +1551,7 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
       escapeFrontier.push_back(entry);
     }
   }
-  flooder.reverseFlood(escapeFrontier, markState, model.headroomCells, teleports);
+  flooder.reverseFlood(escapeFrontier, markState, containedPlayer, teleports);
   std::atomic<uint32_t> traps(0), reached(0), reachedFull(0);
   flooder.forEachNode([&](uint32_t node) {
     const uint8_t value = flooder.state[node].load(std::memory_order_relaxed);
