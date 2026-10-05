@@ -54,7 +54,7 @@ def testLaneTourSpreadsAwayFromTheEntries(stageBlenderServer, tmp_path):
   assert report["tour"] == "computed" and [eye["number"] for eye in eyes] == list(range(1, laneViews.tourEyes + 1))
   # Eight views and the plan, three to a row.
   assert sheet.width == viewSheets.gap + 3 * (viewSheets.cellSize[0] + viewSheets.gap)
-  assert {name: report["constants"][name]["value"] for name in ("eyeHeight", "swimEyeAboveSurface")} == {"eyeHeight": eyeHeight, "swimEyeAboveSurface": swimEyeAboveSurface}
+  assert (report["constants"]["eyeHeight"]["value"], report["constants"]["swimEyeAboveSurface"]["value"]) == (eyeHeight, swimEyeAboveSurface)
   assert report["farSight"] == min(environment["maxClip"], environment["fogEnd"])
   assert [arrival["name"] for arrival in report["arrivals"]] == ["safe point", "hermit", "stranded"]
   arrivals = numpy.array([arrival["at"] for arrival in report["arrivals"]])
@@ -95,8 +95,13 @@ def testLaneTourSpreadsAwayFromTheEntries(stageBlenderServer, tmp_path):
   assert "tour" not in plotReport and set(plotReport["sides"]) == set(laneViews.sideNames)
 
 
+def inRun(headingDegrees, run):
+  """Whether a heading lies in a run of bearings, which may run on past 360."""
+  return (headingDegrees - run["fromDegrees"]) % 360 <= (run["toDegrees"] - run["fromDegrees"]) % 360
+
+
 def centerPatch(path):
-  """The mean color of the middle of a render, where a view looking at a target's middle draws it."""
+  """The mean color of the middle of a render, where a view draws what it looks at."""
   image = numpy.asarray(viewSheets.openRender(path)).astype(float)
   height, width = image.shape[:2]
   return image[height // 2 - 3:height // 2 + 4, width // 2 - 3:width // 2 + 4].reshape(-1, 3).mean(axis=0)
@@ -116,7 +121,9 @@ async def screenedShed(session, folder):
   for name, material in (("shed", "brick"), ("screen", "stone")):
     await session.expectSuccess("assignMaterial", {"objectName": name, "materialName": material})
     await session.expectSuccess("projectUVs", {"objectName": name, "method": "box", "worldUnitsPerRepeat": 8})
-  await session.expectSuccess("createRegion", {"name": "lawn", "outline": [[-30, 20], [30, 20], [30, 80], [-30, 80]], "bottom": -10, "top": 30, "intent": "open lawn west of the shed", "access": "play"})
+  await session.expectSuccess("createRegion", {
+    "name": "lawn", "outline": [[-30, 20], [30, 20], [30, 80], [-30, 80]], "bottom": -10, "top": 30, "intent": "open lawn west of the shed", "access": "play",
+  })
 
 
 def testViewFromLaneReportsTheUnseenSide(stageBlenderServer, tmp_path):
@@ -134,14 +141,13 @@ def testViewFromLaneReportsTheUnseenSide(stageBlenderServer, tmp_path):
   assert report["sides"] == {"north": 1.0, "east": 0.0, "south": 1.0, "west": 1.0, "top": 0.0}
   # From the east no player sees it: the bearings round 180 (toward -Y) are blocked, though players stand there; the west's are seen.
   unseen = report["unseenSectors"]
-  assert len(unseen) == 1 and unseen[0]["why"] == "blocked" and unseen[0]["fromDegrees"] < 180 < unseen[0]["toDegrees"]
-  assert not unseen[0]["fromDegrees"] < 0 < unseen[0]["toDegrees"]
+  assert len(unseen) == 1 and unseen[0]["why"] == "blocked" and inRun(180, unseen[0]) and not inRun(0, unseen[0])
   eyes = report["eyes"]
   assert len(eyes) == laneViews.targetEyes and all(eye["seenShare"] > 0 for eye in eyes)
-  assert not any(unseen[0]["fromDegrees"] <= eye["bearingDegrees"] <= unseen[0]["toDegrees"] for eye in eyes)
+  assert not any(inRun(eye["bearingDegrees"], unseen[0]) for eye in eyes)
   sectors = [round(eye["bearingDegrees"] / laneViews.sectorDegrees) % laneViews.bearings for eye in eyes]
   assert len(set(sectors)) == len(sectors)
-  # Each view looks at the shed's middle and draws the shed's brick there.
+  # Each view looks at the middle of what its eye sees of the shed and draws the shed's brick there.
   for eye in eyes:
     red, green, blue = centerPatch(eye["outputPath"])
     assert red > green + 40 and red > blue + 40, (eye["number"], red, green, blue)
@@ -189,10 +195,14 @@ def testTheTourIsReusedForAnUnchangedLane(stageBlenderServer, tmp_path):
   # The same lane gives the same tour, kept beside it and read again whatever the count; the fog's end shortening the far sight chooses
   # it again on the same lane, and changing the zone makes a new lane and a new tour.
   tourFile = Path(first["tourFile"])
-  assert tourFile.parent == Path(first["laneFile"]).parent and tourFile.name == "tour-" + Path(first["laneFile"]).name.removeprefix("lane-").removesuffix(".bin") + ".json"
+  laneFile = Path(first["laneFile"])
+  assert tourFile.parent == laneFile.parent and tourFile.name == "tour-" + laneFile.stem.removeprefix("lane-") + ".json"
   assert (first["lane"], first["tour"], again["lane"], again["tour"]) == ("computed", "computed", "reused", "reused")
   assert again["tourFile"] == first["tourFile"] and len(again["eyes"]) == laneViews.tourEyes
-  assert [{key: eye[key] for key in eye if key != "outputPath"} for eye in again["eyes"][:3]] == [{key: eye[key] for key in eye if key != "outputPath"} for eye in first["eyes"]]
+  def kept(eyes):
+    return [{key: eye[key] for key in eye if key != "outputPath"} for eye in eyes]
+
+  assert kept(again["eyes"][:3]) == kept(first["eyes"])
   assert (foggy["lane"], foggy["tour"], foggy["farSight"]) == ("reused", "computed", 60.0) and foggy["tourFile"] == first["tourFile"]
   assert foggy["eyes"][0]["run"] <= 60
   assert (changed["lane"], changed["tour"]) == ("computed", "computed") and changed["tourFile"] != first["tourFile"]

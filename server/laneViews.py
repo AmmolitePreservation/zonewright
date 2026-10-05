@@ -49,6 +49,7 @@ eyeOutline = (20, 20, 20)
 eyeRadius = 15
 eyeNumberSize = 19
 eyeArrowLength = 44
+eyeArrowHead = 13
 targetColor = (20, 20, 20)
 targetHalo = (255, 255, 255)
 unseenColor = (220, 20, 20)
@@ -164,12 +165,16 @@ def eyeCandidates(nodes, description):
     picked.append(members[first])
     heights.append(height[first])
   if not picked:
-    return {"node": numpy.zeros(0, dtype=numpy.int64), "label": numpy.zeros(0, dtype=numpy.uint8), "standing": numpy.zeros((0, 3)), "eye": numpy.zeros((0, 3))}
+    return {
+      "node": numpy.zeros(0, dtype=numpy.int64), "label": numpy.zeros(0, dtype=numpy.uint8), "standing": numpy.zeros((0, 3)),
+      "eye": numpy.zeros((0, 3)),
+    }
   picked, height = numpy.concatenate(picked), numpy.concatenate(heights)
   planX, planY = nodes.plan(picked)
   standing = numpy.stack([planX, planY, height], axis=1)
-  lift = numpy.where(nodes.wet[picked], playerScale.swimEyeAboveSurface, playerScale.eyeHeight)
-  return {"node": picked, "label": nodes.label[picked], "standing": standing, "eye": standing + numpy.stack([numpy.zeros(len(lift)), numpy.zeros(len(lift)), lift], axis=1)}
+  eye = standing.copy()
+  eye[:, 2] += numpy.where(nodes.wet[picked], playerScale.swimEyeAboveSurface, playerScale.eyeHeight)
+  return {"node": picked, "label": nodes.label[picked], "standing": standing, "eye": eye}
 
 
 def spread(points, chosenAlready, count):
@@ -190,8 +195,8 @@ def spread(points, chosenAlready, count):
 
 
 def headingRuns(lowest, lane, eye, far):
-  """How far reached ground runs ahead of an eye along each of the bearings headings (from 0, every sectorDegrees), up to far: to the
-  last column before one no one reaches or whose lowest reached floor rises more than playerHeight over the eye."""
+  """How far reached ground runs ahead of an eye along each heading from 0 every sectorDegrees, up to far: to the last column before
+  one no one reaches or whose lowest reached floor rises more than playerHeight over the eye."""
   step = lane.cellSize / 2
   steps = numpy.arange(1, int(far / step) + 1) * step
   headings = numpy.radians(numpy.arange(bearings) * sectorDegrees)
@@ -310,7 +315,8 @@ def objectSubject(name, minimum, maximum):
 
 def pointSubject(nodes, point):
   """A player standing on the lane's floor at [x, y] (its highest) or [x, y, z] (as an entry's footing is found)."""
-  if not isinstance(point, list) or len(point) not in (2, 3) or not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in point):
+  numbers = isinstance(point, list) and all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in point)
+  if not numbers or len(point) not in (2, 3):
     raise ToolError(f"A target point is [x, y] or [x, y, z], got {point!r}")
   if nodes.lane.columnAt(point) is None:
     raise ToolError(f"The target point {point} lies off the lane's grid, outside what the zone ships")
@@ -383,7 +389,10 @@ def sightPlan(subject, candidates, far):
     standing = eyes[tried][:, subject["axis"][boxed]]
     front[:, boxed] = (standing - subject["plane"][boxed]) * subject["sign"][boxed] > 0
   eyeIndex, pointIndex = numpy.nonzero(front)
-  return {"tried": tried, "bearing": bearing[tried], "sector": sector[tried], "distance": distance[tried], "sectorHasEyes": sectorHasEyes, "eyeIndex": eyeIndex, "pointIndex": pointIndex}
+  return {
+    "tried": tried, "bearing": bearing[tried], "sector": sector[tried], "distance": distance[tried], "sectorHasEyes": sectorHasEyes,
+    "eyeIndex": eyeIndex, "pointIndex": pointIndex,
+  }
 
 
 def sights(subject, candidates, plan):
@@ -409,7 +418,10 @@ def unseenRuns(sectorSeen, sectorHasEyes):
     else:
       runs.append({"first": index, "last": index, "why": why[index]})
   return [
-    {"fromDegrees": (run["first"] * sectorDegrees - sectorDegrees / 2) % 360, "toDegrees": (run["last"] * sectorDegrees + sectorDegrees / 2) % 360, "why": run["why"]}
+    {
+      "fromDegrees": (run["first"] * sectorDegrees - sectorDegrees / 2) % 360, "toDegrees": (run["last"] * sectorDegrees + sectorDegrees / 2) % 360,
+      "why": run["why"],
+    }
     for run in runs
   ]
 
@@ -527,7 +539,9 @@ class EyePlan(laneDrawing.LanePlan):
       tip = (x + ahead[0] * eyeArrowLength, y + ahead[1] * eyeArrowLength)
       side = (-ahead[1], ahead[0])
       draw.line([(x, y), tip], fill=(*eyeOutline, 255), width=4)
-      draw.polygon([tip, (tip[0] - ahead[0] * 12 + side[0] * 7, tip[1] - ahead[1] * 12 + side[1] * 7), (tip[0] - ahead[0] * 12 - side[0] * 7, tip[1] - ahead[1] * 12 - side[1] * 7)], fill=(*eyeOutline, 255))
+      back = (tip[0] - ahead[0] * eyeArrowHead, tip[1] - ahead[1] * eyeArrowHead)
+      wing = (side[0] * eyeArrowHead / 2, side[1] * eyeArrowHead / 2)
+      draw.polygon([tip, (back[0] + wing[0], back[1] + wing[1]), (back[0] - wing[0], back[1] - wing[1])], fill=(*eyeOutline, 255))
       draw.ellipse([x - eyeRadius, y - eyeRadius, x + eyeRadius, y + eyeRadius], fill=(*eyeFill, 255), outline=(*eyeOutline, 255), width=3)
 
   def labels(self, board, frame):
