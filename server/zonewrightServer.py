@@ -2721,17 +2721,20 @@ async def renderSection(
   return [Image(data=outputPath.read_bytes(), format="png"), summary]
 
 
-async def drawnSection(context, line, layers, marks=None):
-  """A section along line ({start, end, path, cave, bottom, top}) drawn with its layers, the lane's among them when asked for, with marks
-  on it (laneDrawing.SectionLane): (path, cuts, drawn, laneState or None)."""
+async def drawnSection(context, line, layers, marks=None, traced=None):
+  """A section along line ({start, end, path, cave, bottom, top}) drawn with its layers, the lane's among them when asked for (the open
+  scene's, or traced: a lane already read, as (lane, description, status, seconds, nodes)), with marks on it (laneDrawing.SectionLane):
+  (path, cuts, drawn, laneState or None)."""
   cuts = await callBridge(context, "sectionCuts", line | {"layers": [layer for layer in layers if layer != "lane"]})
   outputPath = newRenderPath()
   if "lane" not in layers:
     return outputPath, cuts, await anyio.to_thread.run_sync(planDrawing.drawSection, outputPath, cuts), None
-  lane, description, status, seconds = await sceneLaneOnly(context)
-  nodes = await anyio.to_thread.run_sync(playerReach.Nodes, lane)
+  if traced is None:
+    lane, description, status, seconds = await sceneLaneOnly(context)
+    nodes = await anyio.to_thread.run_sync(playerReach.Nodes, lane)
+  else:
+    lane, description, status, seconds, nodes = traced
   cut = await anyio.to_thread.run_sync(playerReach.laneCut, nodes, cuts["points"], cuts["bottom"], cuts["top"])
-  del nodes
   laneSection = laneDrawing.SectionLane(cut, marks or [])
   drawn = await anyio.to_thread.run_sync(planDrawing.drawSection, outputPath, cuts, laneSection)
   await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, laneSection, None)
@@ -3126,11 +3129,11 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   gap under the step lower than the containment headroom, with its clearance), steep (a face steeper than walkable, in degrees), water
   (no bank within the step of the box's top: the box, its top, the bank, and how far over the climb), zoneLine (a box that takes
   players on the way), noFloor (columns with nothing at all). Picture 1, renderSection's section from the nearest node to the point,
-  run on 12 past each, with the lane layer, the nearest node marked with a white disc, the point with a red ring, and each separation
-  with a dark diamond named by its kind; picture 2, an eye-level view facing the point from the reached floor up to 12 back from the
-  nearest node, away from the point, as far as the lane joins it. Every result gives the constants, what is not modelled (doors taken
-  as open among them: the client collides with a closed door), the limits, and whether the lane was computed or reused. Refused: `to`
-  not [x, y] or [x, y, z], or outside what the zone ships; an unknown fromEntry; and mapReach's refusals."""
+  run on 12 past each, with the traced lane as its lane layer, the nearest node marked with a white disc, the point with a red ring,
+  and each separation with a dark diamond named by its kind; picture 2, an eye-level view facing the point from the reached floor up
+  to 12 back from the nearest node, away from the point, as far as the lane joins it. Every result gives the constants, what is not
+  modelled (doors taken as open among them: the client collides with a closed door), the limits, and whether the lane was computed or
+  reused. Refused: `to` not [x, y] or [x, y, z], or outside what the zone ships; an unknown fromEntry; and mapReach's refusals."""
   if len(to) not in (2, 3) or not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in to):
     raise ToolError(f"to is [x, y] or [x, y, z], got {to}")
   lane, description, status, seconds = await sceneLaneOnly(context, fromEntry)
@@ -3187,14 +3190,13 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   }
   back = await anyio.to_thread.run_sync(playerReach.standBack, nodes, description, nearest, targetPoint)
   backPoint, backWet = playerReach.nodePoint(nodes, back), bool(nodes.wet[back])
-  del nodes
   seenPoint = targetPoint if len(targetPoint) == 3 else [*targetPoint, nearPoint[2]]
   start, end = traceLine(nearPoint, targetPoint)
   marks = [
     {"kind": "reached", "s": traceSectionSpare, "z": nearPoint[2]},
     {"kind": "point", "s": traceSectionSpare + math.hypot(targetPoint[0] - nearPoint[0], targetPoint[1] - nearPoint[1]), "z": seenPoint[2]},
   ] + [{"kind": "separation", "s": traceSectionSpare + stop["along"], "z": stop["at"][2] if len(stop["at"]) == 3 else nearPoint[2], "text": stop["kind"]} for stop in stated]
-  sectionPath, cuts, drawn, laneState = await drawnSection(context, {"start": start, "end": end, "path": None, "cave": None, "bottom": None, "top": None}, sectionLayersDefault + ["lane"], marks)
+  sectionPath, cuts, drawn, laneState = await drawnSection(context, {"start": start, "end": end, "path": None, "cave": None, "bottom": None, "top": None}, sectionLayersDefault + ["lane"], marks, (lane, description, status, seconds, nodes))
   result["section"] = {"outputPath": str(sectionPath), "start": playerReach.roundedPoint(start), "end": playerReach.roundedPoint(end), "length": cuts["length"], "bottom": cuts["bottom"], "top": cuts["top"], "laneCut": laneState["laneCut"]}
   view = facingView(backPoint, seenPoint, backWet)
   viewPath = newRenderPath()

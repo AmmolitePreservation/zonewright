@@ -133,13 +133,13 @@ def testTraceReachRoutesOverTheDropAndTheSwim(stageBlenderServer, tmp_path):
 
 
 def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
-  targets = {"cliff": [5, 80], "boundary": [10, 60], "headroom": [-5, 90, 0], "water": [0, 120]}
+  targets = {"cliff": {"to": [5, 80]}, "boundary": {"to": [10, 60]}, "headroom": {"to": [-5, 90, 0]}, "water": {"to": [0, 120]}, "fromGate": {"to": [0, 0], "fromEntry": "gate"}}
 
   async def steps(session):
     await traceCourse(session)
     found = {}
-    for name, to in targets.items():
-      result, _ = await session.call("traceReach", {"to": to})
+    for name, arguments in targets.items():
+      result, _ = await session.call("traceReach", arguments)
       found[name] = result
     return found
 
@@ -187,6 +187,13 @@ def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
   assert near(water["view"]["view"]["standAt"], [0, pit[1] - 1 - 12]) and abs(water["view"]["view"]["headingDegrees"]) < 1e-6
   assert near(cliff["view"]["view"]["standAt"], [-corridorHalf + 1, 80]) and abs(cliff["view"]["view"]["headingDegrees"] - 90) < 1e-6
   assert any(entry.startswith("doors: taken as open") for entry in cliff["notModeled"])
+  # From the gate alone, players swim the trench back and climb out, but the riser block's far face rises more than a step; its section
+  # draws the gate's lane, in which the block's top is walkable floor never reached.
+  gated = results["fromGate"]
+  assert gated["nearest"]["from"] == "gate" and near(gated["nearest"]["at"], [0, 11])
+  assert [stop["kind"] for stop in gated["separations"]] == ["rise"] and abs(gated["separations"][0]["height"] - 2 * riser) <= cellHeight
+  gatedCut = json.loads(Path(gated["section"]["laneCut"]).read_text())
+  assert any(abs(mark["z"] - 2 * riser) <= cellHeight for mark in gatedCut["unreached"]) and not any(abs(mark["z"] - 2 * riser) <= cellHeight for mark in gatedCut["bars"])
 
 
 def testSeparationsAlongOneFaceAreOne():
