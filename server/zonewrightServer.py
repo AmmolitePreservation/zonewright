@@ -3112,24 +3112,25 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   from the arrival `fromEntry` names alone, "safe point" or a stored entry, in a lane of its own). `to` is [x, y] (the highest floor
   there) or [x, y, z] (water holding z, else the floor found under z as an entry's footing is). Reached: the route the lane took from
   the arrival whose flood reached it first, as legs, each a run of one move into one label (walk; step, a walk rising more than any
-  walkable face rises across a column, a riser; drop; slide; enterWater; swim; climbOut; sink; teleport, carried by a zone line home),
-  with its start, end, rise (a fall negative), plan length, and moves; and its decisive moves numbered: every drop, slide, entering or
-  leaving water, teleport, and the first step of each climb run. Picture 1, the route over the lane plan as a ribbon in its labels'
-  colors, each decisive move ringed and numbered, the point ringed red, with the legend; picture 2, eye-level frames of up to five
-  decisive moves (spread from the first to the last when there are more), each standing on the route 12 before its move (from its start
-  when nearer; in water, floating over it) and looking at where the move ends, a teleport's from its landing along the route on, each
-  labelled with its number, move, and rise. Unreached: the reached
-  node nearest it (players a zone line took do not count), and what separates the two along the plan line between them, read from the
-  lane's nodes and the shipped collision, in order along the line: boundary (a boundary a cast across meets, by name), rise (a floor
-  higher than the step, by how much over it, or a swim box's bottom higher than a player over the floor), headroom (a gap under the
-  step lower than the containment headroom, with its clearance), steep (a face steeper than walkable, in degrees), water (no bank
-  within the step of the box's top: the box, its top, the bank, and how far over the climb), zoneLine (a box that takes players on the
-  way), noFloor (columns with nothing at all). Picture 1, renderSection's section from the nearest node to the point, run on 12 past
-  each, with the lane layer, the nearest node marked with a white disc, the point with a red ring, and each separation with a dark
-  diamond named by its kind; picture 2, an eye-level view facing the point from the reached floor up to 12 back from the nearest node,
-  away from the point, as far as the lane joins it. Every result gives the constants, what is not
-  modelled (doors taken as open among them: the client collides with a closed door), the limits, and whether the lane was computed or
-  reused. Refused: `to` not [x, y] or [x, y, z], or outside what the zone ships; an unknown fromEntry; and mapReach's refusals."""
+  walkable face rises across a column, a riser, steps with less than a player's height of walking between them one climb run counting
+  its steps; drop; slide; enterWater; swim; climbOut; sink; teleport, carried by a zone line home), with its start, end, rise (a fall
+  negative), plan length, and moves; and its decisive moves numbered, each by its leg: every drop, slide, entering or leaving water,
+  teleport, and the first step of each climb run. Picture 1, the route over the lane plan as a ribbon in its labels' colors, each
+  decisive move ringed and numbered, the point ringed red, with the legend; picture 2, eye-level frames of up to five decisive moves
+  (spread from the first to the last when there are more), each standing on the route 12 before its move (from its start when nearer;
+  in water, floating over it) and looking at where the move ends, a teleport's from its landing along the route on, each labelled with
+  its number, move, and rise. Unreached: the reached node nearest it (players a zone line took do not count), and what separates the
+  two along the plan line between them, read from the lane's nodes and the shipped collision, in order along the line, one running
+  over columns side by side named once with how many and where it ends (through): boundary (a boundary a cast across meets, by name),
+  rise (a floor higher than the step, by how much over it, or a swim box's bottom higher than a player over the floor), headroom (a
+  gap under the step lower than the containment headroom, with its clearance), steep (a face steeper than walkable, in degrees), water
+  (no bank within the step of the box's top: the box, its top, the bank, and how far over the climb), zoneLine (a box that takes
+  players on the way), noFloor (columns with nothing at all). Picture 1, renderSection's section from the nearest node to the point,
+  run on 12 past each, with the lane layer, the nearest node marked with a white disc, the point with a red ring, and each separation
+  with a dark diamond named by its kind; picture 2, an eye-level view facing the point from the reached floor up to 12 back from the
+  nearest node, away from the point, as far as the lane joins it. Every result gives the constants, what is not modelled (doors taken
+  as open among them: the client collides with a closed door), the limits, and whether the lane was computed or reused. Refused: `to`
+  not [x, y] or [x, y, z], or outside what the zone ships; an unknown fromEntry; and mapReach's refusals."""
   if len(to) not in (2, 3) or not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in to):
     raise ToolError(f"to is [x, y] or [x, y, z], got {to}")
   lane, description, status, seconds = await sceneLaneOnly(context, fromEntry)
@@ -3153,7 +3154,7 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
       "reached": True, "target": {"at": playerReach.roundedPoint(targetPoint), "label": playerReach.labelNames[nodes.label[target]]},
       "from": description["seeds"][int(lane.read("originSeed")[target])]["name"], "length": round(sum(leg["length"] for leg in legs), 1),
       "legs": [playerReach.legReport(leg) for leg in legs],
-      "decisive": [{"number": number, "leg": index, "move": legs[index]["move"], "at": playerReach.roundedPoint(legs[index]["start"]), "rise": playerReach.legReport(legs[index])["rise"]} for number, index in decisive],
+      "decisive": [{"number": number, "leg": index, "move": legs[index]["move"]} for number, index in decisive],
       "plan": {"outputPath": str(planPath), "center": center, "width": round(width, 2), "frameSize": drawn["size"]},
     }
     images = [Image(data=planPath.read_bytes(), format="png")]

@@ -236,13 +236,14 @@ class PreviewScene:
 
   def placeLaneTint(self, rectangles, tint):
     """The lane's reached floor (laneTintRectangles) as flat rectangles a cell height over their floors, which the lane knows to a cell
-    height, one mesh per label in its color."""
+    height, one mesh per label in its color; each reaches half a column past its columns all round, so on a slope it hangs over the
+    rectangle a step below it and the ground rising between the two does not show as an untinted band."""
     placed = []
     origin, cellSize, cellHeight = tint["origin"], tint["cellSize"], tint["cellHeight"]
     for label in numpy.unique(rectangles[:, 0]):
       chosen = rectangles[rectangles[:, 0] == label]
-      lowX, highX = origin[2] + chosen[:, 3] * cellSize, origin[2] + (chosen[:, 4] + 1) * cellSize
-      lowY, highY = origin[0] + chosen[:, 1] * cellSize, origin[0] + (chosen[:, 2] + 1) * cellSize
+      lowX, highX = origin[2] + (chosen[:, 3] - 0.5) * cellSize, origin[2] + (chosen[:, 4] + 1.5) * cellSize
+      lowY, highY = origin[0] + (chosen[:, 1] - 0.5) * cellSize, origin[0] + (chosen[:, 2] + 1.5) * cellSize
       height = origin[1] + (chosen[:, 5] + 1) * cellHeight
       corners = numpy.stack([
         numpy.stack([lowX, lowY, height], axis=1), numpy.stack([highX, lowY, height], axis=1),

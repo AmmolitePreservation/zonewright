@@ -28,6 +28,8 @@ groundEdge = 12.0
 wallHeight = 20.0
 slabBottom = -20.0
 riser = stepHeight - heightMargin
+# The second riser stands back from the first by less than a player's height of tread: the two are one climb run.
+riserB = -10 + playerHeight / 2
 bed = -(stepHeight + playerHeight)
 waterTop = -heightMargin
 trench = (40.0, 52.0)
@@ -50,7 +52,7 @@ async def traceCourse(session):
   await cube(session, "pitBed", [-groundEdge, pit[0], slabBottom], [groundEdge, pit[1], bed])
   await cube(session, "groundC", [-groundEdge, pit[1], slabBottom], [groundEdge, farEnd, highBank])
   await cube(session, "riserA", [-groundEdge, -10, 0], [groundEdge, 10, riser])
-  await cube(session, "riserB", [-groundEdge, -5, riser], [groundEdge, 10, 2 * riser])
+  await cube(session, "riserB", [-groundEdge, riserB, riser], [groundEdge, 10, 2 * riser])
   # Blocks stand a column inside the walls: a wall follows the highest ground it meets, so over a block's top its foot would leave a gap.
   await cube(session, "cliff", [2, 75, 0], [corridorHalf - 1, 85, cliffHeight])
   await cube(session, "lowLid", [-corridorHalf + 1, 85, lidGap], [-2, 95, wallHeight])
@@ -88,25 +90,28 @@ def testTraceReachRoutesOverTheDropAndTheSwim(stageBlenderServer, tmp_path):
   assert playerReach.stepRise(playerReach.Lane(result["laneFile"])) < riser
   assert (result["reached"], result["from"], result["target"]["label"]) == (True, "safe point", "walk")
   legs = result["legs"]
-  assert [leg["move"] for leg in legs] == ["walk", "step", "walk", "step", "walk", "drop", "walk", "drop", "swim", "climbOut", "walk"]
-  assert [leg["label"] for leg in legs] == ["walk"] * 7 + ["swim", "swim", "walk", "walk"]
+  assert [leg["move"] for leg in legs] == ["walk", "step", "walk", "drop", "walk", "drop", "swim", "climbOut", "walk"]
+  assert [leg["label"] for leg in legs] == ["walk"] * 5 + ["swim", "swim", "walk", "walk"]
+  # The two risers are one climb run of two steps, up both.
+  assert legs[1]["steps"] == 2 and all("steps" not in leg for leg in legs[2:])
   rises = [leg["rise"] for leg in legs]
-  for index, expected in ((1, riser), (3, riser), (5, -2 * riser), (7, waterTop), (9, -waterTop)):
+  for index, expected in ((1, 2 * riser), (3, -2 * riser), (5, waterTop), (7, -waterTop)):
     assert abs(rises[index] - expected) <= cellHeight, (index, rises[index], expected)
-  # The risers' faces, the riser block's far edge, and the trench's banks are where the moves start, to a column.
-  for index, y in ((1, -10), (3, -5), (5, 10), (7, trench[0]), (9, trench[1])):
+  # The first riser's face, the riser block's far edge, and the trench's banks are where the moves start, to a column.
+  for index, y in ((1, -10), (3, 10), (5, trench[0]), (7, trench[1])):
     assert abs(legs[index]["start"][1] + 0.5 - y) <= 1, (index, legs[index]["start"], y)
-  assert abs(legs[8]["length"] - (trench[1] - trench[0] - 2)) <= 2 and near(legs[-1]["end"], routeTarget)
+  assert abs(legs[6]["length"] - (trench[1] - trench[0] - 2)) <= 2 and near(legs[-1]["end"], routeTarget)
   assert result["length"] == round(sum(leg["length"] for leg in legs), 1)
-  assert [(move["number"], move["move"]) for move in result["decisive"]] == [(1, "step"), (2, "step"), (3, "drop"), (4, "drop"), (5, "climbOut")]
-  # Five decisive moves, five frames: each stands on the route 12 before its move, the climb out's on the bank it dropped from, and looks
+  assert [(move["number"], move["move"]) for move in result["decisive"]] == [(1, "step"), (2, "drop"), (3, "drop"), (4, "climbOut")]
+  # Four decisive moves, four frames: each stands on the route 12 before its move, the climb out's on the bank it dropped from, and looks
   # up the corridor at where the move ends.
   frames = result["frames"]
-  assert [frame["number"] for frame in frames] == [1, 2, 3, 4, 5]
+  assert [frame["number"] for frame in frames] == [1, 2, 3, 4]
   for frame, move in zip(frames, result["decisive"]):
     assert set(frame["view"]) == {"standAt", "headingDegrees", "pitchDegrees"} and abs(frame["view"]["headingDegrees"]) < 1e-6
     assert abs(frame["view"]["standAt"][1] - (legs[move["leg"]]["start"][1] - playerReach.frameStandBack)) <= 1, (frame, move)
-  assert frames[2]["view"]["pitchDegrees"] < frames[0]["view"]["pitchDegrees"] < 0
+  # The climb's frame looks up at the top of its run; the drop's looks down at where it lands.
+  assert frames[1]["view"]["pitchDegrees"] < 0 < frames[0]["view"]["pitchDegrees"]
   sheet = Image.open(io.BytesIO(base64.b64decode(routed.content[1].data)))
   assert sheet.size == (result["frameSheet"]["width"], result["frameSheet"]["height"])
   # In plan the ribbon runs along y, across the drawing, in walk green over a dark casing through the riser block, and the decisive
@@ -118,7 +123,7 @@ def testTraceReachRoutesOverTheDropAndTheSwim(stageBlenderServer, tmp_path):
   x, y = (round(value) for value in frame.pixel([0, 0]))
   across = numpy.asarray(plan.convert("RGB"))[y - laneDrawing.ribbonCasingWidth:y + laneDrawing.ribbonCasingWidth + 1, x].astype(int)
   assert colorShare(across, laneDrawing.labelColors[playerReach.walkLabel]) > 0.2 and colorShare(across, laneDrawing.ribbonCasing) > 0.1
-  assert colorShare(pixelsAround(plan, result["plan"], legs[5]["start"], 6), laneDrawing.decisiveFill) > 0.2
+  assert colorShare(pixelsAround(plan, result["plan"], legs[3]["start"], 6), laneDrawing.decisiveFill) > 0.2
   # From every arrival, the gate's landing lies nearer: one walk south to the point.
   gated = json.loads(fromGate.content[-1].text)
   assert (gated["from"], [leg["move"] for leg in gated["legs"]], gated["decisive"]) == ("gate", ["walk"], [])
@@ -182,6 +187,25 @@ def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
   assert near(water["view"]["view"]["standAt"], [0, pit[1] - 1 - 12]) and abs(water["view"]["view"]["headingDegrees"]) < 1e-6
   assert near(cliff["view"]["view"]["standAt"], [-corridorHalf + 1, 80]) and abs(cliff["view"]["view"]["headingDegrees"] - 90) < 1e-6
   assert any(entry.startswith("doors: taken as open") for entry in cliff["notModeled"])
+
+
+def testSeparationsAlongOneFaceAreOne():
+  # A steep face crossed over three columns, a rise at its top, then a boundary met twice side by side and another boundary.
+  stated = [
+    {"kind": "steep", "along": 3.0, "at": [3, 0, 2], "degrees": 75.0, "steepestWalkable": 71.9},
+    {"kind": "steep", "along": 4.0, "at": [4, 0, 6], "degrees": None, "why": "no face crosses the column's middle", "steepestWalkable": 71.9},
+    {"kind": "steep", "along": 5.0, "at": [5, 0, 10], "degrees": 80.0, "steepestWalkable": 71.9},
+    {"kind": "rise", "along": 6.0, "at": [6, 0, 16], "from": [5, 0, 10], "height": 6.0, "limit": 4.5, "over": 1.5},
+    {"kind": "rise", "along": 7.0, "at": [7, 0, 23], "from": [6, 0, 16], "height": 7.0, "limit": 4.5, "over": 2.5},
+    {"kind": "boundary", "along": 9.0, "at": [9, 0, 26], "name": "rim"},
+    {"kind": "boundary", "along": 10.0, "at": [10, 0, 26], "name": "rim"},
+    {"kind": "boundary", "along": 11.0, "at": [11, 0, 26], "name": "fence"},
+  ]
+  merged = playerReach.mergedSeparations(stated, 1.0)
+  assert [(stop["kind"], stop["columns"], stop.get("name")) for stop in merged] == [("steep", 3, None), ("rise", 2, None), ("boundary", 2, "rim"), ("boundary", 1, "fence")]
+  steep, rise = merged[0], merged[1]
+  assert (steep["degrees"], "why" in steep, steep["at"], steep["through"]) == (80.0, False, [3, 0, 2], [5, 0, 10])
+  assert (rise["height"], rise["over"], rise["through"]) == (13.0, 8.5, [7, 0, 23])
 
 
 def mapPixel(description, point):
@@ -259,7 +283,7 @@ def testSectionDrawsTheLane(stageBlenderServer, tmp_path):
 
   along = lambda y: y - start[1]
   assert bar(0, "walk", 0, along(-10.5))
-  assert bar(riser, "walk", along(-10.5), along(-5.5)) and bar(2 * riser, "walk", along(-5.5), along(10.5))
+  assert bar(riser, "walk", along(-10.5), along(riserB - 0.5)) and bar(2 * riser, "walk", along(riserB - 0.5), along(10.5))
   assert bar(0, "walk", along(10.5), along(trench[0] + 0.5)) and bar(0, "walk", along(trench[1] - 0.5), along(pit[0] + 0.5))
   # The trench and the pit are swum to their beds, which a sink reaches, so they are floor in a swim box.
   assert bar(bed, "swim", along(trench[0] + 0.5), along(trench[1] - 0.5)) and bar(bed, "swim", along(pit[0] + 0.5), along(pit[1] - 0.5))
@@ -274,7 +298,7 @@ def testSectionDrawsTheLane(stageBlenderServer, tmp_path):
   # The bars stand on their floors in walk green, where the section without the lane draws none; the pit's water is a blue band.
   pixels = numpy.asarray(section.convert("RGB")).astype(int)
   plainPixels = numpy.asarray(Image.open(io.BytesIO(plainImage)).convert("RGB")).astype(int)
-  for y, z in ((0, bar(2 * riser, "walk", along(-5.5), along(10.5))[0]["z"]), (-20, bar(0, "walk", 0, along(-10.5))[0]["z"])):
+  for y, z in ((0, bar(2 * riser, "walk", along(riserB - 0.5), along(10.5))[0]["z"]), (-20, bar(0, "walk", 0, along(-10.5))[0]["z"])):
     x, top = (round(value) for value in sectionPixel(laned, along(y), z))
     above = (slice(top - laneDrawing.sectionBarHeight + 1, top - 1), slice(x - 3, x + 4))
     assert colorShare(pixels[above].reshape(-1, 3), laneDrawing.labelColors[playerReach.walkLabel]) == 1.0

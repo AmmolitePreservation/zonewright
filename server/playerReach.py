@@ -913,7 +913,8 @@ def routeChain(nodes, target):
 def routeLegs(nodes, chain, moves):
   """A route's legs: runs of one move into nodes of one label (walk, step, swim, and slide runs merged; every other move a leg of its
   own), each with its start and end (zone axes), plan length (a teleport carries, so has none), number of moves, and the indices of its
-  first and last node in the chain. A walk rising more than stepRise across a column is a step."""
+  first and last node in the chain. A walk rising more than stepRise across a column is a step, and steps with less than playerHeight
+  of walking between them are one climb run, a step leg counting its steps (a stair, or hopping along a ledge's edge)."""
   points = [nodePoint(nodes, node) for node in chain]
   rise = stepRise(nodes.lane)
   legs = []
@@ -926,14 +927,28 @@ def routeLegs(nodes, chain, moves):
       legs[-1].update(end=end, length=legs[-1]["length"] + length, moves=legs[-1]["moves"] + 1, last=index)
     else:
       legs.append({"move": kind, "label": label, "start": start, "end": end, "length": length, "moves": 1, "first": index - 1, "last": index})
-  return points, legs
+  climbed = []
+  for leg in legs:
+    if leg["move"] == "step":
+      leg["steps"] = leg["moves"]
+    between = climbed[-1] if climbed else None
+    run = climbed[-2] if len(climbed) > 1 else None
+    if leg["move"] == "step" and run is not None and run["move"] == "step" and between["move"] == "walk" and between["length"] < playerScale.playerHeight and run["label"] == between["label"] == leg["label"]:
+      run.update(
+        end=leg["end"], length=run["length"] + between["length"] + leg["length"], moves=run["moves"] + between["moves"] + leg["moves"],
+        steps=run["steps"] + leg["steps"], last=leg["last"],
+      )
+      climbed.pop()
+    else:
+      climbed.append(leg)
+  return points, climbed
 
 
 def legReport(leg):
   return {
-    "move": leg["move"], "label": leg["label"], "start": roundedPoint(leg["start"]), "end": roundedPoint(leg["end"]),
+    "move": leg["move"], "label": leg["label"], "start": roundedPoint(leg["start"], 1), "end": roundedPoint(leg["end"], 1),
     "rise": round(leg["end"][2] - leg["start"][2], 2), "length": round(leg["length"], 1), "moves": leg["moves"],
-  }
+  } | ({"steps": leg["steps"]} if leg["move"] == "step" else {})
 
 
 def decisiveLegs(legs):
@@ -1218,7 +1233,32 @@ def separations(nodes, found, crossed, profiles):
       stated.append(shown | {"at": roundedPoint(far)} | {key: stop[key] for key in ("swimBox", "boxTop", "bank", "overClimb")})
     else:
       stated.append(shown | {"at": roundedPoint(far), "zoneLine": stop["zoneLine"]})
-  return stated
+  return mergedSeparations(stated, nodes.lane.cellSize)
+
+
+def mergedSeparations(stated, cellSize):
+  """Separations of one kind (and one boundary, box, or zone line) in columns side by side along the line as one, from where it starts
+  through where it ends, over how many columns: a steep face by its steepest, a rise by its whole height, a gap by its lowest
+  clearance."""
+  merged = []
+  for stop in stated:
+    before = merged[-1] if merged else None
+    alike = before is not None and before["kind"] == stop["kind"] and all(before.get(key) == stop.get(key) for key in ("name", "swimBox", "zoneLine"))
+    if not alike or stop["along"] - before["until"] > 1.5 * cellSize:
+      merged.append(stop | {"until": stop["along"], "columns": 1})
+      continue
+    before.update(until=stop["along"], columns=before["columns"] + 1, through=stop["at"])
+    if stop["kind"] == "steep" and stop.get("degrees") is not None and (before.get("degrees") is None or stop["degrees"] > before["degrees"]):
+      before.pop("why", None)
+      before["degrees"] = stop["degrees"]
+    elif stop["kind"] == "rise":
+      before["height"] = round(stop["at"][2] - before["from"][2], 2)
+      before["over"] = round(before["height"] - before["limit"], 2)
+    elif stop["kind"] == "headroom":
+      before["clearance"] = min(before["clearance"], stop["clearance"])
+  for stop in merged:
+    stop.pop("until")
+  return merged
 
 
 def laneCut(nodes, points, bottom, top):
