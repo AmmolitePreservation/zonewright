@@ -27,14 +27,19 @@ disabledArea = 11
 # region area 0, Recast's null area, which cuts a hole in the nav, so Normal is refused with the types no area maps.
 volumeAreas = {1: 1, 2: 2, 3: disabledArea, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 10}
 # Peridot's ground pathing: EQEmu PathfinderNavmesh::FindPath as MobMovementManager::UpdatePathGround calls it (its filter, costs,
-# 256-polygon path, and (10, 200, 10) nearest search), Peridot's Pathing:MaxNavmeshNodes 1024, and the (5, 100, 5) nearest search of
-# FindRoute, which decides the polygon an NPC stands on.
+# 256-polygon path, and (10, 200, 10) nearest search), Peridot's Pathing:MaxNavmeshNodes 1024, the (5, 100, 5) nearest search of
+# FindRoute, which decides the polygon an NPC stands on, and Map:FindBestZHeightAdjust, how far over a point FindBestZ starts looking down
+# for the ground under it (map.cpp:59).
 serverPathing = {
   "searchNodes": 1024, "pathPolygons": 256,
   "nearestHalfExtents": (5.0, 100.0, 5.0), "pathHalfExtents": (10.0, 200.0, 10.0), "snapHeight": 100.0,
   "excludedAreas": (3, disabledArea),
   "areaCosts": {0: 1.0, 1: 3.0, 2: 5.0, 4: 1.0, 5: 2.0, 6: 2.0, 7: 4.0, 8: 1.0, 9: 0.1, 10: 0.1},
+  "findBestZHeightAdjust": 1.0,
 }
+# The goal the server's search takes for a point on a floor stands at it within the NPC's radius and a cell across (the nav keeps that
+# far from a wall's foot, by whole cells) and the NPC's climb up or down; further off, NPCs path to the goal and never onto the point.
+goalReach = {"across": serverNavSettings["agentRadius"] + serverNavSettings["cellSize"], "up": serverNavSettings["agentClimb"]}
 
 
 def navVolumes(waterRecords):
@@ -98,6 +103,13 @@ def probeFinding(probe):
     "noGoalPolygon": f"no polygon the server's ground filter allows lies within {serverPathing['pathHalfExtents']} of it",
     "failed": "the search failed",
   }
+  if probe["result"] == "complete":
+    across, up = probe["goalOffset"]["across"], probe["goalOffset"]["up"]
+    return (
+      f"NPCs path from the safe point to {probe['goalAt']}, never onto {probe['name']}: the server takes the polygon its ground filter"
+      f" allows nearest it within {serverPathing['pathHalfExtents']} as the goal, {across:g} across and {abs(up):g} {'under' if up < 0 else 'over'}"
+      f" it, past the NPC's radius and a cell ({goalReach['across']:g}) or its climb ({goalReach['up']:g})"
+    )
   if probe["result"] in reasons:
     reason = reasons[probe["result"]]
   elif probe["outOfNodes"]:
@@ -135,8 +147,13 @@ def inspectNav(navFile, safePoint, targets, toolingRoot, reportProgress):
   other component is an island, numbered by area, largest first, with its bounds, its center (the middle of its largest polygon, so it
   lies on the island), and snapRisk: some main-piece polygon lies within 100 vertically over its footprint, where the server's
   nearest-polygon search can put an NPC onto it. Then a Detour search with Peridot's limits from the safe point to each target ({name,
-  point}, zone axes); with no safe point, none is searched and the result names them. Every polygon is listed by tile, in the file's
-  order, with its area, its component (-1 for none), its outline in zone plan axes, and its corners' heights."""
+  point, onFloor}, zone axes), to the goal the server takes for it (goalAt, the nearest point of the nearest polygon its ground filter
+  allows, and goalOffset, how far across and up from the point that lies); a target on a floor (onFloor) is reached only when the
+  search completes to a goal within goalReach of it, a zone line's center when the search completes. With no safe point, none is
+  searched and the result names them. Every polygon is listed by tile, in the file's order, with its area, its component (-1 for none),
+  its outline in zone plan axes, and its corners' heights."""
+  if any(not isinstance(target.get("onFloor"), bool) for target in targets):
+    raise ValueError(f"each probe target is {{name, point, onFloor}}, got {targets}")
   payload = serverMapFiles.navPayload(serverMapFiles.readNav(navFile))
   recastSafe = None if safePoint is None else eqAxes.recastFromZone(safePoint).astype(float).tolist()
   recastTargets = [eqAxes.recastFromZone(target["point"]).astype(float).tolist() for target in targets]
@@ -152,7 +169,15 @@ def inspectNav(navFile, safePoint, targets, toolingRoot, reportProgress):
   probes = []
   unprobed = []
   for target, probe in zip(targets, report["probes"], strict=True):
-    probe = {"name": target["name"], "point": list(target["point"])} | probe | {"reached": probe["result"] == "complete"}
+    probe = {"name": target["name"], "point": list(target["point"]), "onFloor": target["onFloor"]} | probe
+    probe["goalOffset"] = None
+    if probe["goalAt"] is not None:
+      probe["goalAt"] = [round(float(value), 2) for value in eqAxes.zoneFromRecast(probe["goalAt"])]
+      offset = numpy.asarray(probe["goalAt"]) - numpy.asarray(target["point"], dtype=numpy.float64)
+      probe["goalOffset"] = {"across": round(float(numpy.hypot(*offset[:2])), 2), "up": round(float(offset[2]), 2)}
+    offset = probe["goalOffset"]
+    atTarget = not target["onFloor"] or (offset is not None and offset["across"] <= goalReach["across"] and abs(offset["up"]) <= goalReach["up"])
+    probe["reached"] = probe["result"] == "complete" and atTarget
     probes.append(probe)
     if probe["result"] == "noSafePoint":
       unprobed.append(target["name"])

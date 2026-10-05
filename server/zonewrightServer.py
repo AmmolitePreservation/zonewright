@@ -53,6 +53,7 @@ import planDrawing
 import playerReach
 import playerScale
 import recastHelper
+import serverNav
 import skyDrawing
 import toolingLog
 import viewerLight
@@ -1306,7 +1307,8 @@ exportChecksHelp = (
   " entrance no player reaches (unreachedPlot), each with its place and mapReach's number for it, or \"containment not checked\" for want"
   " of seeds (no safe point and no zoneIn or landing entry) or when the lane cannot be computed, naming why; the safe point, a stored"
   " entry, or a zone line's landing back in the zone over no ground the server finds in the .map at or above the underworld (looking down"
-  " from 1 over it, as its FindBestZ does); and server rows that cannot be written, naming why. A test export lists the scene's gaps as"
+  f" from {serverNav.serverPathing['findBestZHeightAdjust']:g} over it, as its FindBestZ does); and server rows that cannot be written,"
+  " naming why. A test export lists the scene's gaps as"
   " findings, builds no server side, and says its containment is \"not checked for a test export\". A game check's or export's findings"
   " add the NPC nav's islands (each with whether players reach it: some reached floor within a step of it) and its failed path probes"
   " (from the safe point to each zone line, stored entry, and plot entrance), and the lane's: traps, reach into view regions, zone lines,"

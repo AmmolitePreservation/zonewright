@@ -63,7 +63,7 @@ def testHighpassHoldsZoneLinesAreReachedFromItsSafePoint(recastToolingRoot, tmp_
     assert float(rises.max()) == top["rise"] and top["rise"] > stepHeight, name
 
   water = serverMapFiles.readWater(waterBytes)
-  targets = [{"name": f"the zone line of .wtr record {index}", "point": record["position"]} for index, record in enumerate(water) if record["type"] == 3]
+  targets = [{"name": f"the zone line of .wtr record {index}", "point": record["position"], "onFloor": False} for index, record in enumerate(water) if record["type"] == 3]
   inspection = serverNav.inspectNav(referenceBytes("nav/highpasshold.nav"), highpassSafePoint, targets, recastToolingRoot, noProgress)
   drawn = laneDrawing.drawLaneBesideNav(
     tmp_path / "highpassLaneBesideNav.png", serverMapFiles.mapCollision(mapBytes), laneDrawing.LanePlan(analysis, description, None, True), inspection,

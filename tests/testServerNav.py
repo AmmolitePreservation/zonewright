@@ -185,7 +185,7 @@ def testNavFromOurHighpassMapMatchesPeridots(recastToolingRoot):
 def testIslandsAndProbeOnHighpassHold(recastToolingRoot, tmp_path):
   ours, _ = navOfPeridotsFiles("highpasshold", recastToolingRoot)
   water = serverMapFiles.readWater(referenceBytes("water/highpasshold.wtr"))
-  targets = [{"name": f"the zone line of .wtr record {index}", "point": record["position"]} for index, record in enumerate(water) if record["type"] == 3]
+  targets = [{"name": f"the zone line of .wtr record {index}", "point": record["position"], "onFloor": False} for index, record in enumerate(water) if record["type"] == 3]
   assert len(targets) == 5
   inspection = serverNav.inspectNav(ours, highpassSafePoint, targets, recastToolingRoot, noProgress)
   main = inspection["mainPiece"]

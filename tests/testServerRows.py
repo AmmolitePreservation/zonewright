@@ -186,16 +186,16 @@ def testWaysInUpdateTheNeighboursRowAndGuardAMissingOne():
   # where the server puts a player's origin as at the safe point and the client settles it onto the footing; its heading in EQ units.
   assert read["rows"] == [
     {
-      "fromZone": "eastkarana", "fromNumber": 40, "message": "ways in: eastkarana zone_points number 40 is not exactly one version-0 row",
+      "fromZone": "eastkarana", "fromNumber": 40, "message": "ways in: eastkarana zone_points number 40 is not exactly one version-0 row with no version -1 row",
       "target_zone_id": 901, "target_x": 20.0, "target_y": 10.0, "target_z": 3.0 + playerHeight, "target_heading": 384.0,
     },
     {
-      "fromZone": "highkeep", "fromNumber": 120, "message": "ways in: highkeep zone_points number 120 is not exactly one version-0 row",
+      "fromZone": "highkeep", "fromNumber": 120, "message": "ways in: highkeep zone_points number 120 is not exactly one version-0 row with no version -1 row",
       "target_zone_id": 901, "target_x": 7.25, "target_y": -5.5, "target_z": playerHeight, "target_heading": 0.0,
     },
   ]
   # Counted rows, not ROW_COUNT(), which reads 0 when an update changes nothing; a number two rows hold is refused.
-  assert files["waysIn"].count("(SELECT COUNT(*) FROM zone_points WHERE") == 2 and "<> 1 THEN SIGNAL" in files["waysIn"]
+  assert files["waysIn"].count("(SELECT COUNT(*) FROM zone_points WHERE") == 2 and files["waysIn"].count(" AND version = 0 AND number = 40) <> 1 OR EXISTS") == 1
   assert "ROW_COUNT" not in files["waysIn"] and "ROW_COUNT" not in files["rows"]
   assert files["waysInToAdd"] == [{"entry": "fromKithicor", "fromZone": "kithicor"}]
   assert written(rowZone, skyFog, entries=entries[2:])[0]["waysIn"] is None
@@ -346,6 +346,20 @@ def testAVersionMinusOneRowAtANumberWrittenIsForeign():
   guards = [guard for guard in serverRows.readRows(again["rows"])["guards"] if guard["guard"] == "foreignZonePoints"]
   assert [(guard["number"], guard["owned"]) for guard in guards] == [(10, [{column: value for column, value in decided(record[0]).items() if column != "number"}])]
   assert " AND number = 10 AND (version = -1 OR (version = 0 AND NOT ((ABS(" in again["rows"]
+
+
+def testWaysInRefuseANumberAVersionMinusOneRowHoldsToo():
+  fromKeep = {"name": "fromKeep", "kind": "zoneIn", "source": "placeEntry", "at": [1.0, 2.0, 3.0], "headingDegrees": 0.0, "fromZone": "highkeep", "fromNumber": 120}
+  waysIn = written(rowZone, skyFog, entries=[fromKeep])[0]["waysIn"]
+  guards = [line.removeprefix("  IF ").split(" THEN SIGNAL ")[0] for line in waysIn.splitlines() if line.startswith("  IF ")]
+  theirs = {column: 0 for column in serverRows.zonePointColumns} | {"zone": "highkeep", "number": 120, "content_flags": None, "content_flags_disabled": None}
+  # The server loads a zone's zone_points of its version and of version -1 (zone.cpp LoadStaticZonePoints), so beside a version -1 row at
+  # the number the client would be sent two zone points of one number, one of them not pointing here; another version's row is not
+  # loaded with version 0's.
+  for versions, signalled in (((0,), False), ((0, -1), True), ((-1,), True), ((0, 0), True), ((0, 1), False), ((), True)):
+    database = zonePointsTable(*(theirs | {"version": version} for version in versions))
+    assert [bool(database.execute(f"SELECT {guard}").fetchone()[0]) for guard in guards] == [signalled], versions
+  assert serverRows.readWaysIn(waysIn)["rows"][0]["message"] == "ways in: highkeep zone_points number 120 is not exactly one version-0 row with no version -1 row"
 
 
 def testTheRecordKeepsWholeRowsThroughJSON():

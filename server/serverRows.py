@@ -14,6 +14,7 @@ import re
 
 import eqAxes
 import playerScale
+import skyDrawing
 
 zoneColumns = (
   "zoneidnumber", "version", "short_name", "long_name", "min_status", "map_file_name", "note", "min_expansion", "max_expansion",
@@ -37,7 +38,11 @@ zonePointColumns = (
 fogColumns = ("fog_minclip", "fog_maxclip", "fog_density", "fog_red", "fog_green", "fog_blue")
 # The row's key, never updated: an update never changes a zone's id, which other tables reference.
 keyColumns = ("zoneidnumber", "version", "short_name")
-rowKeys = ("shortName", "zoneId", "longName", "timeType", "entryGate", "serverTemplate", "safePoint", "underworld", "minClip", "maxClip", "fogOn", "sky")
+# The zone properties the zone row is written from, in the groups a game check names its gaps by.
+rowIdentityKeys = ("shortName", "zoneId", "longName", "timeType", "entryGate", "serverTemplate")
+rowArrivalKeys = ("safePoint", "underworld")
+rowViewKeys = ("fogOn", "minClip", "maxClip", "sky")
+rowFogKeys = ("fogStart", "fogEnd", "fogDensity")
 # rof2_structs.h:579.
 timeTypes = {"indoorDungeon": 0, "outdoor": 1, "outdoorCity": 2, "dungeonCity": 3, "indoorCity": 4, "outdoorDungeon": 5}
 entryGateRule = (
@@ -126,18 +131,23 @@ def ownedRows(record, short):
 
 
 def drawsSky(zone):
-  return zone["sky"] != "none"
+  return zone["sky"] != skyDrawing.noSky
 
 
-def missingRowKeys(zone):
-  """The zone properties the zone row needs and the zone lacks: rowKeys, the fog's start, end, and density when fog is on, and fogColor
-  when fog is on without a sky."""
-  missing = [key for key in rowKeys if key not in zone]
+def missingViewKeys(zone):
+  """The view values the zone row needs and the zone lacks: rowViewKeys, and with fog on the fog's start, end, and density (rowFogKeys)
+  and, when the zone draws no sky to take the fog's color from, fogColor."""
+  missing = [key for key in rowViewKeys if key not in zone]
   if zone.get("fogOn"):
-    missing += [key for key in ("fogStart", "fogEnd", "fogDensity") if key not in zone]
+    missing += [key for key in rowFogKeys if key not in zone]
     if "sky" in zone and not drawsSky(zone) and "fogColor" not in zone:
       missing.append("fogColor")
   return missing
+
+
+def missingRowKeys(zone):
+  """Every zone property the zone row needs and the zone lacks: its identity, where players arrive, and its view values."""
+  return [key for key in rowIdentityKeys + rowArrivalKeys if key not in zone] + missingViewKeys(zone)
 
 
 def zoneRowValues(zone, skyFogColor):
@@ -313,17 +323,22 @@ def arrivalPoint(entry):
 def waysInFile(zone, entries, archiveSHA256):
   """<short>_waysIn.sql for zoneIn entries naming their neighbour's row, or None without any: a guard per entry that SIGNALs unless
   exactly one version-0 row of the neighbour holds the number (counted, as ROW_COUNT() reads 0 for an update that changes nothing, and
-  a number two rows hold is refused, never both rewritten), then an update per entry pointing that row at the entry's arrival point."""
+  a number two rows hold is refused, never both rewritten) and no version -1 row does (the server loads it beside version 0's, zone.cpp
+  LoadStaticZonePoints, so the client would get two zone points of one number), then an update per entry pointing that row at the
+  entry's arrival point."""
   if not entries:
     return None
   ordered = sorted(entries, key=lambda found: (found["fromZone"], found["fromNumber"]))
 
-  def where(entry):
-    return f"zone = {literal(entry['fromZone'])} AND version = 0 AND number = {entry['fromNumber']}"
+  def where(entry, version=0):
+    return f"zone = {literal(entry['fromZone'])} AND version = {version} AND number = {entry['fromNumber']}"
 
   text = [f"-- zonewright ways in: zone {zone['shortName']}", f"-- archive sha256: {archiveSHA256}", *blockStart]
   text += [
-    signal(f"(SELECT COUNT(*) FROM zone_points WHERE {where(entry)}) <> 1", f"ways in: {entry['fromZone']} zone_points number {entry['fromNumber']} is not exactly one version-0 row")
+    signal(
+      f"(SELECT COUNT(*) FROM zone_points WHERE {where(entry)}) <> 1 OR EXISTS (SELECT 1 FROM zone_points WHERE {where(entry, -1)})",
+      f"ways in: {entry['fromZone']} zone_points number {entry['fromNumber']} is not exactly one version-0 row with no version -1 row",
+    )
     for entry in ordered
   ]
   for entry in ordered:
@@ -515,8 +530,12 @@ def readWaysIn(text, fileName="the ways-in file"):
     lines.exact(statement)
   where = rf"zone = (?P<fromZone>{shortNameLiteral}) AND version = 0 AND number = (?P<fromNumber>[0-9]+)"
   guards = []
+  minusOne = r"zone = (?P=fromZone) AND version = -1 AND number = (?P=fromNumber)"
   while not guards or startsWith(lines, "  IF "):
-    guards.append(lines.take(r"  IF \(SELECT COUNT\(\*\) FROM zone_points WHERE " + where + r"\) <> 1" + signalTail, "the guard counting the neighbour's row"))
+    guards.append(lines.take(
+      r"  IF \(SELECT COUNT\(\*\) FROM zone_points WHERE " + where + r"\) <> 1 OR EXISTS \(SELECT 1 FROM zone_points WHERE " + minusOne + r"\)" + signalTail,
+      "the guard counting the neighbour's row",
+    ))
   updates = []
   while startsWith(lines, "  UPDATE "):
     updates.append(lines.take(

@@ -2,8 +2,11 @@ import json
 import math
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy
+import pytest
+from mcp.server.mcpserver.exceptions import ToolError
 from PIL import Image
 
 from conftest import serverRowValues, writePNG
@@ -17,17 +20,18 @@ import serverMapDrawing
 import serverMapFiles
 import serverNav
 import serverRows
-from playerScale import steepestWalkableDegrees, stepHeight
+from playerScale import playerHeight, steepestWalkableDegrees, stepHeight
 from testHousing import decision
 from testModelsAndDressing import freshScene
 from testReach import centersWithin, columnsWithin, cube, near, rampAlongY, rectangle, region
 from testWater import liquidMaterials
 
-cellSize = playerReach.reachGrid["cellSize"]
+cellSize, cellHeight = playerReach.reachGrid["cellSize"], playerReach.reachGrid["cellHeight"]
+heightMargin = 2 * cellHeight
 half = 80.0
 # The rim's walls stand just inside the ground's edge, in its last column, as the reach course's do.
 edge = half - 0.1
-wallHeight = 12.0
+wallHeight = stepHeight + playerHeight
 environment = {
   "ambientColor": [0.3, 0.3, 0.35], "specialAmbientColor": [0, 0, 0], "bounceColor": [0.1, 0.1, 0.15], "sunColor": [0.6, 0.5, 0.4],
   "sunAzimuthDegrees": 40, "sunElevationDegrees": 35, "fogColor": [0.5, 0.55, 0.6], "fogStart": 100, "fogEnd": 3000, "fogDensity": 0.1,
@@ -41,7 +45,7 @@ northLine = {"minimum": [60, -10, -5], "maximum": [76, 10, 20]}
 rims = {"westWall": [[-edge, edge], [edge, edge]], "northWall": [[edge, edge], [edge, -edge]], "eastWall": [[edge, -edge], [-edge, -edge]], "southWall": [[-edge, -edge], [-edge, edge]]}
 # A platform players walk up to by a ramp steeper than the NPC nav walks and over its climb, and a dais no one climbs.
 rampDegrees = steepestWalkableDegrees - 5
-platform = ([32, 32, 0], [48, 48, 10])
+platform = ([32, 32, 0], [48, 48, max(stepHeight, serverNav.serverNavSettings["agentClimb"]) + 2 * heightMargin])
 dais = ([-48, 32, 0], [-32, 48, 2 * stepHeight])
 fromQeynos = {"name": "fromQeynos", "at": [-40, -40], "headingDegrees": 90, "kind": "zoneIn", "fromZone": "qeynos2", "fromNumber": 3}
 withinCell = cellSize * math.sqrt(2)
@@ -95,6 +99,38 @@ def islandsOn(islands, box):
   return sorted((island["center"][2], island["playersReach"]) for island in islands if low[0] < island["center"][0] < high[0] and low[1] < island["center"][1] < high[1])
 
 
+def testARecordThatCannotBeReadIsRefusedNamingItsFile(tmp_path):
+  assert exportPipeline.readRecord(tmp_path, "contained") == []
+  path = exportPipeline.recordPath(tmp_path, "contained")
+  path.parent.mkdir(parents=True)
+  # Read as holding no rows, a damaged record would leave the rows earlier exports wrote undeleted and guarded against as someone else's.
+  for text, why in (
+    ("{", "JSONDecodeError: "), (json.dumps({"shortName": "other", "zonePoints": []}), "ValueError: it holds no {shortName: 'contained', zonePoints: [rows]}"),
+    (json.dumps({"shortName": "contained", "zonePoints": [{"number": 10}]}), "ValueError: The record holds contained's version-0 zone_points rows as rowsFiles gives them"),
+  ):
+    path.write_text(text, encoding="ascii")
+    with pytest.raises(ToolError) as refused:
+      exportPipeline.readRecord(tmp_path, "contained")
+    assert str(refused.value).startswith(f"The record of the zone_points rows contained's game exports wrote, {path}, cannot be read: {why}"), str(refused.value)
+
+
+def testAnIslandIsReachedOnlyFromTheColumnsUnderIt():
+  # Reached dry floor at 0 in column (0, 0) and at 0 and 10 in (0, 1) beside it, and floor no one reaches at 30 in (1, 0); island 1 lies
+  # over (0, 0) alone and island 2 over (0, 2), where no floor is, each tried at every height from far under every floor to far over them.
+  lane = SimpleNamespace(columnsX=4, columnsZ=4, origin=numpy.zeros(3), cellSize=1.0)
+  nodes = SimpleNamespace(
+    lane=lane, reached=numpy.array([True, True, True, False]), wet=numpy.zeros(4, dtype=bool), height=numpy.array([0, 0, 10, 30], dtype=numpy.float32),
+    z=numpy.array([0, 0, 0, 1], dtype=numpy.uint16), x=numpy.array([0, 1, 1, 0], dtype=numpy.uint16),
+  )
+
+  def over(component, y, height):
+    return {"component": component, "outline": [(0.1, y + 0.1), (0.9, y + 0.1), (0.9, y + 0.9), (0.1, y + 0.9)], "heights": [height] * 4}
+
+  for height in numpy.arange(-100, 100.25, 0.25):
+    inspection = {"islands": [{"number": 1}, {"number": 2}], "tiles": [{"polygons": [over(1, 0, height), over(2, 2, height)]}]}
+    assert exportPipeline.islandReach(inspection, nodes) == [bool(abs(height) <= stepHeight), False], height
+
+
 def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
   short = "contained"
   first, second = tmp_path / "first", tmp_path / "second"
@@ -115,9 +151,12 @@ def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
     await session.expectSuccess("deleteObjects", {"names": ["ATP_2_west"]})
     await session.expectSuccess("saveFile", {})
     again = await session.expectSuccess("exportZone", {"path": str(second / f"{short}.eqg"), "purpose": "game"})
-    return exported, afterFirst, checked, afterCheck, again, record.read_bytes()
+    afterSecond = record.read_bytes()
+    record.write_text("{", encoding="ascii")
+    damaged = await session.expectError("exportZone", {"path": str(second / f"{short}.eqg"), "purpose": "game"})
+    return exported, afterFirst, checked, afterCheck, again, afterSecond, damaged
 
-  exported, afterFirst, checked, afterCheck, again, afterSecond = stageBlenderServer.session(steps)
+  exported, afterFirst, checked, afterCheck, again, afterSecond, damaged = stageBlenderServer.session(steps)
   assert exported["failures"] == [], exported["failures"]
   sqlFolder = first / "server" / "sql"
   assert sorted(path.relative_to(first).as_posix() for path in first.rglob("*") if path.is_file()) == [
@@ -168,6 +207,9 @@ def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
   assert (secondRows["numbersWritten"], secondRows["numbersDeleted"], secondRows["zonePoints"]) == ([], [10], [])
   assert secondRows["zonePointsDeleted"] == [{"zone": short} | decided(point)]
   assert afterSecond == afterFirst
+  # A record that cannot be read refuses the export, naming it, and leaves the export in place as it was.
+  assert f"The record of the zone_points rows {short}'s game exports wrote, {record}, cannot be read: JSONDecodeError" in damaged
+  assert serverRows.readRows((second / "server" / "sql" / "contained.sql").read_text(encoding="ascii")) == secondRows
 
   # The server's view of the first export from its files alone, the islands players reach orange and the others grey.
   mapContent = serverMapFiles.readMap((first / "server" / "maps" / "base" / "contained.map").read_bytes())
@@ -202,9 +244,11 @@ def testALeakRefusesTheGameExportAndSaysWhere(stageBlenderServer, tmp_path):
     plan, opened = await session.expectImage("mapReach", {"problemViews": False})
     (tmp_path / "leakPlan.png").write_bytes(plan)
     openOnly = await session.expectSuccess("checkExport", archive | {"purpose": "game"})
-    # A strip of the yard left out of every region, a none region players walk into, a landing on a tower they drop off and never climb
-    # back, and a plot in a walled room.
-    await session.expectSuccess("editRegion", {"name": "yard", "outline": rectangle([-half, -60], [half, half])})
+    # A pit whose floor sinks under the underworld, a strip of the yard left out of every region, a none region players walk into, a
+    # landing on a tower they drop off and never climb back, and a plot in a walled room.
+    depth = 2 * -underworld
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[50, -30, -depth]], "radius": 16, "strength": 1, "profile": [[0, 0], [1, depth]], "conformRim": False})
+    await session.expectSuccess("editRegion", {"name": "yard", "outline": rectangle([-half, -60], [half, half]), "bottom": -depth - 10})
     await region(session, "pond", rectangle([10, -60], [30, -40]), "none", bottom=-20, top=40)
     await cube(session, "tower", [-20, 10, 0], [-10, 20, 20])
     await stone(session, ["tower"])
@@ -228,17 +272,22 @@ def testALeakRefusesTheGameExportAndSaysWhere(stageBlenderServer, tmp_path):
   assert near(leak["center"], [-half - cellSize, 0]) and leak["length"] == columnsWithin(-edge, edge) * cellSize
   assert leak["message"].startswith(f"Players walk or slide off an edge onto nothing, along {leak['length']}")
   assert leak["message"].endswith(f"(mapReach problem {leak['number']}, at {leak['center']})")
-  # Each of the five refuses the export, with its place and number.
-  kinds = ["voidEdge", "noneRegion", "outsideRegions", "disconnectedEntry", "unreachedPlot"]
+  # Each of the six refuses the export, with its place and number.
+  kinds = ["voidEdge", "belowUnderworld", "noneRegion", "outsideRegions", "disconnectedEntry", "unreachedPlot"]
   assert [failure["failure"] for failure in checked["failures"]] == kinds
   found = {failure["failure"]: failure for failure in checked["failures"]}
-  assert sorted(failure["number"] for failure in checked["failures"]) == list(range(1, 6))
-  # mapReach on the same lane, reused, numbers and places them as the export does.
+  assert sorted(failure["number"] for failure in checked["failures"]) == list(range(1, 7))
+  # mapReach on the same lane, reused, numbers and places them as the export does, and the export states the same limits.
   assert mapped["lane"] == "reused" and mapped["laneFile"] == checked["containment"]["laneFile"]
   assert [(problem["kind"], problem["number"], problem["center"]) for problem in mapped["problems"] if problem["kind"] in kinds] == [
     (failure["failure"], failure["number"], failure["center"]) for failure in checked["failures"]
   ]
+  limits = [finding for finding in checked["findings"] if finding["finding"] == "lane limits"]
+  assert [(finding["notModeled"], finding["limits"]) for finding in limits] == [(mapped["notModeled"], mapped["limits"])]
+  assert mapped["notModeled"] == playerReach.notModeled and mapped["limits"][0].startswith(f"a gap narrower than 2 x cellSize ({2 * cellSize:g})")
   assert near(found["voidEdge"]["center"], [-half - cellSize, 0])
+  pit = found["belowUnderworld"]
+  assert math.dist(pit["center"][:2], [50, -30]) < 16 and pit["message"].startswith(f"Players reach floor under the underworld ({underworld}), along "), pit
   assert found["noneRegion"]["region"] == "pond" and near(found["noneRegion"]["center"], [20, -50])
   assert found["noneRegion"]["area"] == centersWithin(10, 30) * centersWithin(-60, -40) * cellSize ** 2
   assert found["outsideRegions"]["region"] is None and near(found["outsideRegions"]["center"], [0, -70], 2 * cellSize)
@@ -248,19 +297,28 @@ def testALeakRefusesTheGameExportAndSaysWhere(stageBlenderServer, tmp_path):
   assert found["unreachedPlot"]["plot"] == "1 Walled Street" and all(-30 < value < -10 for value in found["unreachedPlot"]["center"][:2])
   # NPC paths are probed to the stored entries and the plot's entrance too. The walled room's floor is an island of the NPC nav, so
   # the path to the plot ends short of it. The tower's top, eroded by the NPC's radius, holds no nav, so the server takes the nearest
-  # polygon its ground filter walks within (10, 200, 10) as the goal, on the ground at the tower's foot, and paths there.
+  # polygon its ground filter walks within (10, 200, 10) as the goal, on the ground at the tower's foot, and paths there: never onto the
+  # rooftop.
   probes = {probe["name"]: probe for probe in checked["serverFiles"]["nav"]["probes"]}
   assert list(probes) == ["ATP_1_north", "entry fromQeynos", "entry rooftop", "plot 1 Walled Street"]
-  assert [probes[name]["reached"] for name in probes] == [True, True, True, False]
+  assert [probes[name]["reached"] for name in probes] == [True, True, False, False]
   islands = checked["serverFiles"]["nav"]["largestIslands"]
   assert not [island for island in islands if -20 < island["center"][0] < -10 and 10 < island["center"][1] < 20]
-  assert probes["entry rooftop"]["goalComponent"] == 0 and probes["plot 1 Walled Street"]["result"] == "partial"
+  rooftop = probes["entry rooftop"]
+  assert (rooftop["result"], rooftop["goalComponent"], probes["plot 1 Walled Street"]["result"]) == ("complete", 0, "partial")
+  assert rooftop["goalOffset"]["up"] < -serverNav.goalReach["up"] and rooftop["goalAt"][2] < stepHeight, rooftop
+  assert probes["entry fromQeynos"]["goalOffset"]["across"] <= serverNav.goalReach["across"]
   room = [island["number"] for island in islands if -30 < island["center"][0] < -10 and -30 < island["center"][1] < -10]
   assert len(room) == 1 and probes["plot 1 Walled Street"]["goalComponent"] == room[0]
   assert probes["plot 1 Walled Street"]["point"] == found["unreachedPlot"]["center"]
   unpathed = [finding["message"] for finding in checked["findings"] if finding["finding"] == "NPC nav"]
-  assert unpathed == [f"NPCs cannot path from the safe point to plot 1 Walled Street within Peridot's 1,024 search nodes: it lies on island {room[0]}, apart from the main piece"]
-  assert "exportZone (game) refused, nothing written: 5 failure(s)" in refused
+  assert unpathed == [
+    f"NPCs path from the safe point to {rooftop['goalAt']}, never onto entry rooftop: the server takes the polygon its ground filter allows"
+    f" nearest it within (10.0, 200.0, 10.0) as the goal, {rooftop['goalOffset']['across']:g} across and {-rooftop['goalOffset']['up']:g}"
+    " under it, past the NPC's radius and a cell (2.11) or its climb (6.55)",
+    f"NPCs cannot path from the safe point to plot 1 Walled Street within Peridot's 1,024 search nodes: it lies on island {room[0]}, apart from the main piece",
+  ]
+  assert "exportZone (game) refused, nothing written: 6 failure(s)" in refused
   assert all(f'"failure": "{kind}"' in refused for kind in kinds) and not (tmp_path / f"{short}.eqg").exists()
 
 
@@ -271,17 +329,23 @@ def testSafePointOverNoMapGroundIsRefused(stageBlenderServer, tmp_path):
 
   async def steps(session):
     await containedZone(session, tmp_path, short, seeds=False)
-    # A lake whose bed sinks under the underworld, its water passable, its swimming decided.
+    # A lake whose bed sinks under the underworld, its water passable, its swimming decided, and a deck over its middle a player's
+    # height over the water, higher than an arrival's footing is looked for.
     await liquidMaterials(session, tmp_path)
     await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[0, 0, -bed]], "radius": 30, "strength": 1, "profile": [[0, 0], [1, bed]], "conformRim": False})
     await session.expectSuccess("floodWater", {"name": "lake", "seed": [0, 0], "level": -2, "material": "water"})
     await session.expectSuccess("buildSwimVolumes", {"body": "lake"})
+    await cube(session, "deck", [-6, -6, playerHeight], [6, 6, playerHeight + 1])
+    await stone(session, ["deck"])
     await session.expectSuccess("setZoneProperties", {"safePoint": [0, 0, 0, 0]})
     await session.expectSuccess("saveFile", {})
     overLake = await session.expectSuccess("checkExport", check)
+    # The safe point moved onto the ground, the zoneIn entry and a zone line's landing back in the zone onto the lake, under the deck;
+    # the zone line in the lake's water.
     await session.expectSuccess("setZoneProperties", {"safePoint": [-60, 0, 0, 0]})
     await session.expectImage("placeEntry", fromQeynos)
     await session.expectSuccess("transformObjects", {"names": ["fromQeynos"], "translate": [40, 40, 0]})
+    await session.expectSuccess("placeZoneLine", {"number": 2, "label": "home", "minimum": [14, -4, -10], "maximum": [22, 4, 2], "target": {"zone": short, "x": 0, "y": 0, "z": 0, "headingDegrees": 0}})
     await session.expectSuccess("saveFile", {})
     entryOverLake = await session.expectSuccess("checkExport", check)
     return overLake, entryOverLake
@@ -290,15 +354,18 @@ def testSafePointOverNoMapGroundIsRefused(stageBlenderServer, tmp_path):
 
   def grounds(report):
     return [{key: value for key, value in failure.items() if key != "message"} for failure in report["failures"] if failure["failure"] == "no .map ground"]
-  # Looking down from 1 over each, the server meets the lake's bed under the underworld: the water is passable, as the client lets
-  # players through it.
+  # Looking down from 1 over each, never from over the deck, the server meets the lake's bed under the underworld: the water is
+  # passable, as the client lets players through it.
   assert grounds(overLake) == [{"failure": "no .map ground", "arrival": "safe point", "kind": "safePoint", "at": [0, 0, 0], "ground": -bed}]
   message = [failure["message"] for failure in overLake["failures"] if failure["failure"] == "no .map ground"][0]
   assert message == (
     f"The safe point at [0.0, 0.0, 0.0] stands over no ground the server finds in the .map: looking down from 1 over it, as FindBestZ does, it"
     f" meets collision at {-bed:g}, under the underworld {underworld:g}; players arriving there fall"
   )
-  assert grounds(entryOverLake) == [{"failure": "no .map ground", "arrival": "fromQeynos", "kind": "zoneIn", "at": [0.0, 0.0, 0.0], "ground": -bed}]
+  assert grounds(entryOverLake) == [
+    {"failure": "no .map ground", "arrival": "fromQeynos", "kind": "zoneIn", "at": [0.0, 0.0, 0.0], "ground": -bed},
+    {"failure": "no .map ground", "arrival": "T2", "kind": "teleport", "at": [0.0, 0.0, 0.0], "ground": -bed},
+  ]
   # The scene's own checks say the same in their terms: the safe point over no ground the zone ships, the entry off its footing.
   assert "safe point over no ground" in [failure["failure"] for failure in overLake["failures"]]
   assert "entry off its footing" in [failure["failure"] for failure in entryOverLake["failures"]]
@@ -324,6 +391,43 @@ def testNoSeedsIsAFailureNotASkip(stageBlenderServer, tmp_path):
   assert server["rows"] == {"written": False, "message": "rows not written: the zone row lacks ['safePoint'] (setZoneProperties)"}
 
 
+def testLaneFindingsAndLeaksPastMapReachsListAreStated(stageBlenderServer, tmp_path):
+  short = "findings"
+  keepOuts = [(x, y) for x in (-60, -40, -20, 0, 20, 40, 60) for y in (-20, -40, -60)]
+  pool = [-50, 12]
+
+  async def steps(session):
+    await containedZone(session, tmp_path, short, seeds=False)
+    await session.expectSuccess("setZoneProperties", {"safePoint": [0, 0, 0, 0]})
+    # More none regions players walk into than mapReach lists of a kind, and a pool with a zone line in its water.
+    for index, (x, y) in enumerate(keepOuts):
+      await region(session, f"keepOut{index}", rectangle([x - 2, y - 2], [x + 2, y + 2]), "none", bottom=-20, top=40)
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[*pool, -4]], "radius": 12, "strength": 1, "profile": [[0, 0], [1, 4]], "conformRim": False})
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": pool, "level": -1, "material": "water"})
+    await session.expectSuccess("buildSwimVolumes", {"body": "pool"})
+    await session.expectSuccess("placeZoneLine", {"number": 2, "label": "pool", "minimum": [pool[0] - 4, pool[1] - 4, -6], "maximum": [pool[0] + 4, pool[1] + 4, 2], "target": otherZone})
+    await session.expectSuccess("saveFile", {})
+    return await session.expectSuccess("checkExport", {"path": str(tmp_path / f"{short}.eqg"), "purpose": "game"})
+
+  checked = stageBlenderServer.session(steps)
+  listed = playerReach.problemsListed
+  kept = [failure for failure in checked["failures"] if failure["failure"] == "noneRegion"]
+  # mapReach lists the largest of a kind; those past them refuse the export too, counted in one failure.
+  assert len(keepOuts) > listed and ["more" in failure for failure in kept] == [False] * listed + [True], kept
+  assert {failure["region"] for failure in kept[:listed]} < {f"keepOut{index}" for index in range(len(keepOuts))}
+  assert kept[-1]["more"]["count"] == len(keepOuts) - listed
+  assert kept[-1]["message"] == f"{len(keepOuts) - listed} more noneRegion problems than mapReach lists (the largest {listed} of each kind)"
+  findings = {finding["finding"]: finding for finding in checked["findings"]}
+  assert (findings["zone line in a swim box"]["zoneLine"], findings["zone line in a swim box"]["swimBox"]) == ("ATP_2_pool", "AWT_pool01")
+  assert findings["no zoneIn entries"]["message"].startswith("No zoneIn entry says where a neighbour's zone line lands players")
+  # Only a player shorter than playerHeight passes under the ramp, between its foot and the platform.
+  squeeze = findings["squeeze reach"]
+  foot = platform[0][1] - platform[1][2] / math.tan(math.radians(rampDegrees))
+  assert [place["area"] for place in squeeze["places"]] == [squeeze["area"]] and near(squeeze["places"][0]["center"], [40, (foot + platform[0][1]) / 2], 2 * cellSize)
+  assert squeeze["message"].startswith(f"Only a player shorter than playerHeight ({playerHeight:g}) passes here")
+
+
 def testFogWithoutASkyNeedsItsColorForTheRows(stageBlenderServer, tmp_path):
   short = "fogless"
 
@@ -346,19 +450,26 @@ def testAnIslandIsAFindingNotAFailure(stageBlenderServer, tmp_path):
   settings = serverNav.serverNavSettings
   assert settings["maxSlope"] < rampDegrees and platform[1][2] > settings["agentClimb"] and dais[1][2] > max(settings["agentClimb"], stepHeight)
 
+  # A roof over the yard four steps over the platform, which no player reaches.
+  roof = ([-20, 8, platform[1][2] + 4 * stepHeight - 2], [-4, 24, platform[1][2] + 4 * stepHeight])
+
   async def steps(session):
     await containedZone(session, tmp_path, short)
+    await cube(session, "roof", *roof)
+    await stone(session, ["roof"])
+    await session.expectSuccess("saveFile", {})
     return await session.expectSuccess("exportZone", {"path": str(tmp_path / f"{short}.eqg"), "purpose": "game"})
 
   exported = stageBlenderServer.session(steps)
   assert exported["failures"] == [] and (tmp_path / f"{short}.eqg").is_file()
   islands = exported["serverFiles"]["nav"]["largestIslands"]
-  # The platform's top is reached up the ramp; its hollow inside, as in any closed mesh, and the dais, top and inside, are not.
-  onPlatform, onDais = islandsOn(islands, platform), islandsOn(islands, dais)
+  # The platform's top is reached up the ramp; its hollow inside, as in any closed mesh, the dais, top and inside, and the roof are not.
+  onPlatform, onDais, onRoof = islandsOn(islands, platform), islandsOn(islands, dais), islandsOn(islands, roof)
   assert [reached for _, reached in onPlatform] == [False, True] and [reached for _, reached in onDais] == [False, False]
-  assert abs(onPlatform[1][0] - platform[1][2]) < 1 and abs(onDais[1][0] - dais[1][2]) < 1
+  assert [reached for _, reached in onRoof] == [False]
+  assert abs(onPlatform[1][0] - platform[1][2]) < 1 and abs(onDais[1][0] - dais[1][2]) < 1 and abs(onRoof[0][0] - roof[1][2]) < 1
   finding = [finding for finding in exported["findings"] if finding["finding"] == "NPC islands"]
-  assert [(found["islands"], found["playersReach"]) for found in finding] == [(4, 1)]
+  assert [(found["islands"], found["playersReach"]) for found in finding] == [(5, 1)]
   manifest = json.loads((tmp_path / f"{short}_export.json").read_text(encoding="ascii"))
   assert [island["playersReach"] for island in manifest["nav"]["islands"]] == [island["playersReach"] for island in islands]
 

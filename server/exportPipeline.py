@@ -28,8 +28,6 @@ import toolingManifest
 
 islandsListed = 25
 recordName = "zonePointsWritten.json"
-# EQEmu's Map:FindBestZHeightAdjust, which Peridot keeps: the server looks for the ground under a point from this far over it (map.cpp:59).
-findBestZHeightAdjust = 1.0
 leakKinds = ("voidEdge", "belowUnderworld", "noneRegion", "outsideRegions", "disconnectedEntry", "unreachedPlot")
 laneFindingKinds = ("trap", "viewRegion", "unreachedZoneLine", "unreachedSwim", "unreachedPlayFloor", "undecidedWater")
 laneFindingMessages = {
@@ -126,8 +124,8 @@ def zoneArchive(collected):
 
 def probeTargets(entries):
   """Where NPC paths are probed to besides the zone lines: every stored entry and every plot's entrance, where players arrive and live."""
-  targets = [{"name": f"entry {entry['name']}", "point": entry["at"]} for entry in entries if entry["source"] == "placeEntry"]
-  return targets + [{"name": f"plot {entry['name']}", "point": entry["at"]} for entry in entries if entry["kind"] == "plotEntrance"]
+  targets = [{"name": f"entry {entry['name']}", "point": entry["at"], "onFloor": True} for entry in entries if entry["source"] == "placeEntry"]
+  return targets + [{"name": f"plot {entry['name']}", "point": entry["at"], "onFloor": True} for entry in entries if entry["kind"] == "plotEntrance"]
 
 
 def serverMaps(archiveBytes, safePoint, targets, toolingRoot, reportProgress):
@@ -150,7 +148,7 @@ def serverMaps(archiveBytes, safePoint, targets, toolingRoot, reportProgress):
     built["failures"].append({"failure": "nav not built", "message": f"The server's nav mesh cannot be built: {error}"})
     return built
   built["files"]["nav"] = navBytes
-  lines = [{"name": region["name"], "point": list(region["center"])} for region in regions if eqgFiles.isZoneLine(region["name"])]
+  lines = [{"name": region["name"], "point": list(region["center"]), "onFloor": False} for region in regions if eqgFiles.isZoneLine(region["name"])]
   try:
     built["inspection"] = serverNav.inspectNav(navBytes, safePoint, lines + targets, toolingRoot, reportProgress)
   except ValueError as error:
@@ -173,8 +171,8 @@ def islandReach(inspection, nodes):
   if not len(reached) or not len(standing):
     return reached.tolist()
   heights = nodes.height[standing].astype(numpy.float64)
-  base, span = float(heights.min()), float(heights.max() - heights.min()) + 4 * playerScale.stepHeight + 1
-  # Each reached floor as one sortable number: its column, then its height within the column.
+  base, extent = float(heights.min()), float(heights.max() - heights.min())
+  span = extent + 1
   keys = numpy.sort((nodes.z[standing].astype(numpy.int64) * lane.columnsX + nodes.x[standing]) * span + (heights - base))
   for tile in inspection["tiles"]:
     for polygon in tile["polygons"]:
@@ -203,9 +201,12 @@ def islandReach(inspection, nodes):
       held = ~numpy.isnan(surface)
       if not held.any():
         continue
-      start = (row[held] * lane.columnsX + column[held]) * span - base
-      lowest = numpy.searchsorted(keys, start + surface[held] - playerScale.stepHeight, side="left")
-      highest = numpy.searchsorted(keys, start + surface[held] + playerScale.stepHeight, side="right")
+      low, high = surface[held] - playerScale.stepHeight - base, surface[held] + playerScale.stepHeight - base
+      near = (high >= 0) & (low <= extent)
+      start = (row[held] * lane.columnsX + column[held])[near] * span
+      # A column's keys lie within extent of its start, so a window kept to that range never reads the next column's.
+      lowest = numpy.searchsorted(keys, start + numpy.clip(low[near], 0, extent), side="left")
+      highest = numpy.searchsorted(keys, start + numpy.clip(high[near], 0, extent), side="right")
       reached[number - 1] = bool((highest > lowest).any())
   return reached.tolist()
 
@@ -361,14 +362,15 @@ def arrivals(zoneProperties, entries):
 
 def groundFailures(collision, underworld, places):
   """Step 6 of a game export: each arrival over no ground the server finds on its .map. As FindBestZ looks (map.cpp:52-71), from
-  findBestZHeightAdjust over the point straight down: the first collision met must lie at or above the underworld, which the server
-  ignores at 0."""
+  findBestZHeightAdjust (serverNav.serverPathing) over the point straight down: the first collision met must lie at or above the
+  underworld, which the server ignores at 0."""
   triangles = eqAxes.zoneFromServer(numpy.asarray(collision, dtype=numpy.float64))
+  adjust = serverNav.serverPathing["findBestZHeightAdjust"]
   failures = []
   for place in places:
     x, y, z = place["at"]
     heights, _ = playerReach.heightsUnder(triangles, x, y)
-    below = heights[heights <= z + findBestZHeightAdjust]
+    below = heights[heights <= z + adjust]
     ground = round(float(below.max()), 3) if len(below) else None
     if ground is not None and (underworld in (None, 0) or ground >= underworld):
       continue
@@ -377,8 +379,8 @@ def groundFailures(collision, underworld, places):
     failures.append({"failure": "no .map ground"} | place | {
       "ground": ground,
       "message": (
-        f"{named} at {list(place['at'])} stands over no ground the server finds in the .map: looking down from {findBestZHeightAdjust:g}"
-        f" over it, as FindBestZ does, it meets {met}; players arriving there fall"
+        f"{named} at {list(place['at'])} stands over no ground the server finds in the .map: looking down from {adjust:g} over it, as"
+        f" FindBestZ does, it meets {met}; players arriving there fall"
       ),
     })
   return failures

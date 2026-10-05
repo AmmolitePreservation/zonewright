@@ -56,7 +56,6 @@ unreachedLabel, walkLabel, swimLabel, slideLabel, squeezeLabel, zoneLineLabel = 
 wetShape, walkableShape, absorbedShape, touchesLineShape, boundaryShape = 1, 2, 4, 8, 16
 reachedFullState, reachedState, trapState, fromSafeState, toSafeState, openState = 1, 2, 4, 8, 16, 128
 voidEvent, belowUnderworldEvent, absorbedEvent = 1, 2, 3
-# The entries a lane starts from.
 seedKinds = ("safePoint", "zoneIn", "landing")
 problemKinds = (
   "voidEdge", "belowUnderworld", "noneRegion", "outsideRegions", "disconnectedEntry", "unreachedPlot", "trap", "viewRegion",
