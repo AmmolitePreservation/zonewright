@@ -370,3 +370,45 @@ def testTourEyesStandWherePlayersStand(stageBlenderServer, tmp_path):
   # The block's top, reached by the ramp, lies more than playerHeight over the eye beyond it: the run back down the corridor ends at it.
   beyond = leads["rise"]
   assert beyond["standing"][0] > 70 and beyond["headingDegrees"] == 270 and beyond["run"] <= beyond["standing"][0] - 70 + 1
+
+
+def judgedFromTheNorth(subject, distances, seenBy):
+  """laneViews.judge of eyes standing on the ground north of a subject at distances from its middle, each seeing the points seenBy
+  (masks), choosing one eye."""
+  standing = numpy.array([[subject["center"][0] + distance, subject["center"][1], 0.0] for distance in distances])
+  eyes = laneViews.eyesOver(standing, numpy.zeros(len(distances), dtype=bool))
+  candidates = {"label": numpy.full(len(distances), playerReach.walkLabel), "swimming": numpy.zeros(len(distances), dtype=bool)}
+  bearing = laneViews.headingOf(eyes[:, 0] - subject["center"][0], eyes[:, 1] - subject["center"][1])
+  plan = {
+    "tried": numpy.arange(len(distances)), "bearing": bearing,
+    "sector": numpy.round(bearing / laneViews.sectorDegrees).astype(int) % laneViews.bearings,
+    "distance": numpy.linalg.norm(eyes - subject["center"], axis=1), "sectorHasEyes": numpy.ones(laneViews.bearings, dtype=bool),
+  }
+  front = laneViews.facing(subject, eyes)
+  assert front.all() and len(set(plan["sector"])) == 1
+  return laneViews.judge(subject, candidates, plan, (standing, eyes), front, numpy.concatenate(seenBy), 1)
+
+
+def testTargetEyesHoldTheTargetInView():
+  """A long low wall facing north, eyes in its north sector. An eye just beyond its radius sees all its face but only the middle of it
+  in its view, and one farther off sees less of it, all in view: the farther is chosen, looking at the middle of what it sees. An eye
+  within its radius sees more of it in view than one beyond that sees little: the one beyond is chosen."""
+  along = numpy.linspace(-99, 99, 48)
+  points = numpy.array([[0.0, y, z] for y in along for z in (0.5, 1.5)])
+  surface = {"points": points.tolist(), "normals": [[1.0, 0.0, 0.0]] * len(points), "minimum": [0.0, -100.0, 0.0], "maximum": [0.0, 100.0, 2.0]}
+  subject = laneViews.objectSubject("wall", surface)
+  every = numpy.ones(len(points), dtype=bool)
+  farSees = numpy.abs(points[:, 1]) <= 85
+  near, far = subject["radius"] + 1, 250.0
+  nearEye, farEye = laneViews.eyesOver(numpy.array([[near, 0.0, 0.0], [far, 0.0, 0.0]]), numpy.zeros(2, dtype=bool))
+  assert laneViews.inView(nearEye, points) < laneViews.inView(farEye, points[farSees]) < len(points)
+  judged, pointSeen, eyeSeen = judgedFromTheNorth(subject, [near, far], [every, farSees])
+  chosen = judged["eyes"][0]
+  assert len(judged["eyes"]) == 1 and chosen["distance"] == pytest.approx(far, abs=1) and chosen["seenShare"] == round(float(farSees.mean()), 3)
+  assert chosen["view"]["target"] == pytest.approx([0.0, 0.0, 1.0], abs=0.01) and pointSeen.all() and (eyeSeen[0] == farSees).all()
+  within = subject["radius"] - 5
+  littleSeen = numpy.abs(points[:, 1]) <= 30
+  withinEye = laneViews.eyesOver(numpy.array([[within, 0.0, 0.0]]), numpy.zeros(1, dtype=bool))[0]
+  assert laneViews.inView(withinEye, points) > laneViews.inView(farEye, points[littleSeen])
+  judged, _, _ = judgedFromTheNorth(subject, [within, far], [every, littleSeen])
+  assert judged["eyes"][0]["distance"] == pytest.approx(far, abs=1)
