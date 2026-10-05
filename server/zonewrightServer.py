@@ -1021,9 +1021,11 @@ async def renderView(
     reached, description, status, seconds = await sceneLaneOnly(context)
     laneTint = {
       "path": str(await anyio.to_thread.run_sync(playerReach.laneTint, reached)), "origin": reached.origin.tolist(), "cellSize": reached.cellSize,
-      "cellHeight": reached.cellHeight, "colors": {str(label): [channel / 255 for channel in color] for label, color in laneDrawing.labelColors.items()},
+      "cellHeight": reached.cellHeight, "columnsX": reached.columnsX, "alpha": laneDrawing.tintAlpha,
+      "colors": {str(label): [channel / 255 for channel in color] for label, color in laneDrawing.labelColors.items()},
+      "slopeReach": [[normalZ, playerReach.seedTolerance(normalZ)] for normalZ in numpy.linspace(0.0, 1.0, laneSlopeSamples).tolist()],
     }
-    laneState = {"lane": status, "seconds": seconds} | playerReach.laneTerms(reached, description)
+    laneState = {"lane": status, "seconds": seconds, "laneFile": str(reached.path)} | playerReach.laneTerms(reached, description)
   description = await callBridge(context, "renderView", {
     "view": view, "outputPath": str(outputPath), "figureModel": await scaleFigureModel(zone, view), "shading": shading, "bandHeight": bandHeight,
     "guides": guides, "sky": await zoneSky(zone), "swimVolumes": swimVolumes, "labels": labels, "emitters": await previewEmitterAssets(),
@@ -1032,7 +1034,13 @@ async def renderView(
   })
   if labels is not None:
     await anyio.to_thread.run_sync(viewSheets.writeNames, outputPath, description["labels"]["shown"])
+  if lane:
+    await anyio.to_thread.run_sync(laneDrawing.tintLegendUnder, outputPath, description["laneTint"]["labels"])
   return [Image(data=outputPath.read_bytes(), format="png"), description | ({} if carried is None else {"carriedLight": carried}) | ({} if viewer is None else {"viewer": viewer}) | ({} if laneState is None else {"laneState": laneState})]
+
+
+# A view's lane tint reads a floor's reach under its column's floor by slope (playerReach.seedTolerance) at this many normal z, 0 to 1.
+laneSlopeSamples = 101
 
 
 placementHelp = (
@@ -2420,7 +2428,8 @@ async def renderSketch(
   drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, outputPath, center, width, overlays, lanePlan)
   basePath.unlink()
   if lanePlan is not None:
-    await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, lanePlan, planDrawing.PlanFrame(center, width, drawn["size"]))
+    frame = planDrawing.PlanFrame(center, width, drawn["size"])
+    await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, lanePlan.legend(frame) + laneDrawing.planLayerLegend(overlays, frame))
   return [Image(data=outputPath.read_bytes(), format="png"), {
     "outputPath": str(outputPath), "center": center, "width": width, "unitsPerPixel": round(width / drawn["size"][0], 4), "heightRange": base["heightRange"],
     "bandHeight": bandHeight, "gridStep": drawn["gridStep"], "sheetColors": drawn["sheetColors"],
@@ -2475,8 +2484,10 @@ sheetViews = 16
 sheetColumns = 4
 
 
-async def renderSheet(context, zone, views, labels, shading, figureModel):
-  """Render each view (with progress), lay them out on one sheet labeled under each, and return the sheet and the renders' paths."""
+async def renderSheet(context, zone, views, labels, shading, figureModel, swimVolumes=False):
+  """Render each view (with progress; swimVolumes tints the swim boxes), lay them out on one sheet labeled under each, and return the
+  sheet and the renders' paths. figureModel stands the scale figure in a review camera's view and where a view gives figureAt, never
+  walked ahead."""
   sky = await zoneSky(zone)
   emitters = await previewEmitterAssets()
   cells, paths = [], []
@@ -2484,8 +2495,8 @@ async def renderSheet(context, zone, views, labels, shading, figureModel):
     await context.report_progress(index, len(views), f"rendering {index + 1} of {len(views)}")
     outputPath = newRenderPath()
     await callBridge(context, "renderView", {
-      "view": view, "outputPath": str(outputPath), "figureModel": figureModel, "shading": shading, "bandHeight": 50.0, "guides": True, "sky": sky,
-      "swimVolumes": False, "labels": None, "emitters": emitters,
+      "view": view, "outputPath": str(outputPath), "figureModel": figureModel if {"camera", "figureAt"} & set(view) else None, "shading": shading,
+      "bandHeight": 50.0, "guides": True, "sky": sky, "swimVolumes": swimVolumes, "labels": None, "emitters": emitters,
     })
     cells.append((viewSheets.openRender(outputPath), label))
     paths.append(str(outputPath))
@@ -2737,7 +2748,7 @@ async def drawnSection(context, line, layers, marks=None, traced=None):
   cut = await anyio.to_thread.run_sync(playerReach.laneCut, nodes, cuts["points"], cuts["bottom"], cuts["top"])
   laneSection = laneDrawing.SectionLane(cut, marks or [])
   drawn = await anyio.to_thread.run_sync(planDrawing.drawSection, outputPath, cuts, laneSection)
-  await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, laneSection, None)
+  await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, laneSection.legend() + laneDrawing.sectionLayerLegend(cuts))
   cutPath = outputPath.with_suffix(".json")
   cutPath.write_text(json.dumps(cut))
   laneState = {"lane": status, "seconds": seconds} | playerReach.laneTerms(lane, description) | {
@@ -2972,19 +2983,21 @@ async def chooseProblemViews(context, analysis, description, zone):
   return views
 
 
-async def lanePlanRender(context, center, width, lanePlan, layers, sky):
-  """The lane plan over renderSketch's relief, `width` across about `center`, with the plan's own layers and the lane's legend in a band
-  under it: (path, base render, drawn plan)."""
+async def lanePlanRender(context, center, width, lanePlan, layers, sky, spotHeights=False):
+  """The lane plan over renderSketch's relief, `width` across about `center`, with the plan's own layers (and the ground's spot heights
+  at the grid's crossings, asked for) and a legend of what it shows in a band under it: (path, base render, drawn plan)."""
   basePath = newRenderPath()
   base = await callBridge(context, "renderView", {
     "view": {"map": {"center": center, "width": width}}, "outputPath": str(basePath), "figureModel": None, "shading": "relief",
     "bandHeight": 25.0, "guides": False, "sky": sky, "swimVolumes": False, "labels": None, "emitters": None,
   })
-  overlays = await callBridge(context, "planOverlays", {"sheets": [], "layers": layers, "spots": []})
+  spots = planDrawing.gridCrossings(center, width, base["height"] / base["width"]) if spotHeights else []
+  overlays = await callBridge(context, "planOverlays", {"sheets": [], "layers": layers, "spots": spots})
   planPath = newRenderPath()
   drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, planPath, center, width, overlays, lanePlan)
   basePath.unlink()
-  await anyio.to_thread.run_sync(laneDrawing.legendUnder, planPath, lanePlan, planDrawing.PlanFrame(center, width, drawn["size"]))
+  frame = planDrawing.PlanFrame(center, width, drawn["size"])
+  await anyio.to_thread.run_sync(laneDrawing.legendUnder, planPath, lanePlan.legend(frame) + laneDrawing.planLayerLegend(overlays, frame))
   return planPath, base, drawn
 
 
@@ -3070,7 +3083,8 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
 # A route's plan spans its route and target this many times over, and never less than routePlanLeast across.
 routePlanSpare = 1.25
 routePlanLeast = 60.0
-# The section of a trace that stops runs on this far past the reached node and the target, so the ground on either side shows.
+# The section of a trace that stops runs on this far past the reached node and the target, so the ground on either side shows, and this
+# far under and over the lowest and highest of them and what separates them.
 traceSectionSpare = 12.0
 
 
@@ -3080,12 +3094,12 @@ async def routePlanRender(context, points, lanePlan, sky):
   xs, ys = [point[0] for point in points], [point[1] for point in points]
   center = [(max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2]
   width = max((max(ys) - min(ys)) * routePlanSpare, routePlanLeast)
-  planPath, base, drawn = await lanePlanRender(context, center, width, lanePlan, lanePlanLayers, sky)
+  planPath, base, drawn = await lanePlanRender(context, center, width, lanePlan, lanePlanLayers, sky, True)
   up = (max(xs) - min(xs)) * routePlanSpare
   if up > width * base["height"] / base["width"]:
     planPath.unlink()
     width = up * base["width"] / base["height"]
-    planPath, base, drawn = await lanePlanRender(context, center, width, lanePlan, lanePlanLayers, sky)
+    planPath, base, drawn = await lanePlanRender(context, center, width, lanePlan, lanePlanLayers, sky, True)
   return planPath, center, width, drawn
 
 
@@ -3095,6 +3109,22 @@ def traceLine(near, far):
   across = math.hypot(far[0] - near[0], far[1] - near[1])
   direction = [1.0, 0.0] if across < 1e-6 else [(far[0] - near[0]) / across, (far[1] - near[1]) / across]
   return [near[0] - direction[0] * traceSectionSpare, near[1] - direction[1] * traceSectionSpare], [far[0] + direction[0] * traceSectionSpare, far[1] + direction[1] * traceSectionSpare]
+
+
+def separationMark(stop, nearPoint, targetPoint):
+  """A separation's mark on its trace's section (traceLine; laneDrawing.SectionLane), named with its measure: where it lies (its point
+  along the line; a boundary at the floor its cast was made over), and, for one running over columns, where it ends."""
+  start, end = traceLine(nearPoint, targetPoint)
+  across = math.hypot(end[0] - start[0], end[1] - start[1])
+
+  def along(point):
+    return ((point[0] - start[0]) * (end[0] - start[0]) + (point[1] - start[1]) * (end[1] - start[1])) / across
+
+  z = stop["floor"] if stop["kind"] == "boundary" else stop["at"][2] if len(stop["at"]) == 3 else nearPoint[2]
+  mark = {"kind": "separation", "s": along(stop["at"]), "z": z, "text": playerReach.separationText(stop)}
+  if "through" in stop:
+    mark |= {"s1": along(stop["through"]), "z1": stop["through"][2] if len(stop["through"]) == 3 else z}
+  return mark
 
 
 def facingView(near, far, wet):
@@ -3153,32 +3183,46 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
     targetPoint = playerReach.nodePoint(nodes, target)
     lanePlan = laneDrawing.RoutePlan(marks, description, points, legs, decisive, targetPoint)
     planPath, center, width, drawn = await routePlanRender(context, points, lanePlan, sky)
+    reported = [playerReach.legReport(leg) for leg in legs]
     result |= {
       "reached": True, "target": {"at": playerReach.roundedPoint(targetPoint), "label": playerReach.labelNames[nodes.label[target]]},
       "from": description["seeds"][int(lane.read("originSeed")[target])]["name"], "length": round(sum(leg["length"] for leg in legs), 1),
-      "legs": [playerReach.legReport(leg) for leg in legs],
-      "decisive": [{"number": number, "leg": index, "move": legs[index]["move"]} for number, index in decisive],
+      "legCount": len(legs),
+      "decisive": [
+        {"number": move["number"], "move": move["move"], "leg": move["first"], "lastLeg": move["last"], "count": move["count"], "caption": playerReach.decisiveCaption(legs, move)}
+        for move in decisive
+      ],
       "plan": {"outputPath": str(planPath), "center": center, "width": round(width, 2), "frameSize": drawn["size"]},
     }
+    if len(legs) <= playerReach.routeLegsListed:
+      result["legs"] = reported
+    else:
+      legsPath = planPath.with_suffix(".json")
+      legsPath.write_text(json.dumps(reported))
+      result["legsFile"] = str(legsPath)
     images = [Image(data=planPath.read_bytes(), format="png")]
     framed = playerReach.framedLegs(decisive, playerReach.routeFrameCount)
     if framed:
-      views = [playerReach.routeFrame(nodes, chain, points, moves, legs[index]) for _, index in framed]
-      labels = [f"{number} {legs[index]['move']} {playerReach.legReport(legs[index])['rise']:+g}" for number, index in framed]
-      sheet, size, paths = await renderSheet(context, zone, views, labels, "client", None)
-      result["frames"] = [{"number": number, "view": view, "outputPath": path} for (number, _), view, path in zip(framed, views, paths)]
+      views = [playerReach.routeFrame(nodes, chain, points, moves, legs[move["first"]]) for move in framed]
+      labels = [playerReach.decisiveCaption(legs, move) for move in framed]
+      sheet, size, paths = await renderSheet(context, zone, views, labels, "client", await zoneFigureModel(zone), swimVolumes=True)
+      result["frames"] = [{"number": move["number"], "view": view, "outputPath": path} for move, view, path in zip(framed, views, paths)]
       result["frameSheet"] = size
       images.append(sheet)
     return [*images, result]
   targetPoint = playerReach.nodePoint(nodes, target) if target is not None else list(to)
   nearest = await anyio.to_thread.run_sync(playerReach.nearestReached, nodes, targetPoint)
   if nearest is None:
-    raise ToolError("The lane reaches nothing a zone line does not take at once, so no reached place lies nearest the point")
+    raise ToolError(
+      "No reached place lies beside the point: the lane reaches nothing a zone line does not take at once, or every place it reaches lies"
+      f" straight under or over floor no one reaches within the step of the point's height ({targetPoint[2]:g})" if len(targetPoint) == 3 else
+      "The lane reaches nothing a zone line does not take at once, so no reached place lies nearest the point"
+    )
   nearPoint = playerReach.nodePoint(nodes, nearest)
   found = await anyio.to_thread.run_sync(playerReach.separationWalk, nodes, description, nearest, targetPoint, target)
   crossings, columns = playerReach.separationProbes(nodes, found)
   probed = await callBridge(context, "traceProbes", {"crossings": crossings, "columns": columns})
-  stated = playerReach.separations(nodes, found, probed["crossings"], probed["columns"])
+  stated = playerReach.separations(nodes, found, probed["crossings"], probed["columns"], targetPoint[2] if len(targetPoint) == 3 else None)
   result |= {
     "reached": False,
     "target": {"at": playerReach.roundedPoint(targetPoint), "label": None if target is None else playerReach.labelNames[nodes.label[target]]} | ({} if target is not None else {"why": "no lane node there: no floor, or none with the containment headroom over it"}),
@@ -3191,18 +3235,26 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   back = await anyio.to_thread.run_sync(playerReach.standBack, nodes, description, nearest, targetPoint)
   backPoint, backWet = playerReach.nodePoint(nodes, back), bool(nodes.wet[back])
   seenPoint = targetPoint if len(targetPoint) == 3 else [*targetPoint, nearPoint[2]]
+  aimPoint = [seenPoint[0], seenPoint[1], (nearPoint[2] + seenPoint[2]) / 2]
   start, end = traceLine(nearPoint, targetPoint)
   marks = [
     {"kind": "reached", "s": traceSectionSpare, "z": nearPoint[2]},
     {"kind": "point", "s": traceSectionSpare + math.hypot(targetPoint[0] - nearPoint[0], targetPoint[1] - nearPoint[1]), "z": seenPoint[2]},
-  ] + [{"kind": "separation", "s": traceSectionSpare + stop["along"], "z": stop["at"][2] if len(stop["at"]) == 3 else nearPoint[2], "text": stop["kind"]} for stop in stated]
-  sectionPath, cuts, drawn, laneState = await drawnSection(context, {"start": start, "end": end, "path": None, "cave": None, "bottom": None, "top": None}, sectionLayersDefault + ["lane"], marks, (lane, description, status, seconds, nodes))
+  ] + [separationMark(stop, nearPoint, targetPoint) for stop in stated]
+  heights = [mark["z"] for mark in marks] + [mark["z1"] for mark in marks if "z1" in mark]
+  sectionPath, cuts, drawn, laneState = await drawnSection(
+    context, {"start": start, "end": end, "path": None, "cave": None, "bottom": min(heights) - traceSectionSpare, "top": max(heights) + traceSectionSpare},
+    sectionLayersDefault + ["lane"], marks, (lane, description, status, seconds, nodes),
+  )
   result["section"] = {"outputPath": str(sectionPath), "start": playerReach.roundedPoint(start), "end": playerReach.roundedPoint(end), "length": cuts["length"], "bottom": cuts["bottom"], "top": cuts["top"], "laneCut": laneState["laneCut"]}
-  view = facingView(backPoint, seenPoint, backWet)
+  view = facingView(backPoint, aimPoint, backWet)
+  standsFigure = not backWet and math.dist(backPoint[:2], nearPoint[:2]) >= playerScale.playerHeight
+  if standsFigure:
+    view["figureAt"] = playerReach.roundedPoint(nearPoint, 3)
   viewPath = newRenderPath()
   rendered = await callBridge(context, "renderView", {
-    "view": view, "outputPath": str(viewPath), "figureModel": None, "shading": "client", "bandHeight": 50.0, "guides": True, "sky": sky,
-    "swimVolumes": False, "labels": None, "emitters": await previewEmitterAssets(),
+    "view": view, "outputPath": str(viewPath), "figureModel": await zoneFigureModel(zone) if standsFigure else None, "shading": "client", "bandHeight": 50.0,
+    "guides": True, "sky": sky, "swimVolumes": True, "labels": None, "emitters": await previewEmitterAssets(),
   })
   result["view"] = {"view": view, "outputPath": str(viewPath), "eye": rendered["eye"]}
   return [Image(data=sectionPath.read_bytes(), format="png"), Image(data=viewPath.read_bytes(), format="png"), result]

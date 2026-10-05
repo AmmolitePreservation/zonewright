@@ -842,11 +842,20 @@ def report(lane, description, analysis, status, seconds):
 
 
 routeMergedMoves = ("walk", "step", "swim", "slide")
-decisiveMoves = ("step", "drop", "slide", "enterWater", "climbOut", "sink", "teleport")
+decisiveMoves = ("step", "drop", "slide", "enterWater", "climbOut", "teleport")
 routeFrameCount = 5
+fallingMoves = ("drop", "slide")
 # A decisive move's frame stands this far before it along the route in plan, so the move lies ahead in view rather than underfoot.
 frameStandBack = 12.0
+# Decisive moves of one kind with less than this much of the route in plan between one and the next are one, as a stair of terraces or a
+# run of ledges is: frames standing frameStandBack before each would show the same ground.
+decisiveGap = 2 * frameStandBack
+# A route of more legs than this lists them in a file beside its plan, and its result counts them: a long route's legs alone would fill
+# the answer.
+routeLegsListed = 40
 tintColumns = numpy.dtype([("x", "<u2"), ("z", "<u2"), ("low", "<u2"), ("label", "u1")])
+# Nodes are read this many at a time, so a zone's whole lane never sits in memory at once.
+chunkNodes = 1 << 22
 
 
 def entryLane(toolingRoot, workFile, inputPath, entryName, reportProgress):
@@ -952,13 +961,38 @@ def legReport(leg):
 
 
 def decisiveLegs(legs):
-  """The legs a route turns on, as (number from 1, leg index) in order: every drop, slide, entering or leaving water (entering it, a drop
-  into it, sinking, climbing out), teleport, and the first step of each climb run."""
-  return list(enumerate((index for index, leg in enumerate(legs) if leg["move"] in decisiveMoves), 1))
+  """The moves a route turns on, in order, each {number from 1, move, first, last (leg indices), count}: every drop, slide, entering or
+  leaving water (entering it, a drop into it, climbing out), teleport, and the first step of each climb run; those of one move with less
+  than decisiveGap of the route in plan between one and the next are one, counting them."""
+  decisive, between = [], 0.0
+  for index, leg in enumerate(legs):
+    if leg["move"] not in decisiveMoves:
+      between += leg["length"]
+      continue
+    if decisive and decisive[-1]["move"] == leg["move"] and between < decisiveGap:
+      decisive[-1].update(last=index, count=decisive[-1]["count"] + 1)
+    else:
+      decisive.append({"number": len(decisive) + 1, "move": leg["move"], "first": index, "last": index, "count": 1})
+    between = 0.0
+  return decisive
+
+
+def decisiveCaption(legs, move):
+  """A decisive move in words: its number, its move (a climb by its steps), and the rise of its legs of that move together (a fall
+  negative), with how many it counts when more than one."""
+  members = [leg for leg in legs[move["first"]:move["last"] + 1] if leg["move"] == move["move"]]
+  rise = round(sum(leg["end"][2] - leg["start"][2] for leg in members), 2)
+  if move["move"] == "step":
+    steps = sum(leg["steps"] for leg in members)
+    kind = "step" if steps == 1 else f"climb of {steps} steps"
+    more = f" in {move['count']} runs" if move["count"] > 1 else ""
+  else:
+    kind, more = move["move"], f", {move['count']} {move['move']}s" if move["count"] > 1 else ""
+  return f"{move['number']} {kind} {rise:+g}{more}"
 
 
 def framedLegs(decisive, count):
-  """Which decisive legs get a frame: all of up to count, else count spread evenly from the first to the last."""
+  """Which decisive moves get a frame: all of up to count, else count spread evenly from the first to the last."""
   if len(decisive) <= count:
     return list(decisive)
   return [decisive[round(index * (len(decisive) - 1) / (count - 1))] for index in range(count)]
@@ -966,8 +1000,10 @@ def framedLegs(decisive, count):
 
 def routeFrame(nodes, chain, points, moves, leg):
   """An eye-level view of a decisive leg: standing on the route frameStandBack before it in plan (from its start when it is nearer),
-  heading and pitched toward where the leg ends; a teleport's from its landing toward where the route stands frameStandBack on. In water,
-  the eye floats swimEyeAboveSurface over the water's top."""
+  heading and pitched toward where the leg ends, the scale figure standing there; a drop's or a slide's toward where the route stands
+  frameStandBack past its end, since the floor at a fall's foot lies hidden under its brink from above; a teleport's from its landing
+  toward where the route stands frameStandBack on. The figure stands only out of the water and a player's height or more ahead, where she
+  does not fill the frame. In water, the eye floats swimEyeAboveSurface over the water's top, without the figure."""
   along = [0.0]
   for at in range(1, len(points)):
     along.append(along[-1] + (0.0 if moves[at] == "teleport" else math.hypot(points[at][0] - points[at - 1][0], points[at][1] - points[at - 1][1])))
@@ -977,6 +1013,8 @@ def routeFrame(nodes, chain, points, moves, leg):
   else:
     index = next(at for at in range(leg["first"], -1, -1) if at == 0 or along[leg["first"]] - along[at] >= frameStandBack)
     look = leg["last"]
+    if leg["move"] in fallingMoves:
+      look = next((at for at in range(look, len(points)) if along[at] >= along[leg["last"]] + frameStandBack), len(points) - 1)
   stand, seen = points[index], points[look]
   across = math.hypot(seen[0] - stand[0], seen[1] - stand[1])
   if across < 1e-6:
@@ -990,17 +1028,33 @@ def routeFrame(nodes, chain, points, moves, leg):
     target = seen if across >= 1e-6 else [eye[0] + ahead[0], eye[1] + ahead[1], eye[2]]
     return {"eye": roundedPoint(eye), "target": roundedPoint(target)}
   pitch = math.degrees(math.atan2(seen[2] - (stand[2] + playerScale.eyeHeight), max(across, nodes.lane.cellSize)))
-  return {"standAt": roundedPoint(stand, 3), "headingDegrees": round(heading, 2), "pitchDegrees": round(pitch, 2)}
+  view = {"standAt": roundedPoint(stand, 3), "headingDegrees": round(heading, 2), "pitchDegrees": round(pitch, 2)}
+  return view | ({"figureAt": roundedPoint(seen, 3)} if across >= playerScale.playerHeight and not nodes.wet[chain[look]] else {})
+
+
+def levelColumns(nodes, level):
+  """The columns (z * columnsX + x) holding dry floor no one reaches within the step of a height, sorted."""
+  held = []
+  for start in range(0, nodes.lane.nodeCount, chunkNodes):
+    part = slice(start, min(nodes.lane.nodeCount, start + chunkNodes))
+    chosen = numpy.flatnonzero(~nodes.reached[part] & ~nodes.wet[part] & (numpy.abs(nodes.height[part] - level) <= playerScale.stepHeight))
+    held.append(nodes.z[part][chosen].astype(numpy.int64) * nodes.lane.columnsX + nodes.x[part][chosen])
+  return numpy.unique(numpy.concatenate(held)) if held else numpy.zeros(0, dtype=numpy.int64)
 
 
 def nearestReached(nodes, point):
-  """The reached node nearest a point (in plan alone when it has no height), leaving out those a zone line took: players there are gone.
-  None when nothing is reached."""
+  """The reached node nearest a point (in plan alone when it has no height), leaving out those a zone line took (players there are gone)
+  and, for a point with a height, those under or over its level: in a column holding floor no one reaches within the step of the point's
+  height while standing further from it than the step, where the point's level lies straight overhead or underfoot. None when nothing is
+  left."""
   best, bestDistance = None, math.inf
-  chunk = 1 << 22
-  for start in range(0, nodes.lane.nodeCount, chunk):
-    part = slice(start, min(nodes.lane.nodeCount, start + chunk))
+  covered = levelColumns(nodes, point[2]) if len(point) == 3 else None
+  for start in range(0, nodes.lane.nodeCount, chunkNodes):
+    part = slice(start, min(nodes.lane.nodeCount, start + chunkNodes))
     chosen = numpy.flatnonzero(nodes.reached[part] & ((nodes.shape[part] & absorbedShape) == 0)) + start
+    if covered is not None and len(chosen):
+      column = nodes.z[chosen].astype(numpy.int64) * nodes.lane.columnsX + nodes.x[chosen]
+      chosen = chosen[~(numpy.isin(column, covered) & (numpy.abs(nodes.height[chosen] - point[2]) > playerScale.stepHeight))]
     if not len(chosen):
       continue
     planX, planY = nodes.plan(chosen)
@@ -1076,7 +1130,10 @@ def zoneLineHolding(description, point):
 
 def transitionFailure(nodes, description, current, node):
   """What stops a player going from one node to the node beside it on a traced line, by the lane's moves: a dict with the kind it looks
-  like before the collision is asked (rise, steep, headroom, water, zoneLine), or None where a move goes on."""
+  like before the collision is asked (rise, steep, headroom, ceiling, water, zoneLine), or None where a move goes on. As the helper's
+  moves do, a step or a drop takes the containment headroom of open space shared by the two nodes: a drop onto floor whose open space
+  ends under the floor it is made from meets the ceiling over that floor, or, where that space is lower than the containment headroom,
+  the gap's headroom."""
   lane = nodes.lane
   moving = movement()
   low, high = float(lane.height(nodes.low[current])), float(lane.height(nodes.high[current]))
@@ -1098,11 +1155,15 @@ def transitionFailure(nodes, description, current, node):
     return {"kind": "rise", "height": round(otherLow - low, 2), "limit": moving["playerHeight"], "swimBox": description["swimBoxes"][int(nodes.box[node])]["name"]}
   if otherLow - low > moving["stepHeight"]:
     return {"kind": "rise", "height": round(otherLow - low, 2), "limit": moving["stepHeight"]}
+  overlap = min(high, otherHigh) - max(low, otherLow)
   if low - otherLow > moving["stepHeight"]:
-    return None
+    if overlap >= moving["containmentHeadroom"]:
+      return None
+    if otherHigh - otherLow < moving["containmentHeadroom"]:
+      return {"kind": "headroom", "clearance": round(otherHigh - otherLow, 2)}
+    return {"kind": "ceiling", "ceiling": round(otherHigh, 2), "floor": round(low, 2)}
   if otherLow > low and not (nodes.walkable[current] and nodes.walkable[node]):
     return {"kind": "steep", "steepNode": node if not nodes.walkable[node] else current}
-  overlap = min(high, otherHigh) - max(low, otherLow)
   if overlap < moving["containmentHeadroom"]:
     return {"kind": "headroom", "clearance": round(overlap, 2)}
   return None
@@ -1111,11 +1172,18 @@ def transitionFailure(nodes, description, current, node):
 def separationWalk(nodes, description, start, targetPoint, target):
   """Walk the plan line from a reached node to a traced point column by column, onto the node tracedNode picks in each (the target's own
   in its column), and list each step no move takes (transitionFailure) and each run of columns with no floor, before the collision is
-  asked about them: each with where along the line it lies, and the nodes on either side."""
+  asked about them: each with where along the line it lies, and the nodes on either side. A face steep where a stop led onto it is named
+  by that stop alone. A point in the start's own column is one step, from the start straight to it. A point on floor no open space joins
+  to the lane (inside a closed solid, a sealed room) adds nothing past what stops the line before it; with nothing before, the step into
+  it, or, where heights alone let a move through, its being sealed."""
   lane = nodes.lane
   startPoint = nodePoint(nodes, start)
   length = math.hypot(targetPoint[0] - startPoint[0], targetPoint[1] - startPoint[1])
-  cells = sideBySide(lineColumns(lane, startPoint[:2], targetPoint[:2])) if length > 0 else []
+  if length > 0:
+    cells = sideBySide(lineColumns(lane, startPoint[:2], targetPoint[:2]))
+  else:
+    own = (int(nodes.x[start]), int(nodes.z[start]), 0.0, 1.0)
+    cells = [own, own]
   current, found = start, []
   for index, (x, z, t0, _) in enumerate(cells[1:], 1):
     column = lane.columnOf(x, z)
@@ -1126,12 +1194,17 @@ def separationWalk(nodes, description, start, targetPoint, target):
     along = round(t0 * length, 1)
     if node is None:
       if found and found[-1]["kind"] == "noFloor" and found[-1]["lastColumn"] == index - 1:
-        found[-1]["lastColumn"] = index
+        found[-1].update(lastColumn=index, columns=found[-1]["columns"] + 1, through=roundedPoint(lane.center(x, z)), alongThrough=along)
       else:
-        found.append({"kind": "noFloor", "along": along, "at": roundedPoint(lane.center(x, z)), "lastColumn": index})
+        found.append({"kind": "noFloor", "along": along, "at": roundedPoint(lane.center(x, z)), "lastColumn": index, "columns": 1})
       continue
     failure = transitionFailure(nodes, description, current, node)
-    if failure is not None:
+    if last and not nodes.state[node] & (reachedState | openState):
+      if not found:
+        found.append((failure or {"kind": "sealed"}) | {"along": along, "from": current, "to": node})
+      break
+    named = failure is not None and failure["kind"] == "steep" and failure["steepNode"] == current and found and found[-1].get("to") == current
+    if failure is not None and not named:
       found.append(failure | {"along": along, "from": current, "to": node})
     current = node
   return found
@@ -1177,8 +1250,8 @@ def separationProbes(nodes, found):
     if probed is None:
       columns.append(None)
       continue
-    # Blocks stand on whole units, through the columns' middles: a quarter column away from the other side keeps the probe off their
-    # faces.
+    # A column's floor is the highest ground anywhere in it, and the face rising to it can cross the column at its middle; a quarter
+    # column further from the floor on the other side, the line stands over the probed floor rather than on that face.
     away = (0.25 if probed == stop["to"] else -0.25) * lane.cellSize
     across = math.hypot(far[0] - near[0], far[1] - near[1])
     center = nodePoint(nodes, probed)
@@ -1189,11 +1262,13 @@ def separationProbes(nodes, found):
   return crossings, columns
 
 
-def separations(nodes, found, crossed, profiles):
-  """What separates a reached node from a traced point, from separationWalk's stops and what the collision showed at each (bridgeLane
-  traceProbes): a boundary the cast across meets, by name; under a rise, a gap within the step of the floor left from that is lower
-  than the containment headroom (headroom, with its clearance); a rise by how much it passes its limit; a steep face by its degrees;
-  water no bank within the step of the box's top leaves; a zone line's box; no floor at all."""
+def separations(nodes, found, crossed, profiles, targetLevel):
+  """What separates a reached node from a traced point at targetLevel (its height, or None for a point without one), from
+  separationWalk's stops and what the collision showed at each (bridgeLane traceProbes): a boundary the cast across meets, by name;
+  under a rise, a gap within the step of the floor left from that is lower than the containment headroom (headroom, with its
+  clearance) when the gap's floor is the level the line goes for (within the step of targetLevel, or of the floor left from for a point
+  without a height), else the rise; a rise by how much it passes its limit; a steep face by its degrees; a ceiling over the floor a drop
+  would land on; water no bank within the step of the box's top leaves; a zone line's box; no floor at all."""
   lane = nodes.lane
   moving = movement()
   stated = []
@@ -1201,17 +1276,19 @@ def separations(nodes, found, crossed, profiles):
     kind = stop["kind"]
     shown = {"kind": kind, "along": stop["along"]}
     if crossing is not None and crossing["boundary"]:
-      stated.append(shown | {"kind": "boundary", "name": crossing["object"], "at": roundedPoint(crossing["point"])})
+      floor = round(float(lane.height(nodes.low[stop["from"]])), 2)
+      stated.append(shown | {"kind": "boundary", "name": crossing["object"], "at": roundedPoint(crossing["point"]), "floor": floor})
       continue
     if kind == "noFloor":
-      stated.append(shown | {"at": stop["at"]})
+      stated.append(shown | {key: stop[key] for key in ("at", "columns", "through", "alongThrough") if key in stop})
       continue
     near, far = nodePoint(nodes, stop["from"]), nodePoint(nodes, stop["to"])
     level = float(lane.height(nodes.low[stop["from"]]))
     if kind == "rise" and profile is not None:
       floor = max((face["z"] for face in profile if face["normalZ"] > 0 and abs(face["z"] - level) <= moving["stepHeight"]), default=None)
       ceiling = None if floor is None else min((face["z"] for face in profile if face["z"] > floor), default=None)
-      if ceiling is not None and ceiling - floor < moving["containmentHeadroom"]:
+      goesFor = level if targetLevel is None else targetLevel
+      if ceiling is not None and ceiling - floor < moving["containmentHeadroom"] and abs(goesFor - floor) <= moving["stepHeight"]:
         stated.append(shown | {"kind": "headroom", "at": roundedPoint([far[0], far[1], floor]), "clearance": round(ceiling - floor, 2), "needs": moving["containmentHeadroom"]})
         continue
     if kind == "rise":
@@ -1229,6 +1306,10 @@ def separations(nodes, found, crossed, profiles):
       stated.append(shown | {"at": roundedPoint(nodePoint(nodes, steep))} | measured | {"steepestWalkable": round(playerScale.steepestWalkableDegrees, 1)})
     elif kind == "headroom":
       stated.append(shown | {"at": roundedPoint(far), "clearance": stop["clearance"], "needs": moving["containmentHeadroom"]})
+    elif kind == "sealed":
+      stated.append(shown | {"at": roundedPoint(far), "why": "open space joins this floor to no reached place: it lies inside a closed solid or a sealed room"})
+    elif kind == "ceiling":
+      stated.append(shown | {"at": roundedPoint([far[0], far[1], stop["ceiling"]]), "ceiling": stop["ceiling"], "floor": stop["floor"], "landing": round(far[2], 2)})
     elif kind == "water":
       stated.append(shown | {"at": roundedPoint(far)} | {key: stop[key] for key in ("swimBox", "boxTop", "bank", "overClimb")})
     else:
@@ -1236,18 +1317,40 @@ def separations(nodes, found, crossed, profiles):
   return mergedSeparations(stated, nodes.lane.cellSize)
 
 
+def separationText(stop):
+  """A separation in a few words with its measure, as a trace's section names it."""
+  kind = stop["kind"]
+  if kind == "rise":
+    return f"rise {stop['height']:g} (limit {stop['limit']:g})"
+  if kind == "steep":
+    return "steep" if stop["degrees"] is None else f"steep {stop['degrees']:g}\N{DEGREE SIGN}"
+  if kind == "headroom":
+    return f"headroom {stop['clearance']:g} (needs {stop['needs']:g})"
+  if kind == "ceiling":
+    return f"ceiling {stop['ceiling']:g} over a drop to {stop['landing']:g}"
+  if kind == "water":
+    return f"water: bank {stop['overClimb']:g} over the climb"
+  if kind == "boundary":
+    return f"boundary {stop['name']}"
+  if kind == "zoneLine":
+    return f"zone line {stop['zoneLine']}"
+  return {"noFloor": "no floor", "sealed": "sealed"}[kind]
+
+
 def mergedSeparations(stated, cellSize):
   """Separations of one kind (and one boundary, box, or zone line) in columns side by side along the line as one, from where it starts
-  through where it ends, over how many columns: a steep face by its steepest, a rise by its whole height, a gap by its lowest
-  clearance."""
+  through where it ends (through, at alongThrough), over how many columns: a steep face by its steepest, a rise by its whole height, a
+  gap by its lowest clearance; and gaps one after another at floors within the step of each other, nothing else between, as one gap
+  however far apart along the line."""
   merged = []
   for stop in stated:
     before = merged[-1] if merged else None
     alike = before is not None and before["kind"] == stop["kind"] and all(before.get(key) == stop.get(key) for key in ("name", "swimBox", "zoneLine"))
-    if not alike or stop["along"] - before["until"] > 1.5 * cellSize:
-      merged.append(stop | {"until": stop["along"], "columns": 1})
+    oneGap = alike and stop["kind"] == "headroom" and abs(stop["at"][2] - before["at"][2]) <= playerScale.stepHeight
+    if not alike or (stop["along"] - before["until"] > 1.5 * cellSize and not oneGap):
+      merged.append(stop | {"until": stop.get("alongThrough", stop["along"]), "columns": stop.get("columns", 1)})
       continue
-    before.update(until=stop["along"], columns=before["columns"] + 1, through=stop["at"])
+    before.update(until=stop["along"], columns=before["columns"] + 1, through=stop["at"], alongThrough=stop["along"])
     if stop["kind"] == "steep" and stop.get("degrees") is not None and (before.get("degrees") is None or stop["degrees"] > before["degrees"]):
       before.pop("why", None)
       before["degrees"] = stop["degrees"]

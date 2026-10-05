@@ -6,17 +6,17 @@ import sys
 from pathlib import Path
 
 import numpy
-from PIL import Image
+from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import laneDrawing
 import planDrawing
 import playerReach
-from playerScale import playerHeight, stepHeight
+from playerScale import eyeHeight, playerHeight, stepHeight
 from testCaves import caveCanyon, hall
 from testModelsAndDressing import freshScene
-from testReach import cellHeight, containmentHeadroom, cube, heightMargin
-from testReachPictures import colorShare, greenShare, pixelsAround, planFrame
+from testReach import cellHeight, cellSize, containmentHeadroom, cube, heightMargin, otherZone, rampAlongY, reachCourse, steepDegrees
+from testReachPictures import colorShare, pixelsAround, planFrame
 from testWater import environment
 
 # The trace course: a corridor along +y between boundary walls, its ground slabs 20 thick. Players arrive at its south end, step up two
@@ -39,12 +39,28 @@ highBank = waterTop + stepHeight + 2 * heightMargin
 cliffHeight = 2 * stepHeight + 2 * heightMargin
 lidGap = containmentHeadroom / 2
 canopyBottom = playerHeight + 2 * heightMargin
+canopyTop = canopyBottom + 2
+canopy = ((-corridorHalf + 1, 60.0), (-3.0, 70.0))
 safePoint = [0, -30, 0, 0]
 gate = [0, 90]
 routeTarget = [0, 70]
+# The ground's slabs are grey and the blocks on them tan, each checkered, so a view shows each face's extent and its edges.
+groundSlabs = ("groundA", "trenchBed", "groundB", "pitBed", "groundC")
+blocks = ("riserA", "riserB", "cliff", "lowLid", "canopy")
+checkerRepeat = 4.0
+raisedHeight = 20.0
 
 
-async def traceCourse(session):
+def checker(path, light, dark):
+  image = Image.new("RGB", (64, 64), light)
+  draw = ImageDraw.Draw(image)
+  draw.rectangle([0, 0, 31, 31], fill=dark)
+  draw.rectangle([32, 32, 63, 63], fill=dark)
+  image.save(path)
+  return path
+
+
+async def traceCourse(session, folder):
   await freshScene(session)
   await cube(session, "groundA", [-groundEdge, -40, slabBottom], [groundEdge, trench[0], 0])
   await cube(session, "trenchBed", [-groundEdge, trench[0], slabBottom], [groundEdge, trench[1], bed])
@@ -56,7 +72,12 @@ async def traceCourse(session):
   # Blocks stand a column inside the walls: a wall follows the highest ground it meets, so over a block's top its foot would leave a gap.
   await cube(session, "cliff", [2, 75, 0], [corridorHalf - 1, 85, cliffHeight])
   await cube(session, "lowLid", [-corridorHalf + 1, 85, lidGap], [-2, 95, wallHeight])
-  await cube(session, "canopy", [-corridorHalf + 1, 60, canopyBottom], [-3, 70, canopyBottom + 2])
+  await cube(session, "canopy", [canopy[0][0], canopy[0][1], canopyBottom], [canopy[1][0], canopy[1][1], canopyTop])
+  for material, names, light, dark in (("courseGround", groundSlabs, (150, 150, 145), (115, 115, 110)), ("courseBlock", blocks, (200, 170, 120), (160, 130, 85))):
+    await session.expectSuccess("createMaterial", {"name": material, "diffuseTexture": str(checker(folder / f"{material}.png", light, dark))})
+    for name in names:
+      await session.expectSuccess("assignMaterial", {"objectName": name, "materialName": material})
+      await session.expectSuccess("projectUVs", {"objectName": name, "method": "box", "worldUnitsPerRepeat": checkerRepeat})
   await session.expectSuccess("placeSwimVolume", {"name": "trench", "liquid": "water", "minimum": [-groundEdge, trench[0], bed], "maximum": [groundEdge, trench[1], waterTop]})
   await session.expectSuccess("placeSwimVolume", {"name": "pit", "liquid": "water", "minimum": [-groundEdge, pit[0], bed], "maximum": [groundEdge, pit[1], waterTop]})
   # The wall follows the ground between samples, so a sample stands just inside each bank: one on the ground beside a bank would carry
@@ -73,9 +94,17 @@ def near(point, expected, tolerance=math.sqrt(2) * playerReach.reachGrid["cellSi
   return math.dist(point[:2], expected[:2]) <= tolerance
 
 
+def underCanopy(point):
+  return canopy[0][0] <= point[0] <= canopy[1][0] and canopy[0][1] <= point[1] <= canopy[1][1]
+
+
+def pixelsOf(image):
+  return numpy.asarray(image.convert("RGB")).astype(int)
+
+
 def testTraceReachRoutesOverTheDropAndTheSwim(stageBlenderServer, tmp_path):
   async def steps(session):
-    await traceCourse(session)
+    await traceCourse(session, tmp_path)
     routed, _ = await session.call("traceReach", {"to": routeTarget, "fromEntry": "safe point"})
     fromGate, _ = await session.call("traceReach", {"to": routeTarget})
     unknown = await session.expectError("traceReach", {"to": routeTarget, "fromEntry": "harbor"})
@@ -90,6 +119,7 @@ def testTraceReachRoutesOverTheDropAndTheSwim(stageBlenderServer, tmp_path):
   assert playerReach.stepRise(playerReach.Lane(result["laneFile"])) < riser
   assert (result["reached"], result["from"], result["target"]["label"]) == (True, "safe point", "walk")
   legs = result["legs"]
+  assert result["legCount"] == len(legs) <= playerReach.routeLegsListed and "legsFile" not in result
   assert [leg["move"] for leg in legs] == ["walk", "step", "walk", "drop", "walk", "drop", "swim", "climbOut", "walk"]
   assert [leg["label"] for leg in legs] == ["walk"] * 5 + ["swim", "swim", "walk", "walk"]
   # The two risers are one climb run of two steps, up both.
@@ -102,27 +132,42 @@ def testTraceReachRoutesOverTheDropAndTheSwim(stageBlenderServer, tmp_path):
     assert abs(legs[index]["start"][1] + 0.5 - y) <= 1, (index, legs[index]["start"], y)
   assert abs(legs[6]["length"] - (trench[1] - trench[0] - 2)) <= 2 and near(legs[-1]["end"], routeTarget)
   assert result["length"] == round(sum(leg["length"] for leg in legs), 1)
-  assert [(move["number"], move["move"]) for move in result["decisive"]] == [(1, "step"), (2, "drop"), (3, "drop"), (4, "climbOut")]
+  # The drop off the riser block and the drop into the trench lie further apart along the route than decisiveGap: two moves, each one.
+  assert [(move["number"], move["move"], move["leg"], move["lastLeg"], move["count"]) for move in result["decisive"]] == [
+    (1, "step", 1, 1, 1), (2, "drop", 3, 3, 1), (3, "drop", 5, 5, 1), (4, "climbOut", 7, 7, 1),
+  ]
+  assert [move["caption"] for move in result["decisive"]] == [
+    f"1 climb of 2 steps {rises[1]:+g}", f"2 drop {rises[3]:+g}", f"3 drop {rises[5]:+g}", f"4 climbOut {rises[7]:+g}",
+  ]
   # Four decisive moves, four frames: each stands on the route 12 before its move, the climb out's on the bank it dropped from, and looks
-  # up the corridor at where the move ends.
+  # up the corridor: the climb's and the climb out's at where the move ends, the scale figure standing there, the drops' 12 past their
+  # landing, where the floor shows past the brink: past the first on the lower ground, past the trench's on its far bank.
   frames = result["frames"]
   assert [frame["number"] for frame in frames] == [1, 2, 3, 4]
   for frame, move in zip(frames, result["decisive"]):
-    assert set(frame["view"]) == {"standAt", "headingDegrees", "pitchDegrees"} and abs(frame["view"]["headingDegrees"]) < 1e-6
-    assert abs(frame["view"]["standAt"][1] - (legs[move["leg"]]["start"][1] - playerReach.frameStandBack)) <= 1, (frame, move)
+    view = frame["view"]
+    assert set(view) - {"figureAt"} == {"standAt", "headingDegrees", "pitchDegrees"} and abs(view["headingDegrees"]) < 1e-6
+    assert abs(view["standAt"][1] - (legs[move["leg"]]["start"][1] - playerReach.frameStandBack)) <= 1, (frame, move)
+  # Legs report their points to a tenth.
+  for frame, leg in ((frames[0], legs[1]), (frames[3], legs[7])):
+    assert all(abs(value - end) <= 0.05 + 1e-9 for value, end in zip(frame["view"]["figureAt"], leg["end"])), (frame, leg)
+  for frame, leg, floor in ((frames[1], legs[3], legs[3]["end"][2]), (frames[2], legs[5], legs[7]["end"][2])):
+    assert abs(frame["view"]["figureAt"][1] - (leg["end"][1] + playerReach.frameStandBack)) <= 1 and abs(frame["view"]["figureAt"][2] - floor) <= 0.05 + 1e-9, frame
   # The climb's frame looks up at the top of its run; the drop's looks down at where it lands.
   assert frames[1]["view"]["pitchDegrees"] < 0 < frames[0]["view"]["pitchDegrees"]
   sheet = Image.open(io.BytesIO(base64.b64decode(routed.content[1].data)))
   assert sheet.size == (result["frameSheet"]["width"], result["frameSheet"]["height"])
-  # In plan the ribbon runs along y, across the drawing, in walk green over a dark casing through the riser block, and the decisive
-  # moves are ringed white.
+  # In plan the ribbon runs along y, across the drawing: a pixel column through it holds the walk green ribbon's width of green and the
+  # casing's width less that of the casing, and the decisive moves are ringed white.
   plan = Image.open(io.BytesIO(base64.b64decode(routed.content[0].data)))
   plan.save(tmp_path / "routePlan.png")
   sheet.save(tmp_path / "routeFrames.jpg")
   frame = planFrame(result["plan"])
   x, y = (round(value) for value in frame.pixel([0, 0]))
-  across = numpy.asarray(plan.convert("RGB"))[y - laneDrawing.ribbonCasingWidth:y + laneDrawing.ribbonCasingWidth + 1, x].astype(int)
-  assert colorShare(across, laneDrawing.labelColors[playerReach.walkLabel]) > 0.2 and colorShare(across, laneDrawing.ribbonCasing) > 0.1
+  across = pixelsOf(plan)[y - laneDrawing.ribbonCasingWidth:y + laneDrawing.ribbonCasingWidth + 1, x]
+  greenRows = round(colorShare(across, laneDrawing.labelColors[playerReach.walkLabel]) * len(across))
+  casingRows = round(colorShare(across, laneDrawing.ribbonCasing) * len(across))
+  assert (greenRows, casingRows) == (laneDrawing.ribbonWidth, laneDrawing.ribbonCasingWidth - laneDrawing.ribbonWidth), (greenRows, casingRows)
   assert colorShare(pixelsAround(plan, result["plan"], legs[3]["start"], 6), laneDrawing.decisiveFill) > 0.2
   # From every arrival, the gate's landing lies nearer: one walk south to the point.
   gated = json.loads(fromGate.content[-1].text)
@@ -133,10 +178,13 @@ def testTraceReachRoutesOverTheDropAndTheSwim(stageBlenderServer, tmp_path):
 
 
 def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
-  targets = {"cliff": {"to": [5, 80]}, "boundary": {"to": [10, 60]}, "headroom": {"to": [-5, 90, 0]}, "water": {"to": [0, 120]}, "fromGate": {"to": [0, 0], "fromEntry": "gate"}}
+  targets = {
+    "cliff": {"to": [5, 80]}, "boundary": {"to": [10, 58]}, "headroom": {"to": [-5, 90, 0]}, "slabTop": {"to": [-5, 90]}, "canopy": {"to": [-5, 65]},
+    "water": {"to": [0, 120]}, "fromGate": {"to": [0, 0], "fromEntry": "gate"},
+  }
 
   async def steps(session):
-    await traceCourse(session)
+    await traceCourse(session, tmp_path)
     found = {}
     for name, arguments in targets.items():
       result, _ = await session.call("traceReach", arguments)
@@ -161,7 +209,7 @@ def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
   assert rise["face"] == "cliff"
   # Outside the corridor, the wall is named.
   boundary = results["boundary"]
-  assert near(boundary["nearest"]["at"], [corridorHalf - 1, 60])
+  assert near(boundary["nearest"]["at"], [corridorHalf - 1, 58])
   assert [(stop["kind"], stop.get("name")) for stop in boundary["separations"]] == [("boundary", "corridorWall")]
   assert abs(boundary["separations"][0]["at"][0] - corridorHalf) <= 0.01
   # Under the low slab the lane's node is the slab's inside, which no one reaches, and what keeps players out is the gap's clearance, not
@@ -170,6 +218,18 @@ def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
   assert headroom["target"]["label"] == "unreached" and near(headroom["nearest"]["at"], [-1, 90])
   assert [stop["kind"] for stop in headroom["separations"]] == ["headroom"]
   assert abs(headroom["separations"][0]["clearance"] - lidGap) <= 0.02 and headroom["separations"][0]["needs"] == containmentHeadroom
+  # The slab's top lies far over that gap: what keeps players off it is the rise to it, whatever the gap under it.
+  slabTop = results["slabTop"]
+  assert abs(slabTop["target"]["at"][2] - wallHeight) <= cellHeight and near(slabTop["nearest"]["at"], [-1, 90])
+  assert [stop["kind"] for stop in slabTop["separations"]] == ["rise"] and abs(slabTop["separations"][0]["height"] - wallHeight) <= cellHeight
+  # Over the walked ground under it, the canopy's top is reached from beside it, not from under it: the nearest place lies outside its
+  # footprint, a rise of its height away, and the view stands back from there, the scale figure at the nearest place.
+  canopyTrace = results["canopy"]
+  assert abs(canopyTrace["target"]["at"][2] - canopyTop) <= cellHeight and canopyTrace["target"]["label"] == "unreached"
+  assert not underCanopy(canopyTrace["nearest"]["at"]) and near(canopyTrace["nearest"]["at"], [canopy[1][0] + 1, 65])
+  assert [stop["kind"] for stop in canopyTrace["separations"]] == ["rise"] and abs(canopyTrace["separations"][0]["height"] - canopyTop) <= cellHeight
+  canopyView = canopyTrace["view"]["view"]
+  assert not underCanopy(canopyView["standAt"]) and canopyView["standAt"][0] > canopyTrace["nearest"]["at"][0] and canopyView["figureAt"] == canopyTrace["nearest"]["at"]
   # From the pit's water the far bank stands higher over the box's top than players climb out.
   water = results["water"]
   assert water["nearest"]["label"] == "swim" and near(water["nearest"]["at"], [0, pit[1] - 1])
@@ -183,9 +243,10 @@ def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
   assert any(band["label"] == "swim" and abs(band["z"][1] - waterTop) <= cellHeight for band in cut["bands"])
   assert any(abs(mark["z"] - highBank) <= cellHeight for mark in cut["unreached"])
   # Each view looks at the point from up to 12 back on the lane: across the pit from the bank the pit was dropped into, and at the cliff
-  # from the corridor's far wall.
+  # from the corridor's far wall, the scale figure at the cliff's foot.
   assert near(water["view"]["view"]["standAt"], [0, pit[1] - 1 - 12]) and abs(water["view"]["view"]["headingDegrees"]) < 1e-6
   assert near(cliff["view"]["view"]["standAt"], [-corridorHalf + 1, 80]) and abs(cliff["view"]["view"]["headingDegrees"] - 90) < 1e-6
+  assert cliff["view"]["view"]["figureAt"] == cliff["nearest"]["at"]
   assert any(entry.startswith("doors: taken as open") for entry in cliff["notModeled"])
   # From the gate alone, players swim the trench back and climb out, but the riser block's far face rises more than a step; its section
   # draws the gate's lane, in which the block's top is walkable floor never reached.
@@ -194,6 +255,14 @@ def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
   assert [stop["kind"] for stop in gated["separations"]] == ["rise"] and abs(gated["separations"][0]["height"] - 2 * riser) <= cellHeight
   gatedCut = json.loads(Path(gated["section"]["laneCut"]).read_text())
   assert any(abs(mark["z"] - 2 * riser) <= cellHeight for mark in gatedCut["unreached"]) and not any(abs(mark["z"] - 2 * riser) <= cellHeight for mark in gatedCut["bars"])
+  # Each section names its separations clear of the reached place's disc and the traced point's ring: no label's pixels lie on them.
+  for name in ("cliff", "headroom"):
+    traced = results[name]
+    image = pixelsOf(Image.open(tmp_path / f"{name}Section.png"))
+    summary = {"length": traced["section"]["length"], "bottom": traced["section"]["bottom"], "top": traced["section"]["top"]}
+    x, y = (round(value) for value in sectionPixel(summary, 12, traced["nearest"]["at"][2]))
+    disc = image[y - 2:y + 3, x - 2:x + 3].reshape(-1, 3)
+    assert colorShare(disc, laneDrawing.decisiveFill) > 0.5, (name, disc)
 
 
 def testSeparationsAlongOneFaceAreOne():
@@ -211,8 +280,40 @@ def testSeparationsAlongOneFaceAreOne():
   merged = playerReach.mergedSeparations(stated, 1.0)
   assert [(stop["kind"], stop["columns"], stop.get("name")) for stop in merged] == [("steep", 3, None), ("rise", 2, None), ("boundary", 2, "rim"), ("boundary", 1, "fence")]
   steep, rise = merged[0], merged[1]
-  assert (steep["degrees"], "why" in steep, steep["at"], steep["through"]) == (80.0, False, [3, 0, 2], [5, 0, 10])
+  assert (steep["degrees"], "why" in steep, steep["at"], steep["through"], steep["alongThrough"]) == (80.0, False, [3, 0, 2], [5, 0, 10], 5.0)
   assert (rise["height"], rise["over"], rise["through"]) == (13.0, 8.5, [7, 0, 23])
+
+
+def testADiagonalLineStepsThroughSideBySideColumns():
+  # A line at 45 degrees from one column's center to another's passes through the grid's corners; each step it takes goes to a column
+  # sharing a side with the one before, the column between coming at the corner.
+  class Grid:
+    origin, cellSize = numpy.zeros(3), 1.0
+
+  cells = playerReach.sideBySide(playerReach.lineColumns(Grid, [0.5, 0.5], [3.5, 3.5]))
+  assert [(x, z) for x, z, _, _ in cells] == [(0, 0), (1, 0), (1, 1), (2, 1), (2, 2), (3, 2), (3, 3)]
+  assert all(abs(x - before[0]) + abs(z - before[1]) == 1 for (x, z, _, _), before in zip(cells[1:], cells))
+
+
+def decisiveLeg(move, length, rise=0.0):
+  return {"move": move, "label": "walk", "start": [0.0, 0.0, 0.0], "end": [0.0, length, rise], "length": length, "moves": 1} | ({"steps": 1} if move == "step" else {})
+
+
+def testDecisiveMovesOfOneKindCloseTogetherAreOne():
+  # Three terraces climbed with less than decisiveGap of walking between, a long walk, a fourth, a slide, then drops apart.
+  gap = playerReach.decisiveGap
+  legs = [
+    decisiveLeg("step", 1, 4), decisiveLeg("walk", gap / 2), decisiveLeg("step", 1, 4), decisiveLeg("walk", gap / 2), decisiveLeg("step", 1, 4),
+    decisiveLeg("walk", 2 * gap), decisiveLeg("step", 1, 4), decisiveLeg("slide", 3, -6), decisiveLeg("sink", 0, -3), decisiveLeg("walk", gap),
+    decisiveLeg("drop", 1, -8), decisiveLeg("enterWater", 1, -1), decisiveLeg("swim", 5), decisiveLeg("climbOut", 1, 1), decisiveLeg("teleport", 0, 10),
+  ]
+  decisive = playerReach.decisiveLegs(legs)
+  assert [(move["number"], move["move"], move["first"], move["last"], move["count"]) for move in decisive] == [
+    (1, "step", 0, 4, 3), (2, "step", 6, 6, 1), (3, "slide", 7, 7, 1), (4, "drop", 10, 10, 1), (5, "enterWater", 11, 11, 1),
+    (6, "climbOut", 13, 13, 1), (7, "teleport", 14, 14, 1),
+  ]
+  assert playerReach.decisiveCaption(legs, decisive[0]) == "1 climb of 3 steps +12 in 3 runs"
+  assert [playerReach.decisiveCaption(legs, move) for move in decisive[1:3]] == ["2 step +4", "3 slide -6"]
 
 
 def mapPixel(description, point):
@@ -221,46 +322,93 @@ def mapPixel(description, point):
   return round((center[1] + description["mapWidth"] / 2 - point[1]) / size - 0.5), round((center[0] + description["mapHeight"] / 2 - point[0]) / size - 0.5)
 
 
+def tintShare(tinted, bare, x, y, label):
+  """How far, channel by channel, a pixel moved from a render without the lane toward a label's color, and how far that may stray from
+  the exact share by the eight bits each render is stored in."""
+  color = numpy.array(laneDrawing.labelColors[label], dtype=float)
+  apart = color - bare[y, x]
+  return (tinted[y, x] - bare[y, x]) / apart, 1.0 / numpy.abs(apart)
+
+
+def projected(description, point):
+  """Where a zone point falls in a perspective view's render, from its eye, forward, vertical field of view, width, and height."""
+  forward = numpy.array(description["forward"], dtype=float)
+  right = numpy.cross(forward, [0.0, 0.0, 1.0])
+  right /= numpy.linalg.norm(right)
+  up = numpy.cross(right, forward)
+  offset = numpy.array(point, dtype=float) - numpy.array(description["eye"], dtype=float)
+  scale = description["height"] / 2 / math.tan(math.radians(description["verticalFieldOfViewDegrees"]) / 2)
+  depth = offset @ forward
+  return round(description["width"] / 2 + offset @ right / depth * scale - 0.5), round(description["height"] / 2 - offset @ up / depth * scale - 0.5)
+
+
 def testRenderViewTintsReachedFloor(stageBlenderServer, tmp_path):
   overhead = {"map": {"center": [0, 92], "width": 70}}
-  eyeLevel = {"standAt": [0, 4, 2 * riser], "headingDegrees": 0, "pitchDegrees": -12}
+  eyeLevel = {"standAt": [0, 4, 2 * riser], "headingDegrees": 0, "pitchDegrees": -25, "figureAt": [-3, 22]}
+  # At eye level the far clip falls short of the corridor's far end, so the tint looks up only what lies within it.
+  shortClip = 60.0
 
   async def steps(session):
-    await traceCourse(session)
+    await traceCourse(session, tmp_path)
     plain = await session.expectImage("renderView", {"view": overhead})
     laned = await session.expectImage("renderView", {"view": overhead, "lane": True})
-    looking = await session.expectImage("renderView", {"view": eyeLevel, "lane": True})
-    lookingPlain = await session.expectImage("renderView", {"view": eyeLevel})
-    return plain, laned, looking, lookingPlain
+    await session.expectSuccess("setZoneProperties", {"maxClip": shortClip})
+    looking = await session.expectImage("renderView", {"view": eyeLevel, "lane": True, "swimVolumes": True})
+    lookingPlain = await session.expectImage("renderView", {"view": eyeLevel, "swimVolumes": True})
+    # The same camera without the scale figure: the riser block's top is level at its height, so the eye stands eyeHeight over it.
+    pitch = math.radians(eyeLevel["pitchDegrees"])
+    eye = [eyeLevel["standAt"][0], eyeLevel["standAt"][1], eyeLevel["standAt"][2] + eyeHeight]
+    target = [eye[0], eye[1] + math.cos(pitch), eye[2] + math.sin(pitch)]
+    alone = await session.expectImage("renderView", {"view": {"eye": eye, "target": target}, "lane": True, "swimVolumes": True})
+    return plain, laned, looking, lookingPlain, alone
 
-  (plainImage, plain), (lanedImage, laned), (lookingImage, looking), (lookingPlainImage, _) = stageBlenderServer.session(steps)
+  (plainImage, plain), (lanedImage, laned), (lookingImage, looking), (lookingPlainImage, lookingPlainResult), (aloneImage, _) = stageBlenderServer.session(steps)
   Image.open(io.BytesIO(lookingImage)).save(tmp_path / "laneTint.png")
   Image.open(io.BytesIO(lanedImage)).save(tmp_path / "laneTintMap.png")
   assert "laneState" not in plain and laned["laneState"]["lane"] in ("computed", "reused")
-  bare = numpy.asarray(Image.open(io.BytesIO(plainImage)).convert("RGB")).astype(float)
-  tinted = numpy.asarray(Image.open(io.BytesIO(lanedImage)).convert("RGB")).astype(float)
-
-  def share(point, label):
-    """How far, channel by channel, a pixel moved from the plain render toward a label's color."""
-    x, y = mapPixel(laned, point)
-    color = numpy.array(laneDrawing.labelColors[label], dtype=float)
-    return (tinted[y, x] - bare[y, x]) / (color - bare[y, x])
+  # The lane's view carries a legend band under the render, naming the labels it tints.
+  lanedPicture, plainPicture = Image.open(io.BytesIO(lanedImage)), Image.open(io.BytesIO(plainImage))
+  assert lanedPicture.width == plainPicture.width and lanedPicture.height > plainPicture.height == laned["height"]
+  assert laned["laneTint"]["labels"] == [playerReach.walkLabel, playerReach.swimLabel]
+  bare, tinted = pixelsOf(plainPicture).astype(float), pixelsOf(lanedPicture).astype(float)
 
   def unchanged(point):
     x, y = mapPixel(laned, point)
     return numpy.abs(tinted[y, x] - bare[y, x]).max()
 
-  # Open ground walked and the pit's bed swum are tinted toward their labels' colors by one share in every channel; the canopy's top
+  # Open ground walked and the pit's bed swum move toward their labels' colors by the tint's share in every channel; the canopy's top
   # over walked ground hides it, and the cliff's top and the high bank, never reached, are as they were.
-  walked, swum = share([0, 65], playerReach.walkLabel), share([0, 106], playerReach.swimLabel)
-  assert 0.2 < walked.mean() < 0.6 and numpy.abs(numpy.concatenate([walked, swum]) - walked.mean()).max() < 0.05
+  for point, label in (([0, 65], playerReach.walkLabel), ([0, 106], playerReach.swimLabel)):
+    share, stray = tintShare(tinted, bare, *mapPixel(laned, point), label)
+    assert (numpy.abs(share - laneDrawing.tintAlpha) <= stray).all(), (point, share, stray)
   assert unchanged([-6, 65]) <= 1 and unchanged([5, 80]) <= 1 and unchanged([0, 120]) <= 1
-  # At eye level only what lies within the far clip and the field is drawn, merged into fewer rectangles than columns.
+  # At eye level only the reached floor within the far clip and the field is looked up: no more columns than lie within the clip.
   tint = looking["laneTint"]
-  assert 0 < tint["rectangles"] < tint["columns"] and tint["farClip"] == environment["maxClip"]
-  # The riser block's top just ahead, walked, is greener than it was.
-  ahead = [numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB")).astype(int)[500:530, 440:520].reshape(-1, 3) for image in (lookingImage, lookingPlainImage)]
-  assert greenShare(ahead[0]) == 1.0 and greenShare(ahead[1]) == 0
+  assert tint["farClip"] == shortClip
+  nodes = playerReach.Nodes(playerReach.Lane(looking["laneState"]["laneFile"]))
+  dry = numpy.flatnonzero(nodes.reached & ~nodes.wet)
+  planX, planY = nodes.plan(dry)
+  eye = numpy.array(lookingPlainResult["eye"])
+  reach = numpy.sqrt((planX - eye[0]) ** 2 + (planY - eye[1]) ** 2 + (nodes.height[dry] - eye[2]) ** 2)
+  assert 0 < tint["columns"] <= int((reach <= shortClip + math.sqrt(2) * cellSize).sum()) < len(dry)
+  # The ground walked ahead, past the riser block's drop, moves toward walk green by the tint's share; the trench's far bank, a wall
+  # face, does not.
+  height = lookingPlainResult["height"]
+  laneView = pixelsOf(Image.open(io.BytesIO(lookingImage))).astype(float)[:height]
+  plainView = pixelsOf(Image.open(io.BytesIO(lookingPlainImage))).astype(float)[:height]
+  share, stray = tintShare(laneView, plainView, *projected(lookingPlainResult, [2, 30, 0]), playerReach.walkLabel)
+  assert (numpy.abs(share - laneDrawing.tintAlpha) <= stray).all(), (share, stray)
+  x, y = projected(lookingPlainResult, [2, trench[1], -1])
+  assert numpy.abs(laneView[y - 1:y + 2, x - 2:x + 3] - plainView[y - 1:y + 2, x - 2:x + 3]).max() <= 1
+  # The scale figure, where the view without her differs, is drawn as without the lane, her feet among the rest: all of her but her
+  # outline, whose pixels blend her with the floor behind as the render smooths her edges.
+  aloneView = pixelsOf(Image.open(io.BytesIO(aloneImage))).astype(float)[:height]
+  figure = numpy.abs(laneView - aloneView).max(axis=2) > 8
+  for _ in range(2):
+    inner = numpy.zeros_like(figure)
+    inner[1:-1, 1:-1] = numpy.logical_and.reduce([figure[1 + down:height - 1 + down, 1 + across:figure.shape[1] - 1 + across] for down in (-1, 0, 1) for across in (-1, 0, 1)])
+    figure = inner
+  assert figure.sum() > 500 and numpy.abs(laneView - plainView).max(axis=2)[figure].max() <= 1
 
 
 def sectionPixel(summary, s, z):
@@ -269,14 +417,18 @@ def sectionPixel(summary, s, z):
 
 def testSectionDrawsTheLane(stageBlenderServer, tmp_path):
   start, end = [0, -35], [0, 125]
+  # Across the corridor once its wall is gone: the ground's edges at both sides are leak edges.
+  acrossStart, acrossEnd = [-15, 20], [15, 20]
 
   async def steps(session):
-    await traceCourse(session)
+    await traceCourse(session, tmp_path)
     laned = await session.expectImage("renderSection", {"start": start, "end": end, "layers": ["ground", "swim", "boundaries", "lane"]})
     plain = await session.expectImage("renderSection", {"start": start, "end": end, "layers": ["ground", "swim", "boundaries"]})
-    return laned, plain
+    await session.expectSuccess("deleteObjects", {"names": ["corridorWall"]})
+    leaking = await session.expectImage("renderSection", {"start": acrossStart, "end": acrossEnd, "layers": ["ground", "lane"]})
+    return laned, plain, leaking
 
-  (lanedImage, laned), (plainImage, plain) = stageBlenderServer.session(steps)
+  (lanedImage, laned), (plainImage, plain), (leakingImage, leaking) = stageBlenderServer.session(steps)
   section = Image.open(io.BytesIO(lanedImage))
   section.save(tmp_path / "courseSection.png")
   assert "laneState" not in plain and Image.open(io.BytesIO(plainImage)).height == planDrawing.sectionSize[1] and section.height > planDrawing.sectionSize[1]
@@ -302,17 +454,33 @@ def testSectionDrawsTheLane(stageBlenderServer, tmp_path):
   highFloors = [mark for mark in cut["unreached"] if abs(mark["z"] - highBank) <= cellHeight]
   assert len(highFloors) == 1 and abs(highFloors[0]["s"][0] - along(pit[1] - 0.5)) <= 1 and abs(highFloors[0]["s"][1] - along(end[1])) <= 1
   assert cut["leaks"] == []
-  # The bars stand on their floors in walk green, where the section without the lane draws none; the pit's water is a blue band.
-  pixels = numpy.asarray(section.convert("RGB")).astype(int)
-  plainPixels = numpy.asarray(Image.open(io.BytesIO(plainImage)).convert("RGB")).astype(int)
-  for y, z in ((0, bar(2 * riser, "walk", along(riserB - 0.5), along(10.5))[0]["z"]), (-20, bar(0, "walk", 0, along(-10.5))[0]["z"])):
-    x, top = (round(value) for value in sectionPixel(laned, along(y), z))
-    above = (slice(top - laneDrawing.sectionBarHeight + 1, top - 1), slice(x - 3, x + 4))
-    assert colorShare(pixels[above].reshape(-1, 3), laneDrawing.labelColors[playerReach.walkLabel]) == 1.0
-    assert greenShare(plainPixels[above].reshape(-1, 3)) == 0
+  # The bars stand just over their floors in walk green, the ground's line showing under them, where the section without the lane draws
+  # none; the pit's water is a blue band from the swim box's one side to its other.
+  pixels = pixelsOf(section)
+  plainPixels = pixelsOf(Image.open(io.BytesIO(plainImage)))
+  for y, ground in ((0, 2 * riser), (-20, 0)):
+    x, floor = (round(value) for value in sectionPixel(laned, along(y), bar(ground, "walk", 0, along(-10.5))[0]["z"] if y < -10 else bar(ground, "walk", along(riserB - 0.5), along(10.5))[0]["z"]))
+    bottom = floor - laneDrawing.sectionBarLift
+    inside = (slice(bottom - laneDrawing.sectionBarHeight + 1, bottom - 1), slice(x - 3, x + 4))
+    assert colorShare(pixels[inside].reshape(-1, 3), laneDrawing.labelColors[playerReach.walkLabel]) == 1.0
+    assert colorShare(plainPixels[inside].reshape(-1, 3), laneDrawing.labelColors[playerReach.walkLabel]) == 0
+    _, line = (round(value) for value in sectionPixel(laned, along(y), ground))
+    assert colorShare(pixels[line, x - 3:x + 4], planDrawing.groundColor) == 1.0
   x, y = (round(value) for value in sectionPixel(laned, along((pit[0] + pit[1]) / 2), (bed + waterTop) / 2))
-  blue = pixels[y, x]
-  assert blue[2] > blue[0] + 40 and blue[2] > blue[1]
+  assert colorShare(pixels[y, x][None], laneDrawing.bandSwatch(laneDrawing.labelColors[playerReach.swimLabel])) == 1.0
+  for s in (along(pit[0]) + 0.5, along(pit[1]) - 0.5):
+    edge, _ = (round(value) for value in sectionPixel(laned, s, 0))
+    assert colorShare(pixels[y, edge][None], laneDrawing.bandSwatch(laneDrawing.labelColors[playerReach.swimLabel])) == 1.0, s
+  # Across the open ground, each edge is a leak, ticked magenta down from the floor where the fall starts, at the ground's edge to a
+  # column.
+  leakCut = json.loads(Path(leaking["laneState"]["laneCut"]).read_text())
+  edges = [acrossEnd[0] - groundEdge, acrossEnd[0] + groundEdge]
+  assert len(leakCut["leaks"]) == 2 and all(abs(mark["z"]) <= cellHeight and abs(mark["s"] - s) <= cellSize for mark, s in zip(leakCut["leaks"], edges)), leakCut["leaks"]
+  leakPixels = pixelsOf(Image.open(io.BytesIO(leakingImage)))
+  for mark in leakCut["leaks"]:
+    x, y = (round(value) for value in sectionPixel(leaking, mark["s"], mark["z"]))
+    tick = leakPixels[y + 2:y + laneDrawing.sectionLeakTick - 1, x].reshape(-1, 3)
+    assert colorShare(tick, laneDrawing.voidColor) == 1.0, mark
 
 
 def testSectionAlongACaveDrawsItsWalkedFloor(stageBlenderServer, tmp_path):
@@ -333,3 +501,51 @@ def testSectionAlongACaveDrawsItsWalkedFloor(stageBlenderServer, tmp_path):
     designed = z0 + (z1 - z0) * (middle - s0) / (s1 - s0)
     holding = [mark for mark in walked if mark["s"][0] <= middle <= mark["s"][1]]
     assert any(abs(mark["z"] - designed) <= hall["breakup"]["amplitude"] + cellHeight for mark in holding), (middle, designed, holding)
+
+
+def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
+  routes = {"tower": {"to": [90, -120, 30]}, "slideFace": {"to": [-60, 50.5, 10]}, "pool": {"to": [-120, 40, 2]}}
+  stops = {
+    "steepRamp": {"to": [110, 36]}, "pastZoneLine": {"to": [-160, 173]}, "pastDiagonal": {"to": [234, -235]}, "floating": {"to": [-255, 105]},
+  }
+
+  async def steps(session):
+    await reachCourse(session, tmp_path)
+    # A platform beyond the walled edge with nothing between: no floor under the way to it.
+    await cube(session, "floatingPlatform", [-260, 100, 0], [-250, 110, 1])
+    # A raised walk up a ramp, a zone line across it leading away: past the line its far end is never reached.
+    await cube(session, "raisedWalk", [-200, 170, 0], [-150, 176, raisedHeight])
+    await rampAlongY(session, "raisedRamp", -195, 170 - raisedHeight / math.tan(math.radians(30)), raisedHeight, 30)
+    await session.expectSuccess("placeZoneLine", {"number": 6, "label": "walk", "minimum": [-170, 168, raisedHeight - 5], "maximum": [-166, 178, raisedHeight + 20], "target": otherZone})
+    found = {}
+    for name, arguments in (routes | stops).items():
+      result, _ = await session.call("traceReach", arguments)
+      found[name] = result
+    return found
+
+  found = stageBlenderServer.session(steps)
+  results = {}
+  for name, result in found.items():
+    assert result.is_error is False, (name, result.content[-1].text)
+    results[name] = json.loads(result.content[-1].text)
+    for index, content in enumerate(result.content[:-1]):
+      Image.open(io.BytesIO(base64.b64decode(content.data))).save(tmp_path / f"{name}-{index}.{'jpg' if content.mime_type == 'image/jpeg' else 'png'}")
+  # A zone line leading home carries players onto the tower, a step off the platform slides them down its steep face, and walking into
+  # the pool enters its water: each a decisive move of its own.
+  for name, move in (("tower", "teleport"), ("slideFace", "slide"), ("pool", "enterWater")):
+    route = results[name]
+    assert route["reached"] is True, name
+    assert move in [leg["move"] for leg in route["legs"]] and [decisive["move"] for decisive in route["decisive"]][-1] == move, (name, route["decisive"])
+  # The steep ramp's face is steeper than walkable, by its own degrees.
+  steep = results["steepRamp"]["separations"]
+  assert [stop["kind"] for stop in steep] == ["steep"] and abs(steep[0]["degrees"] - steepDegrees) <= 0.5, steep
+  # Past the raised walk's zone line, the nearest place is short of the line's box, players in it being gone, and the box separates them.
+  pastLine = results["pastZoneLine"]
+  assert pastLine["nearest"]["at"][0] < -170 and abs(pastLine["nearest"]["at"][2] - raisedHeight) <= cellHeight, pastLine["nearest"]
+  assert [(stop["kind"], stop["zoneLine"]) for stop in pastLine["separations"]] == [("zoneLine", "ATP_6_walk")], pastLine["separations"]
+  # Straight at 45 degrees through the diagonal wall's corners, the trace steps through the wall's own columns and meets it.
+  diagonal = results["pastDiagonal"]
+  assert [(stop["kind"], stop.get("name")) for stop in diagonal["separations"]] == [("boundary", "diagonal")], diagonal["separations"]
+  # Over the walled edge to the floating platform: the wall, then the columns with nothing at all.
+  floating = results["floating"]
+  assert [(stop["kind"], stop.get("name")) for stop in floating["separations"]] == [("boundary", "edgeLowC"), ("noFloor", None)], floating["separations"]

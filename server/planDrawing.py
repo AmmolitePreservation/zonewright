@@ -26,6 +26,8 @@ dashLength = 10
 gapLength = 6
 spotColor = (90, 30, 0)
 gridLabelColor = (40, 40, 40)
+# A label set further than this in pixels from where it was wanted is led back to its mark by a line.
+leaderReach = 18
 entranceMarkLength = 11
 entranceMarkWidth = 14
 entryColor = (15, 15, 15)
@@ -116,24 +118,40 @@ class LabelBoard:
     self.write(position if spot is None else spot, text, color, size, anchor)
 
 
+def ledLabel(board, position, text, color, size, mark):
+  """A label at the spot nearest position clear of the others (its bottom middle there), led back to its mark by a thin line where it
+  lands more than leaderReach from position."""
+  spot = board.clearSpot(position, text, size, "mb") or position
+  board.write(spot, text, color, size, "mb")
+  if math.dist(spot, position) > leaderReach:
+    box = board.textBox(spot, text, size, "mb")
+    board.draw.line([mark, (min(max(mark[0], box[0]), box[2]), min(max(mark[1], box[1]), box[3]))], fill=(*color, 255), width=1)
+
+
 def heightLabel(height):
   """A height as a whole number, never negative zero."""
   return str(round(height))
 
 
 def dashedLine(draw, points, color, width):
+  """A polyline dashed along its whole length, the dashes running on across its points, so a line of many short pieces (an arc, a
+  slope's profile) still reads dashed."""
+  step = dashLength + gapLength
+  phase = 0.0
   for start, end in zip(points[:-1], points[1:]):
     run = math.dist(start, end)
     if run == 0:
       continue
-    step = dashLength + gapLength
     along = 0.0
     while along < run:
-      stop = min(along + dashLength, run)
-      a = (start[0] + (end[0] - start[0]) * along / run, start[1] + (end[1] - start[1]) * along / run)
-      b = (start[0] + (end[0] - start[0]) * stop / run, start[1] + (end[1] - start[1]) * stop / run)
-      draw.line([a, b], fill=color, width=width)
-      along += step
+      inDash = phase < dashLength
+      stop = min(along + ((dashLength - phase) if inDash else (step - phase)), run)
+      if inDash:
+        a = (start[0] + (end[0] - start[0]) * along / run, start[1] + (end[1] - start[1]) * along / run)
+        b = (start[0] + (end[0] - start[0]) * stop / run, start[1] + (end[1] - start[1]) * stop / run)
+        draw.line([a, b], fill=color, width=width)
+      phase = (phase + stop - along) % step
+      along = stop
 
 
 def centroidOf(points):
@@ -348,7 +366,7 @@ def caveLines(size, frame, caves):
         draw.polygon(points, fill=(*strokeColors[stroke["kind"]], 70), outline=(*strokeColors[stroke["kind"]], 255), width=2)
     for side in ("left", "right"):
       draw.line([frame.pixel(point) for point in cave[side]], fill=(*caveColor, 255), width=2)
-    dashedLine(draw, [frame.pixel(point) for point in cave["middle"]], (*caveColor, 150), 1)
+    dashedLine(draw, [frame.pixel(point) for point in cave["middle"]], (*caveColor, 255), 2)
     for meeting in (cave["junction"], cave["opening"]):
       if meeting is not None:
         x, y = frame.pixel(meeting)
@@ -357,10 +375,14 @@ def caveLines(size, frame, caves):
 
 
 def labelCaves(board, frame, caves):
-  """Name each run by the middle of its middle line, and write its floor height at each of its path points."""
+  """Name each run by the middle of its middle line, and tag its floor height at each of its path points, boxed in the caves' purple
+  apart from the ground's spot heights."""
   for cave in caves:
     for spot in cave["floors"]:
-      board.place(frame.pixel(spot["at"]), f"{spot['floor']:g}", caveColor, 11)
+      text, wanted = f"{spot['floor']:g}", frame.pixel(spot["at"])
+      position = board.clearSpot(wanted, text, 11) or wanted
+      board.write(position, text, caveColor, 11)
+      board.draw.rectangle(board.textBox(position, text, 11), outline=(*caveColor, 255), width=1)
     middle = cave["middle"][len(cave["middle"]) // 2]
     board.place(frame.pixel(middle), cave["label"], caveColor, 13)
 
@@ -510,8 +532,8 @@ def drawPlan(basePath, outputPath, center, width, overlays, lane=None):
   """Lay the overlays over the base render, scaled up so lines and labels stay crisp, and save the drawing: water, swim volumes, the
   regions' access fills, the caves' pale floors, the lane's fill (lane, a laneDrawing.LanePlan, when given) over them, boundaries, zone
   lines, the regions' outlines, the caves' runs, then every sheet's area fills, footprint fills and path widths each composited in turn,
-  then every line and mark (the entries' arrows, then the lane's marks last), then the labels: swim volumes' names inside them first,
-  then the lane's, the sketch's, the entries', the plots', the boundaries' (each whose spot lies in the drawing), the zone lines', the
+  then every line and mark (the entries' arrows, then the lane's marks last), then the labels, clear of the lane's marks: swim volumes'
+  names inside them first, then the lane's, the sketch's, the entries', the plots', the boundaries' (each whose spot lies in the drawing), the zone lines', the
   regions' (each where enough of it shows to hold its name), and the caves' (their floor heights and names), each set beside the
   ground's spot heights where it can be, and the spot heights giving way to them where it cannot."""
   with Image.open(basePath) as base:
@@ -565,6 +587,8 @@ def drawPlan(basePath, outputPath, center, width, overlays, lane=None):
     drawScale(board, frame, step)
     for row, (sheet, color) in enumerate(sheets):
       board.write((frame.size[0] - 16, 80 + row * 20), f"sketch {sheet['sheet']}", color, 15, "ra")
+    if lane is not None:
+      lane.claim(board, frame)
     unnamedSwimVolumes = labelSwim(board, frame, overlays["swim"])
     if lane is not None:
       lane.labels(board, frame)
@@ -611,6 +635,9 @@ entranceMarkSection = 10
 crossingMark = 5
 bendColor = (70, 70, 160)
 caveColor = (120, 40, 140)
+swimBoxAlpha = 60
+# A swim volume is named this many pixels under its top, inside it, clear of the floors drawn on its bed.
+swimLabelDrop = 18
 # A run's floor in plan: pale enough that the relief reads through it, opaque enough that a run under it fades.
 caveFloorFill = (246, 242, 248, 150)
 strokeColors = {"level": (30, 150, 60), "pad": (220, 120, 0), "rough": (130, 90, 60)}
@@ -701,12 +728,19 @@ def sectionImage(cuts, size, scale, title=None, lane=None):
   labels = []
 
   def lines(segments, color, lineWidth, dashed=False):
-    """Draw the segments' parts inside the frame, and return those parts."""
+    """Draw the segments' parts inside the frame, a dashed run of segments end to end as one line, and return those parts."""
     kept = [clipped for segment in segments if (clipped := clippedSegment(segment, length, bottom, top)) is not None]
-    for s0, z0, s1, z1 in kept:
-      if dashed:
-        dashedLine(draw, [pixel(s0, z0), pixel(s1, z1)], (*color, 255), lineWidth)
-      else:
+    if dashed:
+      runs = []
+      for s0, z0, s1, z1 in kept:
+        if runs and math.dist(runs[-1][-1], (s0, z0)) < 1e-6:
+          runs[-1].append((s1, z1))
+        else:
+          runs.append([(s0, z0), (s1, z1)])
+      for run in runs:
+        dashedLine(draw, [pixel(s, z) for s, z in run], (*color, 255), lineWidth)
+    else:
+      for s0, z0, s1, z1 in kept:
         draw.line([pixel(s0, z0), pixel(s1, z1)], fill=(*color, 255), width=lineWidth)
     return kept
 
@@ -732,15 +766,18 @@ def sectionImage(cuts, size, scale, title=None, lane=None):
     y = pixel(0, z)[1]
     draw.line([(left, y), (left + length * scale, y)], fill=(205, 205, 205, 255), width=1)
     board.write((left - 6, y), str(z), (60, 60, 60), 13, "rm")
-  for s in range(0, math.floor(length) + 1, step):
-    x = pixel(s, 0)[0]
-    draw.line([(x, pixel(0, top)[1]), (x, pixel(0, bottom)[1])], fill=(218, 218, 218, 255), width=1)
-    board.write((x, pixel(0, bottom)[1] + 12), str(s), (60, 60, 60), 12)
+  base = pixel(0, bottom)[1]
   for bend in cuts["bends"]:
     x = pixel(bend["s"], 0)[0]
-    dashedLine(draw, [(x, pixel(0, top)[1]), (x, pixel(0, bottom)[1])], (*bendColor, 160), 1)
-    draw.polygon([(x, pixel(0, bottom)[1] + 2), (x - 5, pixel(0, bottom)[1] + 10), (x + 5, pixel(0, bottom)[1] + 10)], fill=(*bendColor, 255))
-    board.write((x, pixel(0, bottom)[1] + 22), bend["label"], bendColor, 12)
+    dashedLine(draw, [(x, pixel(0, top)[1]), (x, base)], (*bendColor, 160), 1)
+    draw.polygon([(x, base + 2), (x - 5, base + 10), (x + 5, base + 10)], fill=(*bendColor, 255))
+    board.reserve([x - 6, base + 1, x + 6, base + 11])
+    board.write((x, base + 22), bend["label"], bendColor, 12)
+  for s in range(0, math.floor(length) + 1, step):
+    x = pixel(s, 0)[0]
+    draw.line([(x, pixel(0, top)[1]), (x, base)], fill=(218, 218, 218, 255), width=1)
+    if board.isClear(board.textBox((x, base + 12), str(s), 12)):
+      board.write((x, base + 12), str(s), (60, 60, 60), 12)
   first, last = cuts["points"][0], cuts["points"][-1]
   board.write((left, padY / 2), title or f"[{first[0]:g}, {first[1]:g}]", (0, 0, 0), 14, "lm")
   if title is None:
@@ -751,12 +788,12 @@ def sectionImage(cuts, size, scale, title=None, lane=None):
   for box in cuts["swim"]:
     corners = [pixel(box["s"][0], box["z"][1]), pixel(box["s"][1], box["z"][0])]
     color = swimColors[box["liquid"]]
-    draw.rectangle([corners[0], corners[1]], fill=(*color, 60))
+    draw.rectangle([corners[0], corners[1]], fill=(*color, swimBoxAlpha))
     outline = [corners[0], (corners[1][0], corners[0][1]), corners[1], (corners[0][0], corners[1][1])]
     dashedLine(draw, outline + outline[:1], (*color, 255), 2)
-    labels.append((((corners[0][0] + corners[1][0]) / 2, corners[1][1] - 9), box["name"], color, 11))
+    labels.append((((corners[0][0] + corners[1][0]) / 2, corners[0][1] + swimLabelDrop), box["name"], color, 11))
   if lane is not None:
-    lane.drawBands(draw, pixel, length, bottom, top)
+    lane.drawBands(draw, pixel, length, bottom, top, cuts["swim"])
   for box in cuts["zoneLines"]:
     corners = [pixel(box["s"][0], box["z"][1]), pixel(box["s"][1], box["z"][0])]
     draw.rectangle([corners[0], corners[1]], fill=(*zoneLineColor, 70), outline=(*zoneLineColor, 255), width=2)
@@ -778,10 +815,18 @@ def sectionImage(cuts, size, scale, title=None, lane=None):
         x, y = pixel(mark["s"], mark["z"])
         draw.polygon([(x, y - 3), (x - 6, y - 13), (x + 6, y - 13)], fill=(*caveColor, 255))
         labels.append(((x, y - 15), mark["label"], caveColor, 12))
+  ledLabels = []
   if lane is not None:
-    lane.drawMarks(draw, pixel, length, bottom, top)
+    avoided, ledLabels = lane.drawMarks(draw, pixel, length, bottom, top, cuts["ground"])
+    for box in avoided:
+      board.avoid(box)
   for entry in cuts["boundaries"]:
-    nameAbove(lines(entry["segments"], boundaryColor, boundaryLineWidth), entry["name"], boundaryColor, 12, True)
+    kept = lines(entry["segments"], boundaryColor, boundaryLineWidth)
+    for piece in kept:
+      board.avoid(extent([piece]))
+    if kept:
+      first = min(kept, key=lambda piece: min(piece[0], piece[2]))
+      nameAbove([first], entry["name"], boundaryColor, 12, True)
   for entry in cuts["massing"]:
     kept = lines(entry["segments"], massingColor, 3)
     if kept:
@@ -813,6 +858,8 @@ def sectionImage(cuts, size, scale, title=None, lane=None):
       box = extent(kept)
       board.reserve([box[0] - entranceMarkSection, box[1] - padTick - entranceMarkSection, box[2] + entranceMarkSection, box[3] + padTick])
     nameAbove(kept, entry["name"], plotColor, 12, True)
+  for position, text, color, size, mark in ledLabels:
+    ledLabel(board, position, text, color, size, mark)
   for position, text, color, size in labels:
     board.place(position, text, color, size, "mb")
   return image, {"gridStep": step, "unitsPerPixel": round(1 / scale, 4)}
