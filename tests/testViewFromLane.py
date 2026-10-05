@@ -260,6 +260,7 @@ def testTheTourIsReusedForAnUnchangedLane(stageBlenderServer, tmp_path):
     await cube(session, "crate", [0, -4, 0], [8, 4, 8])
     calls["changed"] = await session.expectImage("viewFromLane", {"count": 1}, "image/jpeg")
     calls["crate"] = await session.expectImage("viewFromLane", {"target": "crate", "count": 1}, "image/jpeg")
+    calls["ground"] = await session.expectImage("viewFromLane", {"target": "ground", "count": 1}, "image/jpeg")
     await cube(session, "floater", [298, -2, 50], [302, 2, 52])
     calls["floaterFogged"] = await session.expectImage("viewFromLane", {"target": "floater", "count": 1}, "image/jpeg")
     await session.expectSuccess("setZoneProperties", {"fogOn": False})
@@ -303,6 +304,11 @@ def testTheTourIsReusedForAnUnchangedLane(stageBlenderServer, tmp_path):
   # The crate stands in the corridor's middle, the floor beside each of its sides narrower than a tour's block: players see every side.
   crate = calls["crate"][1]
   assert crate["sides"] == {"north": 1.0, "east": 1.0, "south": 1.0, "west": 1.0, "top": 0.0, "underside": 0.0} and crate["unseenSectors"] == []
+  # The ground players stand on is judged by points on it, from the eyes on it: seen inside the walls from every bearing, never outside
+  # them; it has only a top.
+  ground = calls["ground"][1]
+  assert ground["eyesTried"] > 0 and ground["unseenSectors"] == [] and 0 < ground["sides"]["top"] < 1
+  assert [ground["sides"][name] for name in ("north", "east", "south", "west", "underside")] == [None] * 5
   # The floater hangs far past the corridor's end: within the fog's end no reached floor lies on any bearing, so no eye is tried; with
   # the fog off, players see it over the end wall.
   fogged, clear = calls["floaterFogged"][1], calls["floaterClear"][1]

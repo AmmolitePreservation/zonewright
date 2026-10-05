@@ -206,9 +206,10 @@ def clearance(opened, steps):
 def eyeCandidates(nodes, description, block):
   """Where eyes may stand, one per block `block` across (in columns from the lane's grid corner) and `block` tall (from height 0) of
   reached walkable floor (label walk) and wetEyes' water: the member with the most open floor round it (clearance, out to half an
-  eyeBlock), then the one nearest the block's middle, then the first. Returns {node, label, swimming, standing, eye} arrays (standing
-  on the lane's floor, the top of its column's span, or a swimmer at the box's top; the eye over it) and the open floor (openFloor). Read
-  a run of whole tiles at a time, which hold whole blocks when a tile is a whole number of blocks across."""
+  eyeBlock), then the one nearest the block's middle, then the first. Returns {node, label, swimming, standing, eye, room, block} arrays
+  (standing on the lane's floor, the top of its column's span, or a swimmer at the box's top; the eye over it; the open floor round it;
+  its block's place in blocks across, up, and in height) and the open floor (openFloor). Read a run of whole tiles at a time, which hold
+  whole blocks when a tile is a whole number of blocks across."""
   lane = nodes.lane
   wet, wetStanding, wetSwimming = wetEyes(nodes, description)
   eligible = nodes.label == playerReach.walkLabel
@@ -687,8 +688,9 @@ def sectorsApart(sector, chosen):
 
 def judge(subject, candidates, plan, placed, front, clear, count):
   """What the sights found (clear, in sights' order over front): each side's seen share, the unseen bearing runs, and up to count eyes
-  that see the subject, the best eye of each sector it is seen from (the most points it sees inside its view, aimed at their middle,
-  then the nearest framingRadii of its radii from its middle), spread round it (each next the sector farthest round from those
+  that see the subject, the best eye of each sector it is seen from (one standing beyond its radius from its middle before one within
+  it, which sees it from inside its extent where no view holds it whole; then the most points it sees inside its view, aimed at their
+  middle; then the nearest framingRadii of its radii from its middle), spread round it (each next the sector farthest round from those
   chosen), in bearing order, each standing where placed (standing points and eyes of the eyes tried) and looking at the middle of the
   points it sees, with the share it sees of the points facing it. Returns (the judgment, which points any eye sees, which points each
   chosen eye sees)."""
@@ -707,14 +709,15 @@ def judge(subject, candidates, plan, placed, front, clear, count):
   framing = framingRadii * subject["radius"]
   for index in numpy.flatnonzero(sees > 0):
     sector = int(plan["sector"][index])
-    rank = (-inView(eyePoints[index], subject["points"][seen[index]]), abs(float(plan["distance"][index]) - framing), int(index))
+    distance = float(plan["distance"][index])
+    rank = (distance < subject["radius"], -inView(eyePoints[index], subject["points"][seen[index]]), abs(distance - framing), int(index))
     if sector not in best or rank < best[sector][0]:
       best[sector] = (rank, int(index))
   chosen = []
   while len(chosen) < min(count, len(best)):
     chosen.append(max(
       (sector for sector in best if sector not in chosen),
-      key=lambda sector: (sectorsApart(sector, chosen), -best[sector][0][0], -best[sector][0][1], -sector),
+      key=lambda sector: (sectorsApart(sector, chosen), -best[sector][0][0], -best[sector][0][1], -best[sector][0][2], -sector),
     ))
   eyes, eyeSeen = [], []
   for number, sector in enumerate(sorted(chosen, key=lambda sector: plan["bearing"][best[sector][1]]), 1):

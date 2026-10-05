@@ -2586,8 +2586,8 @@ async def viewFromLane(context: Context, target: str | list[float] | None = None
   rises more than playerHeight over the eye); the tour is kept beside the
   lane and reused while the lane, the far sight, and its rules hold, so later tours show the same views. With a target (a region's or
   an object's name, or a point [x, y] or [x, y, z] on the lane's floor), up to `count` eyes (at most 6, and 6 unless given) that see it,
-  the best of each bearing sector it is seen from (seeing the most of it inside its view, then standing nearest 2.5 of its radii from
-  its middle, where the view holds it whole), spread round it, each looking at the middle of what it sees of it; what players see of it is tried from up
+  the best of each bearing sector it is seen from (standing beyond its radius from its middle before within it, then seeing the most
+  of it inside its view, then standing nearest 2.5 of its radii from its middle, where the view holds it whole), spread round it, each looking at the middle of what it sees of it; what players see of it is tried from up
   to 32 eyes in each of 16 bearing sectors round it (one candidate per 2-unit block, at distances spread in proportion from the nearest
   out to the far sight), by sights cast against what the zone ships as collision to points on it, each seen only from in front of it:
   96 points spread over an object's surface by area, on the side its face's normal faces most (north +X, east -Y, south -X, west +Y,
