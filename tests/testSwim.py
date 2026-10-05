@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import planDrawing
 from conftest import writePNG
+from playerScale import minimumSwimDepth
 from testModelsAndDressing import freshScene
 from testWater import basin, environment, liquidMaterials, meshOf
 
@@ -62,7 +63,7 @@ def testSwimVolumesStartFromThePoolAndKeepWhatIsDoneByHand(stageBlenderServer, t
   assert undecided["bodies"] == [{"body": "pool", "state": "undecided", "boxes": [], "findings": []}]
   volumes = listed["volumes"]
   assert [volume["name"] for volume in volumes] == built["built"] and all(name.startswith("AWT_pool") for name in built["built"])
-  # Tops at the surface (-5), bottoms 4 under the bed below them (20 down at the middle), every cell of the surface covered.
+  # Tops at the surface (-5), bottoms 4 under the bed below them (20 down at the middle), every cell deep enough to swim in covered.
   assert all(volume["maximum"][2] == -5 for volume in volumes) and min(boxBottoms(volumes).values()) <= -24
   assert built["state"] == "boxed" and built["findings"] == [] and not any(volume["handEdited"] for volume in volumes)
   assert widened in kept and "edited or placed by hand" in kept
@@ -117,6 +118,61 @@ def testBoxesStopAboveACaveUnderTheBedAndDrawInViews(stageBlenderServer, tmp_pat
   assert len(middle) == 1 and middle[0]["z"] == [-21.0, -5.0] and all(box["z"][1] == -5.0 for box in cut["swim"])
   assert Image.open(io.BytesIO(section)).size == (1440, 810)
   assert "marked not swimmable" in refused and state == "notSwimmable"
+
+
+# The water stands this much deeper than players swim in over the floor, and as much shallower over a shelf whose edge lies inside a
+# column of the water's cells (8 across, from 0), so that column keeps a corner over the deeper water.
+depthMargin = 0.5
+shelfTop = 2 * depthMargin
+shelfEdge = 10.0
+section = {"start": [-80, 0], "end": [80, 0], "bottom": -6, "top": 8}
+
+
+def planExtent(volumes):
+  """West, east, south, and north edges of the boxes together."""
+  lows, highs = numpy.array([volume["minimum"][:2] for volume in volumes]), numpy.array([volume["maximum"][:2] for volume in volumes])
+  return float(lows[:, 0].min()), float(highs[:, 0].max()), float(lows[:, 1].min()), float(highs[:, 1].max())
+
+
+def planArea(volumes):
+  return sum((volume["maximum"][0] - volume["minimum"][0]) * (volume["maximum"][1] - volume["minimum"][1]) for volume in volumes)
+
+
+def testBuildSwimVolumesLeavesOutShallowCells(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [160, 80], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "shelf", "size": [80 - shelfEdge, 80, shelfTop], "location": [(80 + shelfEdge) / 2, 0, 0]})
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("floodWater", {"name": "ford", "seed": [-40, 0], "level": minimumSwimDepth + depthMargin, "material": "water"})
+    built = await session.expectSuccess("buildSwimVolumes", {"body": "ford"})
+    volumes = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    drawn, cut = await session.expectImage("renderSection", section)
+    await session.expectSuccess("editWater", {"name": "ford", "level": minimumSwimDepth + 3 * depthMargin})
+    deepened = await session.expectSuccess("buildSwimVolumes", {"body": "ford"})
+    deepVolumes = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    await session.expectSuccess("editWater", {"name": "ford", "level": minimumSwimDepth - depthMargin})
+    waded = await session.expectError("buildSwimVolumes", {"body": "ford"})
+    kept = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    return built, volumes, drawn, cut, deepened, deepVolumes, waded, kept
+
+  built, volumes, drawn, cut, deepened, deepVolumes, waded, kept = stageBlenderServer.session(steps)
+  (tmp_path / "fordSection.png").write_bytes(drawn)
+  # Deepened until the shelf's water is a margin deeper than players swim in, the boxes cover the whole water, none left out.
+  west, east, south, north = planExtent(deepVolumes)
+  assert deepened["shallowCells"] == 0 and planArea(deepVolumes) == (east - west) * (north - south) and east > shelfEdge + 8
+  # A margin shallower over the shelf, its cells are left out and counted, but for the column the shelf's edge crosses, whose west
+  # corners stand over the deeper water; nor are they reported uncovered. The boxes fill the rest, tops at the surface.
+  assert [planExtent(volumes)[index] for index in (0, 2, 3)] == [west, south, north] and planExtent(volumes)[1] == 16
+  assert planArea(volumes) == (16 - west) * (north - south) and built["shallowCells"] == (east - 16) / 8 * (north - south) / 8
+  assert built["findings"] == [] and built["state"] == "boxed" and all(volume["maximum"][2] == minimumSwimDepth + depthMargin for volume in volumes)
+  # In section, the boxes run from the water's west end to the column over the shelf's edge (x 16, 96 along the cut from x -80) and
+  # stop there.
+  assert min(box["s"][0] for box in cut["swim"]) == west + 80 and max(box["s"][1] for box in cut["swim"]) == 96
+  # Shallower than players swim in everywhere, the water is waded, not swum: the rebuild is refused, naming the depth, and leaves the
+  # boxes as they were.
+  assert f"deeper than players swim in ({minimumSwimDepth:g}, playerScale minimumSwimDepth): players wade all" in waded and "editWater swimmable false" in waded
+  assert kept == deepVolumes
 
 
 markOlderNotSwimmable = """
@@ -260,7 +316,8 @@ def testSwimVolumesTintASlopingRiverEvenlyAndNoHigherThanTheyStand(stageBlenderS
   async def steps(session):
     await freshScene(session)
     await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [400, 160], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
-    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[-200, 0, -10], [200, 0, -10]], "radius": 34, "strength": 1, "profile": [[0, 0], [0.55, 0], [1, 10]], "conformRim": False})
+    # A channel deep enough that the river, 10 to 6 over its floor, is swum its whole length.
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[-200, 0, -14], [200, 0, -14]], "radius": 34, "strength": 1, "profile": [[0, 0], [0.55, 0], [1, 14]], "conformRim": False})
     await liquidMaterials(session, tmp_path)
     await session.expectSuccess("runWater", {"name": "river", "path": [[-150, 0, -4], [150, 0, -8]], "reach": 30, "material": "water"})
     await session.expectSuccess("setZoneProperties", environment)

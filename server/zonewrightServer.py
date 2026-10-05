@@ -2712,14 +2712,16 @@ async def caveProfile(profileCuts):
 
 @guardedTool()
 async def buildSwimVolumes(context: Context, body: str, area: dict | None = None, replaceEdited: bool = False):
-  """Starting swim volumes for a pool or river: boxes over its grid where its surface covers water over the bed, grouped while their
-  tops stay within a unit of the surface, bottoms 4 under the deepest bed below them (stopping a unit over any open space under the
-  bed, a cave below the water). They are named for the .zon regions they become (AWT_ water, ALV_ lava) and kept in "swimVolumes" as
-  boxes to look at and adjust by hand (transformObjects, duplicateObjects, deleteObjects; placeSwimVolume adds one). area ({"circle":
-  ...} or {"polygon": ...}) builds only inside it. A rebuild replaces the body's generated boxes there and refuses over boxes edited or
-  placed by hand unless replaceEdited. The result gives the body's state and findings (surface left uncovered, a top away from the
-  surface, ground rising to the top inside a box, a box mostly without the body's water over it): things to look at, never errors,
-  since a box need not match a surface."""
+  """Starting swim volumes for a pool or river: boxes over its grid where its surface covers water deeper than players swim in
+  (playerScale minimumSwimDepth, at the deepest of a cell's middle and corners: the client swims a player only there, and he wades
+  shallower water, so those cells are left out and counted in shallowCells), grouped while their tops stay within a unit of the
+  surface, bottoms 4 under the deepest bed below them (stopping a unit over any open space under the bed, a cave below the water). They
+  are named for the .zon regions they become (AWT_ water, ALV_ lava) and kept in "swimVolumes" as boxes to look at and adjust by hand
+  (transformObjects, duplicateObjects, deleteObjects; placeSwimVolume adds one). area ({"circle": ...} or {"polygon": ...}) builds only
+  inside it. A rebuild replaces the body's generated boxes there and refuses over boxes edited or placed by hand unless replaceEdited;
+  a body with no water deeper than players swim in is refused, changing nothing (mark it not swimmable). The result gives the body's
+  state and findings (water deep enough to swim in left uncovered, a top away from the surface, ground rising to the top inside a box,
+  a box mostly without the body's water over it): things to look at, never errors, since a box need not match a surface."""
   return await callBridge(context, "buildSwimVolumes", {"body": body, "area": area, "replaceEdited": replaceEdited})
 
 
@@ -2941,7 +2943,8 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   """Where players can go in the zone, as the lane: every place reached from where players arrive (the safe point and the stored zoneIn
   and landing entries, each on the lane's node at its footing) by walking (floors within the step of each other, faces no steeper than
   walkable), dropping off ledges, sliding down steeper faces (only down), entering a swim box whose bottom lies within a player's height
-  of the floor, swimming between touching boxes, sinking, climbing out onto floor up to the step over a box's top, and being carried by
+  of the floor where its water over the floor is deeper than players swim in (playerScale minimumSwimDepth; shallower, the bed is
+  walked), swimming between touching boxes, sinking, climbing out onto floor up to the step over a box's top, and being carried by
   a zone line leading back into the zone; a zone line's box takes whoever reaches it, and any move onto floor under the underworld is a
   leak. Computed by the Recast helper over what the zone ships
   (the archive's collision: no reference content, guides, regions, or what players pass through) on a grid of columns (reachGrid), for

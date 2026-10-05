@@ -10,7 +10,7 @@ import eqgFiles
 import playerReach
 import serverMapFiles
 import structurePlots
-from playerScale import playerHeight, steepestWalkableDegrees, stepHeight
+from playerScale import minimumSwimDepth, playerHeight, steepestWalkableDegrees, stepHeight
 from testHousing import decision
 from testWalkRoute import rampArguments
 from testModelsAndDressing import freshScene
@@ -39,6 +39,9 @@ sealedLintel = containmentHeadroom / 2
 floatBottom = playerHeight + 2 * heightMargin
 floatTop = floatBottom + playerHeight / 2
 floatPlatform = floatTop + 2 * heightMargin
+# Swim boxes on the ground stand a margin deeper than players swim in; in one, a shelf leaves the water over it a margin shallower.
+poolTop = minimumSwimDepth + heightMargin
+fordShelf = 2 * heightMargin
 # The diagonal wall runs along x - y = diagonalLine through grid corners between its ends, so it rasterizes as cells meeting only at their
 # corners, which a move between diagonal neighbours slips between.
 diagonalLine = 440.0
@@ -123,9 +126,12 @@ async def reachCourse(session, folder):
     "rotationDegrees": [-steepDegrees, 0, 0],
   })
   # A pool's swim box on the ground, banked by blocks a margin under and over its top plus the step.
-  await session.expectSuccess("placeSwimVolume", {"name": "pool", "liquid": "water", "minimum": [-130, 30, -1], "maximum": [-110, 50, 4]})
-  await cube(session, "bankLow", [-110, 30, 0], [-100, 38, 4 + stepHeight - heightMargin])
-  await cube(session, "bankHigh", [-110, 42, 0], [-100, 50, 4 + stepHeight + heightMargin])
+  await session.expectSuccess("placeSwimVolume", {"name": "pool", "liquid": "water", "minimum": [-130, 30, -1], "maximum": [-110, 50, poolTop]})
+  await cube(session, "bankLow", [-110, 30, 0], [-100, 38, poolTop + stepHeight - heightMargin])
+  await cube(session, "bankHigh", [-110, 42, 0], [-100, 50, poolTop + stepHeight + heightMargin])
+  # One swim box over a ford, a shelf players wade, and the pool beside it.
+  await session.expectSuccess("placeSwimVolume", {"name": "ford", "liquid": "water", "minimum": [-130, -50, -1], "maximum": [-90, -30, poolTop]})
+  await cube(session, "fordShelf", [-130, -50, 0], [-110, -30, fordShelf])
   # A swim box floating higher over the ground than players reach into, beside a platform they walk off.
   await rampAlongY(session, "floatRamp", -180, 35 - floatPlatform, floatPlatform, 45)
   await cube(session, "floatPlatform", [-185, 35, 0], [-175, 45, floatPlatform])
@@ -196,8 +202,10 @@ probes = {
   "slide face": ([-60, 50.5, 10], "slide"),
   "slide foot": ([-60, 56, 0], "walk"),
   "pool": ([-120, 40, 0], "swim"),
-  "low bank": ([-105, 34, 4 + stepHeight - heightMargin], "walk"),
-  "high bank": ([-105, 46, 4 + stepHeight + heightMargin], "unreached"),
+  "low bank": ([-105, 34, poolTop + stepHeight - heightMargin], "walk"),
+  "high bank": ([-105, 46, poolTop + stepHeight + heightMargin], "unreached"),
+  "ford": ([-120, -40, fordShelf], "walk"),
+  "beside the ford": ([-100, -40, 0], "swim"),
   "float platform": ([-180, 40, floatPlatform], "walk"),
   "lake bed": ([-180, -100, -10], "walk"),
   "yard": ([40, -60, 0], "walk"),
@@ -217,7 +225,7 @@ probes = {
   "far strip": ([0, 220, 0], "walk"),
   "deck": ([120, -30, 0], "walk"),
 }
-wetProbes = {"floating box": ([-170, 40, (floatBottom + floatTop) / 2], "swim")}
+wetProbes = {"floating box": ([-170, 40, (floatBottom + floatTop) / 2], "swim"), "water beside the ford": ([-100, -40, poolTop / 2], "swim")}
 
 
 def nodeAt(nodes, point, wet=False):
@@ -271,6 +279,11 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   moves = lane.read("move")
   assert playerReach.moveNames[moves[floating]] in ("drop", "swim")
   assert playerReach.moveNames[moves[tower]] == "teleport"
+  # The ford's water is too shallow to swim in: it holds no wet node and its shelf is walked onto, while the box's deeper water beside it
+  # is swum.
+  assert nodeAt(nodes, [-120, -40, (fordShelf + poolTop) / 2], wet=True) is None
+  assert playerReach.moveNames[moves[nodes.floorNodeAt(probes["ford"][0])]] == "walk"
+  assert playerReach.moveNames[moves[nodeAt(nodes, wetProbes["water beside the ford"][0], wet=True)]] in ("enterWater", "drop", "swim")
   # The hermit's block is its own lane, started from its entry; the stranded entry is a seed the safe point never reaches.
   origins = lane.read("originSeed")
   seedNames = [entry["name"] for entry in reached["entries"]]
@@ -284,11 +297,11 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
     {"name": "ATP_4_home", "reached": True, "teleport": {"landing": [90.0, -120.0, 30.0], "followed": True}},
     {"name": "ATP_5_catch", "reached": True},
   ]
-  assert reached["swimBoxes"] == [{"name": "AWT_floating", "reached": True}, {"name": "AWT_pool", "reached": True}]
+  assert reached["swimBoxes"] == [{"name": "AWT_floating", "reached": True}, {"name": "AWT_ford", "reached": True}, {"name": "AWT_pool", "reached": True}]
   assert [(plot["name"], plot["reached"]) for plot in reached["plotEntrances"]] == [("1 Open Street", True), ("2 Closed Street", False)]
   assert reached["reachGrid"] == playerReach.reachGrid
-  assert set(reached["constants"]) == {"playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight", "smallestPlayerHeight"}
-  assert reached["constants"]["stepHeight"]["value"] == stepHeight
+  assert set(reached["constants"]) == {"playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight", "minimumSwimDepth", "smallestPlayerHeight"}
+  assert reached["constants"]["stepHeight"]["value"] == stepHeight and reached["constants"]["minimumSwimDepth"]["value"] == minimumSwimDepth
   assert any(entry.startswith("doors: taken as open") for entry in reached["notModeled"])
   assert any("2 x cellSize" in limit for limit in reached["limits"])
   problems = [(problem["kind"], problem.get("region")) for problem in reached["problems"]]
@@ -327,8 +340,10 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   blocks = sorted([((-105, 46), (-110, -100, 42, 50)), ((40, 70), (35, 45, 65, 75)), ((110, steepTop + 5), (105, 115, steepTop, steepTop + 10))])
   for (found, area), (expected, (lowX, highX, lowY, highY)) in zip(unreachedFloors, blocks):
     assert near(found, expected) and area == columnsOver(lowX, highX) * columnsOver(lowY, highY) * cellSize ** 2
-  # Floor too small to be a place is counted apart: a cell at each end of the diagonal wall, where it joins the edge walls.
-  assert reached["moreProblems"] == {"unreachedPlayFloorSlivers": {"count": 2, "area": 2 * cellSize ** 2, "under": (2 * cellSize) ** 2}}
+  # Floor too small to be a place is counted apart: the cell where the diagonal wall joins the east edge wall, whose top reads as
+  # walkable. Where it joins the south wall, the cell's top reads so or not by the order the walls' triangles rasterize in, which a block
+  # added anywhere in the course changes.
+  assert reached["moreProblems"] == {"unreachedPlayFloorSlivers": {"count": 1, "area": cellSize ** 2, "under": (2 * cellSize) ** 2}}
   assert byKind["undecidedWater"][0]["body"] == "lake" and near(byKind["undecidedWater"][0]["center"], [-180, -100])
   # Everything reached is labelled; the area of each label sums to the reached nodes.
   area = cellSize * cellSize
@@ -546,7 +561,6 @@ def testLaneKeyFollowsSwimBoxesZoneLinesAndTheUnderworld(stageBlenderServer):
   assert [status for status, _ in lanes] == ["computed", "reused", "computed", "computed", "computed", "computed"]
   files = [path for _, path in lanes]
   assert files[0] == files[1] and len(set(files)) == 5
-
 
 
 def testLaneWalksABridgeDeckOverTheGorgeItSpans(stageBlenderServer, tmp_path):

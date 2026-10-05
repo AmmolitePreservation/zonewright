@@ -777,7 +777,7 @@ def testFallsAndRiversRunTheirTexturesAsTheClientsDoAndExportSo(stageBlenderServ
     twice = await cornersOf(session, "fall")
     none = await session.expectError("editWater", {"name": "fall", "acrossRepeats": 0})
     await session.expectSuccess("editWater", {"name": "fall", "acrossRepeats": 1})
-    ribbon = await session.expectSuccess("runWater", {"name": "ribbon", "path": [[-60, 118, 37], [-60, 64, 37]], "reach": 12, "material": "falls"})
+    ribbon = await session.expectSuccess("runWater", {"name": "ribbon", "path": [[-60, 118, 39], [-60, 64, 39]], "reach": 12, "material": "falls"})
     ribbonBoxes = await session.expectSuccess("buildSwimVolumes", {"body": "ribbon"})
     # A strand 8 wide, its texture spanning it once and repeating every 64 down its drop: a texel 8 times longer down it than across.
     await session.expectSuccess("pourWaterfall", {"name": "strand", "lip": [[60, 0, 41], [68, 0, 41]], "bottom": -8, "material": "falls"})
@@ -800,7 +800,8 @@ def testFallsAndRiversRunTheirTexturesAsTheClientsDoAndExportSo(stageBlenderServ
   # The river runs u across (rightward looking downstream, here -x) and its v falls downstream a repeat every 20, so the client's v,
   # once export counts it down from the texture's top, rises downstream.
   assert numpy.allclose(river[:, 4], -(118 - river[:, 1]) / 20) and numpy.allclose(river[:, 3], -river[:, 0] / 20)
-  # A river may be a waterfall ribbon over its bed, as Crescent Reach's are; players swim in it as water.
+  # A river may be a waterfall ribbon over its bed, as Crescent Reach's are; where it stands deep enough (5 over the channel's floor at
+  # 34), players swim in it as water.
   assert ribbon["material"] == "falls" and ribbonBoxes["built"] and all(name.startswith("AWT_") for name in ribbonBoxes["built"])
   archive = eqArchive.EQArchive(archivePath)
   # Exported, the client's v counts down the drop and downstream, as most client falls and Brell's Rest's and Beasts' Domain's rivers

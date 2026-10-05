@@ -8,6 +8,7 @@ steepestWalkableDegrees = math.degrees(math.acos(walkableNormalZ))
 stepHeight = 4.5
 eyeHeight = 5.5
 swimEyeAboveSurface = 1.0
+minimumSwimDepth = 3.75
 
 rof2Walk = "the RoF2 client on 2026-10-04, a human male of size 6 (avatarHeight 3.75) walking straight at each site without jumping"
 sources = {
@@ -35,5 +36,11 @@ sources = {
   "swimEyeAboveSurface": (
     f"unmeasured: a unit over the water keeps a swimming view's eye clear of the surface; in {rof2Walk}, a swimming player's"
     " origin floated 0.10 under the swim box's top, which does not give the design player's eye"
+  ),
+  "minimumSwimDepth": (
+    f"measured: {rof2Walk}: walking into the water of the Freeport Sewers and High Pass Hold he walked the bed where the swim box's top"
+    " stood 3.74 over it and swam where it stood 4.59, so swimming starts at a depth in (3.74, 4.59]; the client swims a player only"
+    " where the water over the floor is deeper than his avatarHeight, so the depth is his, 3.75, the shallowest the bracket allows; one"
+    " character size only, so a smaller race may swim shallower water"
   ),
 }

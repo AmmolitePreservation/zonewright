@@ -72,7 +72,7 @@ struct Seed {
 struct ReachInput {
   float cellSize, cellHeight;
   int tileCells;
-  float stepHeight, playerHeight, containmentHeadroom, walkableNormalZ;
+  float stepHeight, playerHeight, containmentHeadroom, walkableNormalZ, minimumSwimDepth;
   float footingAbove, footingBelow;
   bool hasUnderworld;
   float underworld;
@@ -96,6 +96,7 @@ ReachInput readReachInput(const std::string& path) {
   input.playerHeight = reader.readFloat();
   input.containmentHeadroom = reader.readFloat();
   input.walkableNormalZ = reader.readFloat();
+  input.minimumSwimDepth = reader.readFloat();
   input.footingAbove = reader.readFloat();
   input.footingBelow = reader.readFloat();
   input.hasUnderworld = reader.readUInt32() != 0;
@@ -103,6 +104,9 @@ ReachInput readReachInput(const std::string& path) {
   input.threads = reader.readUInt32();
   if (!(input.cellSize > 0) || !(input.cellHeight > 0) || input.tileCells < 8) {
     throw HelperError("the reach grid needs a positive cell size and height and tiles of at least 8 cells");
+  }
+  if (!(input.minimumSwimDepth > 0)) {
+    throw HelperError("the reach input's minimum swim depth is " + jsonFloat(input.minimumSwimDepth) + ", not a positive depth");
   }
   if (input.threads == 0) {
     throw HelperError("the reach input asks for 0 threads");
@@ -260,7 +264,7 @@ struct Model {
   const ReachInput& input;
   Grid grid;
   int climb, playerCells, headroomCells;
-  float underworldCells;
+  float underworldCells, swimDepthCells;
   std::vector<GridBox> swimBoxes, lineBoxes;
   std::vector<int> swimTops;
   std::vector<std::vector<uint8_t>> touching;
@@ -274,6 +278,13 @@ struct Model {
 
   uint32_t nodeCount() const {
     return static_cast<uint32_t>(low.size());
+  }
+
+  // Whether a player on a floor swims in a box over it: the client swims him only where the water over the floor is deeper than
+  // minimumSwimDepth. A floor's top lies anywhere in the cell under its height, so the water is taken from that cell's bottom: the lane
+  // errs toward swimming, which only adds moves. Over no floor the water is bottomless.
+  bool swum(int floor, const GridBox& box) const {
+    return floor == noFloor || box.highY - static_cast<float>(floor - 1) > swimDepthCells;
   }
 
   bool walkable(uint32_t node) const {
@@ -454,7 +465,7 @@ TileNodes buildTile(const Model& model, const rcChunkyTriMesh& chunks, const std
           int holding = -1;
           for (const int index : boxesHere) {
             const GridBox& box = model.swimBoxes[index];
-            if (box.holdsColumn(columnX, columnZ) && point >= box.lowY && point <= box.highY) {
+            if (box.holdsColumn(columnX, columnZ) && point >= box.lowY && point <= box.highY && model.swum(floor, box)) {
               holding = index;
               break;
             }
@@ -475,7 +486,7 @@ TileNodes buildTile(const Model& model, const rcChunkyTriMesh& chunks, const std
         }
         for (const int index : boxesHere) {
           const GridBox& box = model.swimBoxes[index];
-          if (!box.holdsColumn(columnX, columnZ)) {
+          if (!box.holdsColumn(columnX, columnZ) || !model.swum(floor, box)) {
             continue;
           }
           const int wetLow = std::max(floor, static_cast<int>(std::floor(box.lowY)));
@@ -1308,6 +1319,7 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
   model.playerCells = static_cast<int>(std::ceil(input.playerHeight / input.cellHeight));
   model.headroomCells = std::max(1, static_cast<int>(std::ceil(input.containmentHeadroom / input.cellHeight - 1e-4f)));
   model.underworldCells = grid.cellsAt(input.underworld);
+  model.swimDepthCells = input.minimumSwimDepth / input.cellHeight;
   for (const Box& box : input.swimBoxes) {
     model.swimBoxes.push_back(gridBox(grid, box));
     model.swimTops.push_back(static_cast<int>(std::ceil(model.swimBoxes.back().highY)));

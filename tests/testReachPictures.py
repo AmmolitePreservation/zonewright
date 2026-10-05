@@ -63,12 +63,13 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
     framed = await session.expectImage("mapReach", {"center": [60, 40], "width": 240, "problemViews": False})
     west = await session.expectImage("mapReach", {"center": [-110, 60], "width": 240, "problemViews": False})
     edge = await session.expectImage("mapReach", {"center": [-215, 20], "width": 160, "problemViews": False})
+    ford = await session.expectImage("mapReach", {"center": [-110, -40], "width": 100, "problemViews": False})
     leveled = await session.expectImage("mapReach", {"center": [160, 40], "width": 80, "level": {"bottom": 9, "top": 11}, "problemViews": False})
     sketched = await session.expectImage("renderSketch", {"center": [60, 40], "width": 240, "layers": ["regions", "lane"]})
     plain = await session.expectImage("renderSketch", {"center": [60, 40], "width": 240, "layers": ["regions"]})
-    return whole, framed, west, edge, leveled, sketched, plain
+    return whole, framed, west, edge, leveled, sketched, plain, ford
 
-  whole, framed, west, edge, leveled, sketched, plain = stageBlenderServer.session(steps)
+  whole, framed, west, edge, leveled, sketched, plain, ford = stageBlenderServer.session(steps)
   assert whole.is_error is False, whole.content[0].text
   assert [content.type for content in whole.content] == ["image", "image", "text"]
   assert [content.mime_type for content in whole.content[:2]] == ["image/png", "image/jpeg"]
@@ -118,6 +119,13 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   edgePlan.save(tmp_path / "courseStationsEdge.png")
   assert colorShare(pixelsAround(edgePlan, edgeReport["plan"], [-240.5, -30], 2), laneDrawing.voidColor) > 0.2
   assert orangeShare(pixelsAround(edgePlan, edgeReport["plan"], [-241.5, 66], 2)) > 0.2
+  # In one swim box, the ford's shelf, under water shallower than players swim in, is walked green and the deeper water beside it is
+  # swum blue.
+  fordImage, fordReport = ford
+  fordPlan = Image.open(io.BytesIO(fordImage))
+  fordPlan.save(tmp_path / "courseFord.png")
+  assert greenShare(pixelsAround(fordPlan, fordReport["plan"], [-120, -40])) > 0.9 and blueShare(pixelsAround(fordPlan, fordReport["plan"], [-120, -40])) == 0
+  assert blueShare(pixelsAround(fordPlan, fordReport["plan"], [-100, -40])) > 0.9
 
   # Kept to the band from 9 to 11, the plan draws the ledge's top and not the ground beside it.
   levelImage, levelReport = leveled

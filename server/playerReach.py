@@ -64,10 +64,6 @@ notModeled = [
   "jumps", "levitation", "the camera",
   "doors: taken as open, though the RoF2 client collides with a door in its closed position, so a closed door can block a way the lane shows",
   "NPCs", "players wider than a point (playerRadius is unmeasured): a gap narrower than a player reads as passable",
-  "swimming depth: in the RoF2 walk the client swam a player only where the water over the floor was deeper than his avatarHeight (3.75"
-  " for the walked human, playerScale.sources) and then floated him 0.10 under the box's top; avatarHeight is not in playerScale, so the"
-  " lane swims in a box at any depth: shallow water's floor is labelled swim, and a swimmer there climbs out onto floor up to the box's"
-  " top + stepHeight where a wading player climbs stepHeight over the floor, which errs toward reach",
 ]
 
 
@@ -76,18 +72,21 @@ def smallestPlayerHeight():
 
 
 def movement():
-  """The movement the lane floods by, from playerScale: the step, the design player's height, the walkable normal z, and the
-  containment headroom (smallestPlayerHeight, or one cell height while it is unmeasured)."""
+  """The movement the lane floods by, from playerScale: the step, the design player's height, the walkable normal z, the depth of water
+  players swim in, and the containment headroom (smallestPlayerHeight, or one cell height while it is unmeasured)."""
   smallest = smallestPlayerHeight()
   return {
     "stepHeight": playerScale.stepHeight, "playerHeight": playerScale.playerHeight, "walkableNormalZ": playerScale.walkableNormalZ,
-    "containmentHeadroom": reachGrid["cellHeight"] if smallest is None else smallest,
+    "minimumSwimDepth": playerScale.minimumSwimDepth, "containmentHeadroom": reachGrid["cellHeight"] if smallest is None else smallest,
   }
 
 
 def constantsReport():
   """Each constant the lane used, with its value and its playerScale source."""
-  used = {name: {"value": getattr(playerScale, name), "source": playerScale.sources[name]} for name in ("playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight")}
+  used = {
+    name: {"value": getattr(playerScale, name), "source": playerScale.sources[name]}
+    for name in ("playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight", "minimumSwimDepth")
+  }
   smallest = smallestPlayerHeight()
   used["smallestPlayerHeight"] = (
     {"value": None, "source": f"absent: containment floods with one cell height ({reachGrid['cellHeight']:g}) of headroom, which only adds reach"}
@@ -106,6 +105,12 @@ def limits(lane, underworld, boundariesKnown):
     f" the design player with playerHeight {playerScale.playerHeight:g}; what only the smaller fits is labelled squeeze",
     f"players enter a swim box whose bottom lies within playerHeight ({playerScale.playerHeight:g}) of the floor, so a box floating higher is"
     " entered only from above: an assumption, as a taller race may reach a box set higher",
+    f"players swim only where a box's water stands deeper than minimumSwimDepth ({playerScale.minimumSwimDepth:g}) over the floor, and"
+    " wade the bed where it is shallower, as the walked human did; a smaller race may swim shallower water and climb out of it higher"
+    " than a wader steps, so there the lane errs away from reach; a column's floor is taken from the bottom of the cell its top lies in,"
+    " which errs toward swimming by up to one cell height",
+    f"a swimmer climbs out onto walkable floor up to the box's top + stepHeight ({playerScale.stepHeight:g}): an assumption erring toward"
+    " reach, as in the RoF2 walk a swimmer floated with his origin 0.10 under the box's top and his feet his avatarHeight under that",
     f"swimming between columns takes {headroom:g} of open overlap, an assumption until the bot measures it",
     "a zone line takes a player whose floor point (the column's center, one cell height over the floor) lies in its box: the client's own"
     " test point is unmeasured, so the lane errs toward reach continuing",
