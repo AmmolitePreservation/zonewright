@@ -24,6 +24,7 @@ import bridgeSwim
 import skyDrawing
 from buildTolerances import groundSearchAbove, groundSearchDistance
 from playerScale import eyeHeight, stepHeight, swimEyeAboveSurface
+from previewFrame import renderHeight, renderWidth, verticalFieldOfViewDegrees
 
 requiredZoneKeys = (
   "ambientColor", "specialAmbientColor", "bounceColor", "sunColor", "sunAzimuthDegrees", "sunElevationDegrees", "fogColor", "fogStart", "fogEnd",
@@ -32,11 +33,7 @@ requiredZoneKeys = (
 # The client turns its sky off when the fog it draws ends nearer than this (eqgame 0x48ae80).
 skyFogEndMinimum = 101.0
 previewName = "zonewrightPreview"
-renderWidth = 960
-renderHeight = 540
 renderSamples = 4
-# Measured by aligning renders to Plane of Knowledge and Eastern Wastes screenshots (16:9 crops of the live client's first-person view).
-verticalFieldOfViewDegrees = 46.5
 minimumFieldOfViewDegrees = 10.0
 maximumFieldOfViewDegrees = 120.0
 maximumFrameSide = 1920

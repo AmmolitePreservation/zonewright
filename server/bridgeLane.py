@@ -1,8 +1,8 @@
 """What the player's lane is computed from, collected in the open scene: the collision the zone ships (bridgeExport.collisionTriangles),
 the swim boxes and zone lines as they stand with each line's target, every entry stored and derived (bridgeEntries) with the footing
 under each place players arrive, the regions with their access, the underworld, and the pools and rivers whose swimming is undecided;
-and which sights to a problem pass clear of that collision. The lane itself is computed by the server (playerReach), never here. Runs
-under Blender's Python."""
+which sights pass clear of that collision, the ground under a lane view's eyes, and points on an object's surface for a lane view to
+look at. The lane itself is computed by the server (playerReach), never here. Runs under Blender's Python."""
 import json
 
 import bpy
@@ -16,6 +16,7 @@ import bridgeEntries
 import bridgeExport
 import bridgeMeshAccess
 import bridgeSwim
+import bridgeViews
 
 seedKinds = ("safePoint", "zoneIn", "landing")
 
@@ -95,7 +96,51 @@ def clearSights(sights, short):
   return {"clear": clear}
 
 
+def footings(points):
+  """The ground on what the zone ships under each [x, y, z] (zone axes), found as standAt finds it: its height and the z of its face's
+  normal, or None where there is none."""
+  ground = bridgeEntries.ShippedGround(bridgeExport.collisionTriangles())
+  found = [footingRecord(ground, point) for point in points]
+  return {"footings": [None if footing is None else {"height": footing["point"][2], "normalZ": footing["normalZ"]} for footing in found]}
+
+
+# The R2 sequence's steps: points placed by it spread evenly over a triangle without a random generator, so an object always gives the
+# same points.
+spreadSteps = (0.7548776662466927, 0.5698402909980532)
+
+
+def surfacePoints(name, count):
+  """count points spread over an object's surface by area (its evaluated meshes, a collection instance's parts as placed), each with its
+  face's normal as the mesh winds it, and the surface's bounds, in zone axes: {points, normals, minimum, maximum}."""
+  positions, triangles = bridgeMeshAccess.partTriangles(bridgeMeshAccess.objectParts(bridgeMeshAccess.requireObject(name)))
+  corners = positions[triangles]
+  crossed = numpy.cross(corners[:, 1] - corners[:, 0], corners[:, 2] - corners[:, 0])
+  areas = numpy.linalg.norm(crossed, axis=1) / 2
+  if not len(areas) or areas.sum() <= 0:
+    raise ValueError(f"'{name}' has no faces to look at")
+  chosen = numpy.minimum(numpy.searchsorted(numpy.cumsum(areas) / areas.sum(), (numpy.arange(count) + 0.5) / count), len(areas) - 1)
+  across = numpy.arange(1, count + 1)[:, None] * numpy.array(spreadSteps) % 1.0
+  folded = across.sum(axis=1) > 1
+  across[folded] = 1 - across[folded]
+  start = corners[chosen, 0]
+  points = start + across[:, :1] * (corners[chosen, 1] - start) + across[:, 1:] * (corners[chosen, 2] - start)
+  normals = crossed[chosen] / (2 * areas[chosen])[:, None]
+  return {
+    "points": points.tolist(), "normals": normals.tolist(), "minimum": corners.reshape(-1, 3).min(axis=0).tolist(),
+    "maximum": corners.reshape(-1, 3).max(axis=0).tolist(),
+  }
+
+
+def requireViewZone(sky):
+  """Refuse, naming them, the zone properties a client-shaded view needs that the zone and its sky (its state, as a view takes it) lack."""
+  bridgeViews.requireZone(bridgeCommands.previewZone(sky))
+  return {}
+
+
 commands = {
   "laneInput": (laneInput, False),
   "clearSights": (clearSights, False),
+  "footings": (footings, False),
+  "surfacePoints": (surfacePoints, False),
+  "requireViewZone": (requireViewZone, False),
 }

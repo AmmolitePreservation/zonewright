@@ -218,6 +218,9 @@ class LanePlan:
   def problemsIn(self, frame):
     return [problem for problem in self.analysis["problems"] if self.inFrame(frame, problem["center"])]
 
+  def reserveMarks(self, board, frame):
+    """Reserve on the board the marks the grid's labels must not cover; the lane's own give way to them."""
+
   def labels(self, board, frame):
     """Name what the lane marks: every ring, seed, and plot mark is kept clear of labels where it can be, then each problem's number is
     set by its ring (led back to it by a line when it lands far off), each seed's name beside it, and each region's name just above its
@@ -359,6 +362,9 @@ def drawLegendItem(draw, left, top, item):
     draw.line([(left + 2, bottom - 2), (right - 2, top + 2)], fill=color, width=3)
   elif kind == "ring":
     draw.ellipse([left + 1, top + 1, right - 1, bottom - 1], outline=color, width=3)
+  elif kind in ("dot", "hollowDot"):
+    center = (left + right) / 2
+    draw.ellipse([center - 4, middle - 4, center + 4, middle + 4], fill=color if kind == "dot" else (255, 255, 255), outline=color, width=1)
   elif kind != "text":
     raise ValueError(f"No legend mark '{kind}'")
   draw.text((left if kind == "text" else right + 8, top), text, fill=legendTextColor, font=planDrawing.fontOf(legendTextSize))

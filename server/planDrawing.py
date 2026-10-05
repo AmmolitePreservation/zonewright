@@ -192,13 +192,15 @@ def scalePanel(frame, step):
 
 
 def labelGrid(board, frame):
-  """Each grid line's coordinate at the drawing's left and top edges, leaving out any the scale bar's panel (drawScale with the grid's
-  step) covers, whichever is drawn first."""
+  """Each grid line's coordinate, named by its axis as the legend names it (X running up the drawing, Y across it), at the drawing's
+  left and top edges, leaving out any the scale bar's panel (drawScale with the grid's step), whichever is drawn first, or a mark
+  reserved before it covers."""
   step, xs, ys = gridLines(frame)
   _, _, panel = scalePanel(frame, step)
-  labels = [((4, frame.pixel((x, 0))[1] - 3), str(x), "ld") for x in xs] + [((frame.pixel((0, y))[0] + 3, 4), str(y), "la") for y in ys]
+  labels = [((4, frame.pixel((x, 0))[1] - 3), f"X {x}", "ld") for x in xs] + [((frame.pixel((0, y))[0] + 3, 4), f"Y {y}", "la") for y in ys]
   for position, text, anchor in labels:
-    if not boxesOverlap(board.textBox(position, text, 13, anchor), panel):
+    box = board.textBox(position, text, 13, anchor)
+    if not boxesOverlap(box, panel) and board.isClear(box, inside=False, avoiding=False):
       board.write(position, text, gridLabelColor, 13, anchor)
 
 
@@ -544,6 +546,8 @@ def drawPlan(basePath, outputPath, center, width, overlays, lane=None):
     for dot, number, _, _ in spots:
       board.avoid(dot)
       board.avoid(number)
+    if lane is not None:
+      lane.reserveMarks(board, frame)
     labelGrid(board, frame)
     drawScale(board, frame, step)
     for row, (sheet, color) in enumerate(sheets):

@@ -490,7 +490,11 @@ def testGridLabelsLeaveTheScaleBarClear():
     placedBefore = len(board.taken)
     planDrawing.labelGrid(board, frame)
     gridLabels = board.taken[placedBefore:]
-    covered = board.textBox((4, 367), "-150", 13, "ld")
+    covered = board.textBox((4, 367), "X -150", 13, "ld")
     assert planDrawing.boxesOverlap(covered, panel) and covered not in gridLabels
-    assert len(gridLabels) == len(xs) + len(ys) - 1
+    # The top left corner's labels of both axes (X 200 and Y 200) would overlap: the second gives way to the first.
+    corner = board.textBox((3, 4), "Y 200", 13, "la")
+    assert planDrawing.boxesOverlap(corner, board.textBox((4, 17), "X 200", 13, "ld")) and corner not in gridLabels
+    assert len(gridLabels) == len(xs) + len(ys) - 2
     assert not any(planDrawing.boxesOverlap(label, panel) for label in gridLabels)
+    assert not any(planDrawing.boxesOverlap(first, second) for index, first in enumerate(gridLabels) for second in gridLabels[index + 1:])
