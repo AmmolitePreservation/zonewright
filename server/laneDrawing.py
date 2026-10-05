@@ -56,6 +56,19 @@ legendTextColor = (20, 20, 20)
 reliefLow, reliefHigh = (70, 66, 60), (200, 196, 186)
 chunkNodes = 1 << 22
 trapFlag, layeredFlag, unreachedFlag, squeezeLayeredFlag = 1, 2, 4, 8
+ribbonWidth = 7
+ribbonCasing = (15, 15, 15)
+ribbonCasingWidth = 12
+teleportColor = (15, 15, 15)
+decisiveRadius = 10
+decisiveFill = (255, 255, 255)
+decisiveNumberSize = 13
+targetColor = (220, 20, 20)
+targetRadius = 9
+sectionBarHeight = 6
+sectionBandAlpha = 110
+sectionUnreachedColor = (110, 110, 110)
+sectionLeakTick = 16
 
 
 class LanePlan:
@@ -276,6 +289,118 @@ class LanePlan:
     return items + [("text", legendTextColor, "plan: +X (north) up, +Y left")]
 
 
+class RoutePlan(LanePlan):
+  """A route over the lane (LanePlan as another plan's layer): the lane's fill and marks, then the route as a ribbon through its nodes'
+  columns in its legs' label colors over a dark casing (a teleport dashed from its zone line to its landing), each decisive leg ringed
+  white where it starts and numbered, and the traced point ringed red. points are the route's nodes (playerReach.routeLegs), legs its
+  legs, decisive the (number, leg index) pairs, target the traced point."""
+
+  def __init__(self, analysis, description, points, legs, decisive, target):
+    super().__init__(analysis, description, None, False)
+    self.points, self.legs, self.decisive, self.target = points, legs, decisive, target
+
+  def strokes(self, draw, frame):
+    super().strokes(draw, frame)
+    pixels = [frame.pixel(point) for point in self.points]
+    walked = [leg for leg in self.legs if leg["move"] != "teleport"]
+    for leg in walked:
+      draw.line(pixels[leg["first"]:leg["last"] + 1], fill=(*ribbonCasing, 255), width=ribbonCasingWidth, joint="curve")
+    for leg in walked:
+      color = labelColors[playerReach.labelNames.index(leg["label"])]
+      draw.line(pixels[leg["first"]:leg["last"] + 1], fill=(*color, 255), width=ribbonWidth, joint="curve")
+    for leg in self.legs:
+      if leg["move"] == "teleport":
+        planDrawing.dashedLine(draw, [pixels[leg["first"]], pixels[leg["last"]]], (*teleportColor, 255), 3)
+    x, y = frame.pixel(self.target)
+    draw.ellipse([x - targetRadius, y - targetRadius, x + targetRadius, y + targetRadius], outline=(*targetColor, 255), width=4)
+    for _, index in self.decisive:
+      x, y = pixels[self.legs[index]["first"]]
+      draw.ellipse([x - decisiveRadius, y - decisiveRadius, x + decisiveRadius, y + decisiveRadius], fill=(*decisiveFill, 255), outline=(*ribbonCasing, 255), width=2)
+
+  def labels(self, board, frame):
+    for _, index in self.decisive:
+      x, y = frame.pixel(self.points[self.legs[index]["first"]])
+      board.reserve([x - decisiveRadius, y - decisiveRadius, x + decisiveRadius, y + decisiveRadius])
+    x, y = frame.pixel(self.target)
+    board.avoid([x - targetRadius - 2, y - targetRadius - 2, x + targetRadius + 2, y + targetRadius + 2])
+    super().labels(board, frame)
+    for number, index in self.decisive:
+      x, y = frame.pixel(self.points[self.legs[index]["first"]])
+      board.draw.text((x, y), str(number), fill=(*ribbonCasing, 255), font=planDrawing.fontOf(decisiveNumberSize), anchor="mm")
+
+  def legend(self, frame=None):
+    return [
+      ("ribbon", labelColors[playerReach.walkLabel], "the route, in its labels' colors"), ("dashed", teleportColor, "carried by a zone line"),
+      ("numbered", ribbonCasing, "a decisive move, numbered"), ("target", targetColor, "the traced point"),
+    ] + super().legend(frame)
+
+
+class SectionLane:
+  """A lane cut (playerReach.laneCut) drawn into a section: reached water as bands from its bottom to its top in its label's color,
+  reached floors as bars standing on their heights in their labels' colors, walkable floor never reached dashed grey, and leak edges as
+  magenta ticks down from the floor a fall starts from; each kept to the section's frame (length along, bottom to top) and placed by
+  pixel(s, z). marks ({kind, s, z, text}) are a trace's: the reached place nearest (a white disc), the traced point (a red ring), and
+  what separates them (a dark diamond named by its kind)."""
+
+  def __init__(self, cut, marks=()):
+    self.cut, self.marks = cut, list(marks)
+
+  def drawBands(self, draw, pixel, length, bottom, top):
+    for band in self.cut["bands"]:
+      s0, s1 = max(band["s"][0], 0.0), min(band["s"][1], length)
+      low, high = max(band["z"][0], bottom), min(band["z"][1], top)
+      if s1 > s0 and high > low:
+        color = labelColors[playerReach.labelNames.index(band["label"])]
+        draw.rectangle([pixel(s0, high), pixel(s1, low)], fill=(*color, sectionBandAlpha))
+
+  def drawMarks(self, draw, pixel, length, bottom, top):
+    def spanned(mark):
+      s0, s1 = max(mark["s"][0], 0.0), min(mark["s"][1], length)
+      return (s0, s1) if s1 > s0 and bottom <= mark["z"] <= top else None
+
+    for mark in self.cut["unreached"]:
+      kept = spanned(mark)
+      if kept is not None:
+        planDrawing.dashedLine(draw, [pixel(kept[0], mark["z"]), pixel(kept[1], mark["z"])], (*sectionUnreachedColor, 255), 3)
+    for bar in self.cut["bars"]:
+      kept = spanned(bar)
+      if kept is not None:
+        (x0, y), (x1, _) = pixel(kept[0], bar["z"]), pixel(kept[1], bar["z"])
+        color = labelColors[playerReach.labelNames.index(bar["label"])]
+        draw.rectangle([x0, y - sectionBarHeight, max(x1, x0 + 1), y], fill=(*color, 255), outline=(*serverMapDrawing.darker(color), 255))
+    for leak in self.cut["leaks"]:
+      if 0 <= leak["s"] <= length and bottom <= leak["z"] <= top:
+        x, y = pixel(leak["s"], leak["z"])
+        draw.line([(x, y), (x, y + sectionLeakTick)], fill=(*voidColor, 255), width=edgeWidth)
+    for mark in self.marks:
+      if not (0 <= mark["s"] <= length and bottom <= mark["z"] <= top):
+        continue
+      x, y = pixel(mark["s"], mark["z"])
+      if mark["kind"] == "reached":
+        draw.ellipse([x - decisiveRadius / 2, y - decisiveRadius / 2, x + decisiveRadius / 2, y + decisiveRadius / 2], fill=(*decisiveFill, 255), outline=(*ribbonCasing, 255), width=2)
+      elif mark["kind"] == "point":
+        draw.ellipse([x - targetRadius, y - targetRadius, x + targetRadius, y + targetRadius], outline=(*targetColor, 255), width=3)
+      else:
+        size = decisiveRadius / 2
+        draw.polygon([(x, y - size), (x + size, y), (x, y + size), (x - size, y)], fill=(*ribbonCasing, 255))
+        planDrawing.labelAt(draw, (x, y - size - 3), mark["text"], ribbonCasing, 13, "mb")
+
+  def legend(self, frame=None):
+    shown = {mark["kind"] for mark in self.marks}
+    traced = [
+      item for kind, item in (
+        ("reached", ("disc", ribbonCasing, "the reached place nearest the traced point")), ("point", ("target", targetColor, "the traced point")),
+        ("separation", ("diamond", ribbonCasing, "what separates them, by kind")),
+      ) if kind in shown
+    ]
+    return traced + [
+      ("bar", labelColors[playerReach.walkLabel], "walk"), ("bar", labelColors[playerReach.swimLabel], "swim (a floor in a swim box)"),
+      ("bar", labelColors[playerReach.slideLabel], "slide (too steep to stand)"), ("bar", labelColors[playerReach.squeezeLabel], "squeeze (only a smaller player)"),
+      ("bar", labelColors[playerReach.zoneLineLabel], "taken by a zone line"), ("band", labelColors[playerReach.swimLabel], "water swum"),
+      ("dashed", sectionUnreachedColor, "walkable, never reached"), ("tick", voidColor, "leak edge (a fall onto nothing or under the underworld starts)"),
+    ]
+
+
 def numberRuns(numbers):
   """Numbers as runs: 1, 3-5, 8."""
   runs, start = [], None
@@ -359,6 +484,25 @@ def drawLegendItem(draw, left, top, item):
     draw.line([(left + 2, bottom - 2), (right - 2, top + 2)], fill=color, width=3)
   elif kind == "ring":
     draw.ellipse([left + 1, top + 1, right - 1, bottom - 1], outline=color, width=3)
+  elif kind == "ribbon":
+    draw.line([(left, middle), (right, middle)], fill=ribbonCasing, width=ribbonCasingWidth - 2)
+    draw.line([(left + 1, middle), (right - 1, middle)], fill=color, width=ribbonWidth - 2)
+  elif kind == "numbered":
+    draw.ellipse([left + 1, top + 1, right - 1, bottom - 1], fill=decisiveFill, outline=color, width=2)
+    draw.text(((left + right) / 2, middle), "1", fill=color, font=planDrawing.fontOf(11), anchor="mm")
+  elif kind == "target":
+    draw.ellipse([left + 2, top + 2, right - 2, bottom - 2], outline=color, width=3)
+  elif kind == "disc":
+    draw.ellipse([left + 4, top + 4, right - 4, bottom - 4], fill=decisiveFill, outline=color, width=2)
+  elif kind == "diamond":
+    center = (left + right) / 2
+    draw.polygon([(center, top + 3), (right - 4, middle), (center, bottom - 3), (left + 4, middle)], fill=color)
+  elif kind == "bar":
+    draw.rectangle([left, middle - sectionBarHeight / 2, right, middle + sectionBarHeight / 2], fill=color, outline=serverMapDrawing.darker(color))
+  elif kind == "band":
+    draw.rectangle([left, top, right, bottom], fill=tuple(round(channel * sectionBandAlpha / 255 + 255 * (1 - sectionBandAlpha / 255)) for channel in color))
+  elif kind == "tick":
+    draw.line([((left + right) / 2, top), ((left + right) / 2, bottom)], fill=color, width=edgeWidth)
   elif kind != "text":
     raise ValueError(f"No legend mark '{kind}'")
   draw.text((left if kind == "text" else right + 8, top), text, fill=legendTextColor, font=planDrawing.fontOf(legendTextSize))

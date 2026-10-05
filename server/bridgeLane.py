@@ -1,8 +1,8 @@
 """What the player's lane is computed from, collected in the open scene: the collision the zone ships (bridgeExport.collisionTriangles),
 the swim boxes and zone lines as they stand with each line's target, every entry stored and derived (bridgeEntries) with the footing
 under each place players arrive, the regions with their access, the underworld, and the pools and rivers whose swimming is undecided;
-and which sights to a problem pass clear of that collision. The lane itself is computed by the server (playerReach), never here. Runs
-under Blender's Python."""
+which sights to a problem pass clear of that collision, and what that collision holds where a trace stops. The lane itself is computed by
+the server (playerReach), never here. Runs under Blender's Python."""
 import json
 
 import bpy
@@ -95,7 +95,43 @@ def clearSights(sights, short):
   return {"clear": clear}
 
 
+def traceProbes(crossings, columns):
+  """What the zone ships (bridgeExport.collisionTriangles) holds where a lane trace stops: for each crossing [start, end] (zone points, or
+  None) the first face a cast from start toward end meets before end, with its object and whether that is a boundary (None where it
+  meets none); for each column [x, y, bottom, top] (or None) every face a cast up the vertical line from bottom to top meets, lowest
+  first, with its height, its normal's z, and its object."""
+  surfaces = bridgeExport.collisionSurfaces(bridgeExport.collisionTriangles())
+  if surfaces is None:
+    raise ValueError("The zone ships no collision to probe")
+  met = []
+  for crossing in crossings:
+    if crossing is None:
+      met.append(None)
+      continue
+    start, end = mathutils.Vector(crossing[0]), mathutils.Vector(crossing[1])
+    hit = surfaces.castOn(start, (end - start).normalized(), (end - start).length)
+    met.append(None if hit is None else {
+      "point": list(hit[0]), "object": hit[2], "boundary": bridgeMeshAccess.boundaryProperty in bpy.data.objects[hit[2]],
+    })
+  profiles = []
+  for column in columns:
+    if column is None:
+      profiles.append(None)
+      continue
+    x, y, bottom, top = column
+    faces, origin = [], mathutils.Vector((x, y, bottom))
+    while origin.z < top:
+      hit = surfaces.castOn(origin, bridgeMeshAccess.up, top - origin.z)
+      if hit is None:
+        break
+      faces.append({"z": hit[0].z, "normalZ": hit[1].z, "object": hit[2]})
+      origin = hit[0] + bridgeMeshAccess.up * bridgeMeshAccess.castNudge
+    profiles.append(faces)
+  return {"crossings": met, "columns": profiles}
+
+
 commands = {
   "laneInput": (laneInput, False),
   "clearSights": (clearSights, False),
+  "traceProbes": (traceProbes, False),
 }

@@ -63,6 +63,10 @@ layoutStripeShade = 0.15
 # Swim volumes tint a view: cyan for water and magenta for lava, which shows over lava's oranges.
 swimColors = {"water": (0.1, 0.85, 1.0), "lava": (1.0, 0.15, 0.85)}
 swimAlpha = 0.3
+# The lane's reached floor tints a view at this share, under the swim volumes' and the guides' tints.
+laneAlpha = 0.35
+# A lane tint's columns are read this many at a time, so a zone's whole lane never sits in memory at once.
+laneTintChunk = 1 << 22
 boundaryColor = (1.0, 0.12, 0.08)
 zoneLineColor = (0.2, 1.0, 0.25)
 guideAlpha = 0.4
@@ -229,6 +233,33 @@ class PreviewScene:
       viewLayer.material_override = override
       bpy.data.collections.remove(holdout)
     writeImagePixels(view, viewPath)
+
+  def placeLaneTint(self, rectangles, tint):
+    """The lane's reached floor (laneTintRectangles) as flat rectangles a cell height over their floors, which the lane knows to a cell
+    height, one mesh per label in its color."""
+    placed = []
+    origin, cellSize, cellHeight = tint["origin"], tint["cellSize"], tint["cellHeight"]
+    for label in numpy.unique(rectangles[:, 0]):
+      chosen = rectangles[rectangles[:, 0] == label]
+      lowX, highX = origin[2] + chosen[:, 3] * cellSize, origin[2] + (chosen[:, 4] + 1) * cellSize
+      lowY, highY = origin[0] + chosen[:, 1] * cellSize, origin[0] + (chosen[:, 2] + 1) * cellSize
+      height = origin[1] + (chosen[:, 5] + 1) * cellHeight
+      corners = numpy.stack([
+        numpy.stack([lowX, lowY, height], axis=1), numpy.stack([highX, lowY, height], axis=1),
+        numpy.stack([highX, highY, height], axis=1), numpy.stack([lowX, highY, height], axis=1),
+      ], axis=1)
+      mesh = bpy.data.meshes.new(previewName + "Lane")
+      mesh.vertices.add(len(chosen) * 4)
+      mesh.vertices.foreach_set("co", corners.astype(numpy.float32).ravel())
+      mesh.loops.add(len(chosen) * 4)
+      mesh.loops.foreach_set("vertex_index", numpy.arange(len(chosen) * 4, dtype=numpy.int32))
+      mesh.polygons.add(len(chosen))
+      mesh.polygons.foreach_set("loop_start", numpy.arange(0, len(chosen) * 4, 4, dtype=numpy.int32))
+      mesh.polygons.foreach_set("loop_total", numpy.full(len(chosen), 4, dtype=numpy.int32))
+      mesh.update()
+      mesh.materials.append(self.emissionMaterial(f"Lane{label}", tint["colors"][str(int(label))]))
+      placed.append(self.addObject(bpy.data.objects.new(previewName + "Lane", mesh)))
+    return placed
 
   def placeSwimVolumes(self):
     """Each swim volume as a block in its liquid's color."""
@@ -658,10 +689,60 @@ def liquidTimeModulo(liquidTime):
   return math.fmod(liquidTime, 100.0)
 
 
-def renderView(sourceScene, zone, sky, view, outputPath, figureModel, shading, bandHeight, guides, swimVolumes, labels, emitters, frame=None, liquidTime=None, carriedLight=None):
+def laneTintRectangles(preview, tint):
+  """The lane's reached floor a view holds, from a lane tint (tint: playerReach.laneTint's file of columns and the lane's grid): the
+  columns within the camera's far clip and its field, a column's diagonal to spare, merged per label and level into rectangles of whole
+  columns, runs along each row first and then runs alike in the rows after; ([label, first x, last x, first z, last z, floor] rows, x and
+  z the lane's column indices along zone y and zone x and the floor in cells; how many columns the view holds)."""
+  columns = numpy.load(tint["path"], mmap_mode="r")
+  origin, cellSize, cellHeight = tint["origin"], tint["cellSize"], tint["cellHeight"]
+  camera = preview.camera
+  eye = numpy.array(camera.location)
+  axes = numpy.array(camera.rotation_quaternion.to_matrix())
+  clip = camera.data.clip_end
+  spare = cellSize * math.sqrt(2)
+  width, height = preview.frameSize()
+  kept = []
+  for start in range(0, len(columns), laneTintChunk):
+    part = numpy.asarray(columns[start:start + laneTintChunk])
+    points = numpy.stack([origin[2] + (part["z"] + 0.5) * cellSize, origin[0] + (part["x"] + 0.5) * cellSize, origin[1] + part["low"].astype(numpy.float64) * cellHeight], axis=1)
+    local = (points - eye) @ axes
+    depth = -local[:, 2]
+    if camera.data.type == "ORTHO":
+      halfWidth = camera.data.ortho_scale / 2
+      inside = (numpy.abs(local[:, 0]) <= halfWidth + spare) & (numpy.abs(local[:, 1]) <= halfWidth * height / width + spare)
+      inside &= (depth >= -spare) & (depth <= clip + spare)
+    else:
+      tangent = math.tan(camera.data.angle / 2)
+      across = tangent * width / height
+      inside = (depth >= -spare) & (numpy.linalg.norm(points - eye, axis=1) <= clip + spare)
+      inside &= numpy.abs(local[:, 0]) <= numpy.maximum(depth, 0) * across + spare * (1 + across)
+      inside &= numpy.abs(local[:, 1]) <= numpy.maximum(depth, 0) * tangent + spare * (1 + tangent)
+    kept.append(part[inside])
+  shown = numpy.concatenate(kept) if kept else numpy.zeros(0, dtype=columns.dtype)
+  if not len(shown):
+    return numpy.zeros((0, 6), dtype=numpy.int64), 0
+  label, low, z, x = (shown[name].astype(numpy.int64) for name in ("label", "low", "z", "x"))
+  order = numpy.lexsort((x, z, low, label))
+  label, low, z, x = label[order], low[order], z[order], x[order]
+  begins = numpy.ones(len(x), dtype=bool)
+  begins[1:] = (label[1:] != label[:-1]) | (low[1:] != low[:-1]) | (z[1:] != z[:-1]) | (x[1:] != x[:-1] + 1)
+  firsts = numpy.flatnonzero(begins)
+  lasts = numpy.append(firsts[1:], len(x)) - 1
+  runs = numpy.stack([label[firsts], x[firsts], x[lasts], z[firsts], low[firsts]], axis=1)
+  runs = runs[numpy.lexsort((runs[:, 3], runs[:, 2], runs[:, 1], runs[:, 4], runs[:, 0]))]
+  begins = numpy.ones(len(runs), dtype=bool)
+  begins[1:] = (runs[1:, [0, 1, 2, 4]] != runs[:-1, [0, 1, 2, 4]]).any(axis=1) | (runs[1:, 3] != runs[:-1, 3] + 1)
+  firsts = numpy.flatnonzero(begins)
+  lasts = numpy.append(firsts[1:], len(runs)) - 1
+  return numpy.stack([runs[firsts, 0], runs[firsts, 1], runs[firsts, 2], runs[firsts, 3], runs[lasts, 3], runs[firsts, 4]], axis=1), len(shown)
+
+
+def renderView(sourceScene, zone, sky, view, outputPath, figureModel, shading, bandHeight, guides, swimVolumes, labels, emitters, frame=None, liquidTime=None, carriedLight=None, laneTint=None):
   """Render a view; in client shading the zone's point lights and emitters are drawn too (emitters: the server's prepared emitter
   assets, or None without a client), its liquids as they stand at liquidTime on the effect clock (0 when it is None), and the light
-  the view's character carries (a clientPointLights.carriedLight record, or None)."""
+  the view's character carries (a clientPointLights.carriedLight record, or None); with laneTint (a lane's tint file and grid, and its
+  labels' colors by number), the view is tinted where the lane reached floor (laneTintRectangles)."""
   if shading not in viewShadings:
     raise ValueError(f"shading must be one of {list(viewShadings)}, got '{shading}'")
   if carriedLight is not None and shading != "client":
@@ -683,6 +764,9 @@ def renderView(sourceScene, zone, sky, view, outputPath, figureModel, shading, b
     preview.drawSky()
     if shading != "client" and preview.camera.data.type != "ORTHO":
       preview.camera.data.clip_end = max((corner - preview.camera.location).length for corner in sceneCorners(preview)) + mapClearance
+    if laneTint is not None:
+      laneRectangles, laneColumns = laneTintRectangles(preview, laneTint)
+      description["laneTint"] = {"columns": int(laneColumns), "rectangles": len(laneRectangles), "farClip": round(preview.camera.data.clip_end, 2)}
     if labels is not None or shading in valueShadings:
       description |= bridgeShadings.prepareView(preview, shading, labels, os.path.splitext(outputPath)[0] + "_pass.exr")
     if shading == "client":
@@ -698,6 +782,8 @@ def renderView(sourceScene, zone, sky, view, outputPath, figureModel, shading, b
     start = time.perf_counter()
     bpy.ops.render.render(write_still=True, scene=preview.scene.name)
     overlays = []
+    if laneTint is not None and len(laneRectangles):
+      overlays.append((laneAlpha, lambda: preview.placeLaneTint(laneRectangles, laneTint)))
     if swimVolumes and bridgeSwim.swimBoxes():
       overlays.append((swimAlpha, preview.placeSwimVolumes))
     if guides and bridgeBoundaries.guideCorners():
