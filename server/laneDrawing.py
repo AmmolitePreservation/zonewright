@@ -69,7 +69,6 @@ legendBackground = (250, 250, 247)
 legendTextColor = (20, 20, 20)
 # The relief runs between these greys, its highest kept apart from the background.
 reliefLow, reliefHigh = (70, 66, 60), (200, 196, 186)
-reliefMiddle = tuple((low + high) / 2 for low, high in zip(reliefLow, reliefHigh))
 chunkNodes = 1 << 22
 trapFlag, layeredFlag, unreachedFlag, squeezeLayeredFlag = 1, 2, 4, 8
 
@@ -373,37 +372,6 @@ class LanePlan:
     return items + [("text", legendTextColor, "plan: +X (north) up, +Y left")]
 
 
-def overRelief(color, alpha):
-  """A color laid at alpha over the relief's middle grey, as a fill shows on the plan."""
-  return tuple(round(channel * alpha / 255 + middle * (1 - alpha / 255)) for channel, middle in zip(color, reliefMiddle))
-
-
-def ringRadius(problem):
-  """A problem's ring: wide enough to go round the mark it lies on (a seed's arrow, a plot entrance's cross)."""
-  return ringRadii.get(problem["kind"], problemRing)
-
-
-def hatchBox(draw, box, color, spacing):
-  """Diagonal lines spacing apart across a box (left, top, right, bottom) in pixels."""
-  left, top, right, bottom = box
-  for offset in range(math.floor(left - bottom), math.ceil(right - top) + 1, spacing):
-    first, last = max(top, left - offset), min(bottom, right - offset)
-    if last > first:
-      draw.line([(first + offset, first), (last + offset, last)], fill=color, width=1)
-
-
-def nameBeside(board, at, reach, text, color, size):
-  """Write a mark's name reach pixels from it, right, left, under, or over it, the first clear of the labels and avoided boxes; right of
-  it, moved the least it can, where none is."""
-  x, y = at
-  spots = (((x + reach + nameGap, y), "lm"), ((x - reach - nameGap, y), "rm"), ((x, y + reach + nameGap), "ma"), ((x, y - reach - nameGap), "mb"))
-  for spot, anchor in spots:
-    if board.isClear(board.textBox(spot, text, size, anchor)):
-      board.write(spot, text, color, size, anchor)
-      return
-  board.place(spots[0][0], text, color, size, "lm")
-
-
 def numberRuns(numbers):
   """Numbers as runs: 1, 3-5, 8."""
   runs, start = [], None
@@ -446,6 +414,40 @@ def drawSeed(draw, at, headingDegrees, isolated):
   back = (x - ahead[0] * seedLength / 2, y - ahead[1] * seedLength / 2)
   arrow = [tip, (back[0] + side[0] * seedWidth / 2, back[1] + side[1] * seedWidth / 2), (back[0] - side[0] * seedWidth / 2, back[1] - side[1] * seedWidth / 2)]
   draw.polygon(arrow, fill=None if isolated else (*seedFill, 255), outline=(*seedOutline, 255), width=2)
+
+
+reliefMiddle = tuple((low + high) / 2 for low, high in zip(reliefLow, reliefHigh))
+
+
+def overRelief(color, alpha):
+  """A color laid at alpha over the relief's middle grey, as a fill shows on the plan."""
+  return tuple(round(channel * alpha / 255 + middle * (1 - alpha / 255)) for channel, middle in zip(color, reliefMiddle))
+
+
+def ringRadius(problem):
+  """A problem's ring: wide enough to go round the mark it lies on (a seed's arrow, a plot entrance's cross)."""
+  return ringRadii.get(problem["kind"], problemRing)
+
+
+def hatchBox(draw, box, color, spacing):
+  """Diagonal lines spacing apart across a box (left, top, right, bottom) in pixels."""
+  left, top, right, bottom = box
+  for offset in range(math.floor(left - bottom), math.ceil(right - top) + 1, spacing):
+    first, last = max(top, left - offset), min(bottom, right - offset)
+    if last > first:
+      draw.line([(first + offset, first), (last + offset, last)], fill=color, width=1)
+
+
+def nameBeside(board, at, reach, text, color, size):
+  """Write a mark's name reach pixels from it, right, left, under, or over it, the first clear of the labels and avoided boxes; right of
+  it, moved the least it can, where none is."""
+  x, y = at
+  spots = (((x + reach + nameGap, y), "lm"), ((x - reach - nameGap, y), "rm"), ((x, y + reach + nameGap), "ma"), ((x, y - reach - nameGap), "mb"))
+  for spot, anchor in spots:
+    if board.isClear(board.textBox(spot, text, size, anchor)):
+      board.write(spot, text, color, size, anchor)
+      return
+  board.place(spots[0][0], text, color, size, "lm")
 
 
 def drawLegendItem(draw, left, top, item):

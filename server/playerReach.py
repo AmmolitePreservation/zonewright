@@ -650,7 +650,7 @@ def playFloorOf(nodes, underworld):
 
 def analyse(lane, description):
   """Everything mapReach reports of a lane: entries connected or not, reached area by label, per-region reach, zone lines, plot entrances,
-  and swim boxes reached or not, and the numbered problems; with the node arrays the plan draws from and each node's region."""
+  and swim boxes reached or not, and the numbered problems; with the node arrays the plan draws from."""
   nodes = Nodes(lane)
   regions = description["regions"]
   regionOfNode = nodeRegions(nodes, regions)
