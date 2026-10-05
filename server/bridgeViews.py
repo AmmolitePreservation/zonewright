@@ -21,6 +21,7 @@ import bridgeStructureData
 import bridgeSurfacing
 import bridgeSwim
 import skyDrawing
+from buildTolerances import groundSearchAbove, groundSearchDistance
 from playerScale import eyeHeight, stepHeight, swimEyeAboveSurface
 
 requiredZoneKeys = (
@@ -39,10 +40,6 @@ minimumFieldOfViewDegrees = 10.0
 maximumFieldOfViewDegrees = 120.0
 maximumFrameSide = 1920
 cameraClipStart = 0.5
-# A point given with its height finds the ground from this far above it, so a height read off a floor or a little under it still
-# stands on that floor, down to groundSearchDistance below it.
-groundSearchAbove = 3.0
-groundSearchDistance = 50.0
 # A frame view stands back so the framed objects' bounding sphere fits the view with this much to spare.
 frameMargin = 1.1
 frameMinimumRadius = 0.5

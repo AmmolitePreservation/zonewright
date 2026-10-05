@@ -35,3 +35,7 @@ footingProbeLift = 2.0
 levelProbeLift = 2.0
 # Rock beside and around a cave's cut is probed this far over its floor, clear of the ground the floor lies on.
 probeOverFloor = 2.0
+# A point given with its height finds the ground from this far above it, so a height read off a floor or a little under it still
+# stands on that floor, down to groundSearchDistance below it: standAt, entries, and the lane's seeds and teleport landings.
+groundSearchAbove = 3.0
+groundSearchDistance = 50.0

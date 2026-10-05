@@ -27,6 +27,8 @@ buildRecordName = "build.json"
 fingerprintFolderLength = 16
 navMagic = b"ZWNAV001"
 inspectMagic = b"ZWINSP01"
+reachMagic = b"ZWREACH1"
+outputModes = ("nav", "reach")
 detourAreaCount = 64
 navSettingFloats = (
   "cellSize", "cellHeight", "agentHeight", "agentRadius", "agentClimb", "maxSlope", "regionMinSize", "regionMergeSize", "edgeMaxLength",
@@ -174,17 +176,18 @@ def requireHelper(toolingRoot):
   return Path(status["executablePath"])
 
 
-def runHelper(toolingRoot, mode, inputBytes, reportProgress):
-  """Run the built helper on one input; returns (its output file's bytes, or None for inspect, and its report). Its stderr progress
-  lines are relayed; its error line, or anything else it says, becomes a ToolError."""
+def runHelper(toolingRoot, mode, inputBytes, reportProgress, outputPath=None):
+  """Run the built helper on one input; returns (its output file's bytes, or None for inspect and for an output it wrote to outputPath,
+  and its report). Its stderr progress lines are relayed; its error line, or anything else it says, becomes a ToolError."""
   executable = requireHelper(toolingRoot)
   helpersRoot(toolingRoot).mkdir(parents=True, exist_ok=True)
   started = time.perf_counter()
   with tempfile.TemporaryDirectory(dir=helpersRoot(toolingRoot), prefix="run-") as runFolder:
     folder = Path(runFolder)
-    inputPath, outputPath, reportPath, stdoutPath = (folder / name for name in ("input.bin", "output.bin", "report.json", "stdout.txt"))
+    inputPath, reportPath, stdoutPath = (folder / name for name in ("input.bin", "report.json", "stdout.txt"))
+    writtenPath = Path(outputPath) if outputPath is not None else folder / "output.bin"
     inputPath.write_bytes(inputBytes)
-    arguments = [str(executable), mode, str(inputPath), str(outputPath) if mode == "nav" else "-", str(reportPath)]
+    arguments = [str(executable), mode, str(inputPath), str(writtenPath) if mode in outputModes else "-", str(reportPath)]
     errorLine = None
     unexpected = []
     with stdoutPath.open("wb") as stdout:
@@ -209,7 +212,7 @@ def runHelper(toolingRoot, mode, inputBytes, reportProgress):
     if errorLine is not None or unexpected or said:
       raise ToolError(f"recastHelper {mode} exited 0 but said {errorLine!r}, {unexpected}, and {said[:300]!r} on stdout")
     report = json.loads(reportPath.read_text(encoding="utf-8"))
-    output = outputPath.read_bytes() if mode == "nav" else None
+    output = writtenPath.read_bytes() if mode in outputModes and outputPath is None else None
   logger.info("recastHelper %s ran in %.2f s", mode, time.perf_counter() - started)
   return output, report
 
@@ -243,4 +246,30 @@ def inspectInput(payload, safePoint, targets, pathing):
   parts += [struct.pack("<2I", 0xFFFF ^ excluded, 0), struct.pack(f"<{detourAreaCount}f", *costs)]
   parts += [struct.pack("<I3f", safePoint is not None, *(safePoint if safePoint is not None else (0.0, 0.0, 0.0))), struct.pack("<I", len(targets))]
   parts += [struct.pack("<3f", *target) for target in targets]
+  return b"".join(parts)
+
+
+def reachInput(recastTriangles, reachGrid, movement, footingSearch, underworld, threads, swimBoxes, zoneLines, seeds, safeSeed):
+  """The reach mode's input: the grid (cell size and height, tile side in cells); the movement (step height, player height, containment
+  headroom, walkable normal z); the footing search above and below a point; the underworld height or None; the thread count; the
+  collision triangles (Recast axes, float32 [n, 3, 3]); the swim boxes ({low, high}, Recast axes); the zone lines ({low, high, target:
+  a point in Recast axes or None}); and the seeds ({name, point (Recast axes, at its footing), tolerance}), safeSeed the safe point's
+  index or None."""
+  triangles = numpy.ascontiguousarray(recastTriangles, dtype="<f4")
+  if triangles.ndim != 3 or triangles.shape[1:] != (3, 3):
+    raise ValueError(f"collision triangles must be [n, 3, 3], got {list(triangles.shape)}")
+  parts = [reachMagic, struct.pack("<2fi", reachGrid["cellSize"], reachGrid["cellHeight"], reachGrid["tileCells"])]
+  parts += [struct.pack("<4f", movement["stepHeight"], movement["playerHeight"], movement["containmentHeadroom"], movement["walkableNormalZ"])]
+  parts += [struct.pack("<2f", footingSearch["above"], footingSearch["below"])]
+  parts += [struct.pack("<If", underworld is not None, 0.0 if underworld is None else underworld), struct.pack("<I", threads)]
+  parts += [struct.pack("<I", len(triangles)), triangles.tobytes(), struct.pack("<I", len(swimBoxes))]
+  parts += [struct.pack("<6f", *box["low"], *box["high"]) for box in swimBoxes]
+  parts += [struct.pack("<I", len(zoneLines))]
+  for line in zoneLines:
+    target = line["target"]
+    parts.append(struct.pack("<6fI3f", *line["low"], *line["high"], target is not None, *(target if target is not None else (0.0, 0.0, 0.0))))
+  parts += [struct.pack("<Ii", len(seeds), -1 if safeSeed is None else safeSeed)]
+  for seed in seeds:
+    name = seed["name"].encode("utf-8")
+    parts.append(struct.pack("<4fI", *seed["point"], seed["tolerance"], len(name)) + name)
   return b"".join(parts)

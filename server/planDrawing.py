@@ -455,12 +455,13 @@ def labelShape(board, frame, shape, color):
 labelOrder = ("point", "footprint", "note", "path", "area")
 
 
-def drawPlan(basePath, outputPath, center, width, overlays):
-  """Lay the overlays over the base render, scaled up so lines and labels stay crisp, and save the drawing: water, swim volumes,
-  boundaries, zone lines, the regions' access fills and outlines, then every sheet's area fills, footprint fills and path widths each
-  composited in turn, then every line and mark (the entries' arrows last), then the labels: swim volumes' names inside them first,
-  then the sketch's, the entries', the plots', the boundaries', the zone lines', and the regions', each set beside the ground's spot
-  heights where it can be, and the spot heights giving way to them where it cannot."""
+def drawPlan(basePath, outputPath, center, width, overlays, lane=None):
+  """Lay the overlays over the base render, scaled up so lines and labels stay crisp, and save the drawing: water, swim volumes, the
+  lane's fill (lane, a laneDrawing.LanePlan, when given), boundaries, zone lines, the regions' access fills and outlines, then every
+  sheet's area fills, footprint fills and path widths each composited in turn, then every line and mark (the entries' arrows, then the
+  lane's marks last), then the labels: swim volumes' names inside them first, then the lane's, the sketch's, the entries', the plots',
+  the boundaries', the zone lines', and the regions', each set beside the ground's spot heights where it can be, and the spot heights
+  giving way to them where it cannot."""
   with Image.open(basePath) as base:
     size = (round(base.width * planScale), round(base.height * planScale))
     image = base.convert("RGB").resize(size, Image.Resampling.BICUBIC).convert("RGBA")
@@ -478,6 +479,8 @@ def drawPlan(basePath, outputPath, center, width, overlays):
   overlay(lambda draw: drawGrid(draw, frame))
   overlay(lambda draw: drawWater(draw, frame, overlays["water"]))
   overlay(lambda draw: drawSwim(draw, frame, overlays["swim"]))
+  if lane is not None:
+    image = Image.alpha_composite(image, lane.fill(frame, size))
   overlay(lambda draw: drawBoundaries(draw, frame, overlays["boundaries"]))
   overlay(lambda draw: drawZoneLines(draw, frame, overlays["zoneLines"]))
   image = Image.alpha_composite(image, accessFills(size, frame, overlays["regions"]))
@@ -492,6 +495,8 @@ def drawPlan(basePath, outputPath, center, width, overlays):
       strokeShape(draw, frame, shape, color)
     drawPlots(draw, frame, overlays["plots"])
     drawEntries(draw, frame, overlays["entries"])
+    if lane is not None:
+      lane.strokes(draw, frame)
 
   overlay(strokes)
   step = gridStepFor(frame.width)
@@ -507,6 +512,8 @@ def drawPlan(basePath, outputPath, center, width, overlays):
     for row, (sheet, color) in enumerate(sheets):
       board.write((frame.size[0] - 16, 80 + row * 20), f"sketch {sheet['sheet']}", color, 15, "ra")
     unnamedSwimVolumes = labelSwim(board, frame, overlays["swim"])
+    if lane is not None:
+      lane.labels(board, frame)
     for kind in labelOrder:
       for shape, color in shapes:
         if shape["kind"] == kind:

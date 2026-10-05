@@ -6,11 +6,12 @@
 
 void runNav(const std::string& inputPath, const std::string& payloadPath, const std::string& reportPath);
 void runInspect(const std::string& inputPath, const std::string& reportPath);
+void runReach(const std::string& inputPath, const std::string& lanePath, const std::string& reportPath);
 
 int main(int argumentCount, char** arguments) {
   try {
     if (argumentCount != 5) {
-      throw HelperError("usage: recastHelper nav|inspect <input.bin> <output|-> <report.json>");
+      throw HelperError("usage: recastHelper nav|inspect|reach <input.bin> <output|-> <report.json>");
     }
     const std::string mode = arguments[1];
     if (mode == "nav") {
@@ -20,8 +21,10 @@ int main(int argumentCount, char** arguments) {
         throw HelperError("inspect writes no output file; pass - in its place");
       }
       runInspect(arguments[2], arguments[4]);
+    } else if (mode == "reach") {
+      runReach(arguments[2], arguments[3], arguments[4]);
     } else {
-      throw HelperError("unknown mode '" + mode + "'; the modes are nav and inspect");
+      throw HelperError("unknown mode '" + mode + "'; the modes are nav, inspect, and reach");
     }
   } catch (const std::bad_alloc&) {
     reportError("out of memory");

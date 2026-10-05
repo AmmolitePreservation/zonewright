@@ -22,6 +22,7 @@ add_executable(recastHelper
   helperIO.cpp
   navMode.cpp
   inspectMode.cpp
+  reachMode.cpp
   ${recastSources}
   ${detourSources}
   ${recastRoot}/RecastDemo/Source/ChunkyTriMesh.cpp
