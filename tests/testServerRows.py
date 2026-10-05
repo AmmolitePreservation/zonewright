@@ -1,3 +1,4 @@
+import json
 import re
 import sqlite3
 import struct
@@ -327,6 +328,38 @@ def testRowsZonewrightDidNotWriteAreNeverDeleted():
   moved = written(slot, skyFog, [zoneLine(1, [10, 10, 0], [12, 12, 6], toQeynos)], record=record)[0]
   assert applyZonePoints(database, moved["rows"]) == []
   assert held() == [(10, 11.0, 11.0, 3.0, 2), (20, -2900.0, 2000.0, 6.0, 712)]
+
+
+def testAVersionMinusOneRowAtANumberWrittenIsForeign():
+  line = zoneLine(1, [0.1, 0.2, 0.3], [2.35, 4.45, 6.55], {"zone": "kithicor", "x": 1, "y": 2, "z": 3, "headingDegrees": 0})
+  record = written(rowZone, skyFog, [line])[0]["zonePoints"]
+  again = written(rowZone, skyFog, [line], record=record)[0]
+  # The row an earlier export wrote, as the table stored it, is replaced.
+  assert applyZonePoints(zonePointsTable(*record), again["rows"]) == []
+  # The server loads a zone's zone_points of its version and of version -1 (zone.cpp LoadStaticZonePoints), so a version -1 row at a
+  # number written is someone else's beside ours, a copy of ours included, and refused; one of another version, or at another number,
+  # is not loaded with ours, and stays.
+  for version, number, signalled in ((-1, 10, [10]), (1, 10, []), (-1, 20, [])):
+    database = zonePointsTable(*record, record[0] | {"version": version, "number": number})
+    assert applyZonePoints(database, again["rows"]) == signalled, (version, number)
+    assert database.execute("SELECT version, number FROM zone_points WHERE version <> 0").fetchall() == [(version, number)]
+  guards = [guard for guard in serverRows.readRows(again["rows"])["guards"] if guard["guard"] == "foreignZonePoints"]
+  assert [(guard["number"], guard["owned"]) for guard in guards] == [(10, [{column: value for column, value in decided(record[0]).items() if column != "number"}])]
+  assert " AND number = 10 AND (version = -1 OR (version = 0 AND NOT ((ABS(" in again["rows"]
+
+
+def testTheRecordKeepsWholeRowsThroughJSON():
+  lines = [
+    zoneLine(3, [0.1, 0.2, 0.3], [2.35, 4.45, 6.55], {"zone": "kithicor", "x": "keep", "y": 2.5, "z": 3, "headingDegrees": 45}),
+    zoneLine(7, [-60, 10, -5], [-40, 30, 20], {"zone": "testhollow", "x": 1.25, "y": -2, "z": 0.5, "headingDegrees": "keep"}),
+  ]
+  rows = written(rowZone, skyFog, lines)[0]["zonePoints"]
+  # The record under the tooling root holds whole rows as JSON: read back, every value and its type are the row's.
+  kept = json.loads(json.dumps({"shortName": "testhollow", "zonePoints": rows}))["zonePoints"]
+  assert kept == rows and [[type(value) for value in row.values()] for row in kept] == [[type(value) for value in row.values()] for row in rows]
+  # So the guards and deletes it gives are the ones the rows give, byte for byte, with the lines kept and with them removed.
+  for now in (lines, []):
+    assert written(rowZone, skyFog, now, record=kept)[0]["rows"] == written(rowZone, skyFog, now, record=rows)[0]["rows"]
 
 
 def testTheReadersRefuseWhatTheWritersNeverWrite():

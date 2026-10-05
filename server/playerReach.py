@@ -56,6 +56,8 @@ unreachedLabel, walkLabel, swimLabel, slideLabel, squeezeLabel, zoneLineLabel = 
 wetShape, walkableShape, absorbedShape, touchesLineShape, boundaryShape = 1, 2, 4, 8, 16
 reachedFullState, reachedState, trapState, fromSafeState, toSafeState, openState = 1, 2, 4, 8, 16, 128
 voidEvent, belowUnderworldEvent, absorbedEvent = 1, 2, 3
+# The entries a lane starts from.
+seedKinds = ("safePoint", "zoneIn", "landing")
 problemKinds = (
   "voidEdge", "belowUnderworld", "noneRegion", "outsideRegions", "disconnectedEntry", "unreachedPlot", "trap", "viewRegion",
   "unreachedZoneLine", "unreachedSwim", "unreachedPlayFloor", "undecidedWater",
@@ -306,7 +308,7 @@ def sceneDescription(inputPath):
     if entry["kind"] in ("zoneIn", "landing"):
       if entry["state"] != "onFooting":
         raise ToolError(f"Entry '{entry['name']}' stands off its footing ({entry['distance']} from {entry['footing']}): place it again (placeEntry) before mapping reach")
-    if entry["kind"] in ("safePoint", "zoneIn", "landing"):
+    if entry["kind"] in seedKinds:
       if entry["seedFooting"] is None:
         raise ToolError(f"The {'safe point' if entry['kind'] == 'safePoint' else 'entry ' + repr(entry['name'])} at {entry['at']} has no footing on what the zone ships, so the lane has no node there to start from")
       seeds.append({
@@ -345,11 +347,10 @@ def shippedBounds(triangles):
   return {"minimum": [round(float(value), 2) for value in points.min(axis=0)], "maximum": [round(float(value), 2) for value in points.max(axis=0)]}
 
 
-def footingOnTriangles(triangles, point):
-  """The highest footing on triangles (zone axes) under a point, from footingSearch's above over it down to its below under it: (point,
-  |normal z|), or None."""
+def heightsUnder(triangles, x, y):
+  """Where a vertical line through (x, y) meets triangles (zone axes, [n, 3, 3]), upright ones aside: each height, and the |normal z| of
+  its triangle."""
   corners = numpy.asarray(triangles, dtype=numpy.float64)
-  x, y = point[0], point[1]
   low, high = corners[:, :, :2].min(axis=1), corners[:, :, :2].max(axis=1)
   near = (low[:, 0] <= x) & (high[:, 0] >= x) & (low[:, 1] <= y) & (high[:, 1] >= y)
   a, b, c = corners[near, 0], corners[near, 1], corners[near, 2]
@@ -360,12 +361,21 @@ def footingOnTriangles(triangles, point):
   u = ((b[:, 1] - c[:, 1]) * (x - c[:, 0]) + (c[:, 0] - b[:, 0]) * (y - c[:, 1])) / denominator
   v = ((c[:, 1] - a[:, 1]) * (x - c[:, 0]) + (a[:, 0] - c[:, 0]) * (y - c[:, 1])) / denominator
   w = 1 - u - v
+  hit = (u >= -1e-9) & (v >= -1e-9) & (w >= -1e-9)
   z = u * a[:, 2] + v * b[:, 2] + w * c[:, 2]
-  hit = (u >= -1e-9) & (v >= -1e-9) & (w >= -1e-9) & (z <= point[2] + footingSearch["above"]) & (z >= point[2] - footingSearch["below"])
+  return z[hit], numpy.abs(normal[hit, 2]) / numpy.linalg.norm(normal[hit], axis=1)
+
+
+def footingOnTriangles(triangles, point):
+  """The highest footing on triangles (zone axes) under a point, from footingSearch's above over it down to its below under it: (point,
+  |normal z|), or None."""
+  x, y = point[0], point[1]
+  z, normalZ = heightsUnder(triangles, x, y)
+  hit = (z <= point[2] + footingSearch["above"]) & (z >= point[2] - footingSearch["below"])
   if not hit.any():
     return None
   best = int(numpy.argmax(numpy.where(hit, z, -numpy.inf)))
-  return [float(x), float(y), float(z[best])], abs(float(normal[best, 2] / numpy.linalg.norm(normal[best])))
+  return [float(x), float(y), float(z[best])], float(normalZ[best])
 
 
 def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress, regions=None, plots=None):
@@ -641,7 +651,7 @@ def playFloorOf(nodes, underworld):
 
 def analyse(lane, description):
   """Everything mapReach reports of a lane: entries connected or not, reached area by label, per-region reach, zone lines, plot entrances,
-  and swim boxes reached or not, and the numbered problems; with the node arrays the plan draws from."""
+  and swim boxes reached or not, and the numbered problems; with the node arrays the plan draws from and each node's region."""
   nodes = Nodes(lane)
   regions = description["regions"]
   regionOfNode = nodeRegions(nodes, regions)
@@ -726,7 +736,7 @@ def analyse(lane, description):
   for number, problem in enumerate(listed, 1):
     problem["number"] = number
   return {
-    "nodes": nodes,
+    "nodes": nodes, "regionOfNode": regionOfNode,
     "entries": entries, "reachedArea": reachedArea, "regions": perRegion, "zoneLines": zoneLines, "plotEntrances": plots, "swimBoxes": swimBoxes,
     "problems": listed, "moreProblems": more,
   }

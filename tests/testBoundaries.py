@@ -213,14 +213,20 @@ def testGameExportNeedsTheZoneRowAndZoneLineTargets(stageBlenderServer, tmp_path
   assert "zone short name" in refusals[5] and "target is {zone, x, y, z, headingDegrees}" in refusals[6]
   assert first["name"] == "ATP_2_gate" and first["target"] == target and first["minimum"] == [180.0, -20.0, -5.0]
   assert replacing["replaced"] == ["ATP_2_gate"] and replacing["name"] == "ATP_2_eastGate" and replacing["target"]["x"] == "keep"
-  assert [failure["failure"] for failure in gaps["failures"]] == ["view values missing", "safe point over no ground", "zone row values missing", "zone line number used twice", "containment not checked"]
+  # The safe point off the ground: the scene's check, the lane, which has no node there to start from, and the server's .map each say so.
+  assert [failure["failure"] for failure in gaps["failures"]] == [
+    "view values missing", "safe point over no ground", "zone row values missing", "zone line number used twice", "containment not checked", "no .map ground",
+  ]
+  assert "containment not checked: The safe point at [500.0, 500.0, 10.0] has no footing on what the zone ships" in gaps["failures"][4]["message"]
   assert gaps["failures"][1]["at"] == [500, 500, 10] and gaps["failures"][3] == {"failure": "zone line number used twice", "number": 2, "zoneLines": ["ATP_2_eastGate", "ATP_2_north"]}
   assert tested["failures"] == [] and [finding["finding"] for finding in tested["findings"] if "object" not in finding] == ["view values missing", "safe point over no ground", "zone row values missing", "zone line number used twice"]
   assert [failure["message"] for failure in copied["failures"]] == ["'ATP_2_eastGate.001' is not named ATP_<number>_<label> with a number from 1; placeZoneLine names it"]
-  assert [failure["failure"] for failure in ready["failures"]] == ["containment not checked"] and ready["zoneLines"] == ["ATP_2_eastGate", "ATP_3_north"]
+  # Decided, the zone's failures are its leaks: the basin's ground has no boundary, so its edge is open all round but where the two
+  # zone lines standing on it take players first, which cut it in two.
+  assert [failure["failure"] for failure in ready["failures"]] == ["voidEdge", "voidEdge"] and ready["zoneLines"] == ["ATP_2_eastGate", "ATP_3_north"]
   assert 'sky "none" states that the zone draws none' in gaps["failures"][0]["message"] and "sky" in gaps["failures"][0]["missing"]
   assert stating["zone"]["sky"] == "none" and stating["sky"] is None
-  assert [failure["failure"] for failure in skyless["failures"]] == ["containment not checked"]
+  assert [failure["failure"] for failure in skyless["failures"]] == ["voidEdge", "voidEdge"]
 
 
 def guidePixel(image, x, y):

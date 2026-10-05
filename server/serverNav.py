@@ -119,6 +119,15 @@ def zoneBox(component):
   }
 
 
+def polygonRecord(polygon):
+  """A nav polygon's area, component, outline in zone plan axes, and its corners' heights."""
+  corners = eqAxes.zoneFromRecast(polygon["corners"]).tolist()
+  return {
+    "area": polygon["area"], "component": polygon["component"], "outline": [tuple(corner[:2]) for corner in corners],
+    "heights": [corner[2] for corner in corners],
+  }
+
+
 def inspectNav(navFile, safePoint, targets, toolingRoot, reportProgress):
   """Load a .nav as the server does and label its polygons into components across links, Disabled and ZoneLine polygons in none (the
   server's ground filter never walks them). The main piece is the component of the polygon nearest the safe point (zone axes) within
@@ -127,7 +136,7 @@ def inspectNav(navFile, safePoint, targets, toolingRoot, reportProgress):
   lies on the island), and snapRisk: some main-piece polygon lies within 100 vertically over its footprint, where the server's
   nearest-polygon search can put an NPC onto it. Then a Detour search with Peridot's limits from the safe point to each target ({name,
   point}, zone axes); with no safe point, none is searched and the result names them. Every polygon is listed by tile, in the file's
-  order, with its area, its component (-1 for none), and its outline in zone plan axes."""
+  order, with its area, its component (-1 for none), its outline in zone plan axes, and its corners' heights."""
   payload = serverMapFiles.navPayload(serverMapFiles.readNav(navFile))
   recastSafe = None if safePoint is None else eqAxes.recastFromZone(safePoint).astype(float).tolist()
   recastTargets = [eqAxes.recastFromZone(target["point"]).astype(float).tolist() for target in targets]
@@ -151,13 +160,7 @@ def inspectNav(navFile, safePoint, targets, toolingRoot, reportProgress):
       findings.append(probeFinding(probe))
   if unprobed:
     findings.append(f"NPC paths were not probed, as there is no safe point to start from: to {', '.join(unprobed)}")
-  tiles = [{
-    "key": (tile["x"], tile["y"], tile["layer"]),
-    "polygons": [{
-      "area": polygon["area"], "component": polygon["component"],
-      "outline": [tuple(corner[:2]) for corner in eqAxes.zoneFromRecast(polygon["corners"]).tolist()],
-    } for polygon in tile["polygons"]],
-  } for tile in report["tiles"]]
+  tiles = [{"key": (tile["x"], tile["y"], tile["layer"]), "polygons": [polygonRecord(polygon) for polygon in tile["polygons"]]} for tile in report["tiles"]]
   safePolygon = None if report["safePolygon"] is None else {"tile": tiles[report["safePolygon"][0]]["key"], "polygon": report["safePolygon"][1]}
   return {
     "polygons": report["polygons"], "excludedPolygons": report["excludedPolygons"],

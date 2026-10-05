@@ -1,23 +1,47 @@
 """An export's files from what the bridge checked and collected, and their writing. Both purposes write the EQG archive, its client side
-files, and the manifest (<zone>_export.json: every file with its SHA-256 and size). A game export also builds the server's map files
-from the archive's bytes, under server\\maps laid out as akk-stack's server/maps so the owner copies it whole: the collision map
-(.map), the region map (.wtr), and the nav mesh (.nav), which is inspected as the server loads it for NPC islands and path probes. A
-test export removes this zone's server files, which would no longer match its archive. Every file goes in together, or none does."""
+files, and the manifest (<zone>_export.json: every file with its SHA-256 and size). A game export also builds the server's side from the
+archive's bytes and the scene's decisions: under server\\maps, laid out as akk-stack's server/maps so the owner copies it whole, the
+collision map (.map), the region map (.wtr), and the nav mesh (.nav), which is inspected as the server loads it for NPC islands and path
+probes; the player's lane (playerReach), whose leaks and stranded arrivals are failures; the ground the server finds on the .map under
+where players arrive; and under server\\sql the zone's rows (serverRows). The zone_points rows every game export of a short name wrote are
+kept under the tooling root (the record), so a later export deletes a removed line's row wherever it is written. A test export removes
+this zone's server files, which would no longer match its archive. Every file goes in together, or none does."""
 import hashlib
 import json
+import math
 import os
 
+import numpy
 from mcp.server.mcpserver.exceptions import ToolError
 
+import eqAxes
 import eqEmitters
 import eqgExport
 import eqgFiles
+import playerReach
+import playerScale
 import recastHelper
 import serverMapFiles
 import serverNav
+import serverRows
 import toolingManifest
 
 islandsListed = 25
+recordName = "zonePointsWritten.json"
+# EQEmu's Map:FindBestZHeightAdjust, which Peridot keeps: the server looks for the ground under a point from this far over it (map.cpp:59).
+findBestZHeightAdjust = 1.0
+leakKinds = ("voidEdge", "belowUnderworld", "noneRegion", "outsideRegions", "disconnectedEntry", "unreachedPlot")
+laneFindingKinds = ("trap", "viewRegion", "unreachedZoneLine", "unreachedSwim", "unreachedPlayFloor", "undecidedWater")
+laneFindingMessages = {
+  "trap": "places players reach and cannot leave: no way back to where they arrive or to a zone line",
+  "viewRegion": "reach into regions planned only to be seen (access view)",
+  "unreachedZoneLine": "zone lines no player reaches",
+  "unreachedSwim": "swim boxes no player reaches",
+  "unreachedPlayFloor": "walkable floor in play regions that no player reaches",
+  "undecidedWater": "pools and rivers without swim boxes whose bed players walk, as the client would",
+}
+testContainment = "not checked for a test export"
+placeKeys = ("number", "center", "extent", "length", "area", "region", "entry", "plot", "zoneLine", "swimBox", "body")
 
 
 def serverFilePaths(folder, zone):
@@ -45,6 +69,42 @@ def exportFilePaths(folder, zone):
   return [folder / f"{zone}.eqg", manifestPath(folder, zone), *sideFilePaths(folder, zone).values(), *serverFilePaths(folder, zone).values()]
 
 
+def recordPath(toolingRoot, short):
+  return toolingRoot / "exports" / short / recordName
+
+
+def readRecord(toolingRoot, short):
+  """Every zone_points row a game export of this short name wrote (serverRows.rowsFiles' zonePoints), as the record under the tooling root
+  keeps them: none before the first."""
+  path = recordPath(toolingRoot, short)
+  if not path.is_file():
+    return []
+  try:
+    record = json.loads(path.read_text(encoding="ascii"))
+    if not isinstance(record, dict) or set(record) != {"shortName", "zonePoints"} or record["shortName"] != short or not isinstance(record["zonePoints"], list):
+      raise ValueError(f"it holds no {{shortName: {short!r}, zonePoints: [rows]}}")
+    serverRows.ownedRows(record["zonePoints"], short)
+  except (OSError, ValueError) as error:
+    raise ToolError(
+      f"The record of the zone_points rows {short}'s game exports wrote, {path}, cannot be read: {type(error).__name__}: {error}. An export"
+      " deletes only the rows it holds, so put it back as it was rather than remove it"
+    ) from error
+  return record["zonePoints"]
+
+
+def recordExport(toolingRoot, built):
+  """Add a game export's zone_points rows to its short name's record, written whole and put in place, before the export's files are: a
+  row recorded and never applied only makes a later delete match nothing."""
+  short = built["zoneProperties"]["shortName"]
+  path = recordPath(toolingRoot, short)
+  kept = serverRows.ownedRows(readRecord(toolingRoot, short) + built["rows"]["zonePoints"], short)
+  path.parent.mkdir(parents=True, exist_ok=True)
+  partial = path.with_name(path.name + ".partial")
+  partial.write_text(json.dumps({"shortName": short, "zonePoints": kept}, indent=1), encoding="ascii")
+  os.replace(partial, path)
+  return {"path": str(path), "rows": len(kept)}
+
+
 def sideContents(collected, zone):
   """The client side files' bytes by kind. A list left from an earlier export would place emitters or plots this scene no longer has,
   so a list with nothing to say is None, and is removed."""
@@ -64,30 +124,85 @@ def zoneArchive(collected):
     raise ToolError(f"{type(error).__name__}: {error}") from error
 
 
-def serverMaps(archiveBytes, safePoint, toolingRoot, reportProgress):
+def probeTargets(entries):
+  """Where NPC paths are probed to besides the zone lines: every stored entry and every plot's entrance, where players arrive and live."""
+  targets = [{"name": f"entry {entry['name']}", "point": entry["at"]} for entry in entries if entry["source"] == "placeEntry"]
+  return targets + [{"name": f"plot {entry['name']}", "point": entry["at"]} for entry in entries if entry["kind"] == "plotEntrance"]
+
+
+def serverMaps(archiveBytes, safePoint, targets, toolingRoot, reportProgress):
   """The server's map files from an archive's bytes: the .map and .wtr from its files, then the .nav map_edit would build from them,
-  inspected as the server loads it, with NPC path probes from the safe point (zone axes, or None) to each zone line's center. A nav
-  the helper refuses is a failure and leaves no .nav. Returns {files by kind, inspection, helper report, failures}."""
+  inspected as the server loads it, with NPC path probes from the safe point (zone axes, or None) to each zone line's center and then to
+  each of targets ({name, point}, zone axes). A nav the helper refuses is a failure and leaves no .nav. Returns {files by kind, the
+  collision the server rebuilds from the .map (server axes), inspection, helper report, failures}."""
   try:
     zoneFiles = serverMapFiles.zoneFilesOf(archiveBytes)
     regions = eqgFiles.parseZone(zoneFiles["zon"], "the .zon")["regions"]
     mapBytes = serverMapFiles.mapBytes(zoneFiles)
     waterBytes = serverMapFiles.waterBytes(regions)
+    collision = serverMapFiles.mapCollision(mapBytes)
   except ValueError as error:
     raise ToolError(f"The server's map files cannot be built from this archive: {error}") from error
-  built = {"files": {"map": mapBytes, "water": waterBytes, "nav": None}, "inspection": None, "navReport": None, "failures": []}
+  built = {"files": {"map": mapBytes, "water": waterBytes, "nav": None}, "collision": collision, "inspection": None, "navReport": None, "failures": []}
   try:
-    navBytes, built["navReport"] = serverNav.navBytes(mapBytes, waterBytes, toolingRoot, reportProgress)
+    navBytes, built["navReport"] = serverNav.navFromCollision(collision, serverMapFiles.readWater(waterBytes), toolingRoot, reportProgress)
   except (ToolError, ValueError) as error:
     built["failures"].append({"failure": "nav not built", "message": f"The server's nav mesh cannot be built: {error}"})
     return built
   built["files"]["nav"] = navBytes
-  targets = [{"name": region["name"], "point": list(region["center"])} for region in regions if eqgFiles.isZoneLine(region["name"])]
+  lines = [{"name": region["name"], "point": list(region["center"])} for region in regions if eqgFiles.isZoneLine(region["name"])]
   try:
-    built["inspection"] = serverNav.inspectNav(navBytes, safePoint, targets, toolingRoot, reportProgress)
+    built["inspection"] = serverNav.inspectNav(navBytes, safePoint, lines + targets, toolingRoot, reportProgress)
   except ValueError as error:
     raise ToolError(f"The nav built from this archive cannot be inspected: {error}") from error
   return built
+
+
+def islandReach(inspection, nodes):
+  """Whether players reach each NPC island, by its number: whether some reached dry floor of the lane lies within a step
+  (playerScale.stepHeight, so a player there steps onto it) of one of the island's polygons, in a column whose center the polygon holds.
+  The polygon's height there is read off its corners, fanned from its first (Recast's polygons are convex)."""
+  lane = nodes.lane
+  reached = numpy.zeros(len(inspection["islands"]), dtype=bool)
+  standing = numpy.flatnonzero(nodes.reached & ~nodes.wet)
+  if not len(reached) or not len(standing):
+    return reached.tolist()
+  heights = nodes.height[standing].astype(numpy.float64)
+  base, span = float(heights.min()), float(heights.max() - heights.min()) + 4 * playerScale.stepHeight + 1
+  # Each reached floor as one sortable number: its column, then its height within the column.
+  keys = numpy.sort((nodes.z[standing].astype(numpy.int64) * lane.columnsX + nodes.x[standing]) * span + (heights - base))
+  for tile in inspection["tiles"]:
+    for polygon in tile["polygons"]:
+      number = polygon["component"]
+      if number < 1 or reached[number - 1]:
+        continue
+      corners = numpy.column_stack([numpy.asarray(polygon["outline"], dtype=numpy.float64), polygon["heights"]])
+      low, high = corners[:, :2].min(axis=0), corners[:, :2].max(axis=0)
+      rows = numpy.arange(max(0, math.ceil((low[0] - lane.origin[2]) / lane.cellSize - 0.5)), min(lane.columnsZ - 1, math.floor((high[0] - lane.origin[2]) / lane.cellSize - 0.5)) + 1)
+      across = numpy.arange(max(0, math.ceil((low[1] - lane.origin[0]) / lane.cellSize - 0.5)), min(lane.columnsX - 1, math.floor((high[1] - lane.origin[0]) / lane.cellSize - 0.5)) + 1)
+      if not len(rows) or not len(across):
+        continue
+      row, column = numpy.meshgrid(rows, across, indexing="ij")
+      row, column = row.ravel(), column.ravel()
+      x, y = lane.origin[2] + (row + 0.5) * lane.cellSize, lane.origin[0] + (column + 0.5) * lane.cellSize
+      surface = numpy.full(len(row), numpy.nan)
+      for second in range(1, len(corners) - 1):
+        a, b, c = corners[0], corners[second], corners[second + 1]
+        denominator = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+        if denominator == 0:
+          continue
+        u = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (y - c[1])) / denominator
+        v = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (y - c[1])) / denominator
+        inside = (u >= -1e-9) & (v >= -1e-9) & (1 - u - v >= -1e-9) & numpy.isnan(surface)
+        surface[inside] = (u * a[2] + v * b[2] + (1 - u - v) * c[2])[inside]
+      held = ~numpy.isnan(surface)
+      if not held.any():
+        continue
+      start = (row[held] * lane.columnsX + column[held]) * span - base
+      lowest = numpy.searchsorted(keys, start + surface[held] - playerScale.stepHeight, side="left")
+      highest = numpy.searchsorted(keys, start + surface[held] + playerScale.stepHeight, side="right")
+      reached[number - 1] = bool((highest > lowest).any())
+  return reached.tolist()
 
 
 def navFindings(inspection):
@@ -95,31 +210,202 @@ def navFindings(inspection):
   findings = [{"finding": "NPC nav", "message": message} for message in inspection["findings"]]
   if islands:
     atRisk = sum(island["snapRisk"] for island in islands)
-    findings.append({
-      "finding": "NPC islands", "islands": len(islands), "atSnapRisk": atRisk,
-      "message": f"{len(islands)} pieces of the NPC nav lie apart from its main piece, {atRisk} where the server's nearest-polygon search can"
-        f" put an NPC onto one; serverFiles.nav lists the {islandsListed} largest, the manifest every one",
-    })
+    finding = {"finding": "NPC islands", "islands": len(islands), "atSnapRisk": atRisk}
+    message = (
+      f"{len(islands)} pieces of the NPC nav lie apart from its main piece, {atRisk} where the server's nearest-polygon search can put an NPC"
+      " onto one"
+    )
+    reach = [island["playersReach"] for island in islands]
+    if None in reach:
+      message += "; whether players reach them is not checked, the lane not being computed"
+    else:
+      finding["playersReach"] = sum(reach)
+      message += f"; players reach {sum(reach)}, where NPCs placed on them stand apart from the rest of the nav"
+    findings.append(finding | {"message": message + f"; serverFiles.nav lists the {islandsListed} largest, the manifest every one"})
   return findings
 
 
-def build(checked, zone, zoneProperties, toolingRoot, reportProgress):
-  """Steps 2 to 4 of an export on what the bridge checked and collected: the archive (in memory), and for a game export the server's
-  map files built from it, their failures and findings added to the report. Nothing is built when the checks found a hard failure:
-  an unsaved file, or what no zone file can hold."""
+def placeOf(problem):
+  return {key: problem[key] for key in placeKeys if key in problem}
+
+
+def leakFailure(problem, underworld):
+  """A lane problem that refuses a game export, with its place and its mapReach problem number."""
+  kind, number, center = problem["kind"], problem["number"], problem["center"]
+  said = {
+    "voidEdge": f"Players walk or slide off an edge onto nothing, along {problem.get('length')}: a boundary wall, or shaping, closes it",
+    "belowUnderworld": f"Players reach floor under the underworld ({underworld}), along {problem.get('length')}, where the server takes them for fallen out of the world",
+    "noneRegion": f"Players reach {problem.get('area')} of region '{problem['region']}', whose access is none: a boundary or shaping keeps them out, or its access is wrong",
+    "outsideRegions": f"Players reach {problem.get('area')} of ground outside every region: plan it with a region, or keep players off it",
+    "disconnectedEntry": (
+      f"Entry '{problem.get('entry')}' and the safe point do not reach each other both ways: players arriving there cannot reach the rest of the"
+      " zone or come back; an area only its own port reaches is marked isolated (placeEntry)"
+    ),
+    "unreachedPlot": f"No player reaches the entrance of plot '{problem.get('plot')}'",
+  }[kind]
+  return {"failure": kind} | placeOf(problem) | {"message": f"{said} (mapReach problem {number}, at {center})"}
+
+
+def laneFindings(lane, description, analysis):
+  """What the lane shows that is to be looked at, never refused: each finding kind of problem with its places and numbers, squeeze reach,
+  a zone line in a swim box, no zone lines, no zoneIn entry, and what the lane does not model and its limits."""
+  findings = []
+  problems, more = analysis["problems"], analysis["moreProblems"]
+  for kind in laneFindingKinds:
+    found = [placeOf(problem) for problem in problems if problem["kind"] == kind]
+    if found:
+      finding = {"finding": kind, "problems": found}
+      if kind in more:
+        finding["more"] = more[kind]
+      findings.append(finding | {"message": f"{laneFindingMessages[kind]}: {len(found) + more.get(kind, {}).get('count', 0)} (mapReach numbers them as here)"})
+  nodes = analysis["nodes"]
+  squeezed = nodes.label == playerReach.squeezeLabel
+  if squeezed.any():
+    places = sorted(playerReach.groupedProblems("squeeze", lane, squeezed, nodes, analysis["regionOfNode"], description["regions"]), key=lambda place: -place["area"])
+    findings.append({
+      "finding": "squeeze reach", "area": analysis["reachedArea"]["squeeze"], "places": [placeOf(place) for place in places[:playerReach.problemsListed]],
+      "message": f"Only a player shorter than playerHeight ({playerScale.playerHeight:g}) passes here, through less open space than a player's height; containment counts it as reached",
+    })
+  for line in description["zoneLines"]:
+    for box in description["swimBoxes"]:
+      if all(line["low"][axis] < box["high"][axis] and box["low"][axis] < line["high"][axis] for axis in range(3)):
+        findings.append({
+          "finding": "zone line in a swim box", "zoneLine": line["name"], "swimBox": box["name"],
+          "message": f"Zone line '{line['name']}' overlaps swim box '{box['name']}': the .wtr lists the swim boxes first and the server takes the first box holding a point, so it reads their overlap as water",
+        })
+  if not description["zoneLines"]:
+    findings.append({"finding": "no zone lines", "message": "The zone has no zone lines: players leave it only by ports or death (placeZoneLine)"})
+  if not any(seed["kind"] == "zoneIn" for seed in description["seeds"]):
+    findings.append({"finding": "no zoneIn entries", "message": "No zoneIn entry says where a neighbour's zone line lands players (placeEntry kind zoneIn); the lane starts from the safe point and the landings alone"})
+  terms = playerReach.laneTerms(lane, description)
+  findings.append({
+    "finding": "lane limits", "notModeled": terms["notModeled"], "limits": terms["limits"],
+    "message": "What the lane does not model and where it may err: containment is proven within these",
+  })
+  return findings
+
+
+def problemCounts(analysis):
+  counts = {}
+  for problem in analysis["problems"]:
+    counts[problem["kind"]] = counts.get(problem["kind"], 0) + 1
+  for kind, rest in analysis["moreProblems"].items():
+    if kind in playerReach.problemKinds:
+      counts[kind] = counts.get(kind, 0) + rest["count"]
+  return counts
+
+
+def containment(inputs, underworld, toolingRoot, reportProgress):
+  """Step 5 of a game export: the scene's lane (playerReach.currentLane, from bridgeLane.laneInput's file), its leaks as failures, and its
+  findings. Without seeds, or when the lane cannot be computed, a failure saying containment was not checked. Returns (summary for the
+  report, failures, findings, the analysis's nodes or None)."""
+  if not any(entry["kind"] in playerReach.seedKinds for entry in inputs["entries"]):
+    message = (
+      "containment not checked: no seeds: the lane starts where players arrive, the safe point (setZoneProperties safePoint) and the stored"
+      " zoneIn and landing entries (placeEntry), and the zone has none"
+    )
+    return message, [{"failure": "containment not checked", "message": message}], [], None
+  try:
+    lane, description, status, seconds = playerReach.currentLane(toolingRoot, inputs["workFile"], inputs["laneInput"], reportProgress)
+  except ToolError as error:
+    message = f"containment not checked: {error}"
+    return message, [{"failure": "containment not checked", "message": message}], [], None
+  analysis = playerReach.analyse(lane, description)
+  failures = [leakFailure(problem, underworld) for problem in analysis["problems"] if problem["kind"] in leakKinds]
+  for kind in leakKinds:
+    if kind in analysis["moreProblems"]:
+      rest = analysis["moreProblems"][kind]
+      failures.append({"failure": kind, "more": rest, "message": f"{rest['count']} more {kind} problems than mapReach lists (the largest {playerReach.problemsListed} of each kind)"})
+  summary = {
+    "lane": status, "seconds": seconds, "laneFile": str(lane.path), "laneKey": lane.path.stem.removeprefix("lane-"), "reachGrid": playerReach.reachGrid,
+    "constants": playerReach.constantsReport(), "entries": analysis["entries"], "notFollowed": description["notFollowed"], "reachedArea": analysis["reachedArea"],
+    "regions": analysis["regions"], "zoneLines": analysis["zoneLines"], "plotEntrances": analysis["plotEntrances"], "swimBoxes": analysis["swimBoxes"],
+    "problems": problemCounts(analysis),
+  }
+  return summary, failures, laneFindings(lane, description, analysis), analysis["nodes"]
+
+
+def arrivals(zoneProperties, entries):
+  """Where players arrive that the server must find ground under: the safe point, every stored entry, and the landing of every zone line
+  leading back into the zone."""
+  places = [{"arrival": "safe point", "kind": "safePoint", "at": list(zoneProperties["safePoint"][:3])}] if "safePoint" in zoneProperties else []
+  return places + [{"arrival": entry["name"], "kind": entry["kind"], "at": entry["at"]} for entry in entries if entry["source"] == "placeEntry" or entry["kind"] == "teleport"]
+
+
+def groundFailures(collision, underworld, places):
+  """Step 6 of a game export: each arrival over no ground the server finds on its .map. As FindBestZ looks (map.cpp:52-71), from
+  findBestZHeightAdjust over the point straight down: the first collision met must lie at or above the underworld, which the server
+  ignores at 0."""
+  triangles = eqAxes.zoneFromServer(numpy.asarray(collision, dtype=numpy.float64))
+  failures = []
+  for place in places:
+    x, y, z = place["at"]
+    heights, _ = playerReach.heightsUnder(triangles, x, y)
+    below = heights[heights <= z + findBestZHeightAdjust]
+    ground = round(float(below.max()), 3) if len(below) else None
+    if ground is not None and (underworld in (None, 0) or ground >= underworld):
+      continue
+    met = "nothing" if ground is None else f"collision at {ground:g}, under the underworld {underworld:g}"
+    named = "The safe point" if place["kind"] == "safePoint" else f"{place['kind']} '{place['arrival']}'"
+    failures.append({"failure": "no .map ground"} | place | {
+      "ground": ground,
+      "message": f"{named} at {list(place['at'])} stands over no ground the server finds in the .map: looking down from {findBestZHeightAdjust:g} over it, as FindBestZ does, it meets {met}; players arriving there fall",
+    })
+  return failures
+
+
+def zoneRows(zoneProperties, zone, inputs, archiveBytes):
+  """Step 7 of a game export: the zone's rows (serverRows.rowsFiles), once the zone row's keys are set and the archive is named by its
+  short name; until then the zone row's gaps are the failures. Returns (files or None, why none, failures)."""
+  missing = serverRows.missingRowKeys(zoneProperties)
+  if missing:
+    return None, f"rows not written: the zone row lacks {missing} (setZoneProperties)", []
+  if zoneProperties["shortName"] != zone:
+    return None, f"rows not written: the archive is not named by the short name '{zoneProperties['shortName']}'", []
+  try:
+    rows = serverRows.rowsFiles(
+      zoneProperties, inputs["zoneLines"], inputs["entries"], inputs["clientZones"], inputs["skyFogColor"], inputs["record"], hashlib.sha256(archiveBytes).hexdigest(),
+    )
+  except ValueError as error:
+    why = f"rows not written: {error}"
+    return None, why, [{"failure": "rows not written", "message": f"The zone's server rows cannot be written: {error}"}]
+  return rows, None, []
+
+
+def build(checked, zone, zoneProperties, inputs, toolingRoot, reportProgress):
+  """Steps 2 to 7 of an export on what the bridge checked and collected: the archive (in memory), and for a game export the server's
+  side, its failures and findings added to the report: the map files built from the archive, the lane's containment, the islands'
+  reach, the ground under where players arrive, and the rows. inputs, for a game export, are what bridgeLane.laneInput wrote (laneInput)
+  for the open file (workFile), getEntries' entries, getZoneLines' zoneLines, the client's registrations (clientZones), the sky's fog
+  color (skyFogColor), and the record (readRecord). Nothing is built when the checks found a hard failure: an unsaved file, or what no
+  zone file can hold."""
   report = checked["report"]
-  built = {"report": report, "archive": None, "summary": None, "sides": None, "housing": None, "server": None}
+  game = report["purpose"] == "game"
+  report["containment"] = testContainment if not game else "not checked: server files not built"
+  built = {"report": report, "zoneProperties": zoneProperties, "archive": None, "summary": None, "sides": None, "housing": None, "server": None, "rows": None, "rowsWhy": None}
   if checked["collected"] is None:
     return built
   collected = checked["collected"]
   built["archive"], built["summary"] = zoneArchive(collected)
   built["sides"], built["housing"] = sideContents(collected, zone), collected["housing"]
-  if report["purpose"] == "game":
-    safePoint = zoneProperties["safePoint"][:3] if "safePoint" in zoneProperties else None
-    built["server"] = serverMaps(built["archive"], safePoint, toolingRoot, reportProgress)
-    report["failures"] += built["server"]["failures"]
-    if built["server"]["inspection"] is not None:
-      report["findings"] += navFindings(built["server"]["inspection"])
+  if not game:
+    return built
+  safePoint = zoneProperties["safePoint"][:3] if "safePoint" in zoneProperties else None
+  server = built["server"] = serverMaps(built["archive"], safePoint, probeTargets(inputs["entries"]), toolingRoot, reportProgress)
+  report["failures"] += server["failures"]
+  underworld = zoneProperties.get("underworld")
+  report["containment"], failures, findings, nodes = containment(inputs, underworld, toolingRoot, reportProgress)
+  report["failures"] += failures
+  if server["inspection"] is not None:
+    reach = [None] * len(server["inspection"]["islands"]) if nodes is None else islandReach(server["inspection"], nodes)
+    for island, reached in zip(server["inspection"]["islands"], reach):
+      island["playersReach"] = reached
+    report["findings"] += navFindings(server["inspection"])
+  report["findings"] += findings
+  del nodes
+  report["failures"] += groundFailures(server["collision"], underworld, arrivals(zoneProperties, inputs["entries"]))
+  built["rows"], built["rowsWhy"], failures = zoneRows(zoneProperties, zone, inputs, built["archive"])
+  report["failures"] += failures
   return built
 
 
@@ -137,9 +423,19 @@ def navSummary(inspection, navReport):
   }
 
 
+def rowsReport(built, paths):
+  rows = built["rows"]
+  if rows is None:
+    return {"written": False, "message": built["rowsWhy"]}
+  return {
+    "written": True, "rows": str(paths["rows"]), "waysIn": None if rows["waysIn"] is None else str(paths["waysIn"]),
+    "zonePointsWritten": rows["numbersWritten"], "zonePointsDeleted": rows["numbersDeleted"], "waysInToAdd": rows["waysInToAdd"],
+  }
+
+
 def serverFilesReport(built, folder):
-  """A game export's server files for its result: where each was written and the nav's inspection with its largest islands, or why
-  none were built."""
+  """A game export's server files for its result: where each was written, the nav's inspection with its largest islands, and the rows,
+  or why none were built."""
   if built["server"] is None:
     named = [failureName(failure) for failure in built["report"]["hardFailures"]]
     return {"built": False, "message": f"server files not built: the checks found an unsaved file or what no zone file can hold: {named}"}
@@ -149,6 +445,7 @@ def serverFilesReport(built, folder):
   return {
     "built": True, "files": {kind: str(paths[kind]) for kind, data in server["files"].items() if data is not None},
     "nav": None if inspection is None else navSummary(inspection, server["navReport"]) | {"largestIslands": inspection["islands"][:islandsListed]},
+    "rows": rowsReport(built, paths),
   }
 
 
@@ -158,8 +455,9 @@ def fileRecord(data):
 
 def manifestRecord(folder, built, files, blendPath):
   """What the manifest records: the purpose, the zone's short name, the .blend, every file written (path relative to the folder) with
-  its size and SHA-256, the failure and finding counts, and for a game export the nav settings, the helper, and the nav's islands and
-  probes."""
+  its size and SHA-256, the failure and finding counts, and for a game export the zone's identity and template (for its later client
+  registration), the zone_points numbers written and deleted, the nav settings, the helper, the nav's islands (each with whether players
+  reach it) and probes, and the lane: its key, grid, constants with their sources, and reached area."""
   report = built["report"]
   record = {
     "purpose": report["purpose"], "shortName": built["summary"]["zone"], "blend": blendPath,
@@ -169,7 +467,15 @@ def manifestRecord(folder, built, files, blendPath):
   server = built["server"]
   if server is not None:
     pin = toolingManifest.loadManifest()["recast"]
-    record |= {"serverNavSettings": serverNav.serverNavSettings, "recastHelper": {"commit": pin["commit"], "fingerprint": recastHelper.helperFingerprint(pin, recastHelper.toolchain()[1])}}
+    zoneProperties = built["zoneProperties"]
+    lane = report["containment"]
+    record |= {
+      "zone": {key: zoneProperties.get(key) for key in ("shortName", "zoneId", "longName", "serverTemplate")},
+      "zonePoints": None if built["rows"] is None else {"written": built["rows"]["numbersWritten"], "deleted": built["rows"]["numbersDeleted"]},
+      "serverNavSettings": serverNav.serverNavSettings,
+      "recastHelper": {"commit": pin["commit"], "fingerprint": recastHelper.helperFingerprint(pin, recastHelper.toolchain()[1])},
+      "lane": {key: lane[key] for key in ("laneKey", "reachGrid", "constants", "reachedArea")} if isinstance(lane, dict) else None,
+    }
     inspection = server["inspection"]
     record["nav"] = None if inspection is None else navSummary(inspection, server["navReport"]) | {"islands": inspection["islands"]}
   return record
@@ -177,11 +483,14 @@ def manifestRecord(folder, built, files, blendPath):
 
 def writeExport(folder, built, blendPath):
   """Every file of a built export into folder through replaceExportFiles: the archive, its side files, the manifest, and this zone's
-  server files (a game export's as built, none for a test export). Returns the manifest's path and record, and the server files a
-  test export removed."""
+  server files (a game export's as built, its rows among them, none for a test export). Returns the manifest's path and record, and the
+  server files a test export removed."""
   zone = built["summary"]["zone"]
   archivePath = folder / f"{zone}.eqg"
-  serverFiles = built["server"]["files"] if built["server"] is not None else {}
+  serverFiles = dict(built["server"]["files"]) if built["server"] is not None else {}
+  if built["rows"] is not None:
+    serverFiles["rows"] = built["rows"]["rows"].encode("ascii")
+    serverFiles["waysIn"] = None if built["rows"]["waysIn"] is None else built["rows"]["waysIn"].encode("ascii")
   contents = {path: built["sides"][kind] for kind, path in sideFilePaths(folder, zone).items()}
   contents |= {path: serverFiles.get(kind) for kind, path in serverFilePaths(folder, zone).items()}
   removed = [str(path) for path in serverFilePaths(folder, zone).values() if contents[path] is None and path.is_file()]
