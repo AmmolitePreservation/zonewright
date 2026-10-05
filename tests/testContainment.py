@@ -324,6 +324,22 @@ def testNoSeedsIsAFailureNotASkip(stageBlenderServer, tmp_path):
   assert server["rows"] == {"written": False, "message": "rows not written: the zone row lacks ['safePoint'] (setZoneProperties)"}
 
 
+def testFogWithoutASkyNeedsItsColorForTheRows(stageBlenderServer, tmp_path):
+  short = "fogless"
+
+  async def steps(session):
+    await containedZone(session, tmp_path, short)
+    # A sky supplies the fog color and drops the one set by hand; stating that the zone draws none leaves the fog with no color.
+    await session.expectSuccess("setZoneProperties", {"sky": {"type": short, "hour": 12, "minute": 0}})
+    await session.expectSuccess("setZoneProperties", {"sky": "none", "fogOn": True})
+    await session.expectSuccess("saveFile", {})
+    return await session.expectSuccess("checkExport", {"path": str(tmp_path / f"{short}.eqg"), "purpose": "game"})
+
+  checked = stageBlenderServer.session(steps)
+  assert [(failure["failure"], failure.get("missing")) for failure in checked["failures"]] == [("view values missing", ["fogColor"])]
+  assert checked["serverFiles"]["rows"] == {"written": False, "message": "rows not written: the zone row lacks ['fogColor'] (setZoneProperties)"}
+
+
 def testAnIslandIsAFindingNotAFailure(stageBlenderServer, tmp_path):
   short = "islands"
   # The ramp is walkable by players and too steep for the NPC nav, and the platform rises past the NPC's climb: an island players reach.

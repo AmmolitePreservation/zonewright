@@ -1297,7 +1297,7 @@ exportChecksHelp = (
   " a turned box, a box without size, region names that clash once lowercased); housing the server would refuse. A game export also"
   " refuses blockout materials (createMaterial blockout) on exported faces, pools and rivers whose swimming is undecided or changed"
   " since their boxes were accepted, missing view values (fogOn, minClip, maxClip, sky or sky \"none\" stated, and the fog's start, end, and density"
-  " when it is on), a missing safe point or underworld, a safe point over no ground the zone ships above the underworld (an imported"
+  " when it is on, and its color when the zone draws no sky), a missing safe point or underworld, a safe point over no ground the zone ships above the underworld (an imported"
   " reference zone under it is none), zone lines without a target or sharing a number, a zone without regions, regions whose access is"
   " undecided (getRegions), a stored entry off its footing (getEntries), structures laid on ground or a kit that has changed since"
   " (stale: editStructure lays them again), a nav mesh the Recast helper refuses to build (it names why); containment, judged on the"
