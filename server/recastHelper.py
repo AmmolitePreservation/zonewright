@@ -249,20 +249,23 @@ def inspectInput(payload, safePoint, targets, pathing):
   return b"".join(parts)
 
 
-def reachInput(recastTriangles, reachGrid, movement, footingSearch, underworld, threads, swimBoxes, zoneLines, seeds, safeSeed):
+def reachInput(recastTriangles, boundaryTriangles, reachGrid, movement, footingSearch, underworld, threads, swimBoxes, zoneLines, seeds, safeSeed):
   """The reach mode's input: the grid (cell size and height, tile side in cells); the movement (step height, player height, containment
   headroom, walkable normal z); the footing search above and below a point; the underworld height or None; the thread count; the
-  collision triangles (Recast axes, float32 [n, 3, 3]); the swim boxes ({low, high}, Recast axes); the zone lines ({low, high, target:
-  a point in Recast axes or None}); and the seeds ({name, point (Recast axes, at its footing), tolerance}), safeSeed the safe point's
-  index or None."""
+  collision triangles (Recast axes, float32 [n, 3, 3]) and which of them are a boundary's ([n] booleans); the swim boxes ({low, high},
+  Recast axes); the zone lines ({low, high, target: a point in Recast axes or None}); and the seeds ({name, point (Recast axes, at its
+  footing), tolerance}), safeSeed the safe point's index or None."""
   triangles = numpy.ascontiguousarray(recastTriangles, dtype="<f4")
   if triangles.ndim != 3 or triangles.shape[1:] != (3, 3):
     raise ValueError(f"collision triangles must be [n, 3, 3], got {list(triangles.shape)}")
+  boundary = numpy.asarray(boundaryTriangles)
+  if boundary.dtype != bool or boundary.shape != (len(triangles),):
+    raise ValueError(f"boundary triangles must be {len(triangles)} booleans, got {boundary.dtype} {list(boundary.shape)}")
   parts = [reachMagic, struct.pack("<2fi", reachGrid["cellSize"], reachGrid["cellHeight"], reachGrid["tileCells"])]
   parts += [struct.pack("<4f", movement["stepHeight"], movement["playerHeight"], movement["containmentHeadroom"], movement["walkableNormalZ"])]
   parts += [struct.pack("<2f", footingSearch["above"], footingSearch["below"])]
   parts += [struct.pack("<If", underworld is not None, 0.0 if underworld is None else underworld), struct.pack("<I", threads)]
-  parts += [struct.pack("<I", len(triangles)), triangles.tobytes(), struct.pack("<I", len(swimBoxes))]
+  parts += [struct.pack("<I", len(triangles)), triangles.tobytes(), boundary.astype(numpy.uint8).tobytes(), struct.pack("<I", len(swimBoxes))]
   parts += [struct.pack("<6f", *box["low"], *box["high"]) for box in swimBoxes]
   parts += [struct.pack("<I", len(zoneLines))]
   for line in zoneLines:

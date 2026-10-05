@@ -21,8 +21,8 @@ highpassSafePoint = tuple(eqAxes.zoneFromServer([-219.0, -148.0, -24.0]).tolist(
 # of it), with its height, the reached floor nearest it, and the rise between two side by side columns met walking straight from there
 # to it: each is ringed by a face far higher than a player's step.
 backdropTops = {
-  "west": {"at": [-678.5, -255.5], "height": 120.25, "nearestReached": [-653.5, -223.5, -14.75], "rise": 28.25},
-  "east": {"at": [-19.5, 543.5], "height": 171.25, "nearestReached": [4.5, 539.5, 19.5], "rise": 117.25},
+  "west": {"at": [-678.0, -255.0], "height": 120.25, "nearestReached": [-653.0, -224.0, -13.5], "rise": 28.25},
+  "east": {"at": [76.0, 462.0], "height": 150.5, "nearestReached": [107.0, 448.0, -15.0], "rise": 33.75},
 }
 
 
@@ -31,12 +31,13 @@ def noProgress(done, of, message):
 
 
 def straightRises(nodes, start, end):
-  """The rise between each two side by side columns' highest floors along a straight line, one column apart."""
+  """The rise between the highest floors of each two successive columns holding floor along a straight line, one column apart."""
   steps = int(numpy.hypot(end[0] - start[0], end[1] - start[1])) + 1
   heights = []
   for share in numpy.linspace(0, 1, steps + 1):
     node = nodes.floorNodeAt([start[0] + share * (end[0] - start[0]), start[1] + share * (end[1] - start[1])])
-    heights.append(float(nodes.height[node]))
+    if node is not None:
+      heights.append(float(nodes.height[node]))
   return numpy.diff(heights)
 
 
@@ -68,7 +69,17 @@ def testHighpassHoldsZoneLinesAreReachedFromItsSafePoint(recastToolingRoot, tmp_
     tmp_path / "highpassLaneBesideNav.png", serverMapFiles.mapCollision(mapBytes), laneDrawing.LanePlan(analysis, description, None, True), inspection,
     ("Players' lane from Peridot's safe point (its .map and .wtr)", "Peridot's highpasshold.nav: the NPC main piece and its islands"),
   )
+  # Peridot's collision is closed all round, so no fall reaches nothing; what the lane finds are pockets entered by sliding or dropping
+  # that no move leaves, each ringed and named in the legend with the lane's marks and the plan's axes.
+  traps = len(analysis["problems"])
+  assert [problem["kind"] for problem in analysis["problems"]] == ["trap"] * traps
+  marks = [
+    "walk", "swim", "slide (too steep to stand)", "squeeze (only a smaller player)", "taken by a zone line", "trap (no way back)", "walkable, never reached",
+    "reached under a higher level", "only a smaller player under it", "void edge (a fall onto nothing)", "a zone line catches the fall", "zone line reached",
+    "zone line not reached", "seed: where players arrive", "isolated seed", "plot entrance reached", "plot entrance not reached",
+    "play region", "view region", "none region", "undecided region",
+  ]
   assert drawn["legends"] == [
-    ["walk", "swim", "slide", "squeeze", "trap (hatched)", "walkable, unreached (hatched)", "void edge", "zone line: filled reached, dashed not"],
+    marks + [f"1-{traps} trap", "plan: +X (north) up, +Y left"],
     ["main piece: 3,677 polygons", "640 islands, 297 at snap risk", "Disabled and zone line: 53 polygons"],
   ]

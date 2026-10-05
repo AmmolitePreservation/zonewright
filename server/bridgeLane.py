@@ -1,10 +1,12 @@
 """What the player's lane is computed from, collected in the open scene: the collision the zone ships (bridgeExport.collisionTriangles),
 the swim boxes and zone lines as they stand with each line's target, every entry stored and derived (bridgeEntries) with the footing
-under each place players arrive, the regions with their access, the underworld, and the pools and rivers whose swimming is undecided.
-The lane itself is computed by the server (playerReach), never here. Runs under Blender's Python."""
+under each place players arrive, the regions with their access, the underworld, and the pools and rivers whose swimming is undecided;
+and which sights to a problem pass clear of that collision. The lane itself is computed by the server (playerReach), never here. Runs
+under Blender's Python."""
 import json
 
 import bpy
+import mathutils
 import numpy
 
 import bridgeAuthoring
@@ -45,8 +47,8 @@ def zoneLineRecords(shortName):
 
 
 def laneInput(outputPath):
-  """Write the lane's input to outputPath (.npz): the collision triangles (float32 [n, 3, 3], zone axes), each undecided body's triangles,
-  and a description of the rest as JSON."""
+  """Write the lane's input to outputPath (.npz): the collision triangles (float32 [n, 3, 3], zone axes), which of them are a boundary's,
+  each undecided body's triangles, and a description of the rest as JSON."""
   bpy.context.view_layer.update()
   collision = bridgeExport.collisionTriangles()
   ground = bridgeEntries.ShippedGround(collision)
@@ -59,7 +61,11 @@ def laneInput(outputPath):
       record["seedFooting"] = footingRecord(ground, entry["at"])
     entries.append(record)
   bodies = bridgeSwim.swimDecisions()["undecided"]
-  arrays = {"collision": collision["positions"][collision["triangles"]].astype(numpy.float32)}
+  boundaryOwners = numpy.array([bridgeMeshAccess.boundaryProperty in bpy.data.objects[name] for name in collision["ownerNames"]] + [False])
+  arrays = {
+    "collision": collision["positions"][collision["triangles"]].astype(numpy.float32),
+    "boundary": boundaryOwners[collision["owners"]],
+  }
   for index, body in enumerate(bodies):
     positions, triangles = bridgeMeshAccess.worldTriangles([body])
     arrays[f"undecided{index}"] = positions[triangles].astype(numpy.float32)
@@ -77,6 +83,19 @@ def laneInput(outputPath):
   return {"outputPath": outputPath, "triangles": len(arrays["collision"])}
 
 
+def clearSights(sights, short):
+  """Which sights ([eye, target] pairs, zone axes) pass clear of what the zone ships (bridgeExport.collisionTriangles) up to `short`
+  before their target: a list of booleans."""
+  surfaces = bridgeExport.collisionSurfaces(bridgeExport.collisionTriangles())
+  clear = []
+  for eye, target in sights:
+    start, end = mathutils.Vector(eye), mathutils.Vector(target)
+    reach = (end - start).length - short
+    clear.append(surfaces is None or reach <= 0 or surfaces.cast(start, (end - start).normalized(), reach) is None)
+  return {"clear": clear}
+
+
 commands = {
   "laneInput": (laneInput, False),
+  "clearSights": (clearSights, False),
 }

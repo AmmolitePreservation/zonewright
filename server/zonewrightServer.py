@@ -2072,11 +2072,12 @@ async def renderSketch(
   surface runs on tucked under its banks: blue, lava orange), swim (the swim volumes, dashed, cyan water and magenta lava, each
   named inside itself where its name fits clear of the other labels, else by its number; `unnamedSwimVolumes` lists those in the
   drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled),
-  zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problem
-  numbers: walk green, swim blue, slide orange, squeeze violet, traps and walkable floor never reached hatched, void edges red, zone
-  lines filled when reached, seeds as white arrows; the result says whether the lane was computed or reused). Labels are placed clear
-  of one another, and beside the spot heights rather than over them where they can be; an area is named only where it reaches into the
-  drawing."""
+  zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problems
+  and regions: walk green, swim blue, slide orange, squeeze violet, traps hatched orange, walkable floor never reached cross-hatched,
+  void edges magenta, zone lines filled when reached, seeds as white arrows, with its legend in a band under the plan; the result's
+  laneState says whether the lane was computed or reused, the constants it used, what it does not model, and its limits). Labels are
+  placed clear of one another, and beside the spot heights rather than over them where they can be; an area is named only where it
+  reaches into the drawing. frameSize is the plan's size in pixels, above any legend band."""
   if len(center) != 2 or width <= 0:
     raise ToolError(f"center is [x, y] and width positive, got {center} and {width}")
   zone = await callBridge(context, "getZoneProperties", {})
@@ -2091,14 +2092,17 @@ async def renderSketch(
   if "lane" in layers:
     lane, description, status, seconds, analysis = await sceneLane(context)
     lanePlan = laneDrawing.LanePlan(analysis, description, None, False)
-    laneState = {"lane": status, "seconds": seconds}
+    laneState = {"lane": status, "seconds": seconds} | playerReach.laneTerms(lane, description)
   outputPath = newRenderPath()
   drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, outputPath, center, width, overlays, lanePlan)
   basePath.unlink()
+  if lanePlan is not None:
+    await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, lanePlan, planDrawing.PlanFrame(center, width, drawn["size"]))
   return [Image(data=outputPath.read_bytes(), format="png"), {
     "outputPath": str(outputPath), "center": center, "width": width, "unitsPerPixel": round(width / drawn["size"][0], 4), "heightRange": base["heightRange"],
     "bandHeight": bandHeight, "gridStep": drawn["gridStep"], "sheetColors": drawn["sheetColors"],
     "shapes": {sheet["sheet"]: len(sheet["shapes"]) for sheet in overlays["sheets"]}, "unnamedSwimVolumes": drawn["unnamedSwimVolumes"],
+    "frameSize": drawn["size"],
   } | ({} if laneState is None else {"laneState": laneState})]
 
 
@@ -2515,10 +2519,11 @@ async def getEntries(context: Context):
   return await callBridge(context, "getEntries", {})
 
 
-# A problem is viewed from a reached floor at least this far from it in plan, so it stands in the view and is not underfoot.
-problemViewDistance = 4 * playerScale.playerHeight
-problemViewPitch = (-45.0, 20.0)
 problemViewCount = 8
+lanePlanLayers = ["water", "swim", "boundaries"]
+problemViewFrame = {"size": [960, 540], "verticalFieldOfViewDegrees": 50.0}
+# A sight to a problem counts as clear when nothing blocks it short of this far before its target.
+problemSightShort = 2.0
 
 
 async def sceneLane(context):
@@ -2547,29 +2552,26 @@ def requireLevel(level):
   return level
 
 
-def problemView(nodes, problem, members):
-  """Where a problem is looked at from: the reached walkable floor nearest it outside it (members, its nodes, or None), at least
-  problemViewDistance away in plan, facing it; None when the lane holds none."""
-  candidates = nodes.label == playerReach.walkLabel
-  if members is not None:
-    candidates[members] = False
-  standing = numpy.flatnonzero(candidates)
-  del candidates
-  planX, planY = nodes.plan(standing)
-  distance = numpy.hypot(planX - problem["center"][0], planY - problem["center"][1])
-  far = distance >= problemViewDistance
-  if not far.any():
-    return None
-  best = int(numpy.argmin(numpy.where(far, distance, numpy.inf)))
-  node = standing[best]
-  at = [float(planX[best]), float(planY[best]), float(nodes.height[node])]
-  heading = math.degrees(math.atan2(problem["center"][0] - at[0], problem["center"][1] - at[1])) % 360
-  pitch = math.degrees(math.atan2(problem["center"][2] - (at[2] + playerScale.eyeHeight), float(distance[best])))
-  return {"standOn": [round(value, 2) for value in at], "headingDegrees": round(heading, 1), "pitchDegrees": round(min(max(pitch, problemViewPitch[0]), problemViewPitch[1]), 1)}
+async def chooseProblemViews(context, analysis, description, zone):
+  """For each problem playerReach.viewedProblems picks, the first of its playerReach.problemSights the bridge finds clear of the zone's
+  collision, from no further than half the nearer of the zone's far clip and its fog's end: [(problem, view or None, radius,
+  distance)]."""
+  chosen = playerReach.viewedProblems(analysis["problems"], problemViewCount)
+  standing = await anyio.to_thread.run_sync(playerReach.walkPlaces, analysis["nodes"])
+  farthest = min(zone["maxClip"], zone["fogEnd"] if zone["fogOn"] else zone["maxClip"]) / 2
+  sights = [playerReach.problemSights(standing, problem, description, farthest) for problem in chosen]
+  asked = [[candidate["eye"], candidate["target"]] for candidates, _, _ in sights for candidate in candidates]
+  clear = iter((await callBridge(context, "clearSights", {"sights": asked, "short": problemSightShort}))["clear"])
+  views = []
+  for problem, (candidates, radius, distance) in zip(chosen, sights):
+    found = [candidate for candidate, isClear in zip(candidates, clear) if isClear]
+    views.append((problem, found[0] if found else None, radius, distance))
+  return views
 
 
 async def lanePlanRender(context, center, width, lanePlan, layers, sky):
-  """The lane plan over renderSketch's relief, `width` across about `center`, with the plan's own layers: (path, size, width)."""
+  """The lane plan over renderSketch's relief, `width` across about `center`, with the plan's own layers and the lane's legend in a band
+  under it: (path, base render, drawn plan)."""
   basePath = newRenderPath()
   base = await callBridge(context, "renderView", {
     "view": {"map": {"center": center, "width": width}}, "outputPath": str(basePath), "figureModel": None, "shading": "relief",
@@ -2579,6 +2581,7 @@ async def lanePlanRender(context, center, width, lanePlan, layers, sky):
   planPath = newRenderPath()
   drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, planPath, center, width, overlays, lanePlan)
   basePath.unlink()
+  await anyio.to_thread.run_sync(laneDrawing.legendUnder, planPath, lanePlan, planDrawing.PlanFrame(center, width, drawn["size"]))
   return planPath, base, drawn
 
 
@@ -2586,24 +2589,29 @@ async def lanePlanRender(context, center, width, lanePlan, layers, sky):
 async def mapReach(context: Context, center: list[float] | None = None, width: float | None = None, level: dict | None = None, problemViews: bool = True):
   """Where players can go in the zone, as the lane: every place reached from where players arrive (the safe point and the stored zoneIn
   and landing entries, each on the lane's node at its footing) by walking (floors within the step of each other, faces no steeper than
-  walkable), dropping off ledges, sliding down steeper faces, entering a swim box whose bottom lies within a player's height of the
-  floor, swimming between touching boxes, sinking, climbing out onto floor up to the step over a box's top, and being carried by a zone
-  line leading back into the zone; a zone line's box takes whoever reaches it. Computed by the Recast helper over what the zone ships
+  walkable), dropping off ledges, sliding down steeper faces (only down), entering a swim box whose bottom lies within a player's height
+  of the floor, swimming between touching boxes, sinking, climbing out onto floor up to the step over a box's top, and being carried by
+  a zone line leading back into the zone; a zone line's box takes whoever reaches it, and any move onto floor under the underworld is a
+  leak. Computed by the Recast helper over what the zone ships
   (the archive's collision: no reference content, guides, regions, or what players pass through) on a grid of columns (reachGrid), for
   the whole zone at once, and reused while nothing it depends on changed. Picture 1, the lane plan over renderSketch's relief, `width`
   across about `center` (default: everything the zone ships), with only the nodes whose height lies in `level` {bottom, top} when given
   (caves, stacked floors): walk green, swim blue, slide orange, squeeze (only a smaller player fits) violet, traps (one way in, no way
-  back) hatched orange, walkable floor never reached hatched grey, columns reached at a level under a higher one dotted, void edges
-  (a fall onto nothing) red, zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated), plot
-  entrances as ticks (a red X when unreached), boundaries red, region outlines in their access colors, and the problems numbered.
-  Picture 2 (problemViews, when there are problems): up to eight eye-level client-shaded views, each from the reached floor nearest a
-  problem facing it, labelled with its number and kind, and the plan. The JSON gives the constants used (value and source), what is not
-  modelled and the lane's limits, reachGrid, whether the lane was computed or reused and the seconds, each entry and whether it is
-  connected (reached from the safe point and reaching back), the reached area by label, per region its access, reached share of its
-  walkable floor, and unreached play floor, zone lines, plot entrances, and swim boxes reached or not, and the problems, numbered,
-  each with its kind, center, extent, area or length, and region: leaks (voidEdge, belowUnderworld, noneRegion, outsideRegions),
-  disconnectedEntry, unreachedPlot, trap, viewRegion, unreachedZoneLine, unreachedSwim, unreachedPlayFloor, and undecidedWater (a pool
-  or river without swim boxes whose bed is walked); the largest twenty of a kind are listed, the rest counted in moreProblems. Refused:
+  back) hatched orange, walkable floor never reached cross-hatched dark, columns reached at a level under a higher one dotted (violet
+  where only a smaller player fits under it), void edges (a fall onto nothing) magenta, edges where a zone line catches a fall green,
+  zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X
+  when unreached), water and swim boxes, boundaries red, region outlines in their access colors, and the problems ringed and numbered,
+  with a legend band under the plan (plan.frameSize is the plan's own size in pixels). Picture 2 (problemViews, when there are
+  problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
+  its problem (ringed in the middle of the view) from a clear sight framing it, the eye raised no more than it must be and turned from
+  the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives the constants used (value and source),
+  what is not modelled and the lane's limits, reachGrid, whether the lane was computed or reused and the seconds, each entry and
+  whether it is connected (reached from the safe point and reaching back), the reached area by label, per region its access, reached
+  share of its play floor, and unreached play floor (walkable floor open space joins to the lane, never a boundary's top or floor under
+  the underworld), zone lines, plot entrances, and swim boxes reached or not, and the problems, numbered, each with its kind, center,
+  extent, area or length, and region: leaks (voidEdge, belowUnderworld, noneRegion, outsideRegions), disconnectedEntry, unreachedPlot,
+  trap, viewRegion, unreachedZoneLine, unreachedSwim, unreachedPlayFloor, and undecidedWater (a pool or river without swim boxes whose
+  bed is walked); the largest twenty of a kind are listed, the rest counted in moreProblems. Refused:
   no seeds, an entry off its footing, a seed with no lane node at its footing, the helper missing or stale (run syncTooling), no
   collision triangles, and a grid too large for the helper."""
   if center is not None and (len(center) != 2 or not all(math.isfinite(value) for value in center)):
@@ -2619,30 +2627,34 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   sky = await zoneSky(zone)
   lanePlan = laneDrawing.LanePlan(analysis, description, level, True)
   planWidth = width if width is not None else (bounds["maximum"][1] - bounds["minimum"][1]) * 1.05
-  planPath, base, drawn = await lanePlanRender(context, center, planWidth, lanePlan, ["boundaries"], sky)
+  planPath, base, drawn = await lanePlanRender(context, center, planWidth, lanePlan, lanePlanLayers, sky)
   across = (bounds["maximum"][0] - bounds["minimum"][0]) * 1.05
   if width is None and across > planWidth * base["height"] / base["width"]:
     planPath.unlink()
     planWidth = across * base["width"] / base["height"]
-    planPath, base, drawn = await lanePlanRender(context, center, planWidth, lanePlan, ["boundaries"], sky)
+    planPath, base, drawn = await lanePlanRender(context, center, planWidth, lanePlan, lanePlanLayers, sky)
   result = playerReach.report(lane, description, analysis, status, seconds)
-  result["plan"] = {"outputPath": str(planPath), "center": center, "width": round(planWidth, 2), "unitsPerPixel": round(planWidth / drawn["size"][0], 4), "level": level}
+  result["plan"] = {
+    "outputPath": str(planPath), "center": center, "width": round(planWidth, 2), "unitsPerPixel": round(planWidth / drawn["size"][0], 4), "level": level,
+    "frameSize": drawn["size"],
+  }
   images = [Image(data=planPath.read_bytes(), format="png")]
   result["problemSheet"] = None
   if problemViews and analysis["problems"]:
     emitters = await previewEmitterAssets()
     cells, views = [], []
-    for problem in analysis["problems"][:problemViewCount]:
-      view = problemView(analysis["nodes"], problem, analysis["members"][problem["number"]])
+    for problem, view, radius, distance in await chooseProblemViews(context, analysis, description, zone):
       if view is None:
-        views.append({"number": problem["number"], "view": None, "why": "no reached walkable floor stands far enough from it"})
+        views.append({"number": problem["number"], "view": None, "why": f"every sight to it from {len(playerReach.problemViewElevations) * len(playerReach.problemViewBearings)} eyes {distance:g} away is blocked"})
         continue
       viewPath = newRenderPath()
       await callBridge(context, "renderView", {
         "view": view, "outputPath": str(viewPath), "figureModel": None, "shading": "client", "bandHeight": 50.0, "guides": True, "sky": sky,
-        "swimVolumes": False, "labels": None, "emitters": emitters,
+        "swimVolumes": False, "labels": None, "emitters": emitters, "frame": problemViewFrame,
       })
-      cells.append((viewSheets.openRender(viewPath), f"{problem['number']} {problem['kind']}"))
+      image = viewSheets.openRender(viewPath)
+      laneDrawing.ringProblem(image, radius / distance, problemViewFrame["verticalFieldOfViewDegrees"], problem["number"])
+      cells.append((image, f"{problem['number']} {problem['kind']}"))
       views.append({"number": problem["number"], "view": view, "outputPath": str(viewPath)})
     cells.append((viewSheets.openRender(planPath), "the lane plan"))
     sheetPath = newRenderPath().with_suffix(".jpg")

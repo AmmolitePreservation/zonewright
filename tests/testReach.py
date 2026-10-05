@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import eqgFiles
 import playerReach
 import serverMapFiles
-from playerScale import steepestWalkableDegrees, stepHeight
+from playerScale import playerHeight, steepestWalkableDegrees, stepHeight
 from testHousing import decision
 from testWalkRoute import rampArguments
 from testModelsAndDressing import freshScene
@@ -27,8 +27,37 @@ edge = 239.9
 otherZone = {"zone": "qeynos2", "x": 0, "y": 0, "z": 0, "headingDegrees": 0}
 gentleDegrees = steepestWalkableDegrees - 5
 steepDegrees = steepestWalkableDegrees + 5
+containmentHeadroom = playerReach.movement()["containmentHeadroom"]
+# One lintel leaves a gap between the containment headroom and playerHeight, which only a smaller player passes; the other leaves less
+# than the containment headroom.
+squeezeLintel = (containmentHeadroom + playerHeight) / 2
+sealedLintel = containmentHeadroom / 2
+# A swim box whose bottom lies higher over the ground than players reach into from it, half a player deep, under a platform they drop
+# into it from.
+floatBottom = playerHeight + 2 * heightMargin
+floatTop = floatBottom + playerHeight / 2
+floatPlatform = floatTop + 2 * heightMargin
+# The diagonal wall runs along x - y = diagonalLine through grid corners between its ends, so it rasterizes as cells meeting only at their
+# corners, which a move between diagonal neighbours slips between.
+diagonalLine = 440.0
+diagonalEnds = (math.floor(edge / cellSize) * cellSize, math.ceil((diagonalLine - edge) / cellSize) * cellSize)
 # The lane's locations hold to one cell; a problem's center is the member nearest its middle.
 withinCell = cellSize * math.sqrt(2)
+
+
+def columnsOver(low, high):
+  """How many of the lane's columns, centered on multiples of cellSize, hold some of a span from low to high."""
+  return math.floor(high / cellSize + 0.5) - math.ceil(low / cellSize - 0.5) + 1
+
+
+def columnsWithin(low, high):
+  """How many of the lane's columns lie wholly between low and high."""
+  return math.floor(high / cellSize - 0.5) - math.ceil(low / cellSize + 0.5) + 1
+
+
+def centersWithin(low, high):
+  """How many of the lane's columns have their centers from low to high, ends included, as a region holds them."""
+  return math.floor(high / cellSize) - math.ceil(low / cellSize) + 1
 
 
 async def cube(session, name, minimum, maximum):
@@ -86,18 +115,19 @@ async def reachCourse(session, folder):
   # A platform whose north side is a face steeper than players walk, down to the ground.
   await rampAlongY(session, "slopeRamp", -60, 30 - 10 / math.tan(math.radians(30)), 10, 30)
   await cube(session, "slopePlatform", [-70, 30, 0], [-50, 50, 10])
-  run = 10 / math.tan(math.radians(80))
+  run = 10 / math.tan(math.radians(steepDegrees))
   await session.expectSuccess("createPrimitive", {
-    "kind": "plane", "name": "slideFace", "size": [10, 10 / math.sin(math.radians(80)), 0], "location": [-60, 50 + run / 2, 5], "rotationDegrees": [-80, 0, 0],
+    "kind": "plane", "name": "slideFace", "size": [10, 10 / math.sin(math.radians(steepDegrees)), 0], "location": [-60, 50 + run / 2, 5],
+    "rotationDegrees": [-steepDegrees, 0, 0],
   })
   # A pool's swim box on the ground, banked by blocks a margin under and over its top plus the step.
   await session.expectSuccess("placeSwimVolume", {"name": "pool", "liquid": "water", "minimum": [-130, 30, -1], "maximum": [-110, 50, 4]})
   await cube(session, "bankLow", [-110, 30, 0], [-100, 38, 4 + stepHeight - heightMargin])
   await cube(session, "bankHigh", [-110, 42, 0], [-100, 50, 4 + stepHeight + heightMargin])
   # A swim box floating higher over the ground than players reach into, beside a platform they walk off.
-  await rampAlongY(session, "floatRamp", -180, 21, 14, 45)
-  await cube(session, "floatPlatform", [-185, 35, 0], [-175, 45, 14])
-  await session.expectSuccess("placeSwimVolume", {"name": "floating", "liquid": "water", "minimum": [-175, 35, 8], "maximum": [-165, 45, 12]})
+  await rampAlongY(session, "floatRamp", -180, 35 - floatPlatform, floatPlatform, 45)
+  await cube(session, "floatPlatform", [-185, 35, 0], [-175, 45, floatPlatform])
+  await session.expectSuccess("placeSwimVolume", {"name": "floating", "liquid": "water", "minimum": [-175, 35, floatBottom], "maximum": [-165, 45, floatTop]})
   # A lake without swim boxes.
   await liquidMaterials(session, folder)
   await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[-180, -100, -10]], "radius": 30, "strength": 1, "profile": [[0, 0], [1, 10]], "conformRim": False})
@@ -105,12 +135,13 @@ async def reachCourse(session, folder):
   # A walled yard whose only way in is a gap of twice the cell size and a margin, off the cell lines.
   await wall(session, "yardWall", [[38.3, -70], [30, -70], [30, -50], [50, -50], [50, -70], [38.3 + 2 * cellSize + gapMargin, -70]])
   # A wall across a corner at 45 degrees, with ground on both sides.
-  await wall(session, "diagonal", [[edge, -200], [200, -edge]])
-  # A room under a wall raised less than a player's height (only a smaller player passes), one under a wall raised less than a cell,
-  # and one walled all round.
-  await cube(session, "squeezeLintel", [-60, 158, 3], [-40, 160, wallHeight])
+  first, last = diagonalEnds
+  await wall(session, "diagonal", [[edge, -200], [first, first - diagonalLine], [last, last - diagonalLine], [200, -edge]])
+  # A room under a wall raised less than a player's height (only a smaller player passes), one under a wall raised less than the
+  # containment headroom, and one walled all round.
+  await cube(session, "squeezeLintel", [-60, 158, squeezeLintel], [-40, 160, wallHeight])
   await wall(session, "squeezeRoomWall", [[-60, 158], [-60, 180], [-40, 180], [-40, 158]])
-  await cube(session, "sealedLintel", [-20, 158, 0.1], [0, 160, wallHeight])
+  await cube(session, "sealedLintel", [-20, 158, sealedLintel], [0, 160, wallHeight])
   await wall(session, "sealedRoomWall", [[-20, 158], [-20, 180], [0, 180], [0, 158]])
   await wall(session, "closedRoomWall", [[20, 160], [20, 180], [40, 180], [40, 160], [20, 160]])
   # The ground's edge, walled but for an open stretch, the foot of a face sliding off the edge, and a stretch over a zone line.
@@ -121,9 +152,10 @@ async def reachCourse(session, folder):
   await wall(session, "edgeHighA", [[edge, edge], [edge, -80]])
   await wall(session, "edgeHighB", [[edge, -100], [edge, -200]])
   await wall(session, "edgeYLow", [[200, -edge], [-edge, -edge]])
-  run = 20 / math.tan(math.radians(80))
+  run = 20 / math.tan(math.radians(steepDegrees))
   await session.expectSuccess("createPrimitive", {
-    "kind": "plane", "name": "slideOff", "size": [20 / math.sin(math.radians(80)), 12, 0], "location": [-240 - run / 2, 66, -10], "rotationDegrees": [0, -80, 0],
+    "kind": "plane", "name": "slideOff", "size": [20 / math.sin(math.radians(steepDegrees)), 12, 0], "location": [-240 - run / 2, 66, -10],
+    "rotationDegrees": [0, -steepDegrees, 0],
   })
   await session.expectSuccess("placeZoneLine", {"number": 5, "label": "catch", "minimum": [240, -105, -60], "maximum": [250, -75, -20], "target": otherZone})
   # A corridor closed by a zone line, a zone line leading back into the zone onto a tower, and a deck seen but not entered.
@@ -164,7 +196,7 @@ probes = {
   "pool": ([-120, 40, 0], "swim"),
   "low bank": ([-105, 34, 4 + stepHeight - heightMargin], "walk"),
   "high bank": ([-105, 46, 4 + stepHeight + heightMargin], "unreached"),
-  "float platform": ([-180, 40, 14], "walk"),
+  "float platform": ([-180, 40, floatPlatform], "walk"),
   "lake bed": ([-180, -100, -10], "walk"),
   "yard": ([40, -60, 0], "walk"),
   "near the diagonal": ([205, -205, 0], "walk"),
@@ -174,7 +206,7 @@ probes = {
   "sealed room": ([-10, 170, 0], "unreached"),
   "closed room": ([30, 170, 0], "unreached"),
   "corridor": ([110, 103, 0], "walk"),
-  "in the zone line": ([118.5, 103, 0], "zoneLine"),
+  "in the zone line": ([118, 103, 0], "zoneLine"),
   "past the zone line": ([155, 103, 0], "unreached"),
   "tower": ([90, -120, 30], "walk"),
   "slide off": ([-241.5, 66, -3], "slide"),
@@ -183,7 +215,7 @@ probes = {
   "far strip": ([0, 220, 0], "walk"),
   "deck": ([120, -30, 0], "walk"),
 }
-wetProbes = {"floating box": ([-170, 40, 10], "swim")}
+wetProbes = {"floating box": ([-170, 40, (floatBottom + floatTop) / 2], "swim")}
 
 
 def nodeAt(nodes, point, wet=False):
@@ -272,26 +304,30 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   byKind = {}
   for problem in reached["problems"]:
     byKind.setdefault(problem["kind"], []).append(problem)
-  # The open stretch of edge, thirty units, falls onto nothing beside it; the face sliding off the edge ends over nothing.
+  # The open stretch of edge falls onto nothing beside it, along every column wholly between the walls' ends; the face sliding off the
+  # edge ends over nothing just past its foot, and is itself a trap.
   openEdge, slideOff = sorted(byKind["voidEdge"], key=lambda problem: problem["center"][1])
-  assert near(openEdge["center"], [-240.5, -25]) and openEdge["length"] == 30.0
-  assert openEdge["extent"]["minimum"][1] == -40.0 and openEdge["extent"]["maximum"][1] == -10.0
-  assert slideOff["extent"]["minimum"][0] < -241 and 60 <= slideOff["center"][1] <= 72
-  assert near(byKind["noneRegion"][0]["center"], [-50, 169.5], 2 * withinCell)
-  assert 200 <= byKind["outsideRegions"][0]["center"][1] <= 240
+  assert near(openEdge["center"], [-240 - cellSize, -25]) and openEdge["length"] == columnsWithin(-40, -10) * cellSize
+  assert (openEdge["extent"]["minimum"][1], openEdge["extent"]["maximum"][1]) == (-40 + cellSize / 2, -10 - cellSize / 2)
+  slideRun = 20 / math.tan(math.radians(steepDegrees))
+  assert near(slideOff["center"], [-240 - slideRun - cellSize, 66])
+  assert near(byKind["noneRegion"][0]["center"], [-50, 169])
+  assert near(byKind["outsideRegions"][0]["center"], [0, 220])
   assert byKind["disconnectedEntry"][0]["entry"] == "stranded" and byKind["unreachedPlot"][0]["plot"] == "2 Closed Street"
   pitTrap, slideTrap = sorted(byKind["trap"], key=lambda problem: problem["center"][0])[::-1]
-  # The pit's floor is 10 x 10; the faces of the ledge and the west wall stand on its column lines and fill the row and column beside
-  # them, leaving 9 x 9.
-  assert near(pitTrap["center"], [160, 55], 2 * withinCell) and pitTrap["area"] == 81.0
-  assert slideTrap["center"][0] < -240
-  assert near(byKind["viewRegion"][0]["center"], [120, -30], 2 * withinCell) and byKind["viewRegion"][0]["area"] == 800.0
-  # Each block top players never reach, with the rim its faces leave a column wide on two sides.
+  # The pit is the floor wholly between its walls and the ledge's face.
+  assert near(pitTrap["center"], [160, 55]) and pitTrap["area"] == columnsWithin(155, 165) * columnsWithin(50, 60) * cellSize ** 2
+  assert near(slideTrap["center"], [-240 - slideRun / 2, 66])
+  assert near(byKind["viewRegion"][0]["center"], [120, -30]) and byKind["viewRegion"][0]["area"] == centersWithin(100, 140) * centersWithin(-40, -20) * cellSize ** 2
+  # Each block top players never reach: every column holding some of it.
   unreachedFloors = sorted((problem["center"][:2], problem["area"]) for problem in byKind["unreachedPlayFloor"])
-  for (found, area), (expected, top) in zip(unreachedFloors, sorted([((-105, 46), 80), ((40, 70), 100), ((110, 43), 100)])):
-    assert near(found, expected, 2 * withinCell) and top <= area <= top + 2 * math.sqrt(top) + 1
-  assert reached["moreProblems"] == {"unreachedPlayFloorSlivers": {"count": 2, "area": 4.0, "under": (2 * cellSize) ** 2}}
-  assert byKind["undecidedWater"][0]["body"] == "lake" and near(byKind["undecidedWater"][0]["center"], [-180, -100], 25)
+  steepTop = 35 + 10 / math.tan(math.radians(steepDegrees))
+  blocks = sorted([((-105, 46), (-110, -100, 42, 50)), ((40, 70), (35, 45, 65, 75)), ((110, steepTop + 5), (105, 115, steepTop, steepTop + 10))])
+  for (found, area), (expected, (lowX, highX, lowY, highY)) in zip(unreachedFloors, blocks):
+    assert near(found, expected) and area == columnsOver(lowX, highX) * columnsOver(lowY, highY) * cellSize ** 2
+  # Floor too small to be a place is counted apart: a cell at each end of the diagonal wall, where it joins the edge walls.
+  assert reached["moreProblems"] == {"unreachedPlayFloorSlivers": {"count": 2, "area": 2 * cellSize ** 2, "under": (2 * cellSize) ** 2}}
+  assert byKind["undecidedWater"][0]["body"] == "lake" and near(byKind["undecidedWater"][0]["center"], [-180, -100])
   # Everything reached is labelled; the area of each label sums to the reached nodes.
   area = cellSize * cellSize
   assert sum(value for name, value in reached["reachedArea"].items() if name != "trap") == float(nodes.reached.sum()) * area
@@ -418,3 +454,93 @@ def testLaneKeySurvivesSaveReopenAndRestart(freshBlenderServer, tmp_path):
   assert (first["lane"], reopened["lane"], restarted["lane"]) == ("computed", "reused", "reused")
   assert first["laneFile"] == reopened["laneFile"] == restarted["laneFile"]
   assert Path(first["laneFile"]).parent.name.startswith("keptlane-")
+
+
+# Walking down the bowl crosses the underworld a step under it; the block rises more than a step, and the lid, the zone line, and the
+# swim box hang higher over the ground than any move reaches.
+underworld = -(stepHeight + heightMargin)
+bowlCenter, bowlRadius = (40, 40), 24
+blockHeight = stepHeight + 2 * heightMargin
+lidHeight = blockHeight + 2 * playerHeight
+highLine = ([-60, 40, lidHeight], [-40, 60, lidHeight + playerHeight])
+highPool = ([20, -60, lidHeight], [40, -40, lidHeight + playerHeight])
+
+
+async def underworldAndLid(session):
+  """A walled ground in one play region over an underworld, with a smooth bowl walked down under it, a block under a lid, and a zone
+  line and a swim box floating out of reach."""
+  await freshScene(session)
+  await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [160, 160], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
+  await session.expectSuccess("setZoneProperties", environment | {"safePoint": [0, 0, 0, 0], "underworld": underworld, "shortName": "underworld"})
+  await session.expectSuccess("sculptAtPoint", {"objectName": "ground", "mode": "lower", "center": [*bowlCenter, 0], "radius": bowlRadius, "strength": 15, "falloff": "smooth"})
+  await wall(session, "rim", [[-79.9, -79.9], [79.9, -79.9], [79.9, 79.9], [-79.9, 79.9], [-79.9, -79.9]])
+  await cube(session, "coveredBlock", [-50, -50, 0], [-30, -30, blockHeight])
+  await session.expectSuccess("placeBoundaryPlane", {"name": "lid", "kind": "lid", "outline": rectangle([-80, -80], [-10, -10]), "height": lidHeight})
+  await session.expectSuccess("placeZoneLine", {"number": 1, "label": "high", "minimum": highLine[0], "maximum": highLine[1], "target": otherZone})
+  await session.expectSuccess("placeSwimVolume", {"name": "highPool", "liquid": "water", "minimum": highPool[0], "maximum": highPool[1]})
+  await region(session, "all", rectangle([-80, -80], [80, 80]), "play", bottom=-60, top=60)
+
+
+def testLaneLeaksUnderTheUnderworldAndListsWhatNoOneReachesUnderALid(stageBlenderServer):
+  async def steps(session):
+    await underworldAndLid(session)
+    _, reached = await session.expectImage("mapReach", {"problemViews": False})
+    return reached
+
+  reached = stageBlenderServer.session(steps)
+  nodes = playerReach.Nodes(playerReach.Lane(reached["laneFile"]))
+  assert [(problem["kind"], problem["region"]) for problem in reached["problems"]] == [
+    ("belowUnderworld", "all"), ("unreachedZoneLine", "all"), ("unreachedSwim", "all"), ("unreachedPlayFloor", "all"),
+  ]
+  byKind = {problem["kind"]: problem for problem in reached["problems"]}
+  # Players walk down the bowl to the underworld and no further: the floor under it is never reached, and the leak runs round the bowl.
+  under = ~nodes.wet & nodes.walkable & (nodes.height < underworld)
+  assert under.sum() > 0 and not (under & nodes.reached).any()
+  leak = byKind["belowUnderworld"]
+  assert leak["center"][2] < underworld and math.dist(leak["center"][:2], bowlCenter) < bowlRadius
+  assert all(math.dist(corner, bowlCenter) < bowlRadius * math.sqrt(2) for corner in (leak["extent"]["minimum"][:2], leak["extent"]["maximum"][:2]))
+  assert not any("no underworld is set" in limit for limit in reached["limits"])
+  # The zone line and the swim box no move reaches are listed at their centers.
+  assert byKind["unreachedZoneLine"]["zoneLine"] == "ATP_1_high" and byKind["unreachedZoneLine"]["center"] == [(low + high) / 2 for low, high in zip(*highLine)]
+  assert byKind["unreachedSwim"]["swimBox"] == "AWT_highPool" and byKind["unreachedSwim"]["center"] == [(low + high) / 2 for low, high in zip(*highPool)]
+  # The block's top under the lid is play floor no one reaches; the lid's own top, a boundary, is not, though it lies walkable and open
+  # to the sky in the same play region.
+  floor = byKind["unreachedPlayFloor"]
+  assert near(floor["center"], [-40, -40]) and abs(floor["center"][2] - blockHeight) <= heightMargin and 400 <= floor["area"] <= 400 + 2 * math.sqrt(400) + 1
+  lidTop = nodes.floorNodeAt([-70, -70, lidHeight])
+  assert bool(nodes.walkable[lidTop]) and nodes.shape[lidTop] & playerReach.boundaryShape and not nodes.reached[lidTop]
+  slivers = reached["moreProblems"].get("unreachedPlayFloorSlivers", {"area": 0.0})["area"]
+  assert reached["regions"] == [{"name": "all", "access": "play", "reachedShare": reached["regions"][0]["reachedShare"], "unreachedPlayFloor": floor["area"] + slivers}]
+
+
+def testLaneKeyFollowsSwimBoxesZoneLinesAndTheUnderworld(stageBlenderServer):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [64, 64], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("setZoneProperties", environment | {"safePoint": [0, 0, 0, 0]})
+    await session.expectSuccess("placeSwimVolume", {"name": "pond", "liquid": "water", "minimum": [-20, -20, -1], "maximum": [-10, -10, 3]})
+    await session.expectSuccess("placeZoneLine", {"number": 1, "label": "gate", "minimum": [20, -5, -5], "maximum": [25, 5, 10], "target": otherZone})
+    lanes = []
+
+    async def lane():
+      _, reached = await session.expectImage("mapReach", {"problemViews": False})
+      lanes.append((reached["lane"], reached["laneFile"]))
+
+    await lane()
+    await lane()
+    await session.expectSuccess("transformObjects", {"names": ["AWT_pond"], "translate": [0, 0, 1]})
+    await lane()
+    await session.expectSuccess("transformObjects", {"names": ["ATP_1_gate"], "translate": [0, 2, 0]})
+    await lane()
+    await session.expectSuccess("setZoneProperties", {"underworld": -20})
+    await lane()
+    await session.expectSuccess("setZoneProperties", {"underworld": -30})
+    await lane()
+    return lanes
+
+  lanes = stageBlenderServer.session(steps)
+  # The same scene reuses its lane; moving the swim box, moving the zone line, setting the underworld, and moving it each computes a new
+  # one.
+  assert [status for status, _ in lanes] == ["computed", "reused", "computed", "computed", "computed", "computed"]
+  files = [path for _, path in lanes]
+  assert files[0] == files[1] and len(set(files)) == 5

@@ -29,7 +29,8 @@ import toolingManifest
 
 # Chosen by measurement (README, Recast helper): at cellSize 1 the canyonhousing copy (8,448 x 4,224) takes 14 s and 1.1 GB
 # in the helper and Highpass Hold 1.4 s; 0.5 reaches the same area within 1% and takes the canyon to 56 s and 4.4 GB; 4 and 8 cut
-# every face steeper than about 48 and 29 degrees, whose rise per column passes the step, and reach 77% and 9% of Highpass Hold.
+# every face steeper than about 48 and 29 degrees, whose rise per column passes the step, and reach 77% and 9% of Highpass Hold. The
+# helper centers its columns on multiples of cellSize.
 reachGrid = {"cellSize": 1.0, "cellHeight": 0.25, "tileCells": 256}
 keptLanes = 3
 untitledFolder = "untitled"
@@ -38,16 +39,23 @@ footingSearch = {"above": buildTolerances.groundSearchAbove, "below": buildToler
 # Problems gather the columns they hold into blocks this wide, joined where blocks touch, so one leak is one problem.
 problemBlock = 8.0
 problemsListed = 20
+# A problem is viewed from an eye problemViewFrame times its radius back from it, which frames it in the middle of a problem view's
+# field, and never nearer than problemViewDistance; the eye is raised by each elevation in turn, steeper only where a lower one is
+# blocked, and turned to each bearing (degrees from the side of the reached floor nearest it).
+problemViewFrame = 3.0
+problemViewDistance = 4 * playerScale.playerHeight
+problemViewElevations = (30.0, 50.0, 70.0, 85.0)
+problemViewBearings = (0, 45, -45, 90, -90, 135, -135, 180)
+problemViewLift = 1.0
 
 laneHeader = struct.Struct("<8s3f2f4iI")
 laneMagic = b"ZWLANE01"
 moveNames = ("unreached", "seed", "walk", "drop", "slide", "enterWater", "swim", "climbOut", "sink", "teleport")
 labelNames = ("unreached", "walk", "swim", "slide", "squeeze", "zoneLine")
 unreachedLabel, walkLabel, swimLabel, slideLabel, squeezeLabel, zoneLineLabel = range(6)
-wetShape, walkableShape, absorbedShape, touchesLineShape = 1, 2, 4, 8
-reachedFullState, reachedState, trapState, fromSafeState, toSafeState = 1, 2, 4, 8, 16
+wetShape, walkableShape, absorbedShape, touchesLineShape, boundaryShape = 1, 2, 4, 8, 16
+reachedFullState, reachedState, trapState, fromSafeState, toSafeState, openState = 1, 2, 4, 8, 16, 128
 voidEvent, belowUnderworldEvent, absorbedEvent = 1, 2, 3
-openSky = 0xFFFF
 problemKinds = (
   "voidEdge", "belowUnderworld", "noneRegion", "outsideRegions", "disconnectedEntry", "unreachedPlot", "trap", "viewRegion",
   "unreachedZoneLine", "unreachedSwim", "unreachedPlayFloor", "undecidedWater",
@@ -56,6 +64,10 @@ notModeled = [
   "jumps", "levitation", "the camera",
   "doors: taken as open, though the RoF2 client collides with a door in its closed position, so a closed door can block a way the lane shows",
   "NPCs", "players wider than a point (playerRadius is unmeasured): a gap narrower than a player reads as passable",
+  "swimming depth: in the RoF2 walk the client swam a player only where the water over the floor was deeper than his avatarHeight (3.75"
+  " for the walked human, playerScale.sources) and then floated him 0.10 under the box's top; avatarHeight is not in playerScale, so the"
+  " lane swims in a box at any depth: shallow water's floor is labelled swim, and a swimmer there climbs out onto floor up to the box's"
+  " top + stepHeight where a wading player climbs stepHeight over the floor, which errs toward reach",
 ]
 
 
@@ -84,22 +96,25 @@ def constantsReport():
   return used
 
 
-def limits(lane, underworld):
-  """What can make a lane wrong in either direction besides notModeled."""
+def limits(lane, underworld, boundariesKnown):
+  """What can make a lane wrong in either direction besides notModeled; boundariesKnown false for a lane from server files."""
   smallest = smallestPlayerHeight()
   headroom = movement()["containmentHeadroom"]
   stated = [
     f"a gap narrower than 2 x cellSize ({2 * lane.cellSize:g}) may rasterize closed and read as no way through: containment holds only for gaps at least that wide",
     f"containment floods with {headroom:g} of headroom ({'smallestPlayerHeight' if smallest is not None else 'one cell height, smallestPlayerHeight being unmeasured'}),"
     f" the design player with playerHeight {playerScale.playerHeight:g}; what only the smaller fits is labelled squeeze",
-    f"players enter a swim box whose bottom lies within playerHeight ({playerScale.playerHeight:g}) of the floor: where the client starts a player"
-    " swimming is unmeasured, and a taller race may reach a box set higher",
+    f"players enter a swim box whose bottom lies within playerHeight ({playerScale.playerHeight:g}) of the floor, so a box floating higher is"
+    " entered only from above: an assumption, as a taller race may reach a box set higher",
     f"swimming between columns takes {headroom:g} of open overlap, an assumption until the bot measures it",
     "a zone line takes a player whose floor point (the column's center, one cell height over the floor) lies in its box: the client's own"
     " test point is unmeasured, so the lane errs toward reach continuing",
-    "unreached play floor is listed only under open sky: the lane is built from surfaces, so the inside of a closed solid holds floor no"
-    " one reaches, and roofed floor nobody reaches (a sealed room, a cave) is left out with it",
+    "unreached play floor is walkable floor in a play region that open space joins to the lane, at any rise: the lane is built from"
+    " surfaces, so the inside of a closed solid holds floor no one reaches, and floor sealed off as it is (a sealed room) is left out"
+    " with it; a boundary's top and floor under the underworld are never play floor",
   ]
+  if not boundariesKnown:
+    stated.append("server files do not say which collision is a boundary, so a lid's top that open space joins to the lane reads as unreached play floor")
   if underworld is None:
     stated.append("no underworld is set (setZoneProperties): only a fall onto nothing reads as a leak, never one below the underworld")
   return stated
@@ -126,10 +141,10 @@ def quantized(values):
   return numpy.rint(numpy.asarray(values, dtype=numpy.float64) * 1000).astype(numpy.int64)
 
 
-def laneKey(fingerprint, triangles, description):
-  """SHA-256 of the helper's build, the grid, the movement and footing search, the triangles (rounded to 1e-3, rows sorted), and the
-  boxes, zone lines and their landings, seeds, and underworld."""
-  rows = quantized(triangles).reshape(-1, 9)
+def laneKey(fingerprint, triangles, boundary, description):
+  """SHA-256 of the helper's build, the grid, the movement and footing search, the triangles (rounded to 1e-3, each with whether it is a
+  boundary's, rows sorted), and the boxes, zone lines and their landings, seeds, and underworld."""
+  rows = numpy.concatenate([quantized(triangles).reshape(-1, 9), numpy.asarray(boundary, dtype=numpy.int64).reshape(-1, 1)], axis=1)
   rows = rows[numpy.lexsort(rows.T[::-1])] if len(rows) else rows
   digest = hashlib.sha256()
   digest.update(fingerprint.encode("ascii"))
@@ -173,14 +188,14 @@ def requireTriangles(triangles):
     raise ToolError("The zone ships no collision triangles, so players stand on nothing: there is no lane")
 
 
-def computeLane(toolingRoot, folder, triangles, description, reportProgress):
-  """The lane for collision triangles (zone axes, [n, 3, 3]) and a description (swimBoxes, zoneLines, seeds, underworld), reused when
-  one of its key is kept: (Lane, "computed" or "reused", seconds)."""
+def computeLane(toolingRoot, folder, triangles, boundary, description, reportProgress):
+  """The lane for collision triangles (zone axes, [n, 3, 3]), which of them are a boundary's ([n] booleans), and a description
+  (swimBoxes, zoneLines, seeds, underworld), reused when one of its key is kept: (Lane, "computed" or "reused", seconds)."""
   started = time.perf_counter()
   requireTriangles(triangles)
   if not description["seeds"]:
     raise ToolError("The lane has no seeds: set the safe point (setZoneProperties safePoint) or placeEntry where players arrive")
-  key = laneKey(helperFingerprint(toolingRoot), triangles, description)
+  key = laneKey(helperFingerprint(toolingRoot), triangles, boundary, description)
   folder.mkdir(parents=True, exist_ok=True)
   lanePath = folder / f"lane-{key}.bin"
   if lanePath.is_file():
@@ -188,7 +203,8 @@ def computeLane(toolingRoot, folder, triangles, description, reportProgress):
     return Lane(lanePath), "reused", round(time.perf_counter() - started, 2)
   safeSeeds = [index for index, seed in enumerate(description["seeds"]) if seed["kind"] == "safePoint"]
   inputBytes = recastHelper.reachInput(
-    eqAxes.recastFromZone(numpy.asarray(triangles, dtype=numpy.float32)), reachGrid, movement(), footingSearch, description["underworld"],
+    eqAxes.recastFromZone(numpy.asarray(triangles, dtype=numpy.float32)), numpy.asarray(boundary, dtype=bool), reachGrid, movement(), footingSearch,
+    description["underworld"],
     machineProfile.workerCount(),
     [recastBox(box["low"], box["high"]) for box in description["swimBoxes"]],
     [recastBox(line["low"], line["high"]) | {"target": None if line["landing"] is None else eqAxes.recastFromZone(numpy.array(line["landing"])).tolist()} for line in description["zoneLines"]],
@@ -278,10 +294,10 @@ class Lane:
 
 
 def sceneDescription(inputPath):
-  """The lane's triangles and description from bridgeLane.laneInput's file, refusing what no lane can start from: a stored entry off its
-  footing, a seed without footing."""
+  """The lane's triangles, which of them are a boundary's, and its description from bridgeLane.laneInput's file, refusing what no lane
+  can start from: a stored entry off its footing, a seed without footing."""
   with numpy.load(inputPath, allow_pickle=False) as loaded:
-    triangles = loaded["collision"]
+    triangles, boundary = loaded["collision"], loaded["boundary"]
     requireTriangles(triangles)
     scene = json.loads(str(loaded["description"]))
     bodies = [{"name": name, "triangles": loaded[f"undecided{index}"]} for index, name in enumerate(scene["undecidedBodies"])]
@@ -309,17 +325,17 @@ def sceneDescription(inputPath):
   for box in scene["swimBoxes"]:
     low, high = zoneBox(box["center"], box["halfExtents"])
     swimBoxes.append({"name": box["name"], "low": low, "high": high})
-  return triangles, {
+  return triangles, boundary, {
     "swimBoxes": swimBoxes, "zoneLines": zoneLines, "seeds": seeds, "plotEntrances": plots, "regions": scene["regions"],
-    "underworld": scene["underworld"], "undecidedBodies": bodies, "notFollowed": scene["notFollowed"],
+    "underworld": scene["underworld"], "undecidedBodies": bodies, "notFollowed": scene["notFollowed"], "boundariesKnown": True,
   }
 
 
 def currentLane(toolingRoot, workFile, inputPath, reportProgress):
   """The lane of the open scene, from bridgeLane.laneInput's file: (Lane, description, "computed" or "reused", seconds). Every consumer
   takes the lane from here, so nothing is recomputed silently."""
-  triangles, description = sceneDescription(inputPath)
-  lane, status, seconds = computeLane(toolingRoot, laneFolder(toolingRoot, workFile), triangles, description, reportProgress)
+  triangles, boundary, description = sceneDescription(inputPath)
+  lane, status, seconds = computeLane(toolingRoot, laneFolder(toolingRoot, workFile), triangles, boundary, description, reportProgress)
   description["bounds"] = shippedBounds(triangles)
   return lane, description, status, seconds
 
@@ -383,9 +399,10 @@ def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress
   described.sort(key=lambda seed: seed["kind"] != "safePoint")
   description = {
     "swimBoxes": swimBoxes, "zoneLines": zoneLines, "seeds": described, "plotEntrances": list(plots or []), "regions": list(regions or []),
-    "underworld": None, "undecidedBodies": [], "notFollowed": [], "ignoredRegions": ignored,
+    "underworld": None, "undecidedBodies": [], "notFollowed": [], "ignoredRegions": ignored, "boundariesKnown": False,
   }
-  lane, status, seconds = computeLane(toolingRoot, reachRoot(toolingRoot) / serverFilesFolder, triangles, description, reportProgress)
+  boundary = numpy.zeros(len(triangles), dtype=bool)
+  lane, status, seconds = computeLane(toolingRoot, reachRoot(toolingRoot) / serverFilesFolder, triangles, boundary, description, reportProgress)
   description["bounds"] = shippedBounds(triangles)
   return lane, description, status, seconds
 
@@ -448,8 +465,9 @@ class Nodes:
 
 
 def polygonMask(lane, outline):
-  """Which columns' centers lie inside an outline ([x, y] zone points), as a (columnsZ, columnsX) array: along each row of columns,
-  every edge crossing the row's center line turns the columns past it in or out."""
+  """Which columns' centers lie inside an outline ([x, y] zone points) or on it, as a (columnsZ, columnsX) array: along each row of
+  columns, every edge crossing the row's center line turns the columns past it in or out; and a column whose center lies on an edge is
+  in, so an outline drawn on whole coordinates, through the columns' centers, holds the columns along both its sides alike."""
   start = numpy.asarray(outline, dtype=numpy.float64)
   end = numpy.roll(start, -1, axis=0)
   rows = lane.origin[2] + (numpy.arange(lane.columnsZ) + 0.5) * lane.cellSize
@@ -460,7 +478,20 @@ def polygonMask(lane, outline):
   first = numpy.clip(numpy.ceil((crossing - lane.origin[0]) / lane.cellSize - 0.5), 0, lane.columnsX).astype(numpy.int64)
   turns = numpy.zeros((lane.columnsZ, lane.columnsX + 1), dtype=bool)
   numpy.bitwise_xor.at(turns, (row, first), True)
-  return numpy.logical_xor.accumulate(turns, axis=1)[:, :lane.columnsX]
+  mask = numpy.logical_xor.accumulate(turns, axis=1)[:, :lane.columnsX]
+  for (x1, y1), (x2, y2) in zip(start, end):
+    onRows = numpy.arange(math.ceil((min(x1, x2) - lane.origin[2]) / lane.cellSize - 0.5 - 1e-6), math.floor((max(x1, x2) - lane.origin[2]) / lane.cellSize - 0.5 + 1e-6) + 1)
+    onRows = onRows[(onRows >= 0) & (onRows < lane.columnsZ)]
+    if x1 == x2:
+      across = numpy.arange(math.ceil((min(y1, y2) - lane.origin[0]) / lane.cellSize - 0.5 - 1e-6), math.floor((max(y1, y2) - lane.origin[0]) / lane.cellSize - 0.5 + 1e-6) + 1)
+      across = across[(across >= 0) & (across < lane.columnsX)]
+      mask[numpy.ix_(onRows, across)] = True
+      continue
+    column = (y1 + (rows[onRows] - x1) * (y2 - y1) / (x2 - x1) - lane.origin[0]) / lane.cellSize - 0.5
+    nearest = numpy.rint(column).astype(numpy.int64)
+    centered = (numpy.abs(column - nearest) < 1e-6) & (nearest >= 0) & (nearest < lane.columnsX)
+    mask[onRows[centered], nearest[centered]] = True
+  return mask
 
 
 def outlineArea(outline):
@@ -555,7 +586,7 @@ def describeGroup(kind, lane, planX, planY, height, regionIndex, regions, length
 
 
 def groupedProblems(kind, lane, selected, nodes, regionOfNode, regions):
-  """One problem per group of the selected nodes' columns, each holding its member nodes under "members"."""
+  """One problem per group of the selected nodes' columns."""
   chosen = numpy.flatnonzero(selected)
   if not len(chosen):
     return []
@@ -565,13 +596,13 @@ def groupedProblems(kind, lane, selected, nodes, regionOfNode, regions):
   problems = []
   for part in (chosen[indices] for indices in numpy.split(order, bounds)):
     planX, planY = nodes.plan(part)
-    problems.append(describeGroup(kind, lane, planX, planY, nodes.height[part], regionOfNode[part], regions) | {"members": part})
+    problems.append(describeGroup(kind, lane, planX, planY, nodes.height[part], regionOfNode[part], regions))
   return problems
 
 
 def eventProblems(kind, eventKind, lane, nodes, regionOfNode, regions):
   """One problem per run of the lane's events of a kind, grouped by the columns they fall into: a void edge, or a fall under the
-  underworld. Each holds the nodes the falls start from under "members"."""
+  underworld, each in the region the falls start from."""
   events = lane.events[lane.events[:, 0] == eventKind]
   if not len(events):
     return []
@@ -584,7 +615,7 @@ def eventProblems(kind, eventKind, lane, nodes, regionOfNode, regions):
   problems = []
   for group in numpy.unique(numbered):
     part = numbered == group
-    problems.append(describeGroup(kind, lane, planX[part], planY[part], height[part], sources[part], regions, length=True) | {"members": numpy.unique(events[part, 1])})
+    problems.append(describeGroup(kind, lane, planX[part], planY[part], height[part], sources[part], regions, length=True))
   return problems
 
 
@@ -595,6 +626,17 @@ def bodyFootprint(lane, triangles):
   for triangle in numpy.asarray(triangles, dtype=numpy.float64):
     draw.polygon([((point[1] - lane.origin[0]) / lane.cellSize - 0.5, (point[0] - lane.origin[2]) / lane.cellSize - 0.5) for point in triangle], fill=1)
   return numpy.asarray(image, dtype=bool), float(numpy.asarray(triangles)[..., 2].max())
+
+
+def playFloorOf(nodes, underworld):
+  """Which nodes are floor a player could be meant to stand on: walkable, dry, not taken by a zone line, not a boundary's top, not under
+  the underworld, and joined to the lane by open space (reached, or open: the inside of a closed solid and a sealed room are not)."""
+  floor = nodes.walkable & ~nodes.wet & ((nodes.shape & (absorbedShape | boundaryShape)) == 0) & ((nodes.state & openState) != 0)
+  if underworld is not None:
+    lowest = math.ceil((underworld - nodes.lane.origin[1]) / nodes.lane.cellHeight)
+    if lowest > 0:
+      floor &= nodes.low >= numpy.uint16(min(lowest, numpy.iinfo(numpy.uint16).max))
+  return floor
 
 
 def analyse(lane, description):
@@ -628,10 +670,10 @@ def analyse(lane, description):
   area = lane.cellSize * lane.cellSize
   reachedArea = {name: round(float((nodes.label == index).sum()) * area, 1) for index, name in enumerate(labelNames) if index != unreachedLabel}
   reachedArea["trap"] = round(float(nodes.trap.sum()) * area, 1)
-  walkableFloor = nodes.walkable & ~nodes.wet & ((nodes.shape & absorbedShape) == 0)
+  playFloor = playFloorOf(nodes, description["underworld"])
   perRegion = []
   for index, region in enumerate(regions):
-    inside = walkableFloor & (regionOfNode == index)
+    inside = playFloor & (regionOfNode == index)
     total, reached = int(inside.sum()), int((inside & nodes.reached).sum())
     perRegion.append({
       "name": region["name"], "access": region["access"], "reachedShare": None if total == 0 else round(reached / total, 4),
@@ -659,8 +701,7 @@ def analyse(lane, description):
   for box, reported in zip(description["swimBoxes"], swimBoxes):
     if not reported["reached"]:
       problems["unreachedSwim"].append({"kind": "unreachedSwim", "swimBox": box["name"], "center": [round((a + b) / 2, 1) for a, b in zip(box["low"], box["high"])], "region": None})
-  openToSky = nodes.high == openSky
-  problems["unreachedPlayFloor"] = groupedProblems("unreachedPlayFloor", lane, walkableFloor & ~nodes.reached & (nodeAccess == 0) & openToSky, nodes, regionOfNode, regions)
+  problems["unreachedPlayFloor"] = groupedProblems("unreachedPlayFloor", lane, playFloor & ~nodes.reached & (nodeAccess == 0), nodes, regionOfNode, regions)
   for body in description["undecidedBodies"]:
     footprint, surface = bodyFootprint(lane, body["triangles"])
     walked = nodes.reached & ~nodes.wet & footprint[nodes.z, nodes.x] & (nodes.height < surface)
@@ -682,12 +723,10 @@ def analyse(lane, description):
     if len(found) > problemsListed:
       rest = found[problemsListed:]
       more[kind] = {"count": len(rest), "area": round(sum(problem.get("area", 0) for problem in rest), 1), "length": round(sum(problem.get("length", 0) for problem in rest), 1)}
-  members = {}
   for number, problem in enumerate(listed, 1):
     problem["number"] = number
-    members[number] = problem.pop("members", None)
   return {
-    "nodes": nodes, "regionOfNode": regionOfNode, "members": members,
+    "nodes": nodes,
     "entries": entries, "reachedArea": reachedArea, "regions": perRegion, "zoneLines": zoneLines, "plotEntrances": plots, "swimBoxes": swimBoxes,
     "problems": listed, "moreProblems": more,
   }
@@ -709,15 +748,77 @@ def insideOutline(point, outline):
   return inside
 
 
-def report(lane, description, analysis, status, seconds):
-  """mapReach's JSON: what the lane used and cannot see, and what it found."""
-  stated = limits(lane, description["underworld"])
+def viewedProblems(problems, count):
+  """Which problems the problem sheet views, up to count: the first of each kind in turn, then the second of each, so every kind found
+  is seen; in their numbered order."""
+  byKind = {}
+  for problem in problems:
+    byKind.setdefault(problem["kind"], []).append(problem)
+  chosen, rank = [], 0
+  while len(chosen) < count and any(rank < len(found) for found in byKind.values()):
+    chosen += [found[rank] for found in byKind.values() if rank < len(found)][:count - len(chosen)]
+    rank += 1
+  return sorted(chosen, key=lambda problem: problem["number"])
+
+
+def walkPlaces(nodes):
+  """The plan places (zone x, y) of every reached walkable floor node, which problem views turn from."""
+  standing = numpy.flatnonzero(nodes.label == walkLabel)
+  return numpy.stack(nodes.plan(standing), axis=1)
+
+
+def problemRadius(problem, description):
+  """How far a problem reaches from its center: half its extent's diagonal in plan or half its height, its box's for a zone line or swim
+  box, and never under playerHeight."""
+  if "extent" in problem:
+    low, high = numpy.asarray(problem["extent"]["minimum"]), numpy.asarray(problem["extent"]["maximum"])
+  elif "zoneLine" in problem or "swimBox" in problem:
+    boxes = description["zoneLines"] if "zoneLine" in problem else description["swimBoxes"]
+    box = next(box for box in boxes if box["name"] == problem.get("zoneLine", problem.get("swimBox")))
+    low, high = numpy.asarray(box["low"]), numpy.asarray(box["high"])
+  else:
+    return playerScale.playerHeight
+  return max(float(numpy.hypot(*(high[:2] - low[:2]))) / 2, float(high[2] - low[2]) / 2, playerScale.playerHeight)
+
+
+def problemSights(standing, problem, description, farthest):
+  """The eyes a problem may be viewed from, in the order they are tried: problemViewFrame times its radius back from it (at least
+  problemViewDistance, at most farthest, where the view still draws it), raised by each of problemViewElevations in turn and turned to
+  each of problemViewBearings from the reached floor nearest it beyond its radius; each {eye, target}, the target problemViewLift over
+  its center. Returns (candidates, radius, distance)."""
+  radius = problemRadius(problem, description)
+  distance = min(max(problemViewFrame * radius, problemViewDistance), farthest)
+  center = numpy.asarray(problem["center"], dtype=numpy.float64)
+  away = numpy.hypot(standing[:, 0] - center[0], standing[:, 1] - center[1]) if len(standing) else numpy.zeros(0)
+  beyond = away >= radius
+  start = 0.0
+  if beyond.any():
+    nearest = standing[int(numpy.argmin(numpy.where(beyond, away, numpy.inf)))]
+    start = math.atan2(nearest[1] - center[1], nearest[0] - center[0])
+  target = center + [0.0, 0.0, problemViewLift]
+  candidates = []
+  for elevation in problemViewElevations:
+    rise, across = math.sin(math.radians(elevation)) * distance, math.cos(math.radians(elevation)) * distance
+    for turn in problemViewBearings:
+      bearing = start + math.radians(turn)
+      eye = target + [math.cos(bearing) * across, math.sin(bearing) * across, rise]
+      candidates.append({"eye": [round(float(value), 2) for value in eye], "target": [round(float(value), 2) for value in target]})
+  return candidates, radius, distance
+
+
+def laneTerms(lane, description):
+  """What every reach result states: each constant the lane used (value and source), what it does not model, and its limits."""
+  stated = limits(lane, description["underworld"], description["boundariesKnown"])
   if not description["regions"]:
     stated.append("the zone has no regions: reach outside every region (outsideRegions) is not judged")
   if description.get("ignoredRegions"):
     stated.append(f".wtr records the lane does not model (only water, lava, and zone lines move players): {description['ignoredRegions']}")
-  return {
-    "constants": constantsReport(), "notModeled": notModeled, "limits": stated,
+  return {"constants": constantsReport(), "notModeled": notModeled, "limits": stated}
+
+
+def report(lane, description, analysis, status, seconds):
+  """mapReach's JSON: what the lane used and cannot see, and what it found."""
+  return laneTerms(lane, description) | {
     "reachGrid": reachGrid, "lane": status, "seconds": seconds, "laneFile": str(lane.path), "nodes": lane.nodeCount,
     "entries": analysis["entries"], "notFollowed": description["notFollowed"], "reachedArea": analysis["reachedArea"], "regions": analysis["regions"],
     "zoneLines": analysis["zoneLines"], "plotEntrances": analysis["plotEntrances"], "swimBoxes": analysis["swimBoxes"],

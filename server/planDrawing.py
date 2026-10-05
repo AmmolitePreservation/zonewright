@@ -427,6 +427,12 @@ def polygonArea(points):
   return abs(sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(points, points[1:] + points[:1]))) / 2
 
 
+def showsName(board, shown, name, size):
+  """Whether what a drawing shows of an area (its outline clipped to the drawing, in pixels) is at least as large as its name."""
+  box = board.textBox((0, 0), name, size)
+  return polygonArea(shown) >= (box[2] - box[0]) * (box[3] - box[1])
+
+
 def labelShape(board, frame, shape, color):
   points = [frame.pixel(point) for point in shape["plan"]]
   label = shape.get("label") or shape["name"]
@@ -457,11 +463,12 @@ labelOrder = ("point", "footprint", "note", "path", "area")
 
 def drawPlan(basePath, outputPath, center, width, overlays, lane=None):
   """Lay the overlays over the base render, scaled up so lines and labels stay crisp, and save the drawing: water, swim volumes, the
-  lane's fill (lane, a laneDrawing.LanePlan, when given), boundaries, zone lines, the regions' access fills and outlines, then every
-  sheet's area fills, footprint fills and path widths each composited in turn, then every line and mark (the entries' arrows, then the
-  lane's marks last), then the labels: swim volumes' names inside them first, then the lane's, the sketch's, the entries', the plots',
-  the boundaries', the zone lines', and the regions', each set beside the ground's spot heights where it can be, and the spot heights
-  giving way to them where it cannot."""
+  regions' access fills, the lane's fill (lane, a laneDrawing.LanePlan, when given) over them, boundaries, zone lines, the regions'
+  outlines, then every sheet's area fills, footprint fills and path widths each composited in turn, then every line and mark (the
+  entries' arrows, then the lane's marks last), then the labels: swim volumes' names inside them first, then the lane's, the sketch's,
+  the entries', the plots', the boundaries' (each whose spot lies in the drawing), the zone lines', and the regions' (each where enough
+  of it shows to hold its name), each set beside the ground's spot heights where it can be, and the spot heights giving way to them
+  where it cannot."""
   with Image.open(basePath) as base:
     size = (round(base.width * planScale), round(base.height * planScale))
     image = base.convert("RGB").resize(size, Image.Resampling.BICUBIC).convert("RGBA")
@@ -479,11 +486,11 @@ def drawPlan(basePath, outputPath, center, width, overlays, lane=None):
   overlay(lambda draw: drawGrid(draw, frame))
   overlay(lambda draw: drawWater(draw, frame, overlays["water"]))
   overlay(lambda draw: drawSwim(draw, frame, overlays["swim"]))
+  image = Image.alpha_composite(image, accessFills(size, frame, overlays["regions"]))
   if lane is not None:
     image = Image.alpha_composite(image, lane.fill(frame, size))
   overlay(lambda draw: drawBoundaries(draw, frame, overlays["boundaries"]))
   overlay(lambda draw: drawZoneLines(draw, frame, overlays["zoneLines"]))
-  image = Image.alpha_composite(image, accessFills(size, frame, overlays["regions"]))
   overlay(lambda draw: drawRegions(draw, frame, overlays["regions"]))
   for kinds in (("area",), ("footprint", "path")):
     for shape, color in shapes:
@@ -524,11 +531,15 @@ def drawPlan(basePath, outputPath, center, width, overlays, lane=None):
     for plot in overlays["plots"]:
       board.place(centroidOf([frame.pixel(point) for point in plot["corners"]]), plot["address"], plotColor, 12)
     for boundary in overlays["boundaries"]:
-      board.place(boundaryLabelSpot(frame, boundary), boundary["name"], boundaryColor, 13)
+      spot = boundaryLabelSpot(frame, boundary)
+      if 0 <= spot[0] < frame.size[0] and 0 <= spot[1] < frame.size[1]:
+        board.place(spot, boundary["name"], boundaryColor, 13)
     for line in overlays["zoneLines"]:
       board.place(centroidOf([frame.pixel(point) for point in line["corners"]]), line["name"], zoneLineColor, 13)
     for region in overlays["regions"]:
-      board.place(centroidOf([frame.pixel(point) for point in region["outline"]]), region["name"], regionColor, 13)
+      shown = clippedToFrame([frame.pixel(point) for point in region["outline"]], frame.size)
+      if showsName(board, shown, region["name"], 13):
+        board.place(centroidOf(shown), region["name"], regionColor, 13)
     drawSpots(board, spots)
     return unnamedSwimVolumes
 

@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -10,13 +11,18 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import laneDrawing
 import planDrawing
+import playerReach
 from testReach import reachCourse
 
 
+def planFrame(plan):
+  """The frame of a plan's drawing above its legend band, from a result's center, width, and frameSize."""
+  return planDrawing.PlanFrame(plan["center"], plan["width"], plan["frameSize"])
+
+
 def pixelsAround(image, plan, point, radius=4):
-  """The drawing's pixels within radius of where a zone point falls in a plan ({center, width}), as an [n, 3] array."""
-  frame = planDrawing.PlanFrame(plan["center"], plan["width"], image.size)
-  x, y = (round(value) for value in frame.pixel(point))
+  """The drawing's pixels within radius of where a zone point falls in a plan, as an [n, 3] array."""
+  x, y = (round(value) for value in planFrame(plan).pixel(point))
   return numpy.asarray(image.convert("RGB"))[y - radius:y + radius + 1, x - radius:x + radius + 1].reshape(-1, 3).astype(int)
 
 
@@ -25,8 +31,27 @@ def greenShare(pixels):
   return float(((pixels[:, 1] > pixels[:, 0] + 30) & (pixels[:, 1] > pixels[:, 2] + 20)).mean())
 
 
-def hatchShare(pixels, color):
+def blueShare(pixels):
+  """The share of pixels tinted the lane's swim blue: blue well over red and green."""
+  return float(((pixels[:, 2] > pixels[:, 0] + 40) & (pixels[:, 2] > pixels[:, 1] + 20)).mean())
+
+
+def orangeShare(pixels):
+  """The share of pixels tinted the lane's slide orange: red over green over blue, each well apart."""
+  return float(((pixels[:, 0] > pixels[:, 1] + 30) & (pixels[:, 1] > pixels[:, 2] + 30)).mean())
+
+
+def colorShare(pixels, color):
   return float((numpy.abs(pixels - numpy.array(color)).max(axis=1) <= 40).mean())
+
+
+def ringShare(image, plan, point):
+  """The share of sixteen points on a problem ring's circle about where a zone point falls that are drawn in the ring's color."""
+  x, y = planFrame(plan).pixel(point)
+  pixels = numpy.asarray(image.convert("RGB")).astype(int)
+  angles = numpy.linspace(0, 2 * math.pi, 16, endpoint=False)
+  circle = [pixels[round(y + laneDrawing.problemRing * math.sin(angle)), round(x + laneDrawing.problemRing * math.cos(angle))] for angle in angles]
+  return colorShare(numpy.array(circle), laneDrawing.problemColor)
 
 
 def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
@@ -34,52 +59,81 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
     await reachCourse(session, tmp_path)
     whole, _ = await session.call("mapReach", {})
     framed = await session.expectImage("mapReach", {"center": [60, 40], "width": 240, "problemViews": False})
+    west = await session.expectImage("mapReach", {"center": [-110, 60], "width": 240, "problemViews": False})
+    edge = await session.expectImage("mapReach", {"center": [-215, 20], "width": 160, "problemViews": False})
     leveled = await session.expectImage("mapReach", {"center": [160, 40], "width": 80, "level": {"bottom": 9, "top": 11}, "problemViews": False})
     sketched = await session.expectImage("renderSketch", {"center": [60, 40], "width": 240, "layers": ["regions", "lane"]})
     plain = await session.expectImage("renderSketch", {"center": [60, 40], "width": 240, "layers": ["regions"]})
-    return whole, framed, leveled, sketched, plain
+    return whole, framed, west, edge, leveled, sketched, plain
 
-  whole, framed, leveled, sketched, plain = stageBlenderServer.session(steps)
+  whole, framed, west, edge, leveled, sketched, plain = stageBlenderServer.session(steps)
   assert whole.is_error is False, whole.content[0].text
   assert [content.type for content in whole.content] == ["image", "image", "text"]
   assert [content.mime_type for content in whole.content[:2]] == ["image/png", "image/jpeg"]
   report = json.loads(whole.content[2].text)
-  (tmp_path / "coursePlan.png").write_bytes(base64.b64decode(whole.content[0].data))
+  wholePlan = Image.open(io.BytesIO(base64.b64decode(whole.content[0].data)))
+  wholePlan.save(tmp_path / "coursePlan.png")
   (tmp_path / "courseProblems.jpg").write_bytes(base64.b64decode(whole.content[1].data))
-  # The problem sheet: a view at eye height from the reached floor nearest each of the first eight problems, facing it, and the plan.
+  # The problem sheet views the first problem of each kind found while kinds outnumber its eight views, each looking down at its
+  # problem's center from a raised eye.
   sheet = report["problemSheet"]
-  assert [view["number"] for view in sheet["views"]] == list(range(1, 9)) and all(view["view"] is not None for view in sheet["views"])
-  assert all(set(view["view"]) == {"standOn", "headingDegrees", "pitchDegrees"} for view in sheet["views"])
+  chosen = playerReach.viewedProblems(report["problems"], 8)
+  assert len({problem["kind"] for problem in report["problems"]}) > 8 and len({problem["kind"] for problem in chosen}) == 8
+  assert [view["number"] for view in sheet["views"]] == [problem["number"] for problem in chosen]
+  for view, problem in zip(sheet["views"], chosen):
+    assert set(view["view"]) == {"eye", "target"} and view["view"]["target"] == [*problem["center"][:2], round(problem["center"][2] + playerReach.problemViewLift, 2)]
+    assert view["view"]["eye"][2] > view["view"]["target"][2]
   assert Image.open(io.BytesIO(base64.b64decode(whole.content[1].data))).size == (sheet["width"], sheet["height"]) and sheet["width"] == 8 + 3 * (640 + 8)
+  # Over the whole course, the open stretch of the ground's edge is drawn as a void edge and a walled stretch is not; the legend lies in
+  # a band under the plan.
+  plan = report["plan"]
+  assert colorShare(pixelsAround(wholePlan, plan, [-240.5, -25], 3), laneDrawing.voidColor) > 0.1
+  assert colorShare(pixelsAround(wholePlan, plan, [-240.5, 100], 3), laneDrawing.voidColor) == 0
+  assert wholePlan.height > plan["frameSize"][1] and wholePlan.convert("RGB").getpixel((wholePlan.width - 4, wholePlan.height - 4)) == laneDrawing.legendBackground
 
   planImage, planReport = framed
-  plan = Image.open(io.BytesIO(planImage))
-  plan.save(tmp_path / "courseStations.png")
-  frame = {"center": planReport["plan"]["center"], "width": planReport["plan"]["width"]}
+  stations = Image.open(io.BytesIO(planImage))
+  stations.save(tmp_path / "courseStations.png")
   # Walked ground and the platform the gentle ramp reaches are green; the tops of the step over a player's step and of the platform
-  # past the steep ramp are hatched grey, walkable floor never reached, and ringed red as problems.
-  assert greenShare(pixelsAround(plan, frame, [20, -10])) > 0.9
-  assert greenShare(pixelsAround(plan, frame, [80, 45])) > 0.9
+  # past the steep ramp are cross-hatched, walkable floor never reached, and ringed as problems.
+  assert greenShare(pixelsAround(stations, planReport["plan"], [20, -10])) > 0.9
+  assert greenShare(pixelsAround(stations, planReport["plan"], [80, 45])) > 0.9
   for point in ([40, 70], [110, 43]):
-    around = pixelsAround(plan, frame, point)
-    assert greenShare(around) == 0 and hatchShare(around, laneDrawing.unreachedColor) > 0.1
+    around = pixelsAround(stations, planReport["plan"], point)
+    assert greenShare(around) == 0 and colorShare(around, laneDrawing.unreachedColor) > 0.1
   stepOver = next(problem for problem in planReport["problems"] if problem["kind"] == "unreachedPlayFloor" and abs(problem["center"][1] - 70) < 3)
-  assert hatchShare(pixelsAround(plan, frame, stepOver["center"], 12), laneDrawing.problemColor) > 0.02
+  assert ringShare(stations, planReport["plan"], stepOver["center"]) > 0.8
+
+  # West of the safe point the pool is swum and the bank over a swimmer's climb is never reached; at the ground's west edge the open
+  # stretch falls onto nothing, and the face sliding off it is drawn sliding.
+  westImage, westReport = west
+  westPlan = Image.open(io.BytesIO(westImage))
+  westPlan.save(tmp_path / "courseStationsWest.png")
+  assert blueShare(pixelsAround(westPlan, westReport["plan"], [-124, 40])) > 0.5
+  assert colorShare(pixelsAround(westPlan, westReport["plan"], [-105, 46]), laneDrawing.unreachedColor) > 0.1
+  edgeImage, edgeReport = edge
+  edgePlan = Image.open(io.BytesIO(edgeImage))
+  edgePlan.save(tmp_path / "courseStationsEdge.png")
+  assert colorShare(pixelsAround(edgePlan, edgeReport["plan"], [-240.5, -30], 2), laneDrawing.voidColor) > 0.2
+  assert orangeShare(pixelsAround(edgePlan, edgeReport["plan"], [-241.5, 66], 2)) > 0.2
 
   # Kept to the band from 9 to 11, the plan draws the ledge's top and not the ground beside it.
   levelImage, levelReport = leveled
   levelPlan = Image.open(io.BytesIO(levelImage))
-  levelFrame = {"center": levelReport["plan"]["center"], "width": levelReport["plan"]["width"]}
   assert levelReport["plan"]["level"] == {"bottom": 9, "top": 11}
-  assert greenShare(pixelsAround(levelPlan, levelFrame, [160, 36])) > 0.9
-  assert greenShare(pixelsAround(levelPlan, levelFrame, [185, 36])) == 0
+  assert greenShare(pixelsAround(levelPlan, levelReport["plan"], [160, 36])) > 0.9
+  assert greenShare(pixelsAround(levelPlan, levelReport["plan"], [185, 36])) == 0
 
-  # renderSketch's lane layer lays the same fill over its plan, and only when asked for.
+  # renderSketch's lane layer lays the same fill over its plan, only when asked for, with the lane's legend under it and the constants,
+  # what is not modelled, and the limits mapReach states; the corridor past its zone line shows its never reached hatch over the none
+  # region's.
   sketchImage, sketchReport = sketched
   plainImage, plainReport = plain
   sketch, bare = Image.open(io.BytesIO(sketchImage)), Image.open(io.BytesIO(plainImage))
   sketch.save(tmp_path / "courseSketchLane.png")
-  sketchFrame = {"center": sketchReport["center"], "width": sketchReport["width"]}
-  assert sketchReport["laneState"]["lane"] == "reused" and "laneState" not in plainReport
-  assert greenShare(pixelsAround(sketch, sketchFrame, [20, -10])) > 0.9
-  assert greenShare(pixelsAround(bare, sketchFrame, [20, -10])) == 0
+  assert "laneState" not in plainReport and bare.height == plainReport["frameSize"][1] and sketch.height > sketchReport["frameSize"][1]
+  laneState = sketchReport["laneState"]
+  assert laneState["lane"] == "reused" and {key: laneState[key] for key in ("constants", "notModeled", "limits")} == {key: report[key] for key in ("constants", "notModeled", "limits")}
+  assert greenShare(pixelsAround(sketch, sketchReport, [20, -10])) > 0.9
+  assert greenShare(pixelsAround(bare, plainReport, [20, -10])) == 0
+  assert colorShare(pixelsAround(sketch, sketchReport, [125, 103]), laneDrawing.unreachedColor) > 0.1

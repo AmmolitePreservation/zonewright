@@ -292,8 +292,8 @@ def navFrame(points, panelWidth):
 
 
 def drawNavPanel(panel, frame):
-  """One panel's plan: grid, polygons, labels clear of each other (an island whose number has no clear spot keeps only its dot), scale
-  and north. Returns the image and how many labels were written."""
+  """One panel's plan: grid, polygons, labels clear of each other and of every label's dot (an island whose number has no such spot
+  keeps only its dot), scale and north. Returns the image and how many labels were written."""
   image = Image.new("RGBA", frame.size, navBackground)
   draw = ImageDraw.Draw(image)
   step, xs, ys = planDrawing.gridLines(frame)
@@ -310,11 +310,13 @@ def drawNavPanel(panel, frame):
   planDrawing.labelGrid(board, frame)
   planDrawing.drawScale(board, frame, step)
   written = 0
-  for label in panel["labels"]:
-    x, y = frame.pixel(label["at"])
-    draw.ellipse([x - 2, y - 2, x + 2, y + 2], fill=islandLabelColor)
-    spot = board.clearSpot((x, y - 9), label["text"], islandLabelSize)
-    if spot is not None:
+  dots = [[x - 2, y - 2, x + 2, y + 2] for x, y in (frame.pixel(label["at"]) for label in panel["labels"])]
+  for dot in dots:
+    draw.ellipse(dot, fill=islandLabelColor)
+    board.avoid(dot)
+  for label, dot in zip(panel["labels"], dots):
+    spot = board.clearSpot(((dot[0] + dot[2]) / 2, dot[1] - 7), label["text"], islandLabelSize)
+    if spot is not None and board.isClear(board.textBox(spot, label["text"], islandLabelSize)):
       board.write(spot, label["text"], islandLabelColor, islandLabelSize)
       written += 1
   return image, written

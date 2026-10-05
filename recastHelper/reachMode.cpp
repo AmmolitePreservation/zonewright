@@ -42,9 +42,14 @@ enum Move : uint8_t {
   unreachedMove = 0, seedMove = 1, walkMove = 2, dropMove = 3, slideMove = 4, enterWaterMove = 5, swimMove = 6, climbOutMove = 7,
   sinkMove = 8, teleportMove = 9,
 };
-enum Shape : uint8_t { wetShape = 1, walkableShape = 2, absorbedShape = 4, touchesLineShape = 8 };
-enum State : uint8_t { reachedFullState = 1, reachedState = 2, trapState = 4, fromSafeState = 8, toSafeState = 16, markState = 32, seedState = 64 };
-const uint8_t laneStates = reachedFullState | reachedState | trapState | fromSafeState | toSafeState;
+enum Shape : uint8_t { wetShape = 1, walkableShape = 2, absorbedShape = 4, touchesLineShape = 8, boundaryShape = 16 };
+enum State : uint8_t {
+  reachedFullState = 1, reachedState = 2, trapState = 4, fromSafeState = 8, toSafeState = 16, markState = 32, seedState = 64, openState = 128,
+};
+const uint8_t laneStates = reachedFullState | reachedState | trapState | fromSafeState | toSafeState | openState;
+// A walkable face of a boundary rasterizes with this area, under RC_WALKABLE_AREA, so where a floor and a boundary meet within the climb
+// Recast's merge keeps the floor's.
+const unsigned char boundaryWalkableArea = 1;
 enum EventKind : uint8_t { voidEvent = 1, belowUnderworldEvent = 2, absorbedEvent = 3 };
 
 struct Box {
@@ -74,6 +79,7 @@ struct ReachInput {
   unsigned int threads;
   std::vector<float> vertices;
   std::vector<int> triangles;
+  std::vector<unsigned char> boundaryTriangles;
   std::vector<Box> swimBoxes;
   std::vector<ZoneLine> zoneLines;
   std::vector<Seed> seeds;
@@ -115,6 +121,13 @@ ReachInput readReachInput(const std::string& path) {
   input.triangles.resize(static_cast<size_t>(triangleCount) * 3);
   for (size_t index = 0; index < input.triangles.size(); ++index) {
     input.triangles[index] = static_cast<int>(index);
+  }
+  input.boundaryTriangles.resize(triangleCount);
+  reader.readBytes(input.boundaryTriangles.data(), triangleCount);
+  for (const unsigned char flag : input.boundaryTriangles) {
+    if (flag > 1) {
+      throw HelperError("a collision triangle's boundary flag is " + std::to_string(flag) + ", not 0 or 1");
+    }
   }
   input.swimBoxes.resize(reader.readUInt32());
   for (Box& box : input.swimBoxes) {
@@ -302,10 +315,11 @@ Grid planGrid(const ReachInput& input) {
   grid.cellSize = input.cellSize;
   grid.cellHeight = input.cellHeight;
   grid.tileCells = input.tileCells;
-  // An empty column all round, so stepping off the zone's edge is a fall onto nothing; and a cell under everything, so height 0 is free
-  // to mean "no floor".
-  grid.origin[0] = (std::floor(low[0] / grid.cellSize) - 1.0f) * grid.cellSize;
-  grid.origin[2] = (std::floor(low[2] / grid.cellSize) - 1.0f) * grid.cellSize;
+  // Columns are centered on multiples of the cell size, so a face at a whole coordinate, as blocks placed on whole units have, runs
+  // through a column's middle; one lying on a column's edge would fill the column beyond it as a rim at its top. An empty column all
+  // round, so stepping off the zone's edge is a fall onto nothing; and a cell under everything, so height 0 is free to mean "no floor".
+  grid.origin[0] = (std::floor(low[0] / grid.cellSize + 0.5f) - 1.5f) * grid.cellSize;
+  grid.origin[2] = (std::floor(low[2] / grid.cellSize + 0.5f) - 1.5f) * grid.cellSize;
   grid.origin[1] = (std::floor(low[1] / grid.cellHeight) - 1.0f) * grid.cellHeight;
   const long long columnsX = static_cast<long long>(std::floor((high[0] - grid.origin[0]) / grid.cellSize)) + 2;
   const long long columnsZ = static_cast<long long>(std::floor((high[2] - grid.origin[2]) / grid.cellSize)) + 2;
@@ -445,7 +459,8 @@ TileNodes buildTile(const Model& model, const rcChunkyTriMesh& chunks, const std
               break;
             }
           }
-          uint8_t shape = spans[interval - 1].area != RC_NULL_AREA ? walkableShape : 0;
+          const unsigned char area = spans[interval - 1].area;
+          uint8_t shape = (area != RC_NULL_AREA ? walkableShape : 0) | (area == boundaryWalkableArea ? boundaryShape : 0);
           for (const int index : linesHere) {
             const GridBox& line = model.lineBoxes[index];
             if (line.holdsColumn(columnX, columnZ) && point >= line.lowY && point <= line.highY) {
@@ -509,7 +524,8 @@ void rasterize(Model& model) {
     rcVsub(second, c, a);
     rcVcross(normal, first, second);
     const float length = std::sqrt(rcVdot(normal, normal));
-    chunkAreas[index] = length > 0.0f && std::fabs(normal[1]) / length >= input.walkableNormalZ ? RC_WALKABLE_AREA : RC_NULL_AREA;
+    const bool boundary = input.boundaryTriangles[chunks.tris[index * 3] / 3] != 0;
+    chunkAreas[index] = length > 0.0f && std::fabs(normal[1]) / length >= input.walkableNormalZ ? (boundary ? boundaryWalkableArea : RC_WALKABLE_AREA) : RC_NULL_AREA;
   }
   std::vector<int> chunkWalkable(static_cast<size_t>(chunks.nnodes), 0);
   for (int nodeIndex = 0; nodeIndex < chunks.nnodes; ++nodeIndex) {
@@ -521,13 +537,13 @@ void rasterize(Model& model) {
     for (int index = 0; index < node.n; ++index) {
       order[index] = node.i + index;
     }
-    std::stable_partition(order.begin(), order.end(), [&](int triangle) { return chunkAreas[triangle] == RC_WALKABLE_AREA; });
+    std::stable_partition(order.begin(), order.end(), [&](int triangle) { return chunkAreas[triangle] != RC_NULL_AREA; });
     std::vector<int> triangles(static_cast<size_t>(node.n) * 3);
     std::vector<unsigned char> areas(static_cast<size_t>(node.n));
     for (int index = 0; index < node.n; ++index) {
       std::memcpy(&triangles[static_cast<size_t>(index) * 3], &chunks.tris[order[index] * 3], 3 * sizeof(int));
       areas[index] = chunkAreas[order[index]];
-      chunkWalkable[nodeIndex] += areas[index] == RC_WALKABLE_AREA ? 1 : 0;
+      chunkWalkable[nodeIndex] += areas[index] != RC_NULL_AREA ? 1 : 0;
     }
     std::memcpy(&chunks.tris[node.i * 3], triangles.data(), triangles.size() * sizeof(int));
     std::memcpy(&chunkAreas[node.i], areas.data(), areas.size());
@@ -879,13 +895,17 @@ public:
       record(voidEvent, from, column, start, -1);
       return;
     }
-    if (model.input.hasUnderworld && static_cast<float>(model.low[floorNode]) < model.underworldCells) {
+    if (belowUnderworld(static_cast<uint32_t>(floorNode))) {
       record(belowUnderworldEvent, from, column, model.low[floorNode], -1);
       return;
     }
     if (model.space(static_cast<uint32_t>(floorNode)) >= headroom) {
       visit(static_cast<uint32_t>(floorNode), static_cast<uint32_t>(column), kind);
     }
+  }
+
+  bool belowUnderworld(uint32_t node) const {
+    return !model.wet(node) && model.input.hasUnderworld && static_cast<float>(model.low[node]) < model.underworldCells;
   }
 
   // Every move out of a node at a headroom, into one column only when only >= 0.
@@ -902,6 +922,14 @@ public:
     const uint32_t last = model.columnStart[static_cast<size_t>(column) + 1];
     const int low = model.low[node];
     const int high = model.high[node];
+    // A move within the step onto floor under the underworld is a leak as a fall there is: the client takes the player away.
+    auto arrive = [&](uint32_t target, long long targetColumn, uint8_t kind) {
+      if (belowUnderworld(target)) {
+        record(belowUnderworldEvent, node, targetColumn, model.low[target], -1);
+      } else {
+        visit(target, static_cast<uint32_t>(targetColumn), kind);
+      }
+    };
     if (!model.wet(node)) {
       const bool walkable = model.walkable(node);
       if (only < 0 || only == column) {
@@ -929,12 +957,16 @@ public:
           const bool otherWalkable = model.walkable(other);
           if (otherLow > low) {
             if (walkable && otherWalkable && otherLow - low <= model.climb) {
-              visit(other, static_cast<uint32_t>(next), walkMove);
+              arrive(other, next, walkMove);
             }
           } else if (low - otherLow <= model.climb) {
-            // Off a face too steep to stand on, a player goes level or down; level matters on the rim a vertical face leaves along a
-            // ledge's top, whose columns stand at the ledge's height without a walkable face.
-            visit(other, static_cast<uint32_t>(next), walkable && otherWalkable ? walkMove : slideMove);
+            // A player steps level or down onto a face too steep to stand on and slides, and on it goes only down. The level step takes
+            // him off a ledge onto the head of a steep face, whose column can stand at the ledge's height.
+            if (walkable && otherWalkable) {
+              arrive(other, next, walkMove);
+            } else if (walkable || otherLow < low) {
+              arrive(other, next, slideMove);
+            }
           } else {
             fall(node, next, low, otherLow, model.high[other], other, -1, dropMove, headroom, visit, record);
           }
@@ -985,7 +1017,7 @@ public:
         const int otherLow = model.low[other];
         if (otherLow >= low) {
           if (model.walkable(other) && otherLow <= model.swimTops[boxIndex] + model.climb && ceiling >= otherLow + headroom && model.space(other) >= headroom) {
-            visit(other, static_cast<uint32_t>(next), climbOutMove);
+            arrive(other, next, climbOutMove);
           }
         } else if (model.high[other] >= low + headroom && ceiling >= low + headroom) {
           fall(node, next, low, otherLow, model.high[other], other, -1, dropMove, headroom, visit, record);
@@ -1135,6 +1167,67 @@ public:
         frontier.insert(frontier.end(), part.begin(), part.end());
       }
     }
+  }
+
+  // Open space joined to the lane: from every reached node through the open intervals of neighbouring columns that overlap by the
+  // headroom, at any rise, so floor no one reaches is told apart: open space joins it to the lane, or it is sealed (inside a closed
+  // solid, a sealed room). Returns how many floor nodes it marks.
+  uint32_t openFlood(int headroom) {
+    std::vector<Queued> frontier;
+    for (long long column = 0; column < grid.columns; ++column) {
+      for (uint32_t node = model.columnStart[static_cast<size_t>(column)]; node < model.columnStart[static_cast<size_t>(column) + 1]; ++node) {
+        if (has(node, reachedState)) {
+          set(node, openState);
+          frontier.push_back({node, static_cast<uint32_t>(column)});
+        }
+      }
+    }
+    while (!frontier.empty()) {
+      const size_t chunkCount = chunksFor(frontier.size());
+      const size_t chunkSize = (frontier.size() + chunkCount - 1) / chunkCount;
+      std::vector<std::vector<Queued>> nextParts(chunkCount);
+      pool.run(chunkCount, [&](size_t chunk) {
+        const size_t last = std::min(frontier.size(), (chunk + 1) * chunkSize);
+        for (size_t index = chunk * chunkSize; index < last; ++index) {
+          const Queued entry = frontier[index];
+          const bool wet = model.wet(entry.node);
+          const int bottom = wet ? model.intervalLow[entry.node] : model.low[entry.node];
+          const int top = wet ? model.intervalHigh[entry.node] : model.high[entry.node];
+          auto open = [&](uint32_t other, long long otherColumn) {
+            if (!(state[other].fetch_or(openState, std::memory_order_relaxed) & openState)) {
+              nextParts[chunk].push_back({other, static_cast<uint32_t>(otherColumn)});
+            }
+          };
+          if (wet) {
+            for (uint32_t other = model.columnStart[entry.column]; other < model.columnStart[static_cast<size_t>(entry.column) + 1]; ++other) {
+              if (!model.wet(other) && model.low[other] == bottom && model.high[other] == top) {
+                open(other, entry.column);
+              }
+            }
+          }
+          for (int direction = 0; direction < 4; ++direction) {
+            long long next;
+            if (!neighbour(entry.column, direction, next)) {
+              continue;
+            }
+            for (uint32_t other = model.columnStart[static_cast<size_t>(next)]; other < model.columnStart[static_cast<size_t>(next) + 1]; ++other) {
+              if (!model.wet(other) && std::min<int>(top, model.high[other]) - std::max<int>(bottom, model.low[other]) >= headroom) {
+                open(other, next);
+              }
+            }
+          }
+        }
+      });
+      frontier.clear();
+      for (const std::vector<Queued>& part : nextParts) {
+        frontier.insert(frontier.end(), part.begin(), part.end());
+      }
+    }
+    uint32_t opened = 0;
+    for (uint32_t node = 0; node < count; ++node) {
+      opened += !model.wet(node) && has(node, openState) ? 1 : 0;
+    }
+    return opened;
   }
 
   uint32_t columnOfNode(uint32_t node) const {
@@ -1294,7 +1387,7 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
   }
 
   const auto floodStart = std::chrono::steady_clock::now();
-  reportProgress("flooding the lane", 0, 4);
+  reportProgress("flooding the lane", 0, 5);
   std::vector<Queued> frontier;
   for (const Queued& seed : seeds) {
     if (model.space(seed.node) >= model.playerCells) {
@@ -1304,7 +1397,7 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
   }
   flooder.forwardFlood(frontier, reachedFullState, model.playerCells, true, false);
   const double fullSeconds = secondsSince(floodStart);
-  reportProgress("flooding the lane", 1, 4);
+  reportProgress("flooding the lane", 1, 5);
 
   const auto containmentStart = std::chrono::steady_clock::now();
   std::vector<Queued> first, rest;
@@ -1329,7 +1422,7 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
     }
   }
   const double containmentSeconds = secondsSince(containmentStart);
-  reportProgress("flooding the lane", 2, 4);
+  reportProgress("flooding the lane", 2, 5);
 
   std::vector<std::pair<uint32_t, uint32_t>> teleports;
   std::vector<Queued> escapes = seeds;
@@ -1358,7 +1451,7 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
     flooder.reverseFlood({{safeNode, flooder.columnOfNode(safeNode)}}, toSafeState, model.headroomCells, teleports);
   }
   const double safeSeconds = secondsSince(safeStart);
-  reportProgress("flooding the lane", 3, 4);
+  reportProgress("flooding the lane", 3, 5);
 
   const auto trapStart = std::chrono::steady_clock::now();
   std::vector<Queued> escapeFrontier;
@@ -1384,7 +1477,12 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
     }
   });
   const double trapSeconds = secondsSince(trapStart);
-  reportProgress("flooding the lane", 4, 4);
+  reportProgress("flooding the lane", 4, 5);
+
+  const auto openStart = std::chrono::steady_clock::now();
+  const uint32_t opened = flooder.openFlood(model.headroomCells);
+  const double openSeconds = secondsSince(openStart);
+  reportProgress("flooding the lane", 5, 5);
 
   const auto writeStart = std::chrono::steady_clock::now();
   writeLane(lanePath, model, flooder, seedNodes);
@@ -1403,13 +1501,13 @@ void runReach(const std::string& inputPath, const std::string& lanePath, const s
     << ", \"verticalCells\": " << grid.verticalCells << ", \"slabs\": " << grid.slabs
     << ", \"climbCells\": " << model.climb << ", \"playerCells\": " << model.playerCells << ", \"headroomCells\": " << model.headroomCells
     << ", \"nodes\": " << model.nodeCount() << ", \"wetNodes\": " << wetNodes << ", \"reached\": " << reached.load() << ", \"reachedFull\": " << reachedFull.load()
-    << ", \"traps\": " << traps.load() << ", \"events\": " << flooder.events.size() << ", \"notFollowed\": [";
+    << ", \"traps\": " << traps.load() << ", \"openFloors\": " << opened << ", \"events\": " << flooder.events.size() << ", \"notFollowed\": [";
   for (size_t line = 0; line < notFollowed.size(); ++line) {
     report << (line ? ", " : "") << (notFollowed[line].empty() ? "null" : jsonString(notFollowed[line]));
   }
   report << "], \"threads\": " << pool.size()
     << ", \"seconds\": {\"rasterize\": " << rasterSeconds << ", \"fullFlood\": " << fullSeconds << ", \"containmentFlood\": " << containmentSeconds
-    << ", \"toSafeFlood\": " << safeSeconds << ", \"trapFlood\": " << trapSeconds << ", \"write\": " << writeSeconds << ", \"total\": " << secondsSince(start) << "}"
+    << ", \"toSafeFlood\": " << safeSeconds << ", \"trapFlood\": " << trapSeconds << ", \"openFlood\": " << openSeconds << ", \"write\": " << writeSeconds << ", \"total\": " << secondsSince(start) << "}"
     << ", \"peakWorkingSetBytes\": " << memory.PeakWorkingSetSize << ", \"peakPagefileBytes\": " << memory.PeakPagefileUsage << "}";
   writeText(reportPath, report.str());
 }
