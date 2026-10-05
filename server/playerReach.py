@@ -27,7 +27,7 @@ import recastHelper
 import serverMapFiles
 import toolingManifest
 
-# Chosen by the S4 spike (README, Player space: reach): at cellSize 1 the canyonhousing copy (8,448 x 4,224) takes 14 s and 1.1 GB
+# Chosen by measurement (README, Recast helper): at cellSize 1 the canyonhousing copy (8,448 x 4,224) takes 14 s and 1.1 GB
 # in the helper and Highpass Hold 1.4 s; 0.5 reaches the same area within 1% and takes the canyon to 56 s and 4.4 GB; 4 and 8 cut
 # every face steeper than about 48 and 29 degrees, whose rise per column passes the step, and reach 77% and 9% of Highpass Hold.
 reachGrid = {"cellSize": 1.0, "cellHeight": 0.25, "tileCells": 256}
@@ -288,11 +288,11 @@ def sceneDescription(inputPath):
       if entry["state"] != "onFooting":
         raise ToolError(f"Entry '{entry['name']}' stands off its footing ({entry.get('distance')} from {entry.get('footing')}): place it again (placeEntry) before mapping reach")
     if entry["kind"] in ("safePoint", "zoneIn", "landing"):
-      if entry["footing"] is None:
+      if entry["seedFooting"] is None:
         raise ToolError(f"The {'safe point' if entry['kind'] == 'safePoint' else 'entry ' + repr(entry['name'])} at {entry['at']} has no footing on what the zone ships, so the lane has no node there to start from")
       seeds.append({
-        "name": entry["name"], "kind": entry["kind"], "point": entry["at"], "footing": entry["footing"]["point"],
-        "tolerance": seedTolerance(entry["footing"]["normalZ"]), "isolated": bool(entry.get("isolated", False)),
+        "name": entry["name"], "kind": entry["kind"], "point": entry["at"], "footing": entry["seedFooting"]["point"],
+        "tolerance": seedTolerance(entry["seedFooting"]["normalZ"]), "isolated": bool(entry.get("isolated", False)), "headingDegrees": entry["headingDegrees"],
       })
     elif entry["kind"] == "plotEntrance":
       plots.append({"name": entry["name"], "point": entry["at"]})
@@ -353,7 +353,7 @@ def footingOnTriangles(triangles, point):
 def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress, regions=None, plots=None):
   """The lane a zone's server files give: the collision the server rebuilds from the .map (zone axes) and the .wtr's boxes, water and
   lava as swim boxes and zone lines as zone lines, each negative extent swapped as the server swaps it. seeds are [{name, point (zone
-  axes), kind ("safePoint", "zoneIn", or "landing"), isolated}], each standing on the footing found under its point; regions as
+  axes), kind ("safePoint", "zoneIn", or "landing"), isolated, and headingDegrees or none}], each standing on the footing found under its point; regions as
   getRegions gives them and plot entrances [{name, point}] are optional. A record of another type is listed, not modelled. Returns
   (Lane, description, "computed" or "reused", seconds)."""
   triangles = eqAxes.zoneFromServer(serverMapFiles.mapCollision(mapBytes))
@@ -376,7 +376,7 @@ def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress
       raise ToolError(f"Seed '{seed['name']}' at {list(seed['point'])} has no footing in the collision from {footingSearch['above']:g} over it to {footingSearch['below']:g} under it")
     described.append({
       "name": seed["name"], "kind": seed["kind"], "point": list(seed["point"]), "footing": found[0], "tolerance": seedTolerance(found[1]),
-      "isolated": bool(seed.get("isolated", False)),
+      "isolated": bool(seed.get("isolated", False)), "headingDegrees": seed.get("headingDegrees"),
     })
   described.sort(key=lambda seed: seed["kind"] != "safePoint")
   description = {

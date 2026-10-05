@@ -1,4 +1,4 @@
-﻿import atexit
+import atexit
 import datetime
 import functools
 import hashlib

@@ -1,3 +1,4 @@
+import json
 import math
 import sys
 from pathlib import Path
@@ -8,8 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import eqgFiles
 import playerReach
 import serverMapFiles
-from playerScale import playerHeight, steepestWalkableDegrees, stepHeight
+from playerScale import steepestWalkableDegrees, stepHeight
 from testHousing import decision
+from testWalkRoute import rampArguments
 from testModelsAndDressing import freshScene
 from testWater import environment, liquidMaterials
 from conftest import writePNG
@@ -219,7 +221,6 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   result = stageBlenderServer.session(steps)
   assert result.is_error is False, result.content[0].text
   assert [content.type for content in result.content] == ["image", "text"]
-  import json
   reached = json.loads(result.content[1].text)
   lane = playerReach.Lane(reached["laneFile"])
   nodes = playerReach.Nodes(lane)
@@ -294,3 +295,126 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   # Everything reached is labelled; the area of each label sums to the reached nodes.
   area = cellSize * cellSize
   assert sum(value for name, value in reached["reachedArea"].items() if name != "trap") == float(nodes.reached.sum()) * area
+
+
+def testMapReachRefusesWhatNoLaneStartsFrom(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    refusals = {"noTriangles": await session.expectError("mapReach", {})}
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [96, 96], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("setZoneProperties", environment)
+    refusals["noSeeds"] = await session.expectError("mapReach", {})
+    await session.expectImage("placeEntry", {"name": "gate", "at": [10, 10], "headingDegrees": 0, "kind": "landing"})
+    await session.expectSuccess("transformObjects", {"names": ["gate"], "translate": [0, 0, 2]})
+    refusals["offFooting"] = await session.expectError("mapReach", {})
+    await session.expectImage("placeEntry", {"name": "gate", "at": [10, 10], "headingDegrees": 0, "kind": "landing"})
+    refusals["level"] = await session.expectError("mapReach", {"level": {"bottom": 5, "top": 1}})
+    await session.expectSuccess("createTerrainGrid", {"name": "plain", "size": [30000, 30000], "spacing": 3000, "location": [0, 0, -50], "collection": "terrain"})
+    refusals["tooWide"] = await session.expectError("mapReach", {})
+    return refusals
+
+  refusals = stageBlenderServer.session(steps)
+  assert "The zone ships no collision triangles" in refusals["noTriangles"]
+  assert "The lane has no seeds: set the safe point (setZoneProperties safePoint) or placeEntry" in refusals["noSeeds"]
+  assert "Entry 'gate' stands off its footing (2.0 from [10.0, 10.0, 0.0])" in refusals["offFooting"]
+  assert "level's top must lie above its bottom" in refusals["level"]
+  assert "columns, more than the helper's 600000000" in refusals["tooWide"]
+
+
+def testLaneAgreesWithWalkRoute(stageBlenderServer):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "course", "size": [200, 120], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("setZoneProperties", environment | {"safePoint": [-90, 0, 0, 90]})
+    await cube(session, "lowRiser", [-70, -10, 0], [-50, 10, stepHeight - heightMargin])
+    await cube(session, "highRiser", [-70, 30, 0], [-50, 50, stepHeight + heightMargin])
+    await session.expectSuccess("createPrimitive", rampArguments("climbable", steepestWalkableDegrees - 2, 0))
+    await session.expectSuccess("createPrimitive", rampArguments("tooSteep", steepestWalkableDegrees + 5, 40))
+    walks = {}
+    for name, y in (("lowRiser", 0), ("highRiser", 40)):
+      walks[name] = await session.expectSuccess("walkRoute", {"path": [[-90, y, 0], [-30, y, 0]]})
+    for name, y in (("climbable", 0), ("tooSteep", 40)):
+      walks[name] = await session.expectSuccess("walkRoute", {"path": [[0, y, 0], [21, y, 6]]})
+    _, reached = await session.expectImage("mapReach", {"problemViews": False})
+    return walks, reached
+
+  walks, reached = stageBlenderServer.session(steps)
+  nodes = playerReach.Nodes(playerReach.Lane(reached["laneFile"]))
+
+  def label(point):
+    return playerReach.labelNames[nodes.label[nodes.floorNodeAt(point)]]
+
+  # What walkRoute walks, the lane reaches; where walkRoute stops at a rise or a steep face, the lane does not go past.
+  assert walks["lowRiser"]["walkable"] and label([-60, 0, stepHeight - heightMargin]) == "walk"
+  assert [problem["kind"] for problem in walks["highRiser"]["problems"]] == ["rise"] and label([-60, 40, stepHeight + heightMargin]) == "unreached"
+  rise = 8 * math.sin(math.radians(steepestWalkableDegrees - 2))
+  assert walks["climbable"]["walkable"] and label([20 + 8 * math.cos(math.radians(steepestWalkableDegrees - 2)) - cellSize / 2, 0, rise]) == "walk"
+  rise = 8 * math.sin(math.radians(steepestWalkableDegrees + 5))
+  assert [problem["kind"] for problem in walks["tooSteep"]["problems"]] == ["steep"]
+  assert label([20 + 8 * math.cos(math.radians(steepestWalkableDegrees + 5)) - cellSize / 2, 40, rise]) == "unreached"
+
+
+def testSceneAndServerFilesGiveTheSameLane(stageBlenderServer, tmp_path):
+  archivePath = tmp_path / "samelane.eqg"
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [96, 96], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("createMaterial", {"name": "grass", "diffuseTexture": str(writePNG(tmp_path / "grass.png", 4, 4, (90, 120, 60, 255)))})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "grass"})
+    await session.expectSuccess("projectUVs", {"objectName": "ground", "method": "planar", "worldUnitsPerRepeat": 64, "direction": [0, 0, 1]})
+    await session.expectSuccess("sculptAtPoint", {"objectName": "ground", "mode": "raise", "center": [20, 20, 0], "radius": 12, "strength": 30, "falloff": "sharp"})
+    await session.expectSuccess("sculptAtPoint", {"objectName": "ground", "mode": "lower", "center": [-24, -24, 0], "radius": 12, "strength": 8, "falloff": "smooth"})
+    await session.expectSuccess("placeSwimVolume", {"name": "pond", "liquid": "water", "minimum": [-32, -32, -8], "maximum": [-16, -16, -2]})
+    await session.expectSuccess("placeZoneLine", {"number": 1, "label": "gate", "minimum": [40, -8, -4], "maximum": [47, 8, 20], "target": otherZone})
+    await session.expectSuccess("setZoneProperties", environment | {"safePoint": [0, 0, 0, 0]})
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "samelane.blend")})
+    await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+    _, reached = await session.expectImage("mapReach", {"problemViews": False})
+    return reached
+
+  reached = stageBlenderServer.session(steps)
+  zoneFiles = serverMapFiles.zoneFilesOf(archivePath.read_bytes())
+  regions = eqgFiles.parseZone(zoneFiles["zon"], "samelane.zon")["regions"]
+  lane, _, status, _ = playerReach.laneFromServerFiles(
+    serverMapFiles.mapBytes(zoneFiles), serverMapFiles.waterBytes(regions), [{"name": "safe point", "point": [0, 0, 0], "kind": "safePoint"}],
+    stageBlenderServer.toolingRoot, lambda done, of, message: None,
+  )
+  scene = playerReach.Lane(reached["laneFile"])
+  assert status == "computed" and reached["lane"] == "computed"
+
+  def reachedNodes(found):
+    nodes = playerReach.Nodes(found)
+    chosen = numpy.flatnonzero(nodes.reached)
+    planX, planY = nodes.plan(chosen)
+    return numpy.stack([planX, planY, nodes.height[chosen], nodes.wet[chosen], nodes.label[chosen]], axis=1)
+
+  # The archive's collision, rebuilt as the server rebuilds it, and its .wtr boxes give the scene's lane node for node.
+  fromScene, fromFiles = reachedNodes(scene), reachedNodes(lane)
+  assert len(fromScene) > 0 and numpy.array_equal(fromScene, fromFiles)
+  assert set(numpy.unique(fromScene[:, 4]).astype(int)) == {playerReach.walkLabel, playerReach.swimLabel, playerReach.zoneLineLabel}
+
+
+def testLaneKeySurvivesSaveReopenAndRestart(freshBlenderServer, tmp_path):
+  workFile = tmp_path / "keptlane.blend"
+
+  async def build(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [64, 64], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("setZoneProperties", environment | {"safePoint": [0, 0, 0, 0]})
+    await session.expectSuccess("saveFile", {"path": str(workFile)})
+    _, first = await session.expectImage("mapReach", {"problemViews": False})
+    await session.expectSuccess("openFile", {"path": str(workFile)})
+    _, reopened = await session.expectImage("mapReach", {"problemViews": False})
+    return first, reopened
+
+  async def again(session):
+    await session.expectSuccess("openFile", {"path": str(workFile)})
+    _, restarted = await session.expectImage("mapReach", {"problemViews": False})
+    return restarted
+
+  first, reopened = freshBlenderServer.session(build)
+  restarted = freshBlenderServer.session(again)
+  assert (first["lane"], reopened["lane"], restarted["lane"]) == ("computed", "reused", "reused")
+  assert first["laneFile"] == reopened["laneFile"] == restarted["laneFile"]
+  assert Path(first["laneFile"]).parent.name.startswith("keptlane-")

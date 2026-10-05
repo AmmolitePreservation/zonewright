@@ -96,6 +96,22 @@ Where players arrive is decided by hand, as entries, in the layout pass. A `zone
 
 The player these are judged for is `playerScale`, each value with its source: 6 tall, an eye 5.5 up, stepping up 4.5 and walking faces up to 71.9 degrees: the highest riser and the steepest face a player was seen to climb in the RoF2 client, so the client's own limits lie at or past them (README, Scale). Every check that asks whether players stand, step, or climb somewhere uses the same values: a riser over 4.5 or a face over 71.9 degrees stops a walk, and anything lower or gentler is walked. They never judge how a thing looks: a piece, deck, or floor more than 2 off the ground reads as floating however high a player steps, and those checks keep that tolerance of their own.
 
+#### Reach
+
+Where players can go is the lane (`mapReach`), computed from what the zone ships and the client collides with, for the whole zone at once, from the safe point and the stored entries. Its rules are the player's moves, from `playerScale`:
+
+- Every open space in a column with at least the containment headroom over its floor is a node: walkable when the face under it is no steeper than walkable, of either winding; a swim box's share of it is a wet node.
+- Walk: between walkable floors side by side within the step, with the headroom overlapping.
+- Drop and slide: off a ledge to a floor lower by more than the step (one way), and off a face too steep to stand on, level or down, until walkable floor, water, a zone line, or nothing; onto nothing, or under the underworld, is a leak, unless a swim box or a zone line catches the fall.
+- Water: a floor enters the box over it when the box's bottom lies within a player's height of the floor; a swimmer swims between touching boxes, sinks to the floor, climbs out onto walkable floor up to the step over the box's top, or swims out over lower ground and falls.
+- A zone line takes whoever reaches it (a floor whose point a cell over it lies in its box, or water it covers whole), and one whose target is the zone itself at a whole point carries them to the floor under that point.
+- Squeeze: what only a smaller player passes (less than `playerHeight` of open space; containment floods with `smallestPlayerHeight`, or one cell height while it is unmeasured) is labelled so and still counts as reached.
+- A trap is a reached place with no way back to any arrival or zone line.
+
+Not modelled: jumps, levitation, the camera, doors (taken as open, though the RoF2 client collides with a door in its closed position), NPCs, and players wider than a point; and a gap narrower than two columns may read as closed. Every result says so.
+
+The plan draws the lane over the relief, its problems numbered: leaks (a void edge, a fall under the underworld, reach into a `none` region or outside every region), entries the safe point does not reach both ways, plot entrances never reached, traps, reach into a `view` region, zone lines and swim boxes never reached, walkable play floor under open sky never reached, and pools or rivers without swim boxes whose bed is walked. The problem sheet looks at each from where players stand nearest it. Use it after the layout pass and after every change to the ground's edges, boundaries, or water: a leak is fixed by a boundary or by shaping, never by drawing the region again. `renderSketch` with the `lane` layer lays the same fill over a sketch.
+
 ### Housing
 
 A zone decides its housing before any plot exists: whether it has any, how central it is, what it is for, where the server hosts it (the public zone or instanced neighborhoods), how many plots, how they are priced, and its main routes. Plots are then placed one at a time, each an outline with the client's own border model as players will see it, graded level in its own shaping pass (every plot on a ground graded together, so none disturbs another's pad and a bank too steep between two is reported), assessed where it lies (the ground, drops and walls around it, water, view, seclusion, how much of the main routes see it), and priced from the zone's rules and its features. Export writes the zone's housing file in the shape Peridot's housing reads (plots, their border doors, prices, capacities) and lists the border models' archive for the zone.

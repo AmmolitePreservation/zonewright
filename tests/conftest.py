@@ -42,8 +42,8 @@ heavyGroups = {
     | {(zoneSurveySkill / "SKILL.md").as_posix()},
   "clientFiles": readerFiles,
   "calibration": {"server/eqCalibration.py", "server/bridgeClientLight.py"},
-  "serverMaps": {f"server/{name}.py" for name in ("serverMapFiles", "serverMapDrawing", "eqAxes", "eqgFiles", "eqArchive")}
-    | {"tests/serverReference.py", "tests/serverReference.json"},
+  "serverMaps": {f"server/{name}.py" for name in ("serverMapFiles", "serverMapDrawing", "eqAxes", "eqgFiles", "eqArchive", "playerReach")}
+    | {"tests/serverReference.py", "tests/serverReference.json", "recastHelper/reachMode.cpp"},
   "serverNav": {f"server/{name}.py" for name in (
     "serverNav", "recastHelper", "serverMapFiles", "eqAxes", "eqgFiles", "eqArchive", "serverMapDrawing", "planDrawing", "machineProfile", "toolingManifest", "toolingSync",
   )} | {"toolingManifest.json", "tests/serverReference.py", "tests/serverReference.json"} | {f"recastHelper/{name}" for name in (

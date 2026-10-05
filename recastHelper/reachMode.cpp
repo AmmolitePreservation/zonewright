@@ -928,8 +928,8 @@ public:
           }
           const bool otherWalkable = model.walkable(other);
           if (otherLow > low) {
-            if (walkable && otherLow - low <= model.climb) {
-              visit(other, static_cast<uint32_t>(next), otherWalkable ? walkMove : slideMove);
+            if (walkable && otherWalkable && otherLow - low <= model.climb) {
+              visit(other, static_cast<uint32_t>(next), walkMove);
             }
           } else if (low - otherLow <= model.climb) {
             // Off a face too steep to stand on, a player goes level or down; level matters on the rim a vertical face leaves along a

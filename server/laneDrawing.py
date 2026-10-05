@@ -3,7 +3,6 @@ walkable floor they never reach hatched grey, columns reached at a level under a
 green when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X when unreached),
 region outlines in their access colors, and the problems numbered. LanePlan lays it over planDrawing.drawPlan's plan; drawLaneBesideNav
 draws a lane from server files over their collision beside the server's NPC nav."""
-import math
 
 import numpy
 from PIL import Image, ImageDraw

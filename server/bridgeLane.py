@@ -56,7 +56,7 @@ def laneInput(outputPath):
   for entry in listed["entries"]:
     record = dict(entry)
     if entry["kind"] in seedKinds:
-      record["footing"] = footingRecord(ground, entry["at"])
+      record["seedFooting"] = footingRecord(ground, entry["at"])
     entries.append(record)
   bodies = bridgeSwim.swimDecisions()["undecided"]
   arrays = {"collision": collision["positions"][collision["triangles"]].astype(numpy.float32)}
