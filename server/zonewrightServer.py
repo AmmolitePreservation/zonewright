@@ -1394,12 +1394,13 @@ async def buildExport(context, zone, purpose):
   checked = await callBridge(context, "collectZoneExport", {
     "outputFolder": str(toolingRoot / "exports" / zone), "zoneName": zone, "purpose": purpose, "client": client,
   })
+  if purpose != "game" or checked["collected"] is None:
+    built = await anyio.to_thread.run_sync(callReportingFailures, exportPipeline.build, checked, zone, zoneProperties, None, toolingRoot, progressReporter(context))
+    return built, status["filePath"]
   laneInputPath = playerReach.reachRoot(toolingRoot) / f"input-{newRenderPath().stem}.npz"
   laneInputPath.parent.mkdir(parents=True, exist_ok=True)
   try:
-    inputs = None
-    if purpose == "game" and checked["collected"] is not None:
-      inputs = await gameInputs(context, zoneProperties, client, status["filePath"], laneInputPath)
+    inputs = await gameInputs(context, zoneProperties, client, status["filePath"], laneInputPath)
     built = await anyio.to_thread.run_sync(
       callReportingFailures, exportPipeline.build, checked, zone, zoneProperties, inputs, toolingRoot, progressReporter(context),
     )

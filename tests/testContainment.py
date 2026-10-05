@@ -128,6 +128,10 @@ def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
   lane = exported["containment"]
   assert lane["lane"] == "computed" and lane["reachGrid"] == playerReach.reachGrid and Path(lane["laneFile"]).name == f"lane-{lane['laneKey']}.bin"
   assert [(entry["name"], entry["connected"]) for entry in lane["entries"]] == [("safe point", True), ("fromQeynos", True)]
+  # NPC paths are probed from the safe point to the zone line and to the stored entry.
+  assert [(probe["name"], probe["point"], probe["reached"]) for probe in exported["serverFiles"]["nav"]["probes"]] == [
+    ("ATP_1_north", [(low + high) / 2 for low, high in zip(northLine["minimum"], northLine["maximum"])], True), ("entry fromQeynos", [-40.0, -40.0, 0.0], True),
+  ]
   assert lane["zoneLines"] == [{"name": "ATP_1_north", "reached": True}]
   assert {kind for kind in lane["problems"]} <= {"unreachedPlayFloor", "trap"} and "voidEdge" not in lane["problems"]
   # Its rows: the zone row and one zone_points row at the line's box's center in the server's axes, numbered ten times its number.
@@ -235,6 +239,20 @@ def testALeakRefusesTheGameExportAndSaysWhere(stageBlenderServer, tmp_path):
   assert found["outsideRegions"]["area"] == centersWithin(-half, edge) * (centersWithin(-edge, -60) - 1) * cellSize ** 2
   assert found["disconnectedEntry"]["entry"] == "rooftop" and near(found["disconnectedEntry"]["center"], [-15, 15])
   assert found["unreachedPlot"]["plot"] == "1 Walled Street" and all(-30 < value < -10 for value in found["unreachedPlot"]["center"][:2])
+  # NPC paths are probed to the stored entries and the plot's entrance too. The walled room's floor is an island of the NPC nav, so
+  # the path to the plot ends short of it. The tower's top, eroded by the NPC's radius, holds no nav, so the server takes the nearest
+  # polygon its ground filter walks within (10, 200, 10) as the goal, on the ground at the tower's foot, and paths there.
+  probes = {probe["name"]: probe for probe in checked["serverFiles"]["nav"]["probes"]}
+  assert list(probes) == ["ATP_1_north", "entry fromQeynos", "entry rooftop", "plot 1 Walled Street"]
+  assert [probes[name]["reached"] for name in probes] == [True, True, True, False]
+  islands = checked["serverFiles"]["nav"]["largestIslands"]
+  assert not [island for island in islands if -20 < island["center"][0] < -10 and 10 < island["center"][1] < 20]
+  assert probes["entry rooftop"]["goalComponent"] == 0 and probes["plot 1 Walled Street"]["result"] == "partial"
+  room = [island["number"] for island in islands if -30 < island["center"][0] < -10 and -30 < island["center"][1] < -10]
+  assert len(room) == 1 and probes["plot 1 Walled Street"]["goalComponent"] == room[0]
+  assert probes["plot 1 Walled Street"]["point"] == found["unreachedPlot"]["center"]
+  unpathed = [finding["message"] for finding in checked["findings"] if finding["finding"] == "NPC nav"]
+  assert unpathed == [f"NPCs cannot path from the safe point to plot 1 Walled Street within Peridot's 1,024 search nodes: it lies on island {room[0]}, apart from the main piece"]
   assert "exportZone (game) refused, nothing written: 5 failure(s)" in refused
   assert all(f'"failure": "{kind}"' in refused for kind in kinds) and not (tmp_path / f"{short}.eqg").exists()
 

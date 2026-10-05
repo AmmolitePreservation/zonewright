@@ -158,6 +158,11 @@ def serverMaps(archiveBytes, safePoint, targets, toolingRoot, reportProgress):
   return built
 
 
+def columnsBetween(low, high, origin, cellSize, count):
+  """The indices of the grid's columns along one axis whose centers lie from low to high."""
+  return numpy.arange(max(0, math.ceil((low - origin) / cellSize - 0.5)), min(count - 1, math.floor((high - origin) / cellSize - 0.5)) + 1)
+
+
 def islandReach(inspection, nodes):
   """Whether players reach each NPC island, by its number: whether some reached dry floor of the lane lies within a step
   (playerScale.stepHeight, so a player there steps onto it) of one of the island's polygons, in a column whose center the polygon holds.
@@ -178,8 +183,8 @@ def islandReach(inspection, nodes):
         continue
       corners = numpy.column_stack([numpy.asarray(polygon["outline"], dtype=numpy.float64), polygon["heights"]])
       low, high = corners[:, :2].min(axis=0), corners[:, :2].max(axis=0)
-      rows = numpy.arange(max(0, math.ceil((low[0] - lane.origin[2]) / lane.cellSize - 0.5)), min(lane.columnsZ - 1, math.floor((high[0] - lane.origin[2]) / lane.cellSize - 0.5)) + 1)
-      across = numpy.arange(max(0, math.ceil((low[1] - lane.origin[0]) / lane.cellSize - 0.5)), min(lane.columnsX - 1, math.floor((high[1] - lane.origin[0]) / lane.cellSize - 0.5)) + 1)
+      rows = columnsBetween(low[0], high[0], lane.origin[2], lane.cellSize, lane.columnsZ)
+      across = columnsBetween(low[1], high[1], lane.origin[0], lane.cellSize, lane.columnsX)
       if not len(rows) or not len(across):
         continue
       row, column = numpy.meshgrid(rows, across, indexing="ij")
@@ -234,8 +239,14 @@ def leakFailure(problem, underworld):
   kind, number, center = problem["kind"], problem["number"], problem["center"]
   said = {
     "voidEdge": f"Players walk or slide off an edge onto nothing, along {problem.get('length')}: a boundary wall, or shaping, closes it",
-    "belowUnderworld": f"Players reach floor under the underworld ({underworld}), along {problem.get('length')}, where the server takes them for fallen out of the world",
-    "noneRegion": f"Players reach {problem.get('area')} of region '{problem['region']}', whose access is none: a boundary or shaping keeps them out, or its access is wrong",
+    "belowUnderworld": (
+      f"Players reach floor under the underworld ({underworld}), along {problem.get('length')}, where the server takes them for fallen out"
+      " of the world"
+    ),
+    "noneRegion": (
+      f"Players reach {problem.get('area')} of region '{problem['region']}', whose access is none: a boundary or shaping keeps them out, or"
+      " its access is wrong"
+    ),
     "outsideRegions": f"Players reach {problem.get('area')} of ground outside every region: plan it with a region, or keep players off it",
     "disconnectedEntry": (
       f"Entry '{problem.get('entry')}' and the safe point do not reach each other both ways: players arriving there cannot reach the rest of the"
@@ -257,26 +268,40 @@ def laneFindings(lane, description, analysis):
       finding = {"finding": kind, "problems": found}
       if kind in more:
         finding["more"] = more[kind]
-      findings.append(finding | {"message": f"{laneFindingMessages[kind]}: {len(found) + more.get(kind, {}).get('count', 0)} (mapReach numbers them as here)"})
+      count = len(found) + more.get(kind, {}).get("count", 0)
+      findings.append(finding | {"message": f"{laneFindingMessages[kind]}: {count} (mapReach numbers them as here)"})
   nodes = analysis["nodes"]
   squeezed = nodes.label == playerReach.squeezeLabel
   if squeezed.any():
-    places = sorted(playerReach.groupedProblems("squeeze", lane, squeezed, nodes, analysis["regionOfNode"], description["regions"]), key=lambda place: -place["area"])
+    places = playerReach.groupedProblems("squeeze", lane, squeezed, nodes, analysis["regionOfNode"], description["regions"])
+    places.sort(key=lambda place: -place["area"])
     findings.append({
       "finding": "squeeze reach", "area": analysis["reachedArea"]["squeeze"], "places": [placeOf(place) for place in places[:playerReach.problemsListed]],
-      "message": f"Only a player shorter than playerHeight ({playerScale.playerHeight:g}) passes here, through less open space than a player's height; containment counts it as reached",
+      "message": (
+        f"Only a player shorter than playerHeight ({playerScale.playerHeight:g}) passes here, through less open space than a player's height;"
+        " containment counts it as reached"
+      ),
     })
   for line in description["zoneLines"]:
     for box in description["swimBoxes"]:
       if all(line["low"][axis] < box["high"][axis] and box["low"][axis] < line["high"][axis] for axis in range(3)):
         findings.append({
           "finding": "zone line in a swim box", "zoneLine": line["name"], "swimBox": box["name"],
-          "message": f"Zone line '{line['name']}' overlaps swim box '{box['name']}': the .wtr lists the swim boxes first and the server takes the first box holding a point, so it reads their overlap as water",
+          "message": (
+            f"Zone line '{line['name']}' overlaps swim box '{box['name']}': the .wtr lists the swim boxes first and the server takes the first"
+            " box holding a point, so it reads their overlap as water"
+          ),
         })
   if not description["zoneLines"]:
     findings.append({"finding": "no zone lines", "message": "The zone has no zone lines: players leave it only by ports or death (placeZoneLine)"})
   if not any(seed["kind"] == "zoneIn" for seed in description["seeds"]):
-    findings.append({"finding": "no zoneIn entries", "message": "No zoneIn entry says where a neighbour's zone line lands players (placeEntry kind zoneIn); the lane starts from the safe point and the landings alone"})
+    findings.append({
+      "finding": "no zoneIn entries",
+      "message": (
+        "No zoneIn entry says where a neighbour's zone line lands players (placeEntry kind zoneIn); the lane starts from the safe point and"
+        " the landings alone"
+      ),
+    })
   terms = playerReach.laneTerms(lane, description)
   findings.append({
     "finding": "lane limits", "notModeled": terms["notModeled"], "limits": terms["limits"],
@@ -315,12 +340,13 @@ def containment(inputs, underworld, toolingRoot, reportProgress):
   for kind in leakKinds:
     if kind in analysis["moreProblems"]:
       rest = analysis["moreProblems"][kind]
-      failures.append({"failure": kind, "more": rest, "message": f"{rest['count']} more {kind} problems than mapReach lists (the largest {playerReach.problemsListed} of each kind)"})
+      said = f"{rest['count']} more {kind} problems than mapReach lists (the largest {playerReach.problemsListed} of each kind)"
+      failures.append({"failure": kind, "more": rest, "message": said})
   summary = {
-    "lane": status, "seconds": seconds, "laneFile": str(lane.path), "laneKey": lane.path.stem.removeprefix("lane-"), "reachGrid": playerReach.reachGrid,
-    "constants": playerReach.constantsReport(), "entries": analysis["entries"], "notFollowed": description["notFollowed"], "reachedArea": analysis["reachedArea"],
-    "regions": analysis["regions"], "zoneLines": analysis["zoneLines"], "plotEntrances": analysis["plotEntrances"], "swimBoxes": analysis["swimBoxes"],
-    "problems": problemCounts(analysis),
+    "lane": status, "seconds": seconds, "laneFile": str(lane.path), "laneKey": lane.path.stem.removeprefix("lane-"),
+    "reachGrid": playerReach.reachGrid, "constants": playerReach.constantsReport(), "entries": analysis["entries"],
+    "notFollowed": description["notFollowed"], "reachedArea": analysis["reachedArea"], "regions": analysis["regions"],
+    "zoneLines": analysis["zoneLines"], "plotEntrances": analysis["plotEntrances"], "swimBoxes": analysis["swimBoxes"], "problems": problemCounts(analysis),
   }
   return summary, failures, laneFindings(lane, description, analysis), analysis["nodes"]
 
@@ -329,7 +355,8 @@ def arrivals(zoneProperties, entries):
   """Where players arrive that the server must find ground under: the safe point, every stored entry, and the landing of every zone line
   leading back into the zone."""
   places = [{"arrival": "safe point", "kind": "safePoint", "at": list(zoneProperties["safePoint"][:3])}] if "safePoint" in zoneProperties else []
-  return places + [{"arrival": entry["name"], "kind": entry["kind"], "at": entry["at"]} for entry in entries if entry["source"] == "placeEntry" or entry["kind"] == "teleport"]
+  stored = [entry for entry in entries if entry["source"] == "placeEntry" or entry["kind"] == "teleport"]
+  return places + [{"arrival": entry["name"], "kind": entry["kind"], "at": entry["at"]} for entry in stored]
 
 
 def groundFailures(collision, underworld, places):
@@ -349,7 +376,10 @@ def groundFailures(collision, underworld, places):
     named = "The safe point" if place["kind"] == "safePoint" else f"{place['kind']} '{place['arrival']}'"
     failures.append({"failure": "no .map ground"} | place | {
       "ground": ground,
-      "message": f"{named} at {list(place['at'])} stands over no ground the server finds in the .map: looking down from {findBestZHeightAdjust:g} over it, as FindBestZ does, it meets {met}; players arriving there fall",
+      "message": (
+        f"{named} at {list(place['at'])} stands over no ground the server finds in the .map: looking down from {findBestZHeightAdjust:g}"
+        f" over it, as FindBestZ does, it meets {met}; players arriving there fall"
+      ),
     })
   return failures
 
@@ -364,7 +394,8 @@ def zoneRows(zoneProperties, zone, inputs, archiveBytes):
     return None, f"rows not written: the archive is not named by the short name '{zoneProperties['shortName']}'", []
   try:
     rows = serverRows.rowsFiles(
-      zoneProperties, inputs["zoneLines"], inputs["entries"], inputs["clientZones"], inputs["skyFogColor"], inputs["record"], hashlib.sha256(archiveBytes).hexdigest(),
+      zoneProperties, inputs["zoneLines"], inputs["entries"], inputs["clientZones"], inputs["skyFogColor"], inputs["record"],
+      hashlib.sha256(archiveBytes).hexdigest(),
     )
   except ValueError as error:
     why = f"rows not written: {error}"
@@ -382,7 +413,10 @@ def build(checked, zone, zoneProperties, inputs, toolingRoot, reportProgress):
   report = checked["report"]
   game = report["purpose"] == "game"
   report["containment"] = testContainment if not game else "not checked: server files not built"
-  built = {"report": report, "zoneProperties": zoneProperties, "archive": None, "summary": None, "sides": None, "housing": None, "server": None, "rows": None, "rowsWhy": None}
+  built = {
+    "report": report, "zoneProperties": zoneProperties, "archive": None, "summary": None, "sides": None, "housing": None, "server": None, "rows": None,
+    "rowsWhy": None,
+  }
   if checked["collected"] is None:
     return built
   collected = checked["collected"]
