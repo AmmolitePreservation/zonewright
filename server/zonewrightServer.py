@@ -2431,7 +2431,7 @@ async def renderSketch(
   drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled),
   zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problems
   and regions, over the regions' fills and the caves' floors: walk green, swim blue, slide orange, squeeze violet, traps hatched orange, walkable floor never reached cross-hatched,
-  leak edges magenta, zone lines filled when reached, seeds as white arrows, with its legend in a band under the plan; the result's
+  ledges dark, leak edges magenta, zone lines hatched when reached, seeds as white arrows, with its legend in a band under the plan; the result's
   laneState says whether the lane was computed or reused, the constants it used, what it does not model, and its limits). Labels are
   placed clear of one another, and beside the spot heights rather than over them where they can be; an area is named only where it
   reaches into the drawing. frameSize is the plan's size in pixels, above any legend band."""
@@ -2923,6 +2923,8 @@ async def getEntries(context: Context):
 
 problemViewCount = 8
 lanePlanLayers = ["water", "swim", "boundaries"]
+# A whole lane plan spans what the zone ships this many times over, leaving room past its edges for the rings, names, and scale bar.
+lanePlanSpare = 1.2
 problemViewFrame = {"size": [960, 540], "verticalFieldOfViewDegrees": 50.0}
 # A sight to a problem counts as clear when nothing blocks it short of this far before its target.
 problemSightShort = 2.0
@@ -2983,7 +2985,8 @@ async def lanePlanRender(context, center, width, lanePlan, layers, sky):
   planPath = newRenderPath()
   drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, planPath, center, width, overlays, lanePlan)
   basePath.unlink()
-  await anyio.to_thread.run_sync(laneDrawing.legendUnder, planPath, lanePlan, planDrawing.PlanFrame(center, width, drawn["size"]))
+  frame = planDrawing.PlanFrame(center, width, drawn["size"])
+  await anyio.to_thread.run_sync(laneDrawing.legendUnder, planPath, lanePlan, frame, laneDrawing.overlayLegend(overlays))
   return planPath, base, drawn
 
 
@@ -3000,10 +3003,12 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   across about `center` (default: everything the zone ships), with only the nodes whose height lies in `level` {bottom, top} when given
   (caves, stacked floors): walk green, swim blue, slide orange, squeeze (only a smaller player fits) violet, traps (one way in, no way
   back) hatched orange, walkable floor never reached cross-hatched dark, columns reached at a level under a higher one dotted (violet
-  where only a smaller player fits under it), leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where
-  a zone line catches a fall green, zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated),
-  plot entrances as ticks (a red X when unreached), water and swim boxes, boundaries red, region outlines in their access colors, and
-  the problems ringed and numbered, with a legend band under the plan (plan.frameSize is the plan's own size in pixels). Picture 2 (problemViews, when there are
+  where only a smaller player fits under it), ledges (reached floors side by side more than a step apart: a platform's or roof's edge)
+  dark, leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where a zone line catches a fall green, zone
+  lines hatched green and named when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks
+  (a red X when unreached), water and swim boxes, boundaries red, region outlines in their access colors under them, and the problems
+  ringed (round the seed or plot mark they lie on) and numbered over their rings, with a legend band under the plan naming what it shows
+  (plan.frameSize is the plan's own size in pixels; the whole zone is framed with a fifth of its size to spare). Picture 2 (problemViews, when there are
   problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
   its problem (ringed in the middle of the view) from a clear sight framing it, the eye raised no more than it must be and turned from
   the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives the constants used (value and source),
@@ -3028,9 +3033,9 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   zone = await callBridge(context, "getZoneProperties", {})
   sky = await zoneSky(zone)
   lanePlan = laneDrawing.LanePlan(analysis, description, level, True)
-  planWidth = width if width is not None else (bounds["maximum"][1] - bounds["minimum"][1]) * 1.05
+  planWidth = width if width is not None else (bounds["maximum"][1] - bounds["minimum"][1]) * lanePlanSpare
   planPath, base, drawn = await lanePlanRender(context, center, planWidth, lanePlan, lanePlanLayers, sky)
-  across = (bounds["maximum"][0] - bounds["minimum"][0]) * 1.05
+  across = (bounds["maximum"][0] - bounds["minimum"][0]) * lanePlanSpare
   if width is None and across > planWidth * base["height"] / base["width"]:
     planPath.unlink()
     planWidth = across * base["width"] / base["height"]

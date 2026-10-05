@@ -31,7 +31,8 @@ heightMargin = 2 * cellHeight
 half = 80.0
 # The rim's walls stand just inside the ground's edge, in its last column, as the reach course's do.
 edge = half - 0.1
-wallHeight = stepHeight + playerHeight
+# Walls lower than a player standing a step up have their tops joined to the yard's open space, as unreached play floor.
+wallHeight = stepHeight + playerHeight + 2 * heightMargin
 environment = {
   "ambientColor": [0.3, 0.3, 0.35], "specialAmbientColor": [0, 0, 0], "bounceColor": [0.1, 0.1, 0.15], "sunColor": [0.6, 0.5, 0.4],
   "sunAzimuthDegrees": 40, "sunElevationDegrees": 35, "fogColor": [0.5, 0.55, 0.6], "fogStart": 100, "fogEnd": 3000, "fogDensity": 0.1,
@@ -211,7 +212,7 @@ def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
   assert f"The record of the zone_points rows {short}'s game exports wrote, {record}, cannot be read: JSONDecodeError" in damaged
   assert serverRows.readRows((second / "server" / "sql" / "contained.sql").read_text(encoding="ascii")) == secondRows
 
-  # The server's view of the first export from its files alone, the islands players reach orange and the others grey.
+  # The server's view of the first export from its files alone, the islands players reach orange and the others lavender.
   mapContent = serverMapFiles.readMap((first / "server" / "maps" / "base" / "contained.map").read_bytes())
   records = serverMapFiles.readWater((first / "server" / "maps" / "water" / "contained.wtr").read_bytes())
   inspection = serverNav.inspectNav((first / "server" / "maps" / "nav" / "contained.nav").read_bytes(), [0, 0, 0], [], stageBlenderServer.toolingRoot, noProgress)
@@ -226,11 +227,18 @@ def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
   def pixelAt(point):
     x, y = frame.pixel(point)
     return pixels[int(y), int(x)]
-  # The platform's top, which players reach up the ramp, is an island drawn orange; the dais's, which no one climbs, grey.
+  # The platform's top, which players reach up the ramp, is an island drawn orange; the dais's, which no one climbs, lavender, apart
+  # from the grey of the collision around it. Each one's hollow inside lies under its top, outlined dashed and numbered as under it.
   top, daisTop = pixelAt((44, 36)), pixelAt((-44, 36))
   assert top[0] > top[1] > top[2], top
-  assert abs(daisTop[0] - daisTop[1]) <= 12 and abs(daisTop[1] - daisTop[2]) <= 12, daisTop
+  assert daisTop[2] > daisTop[0] > daisTop[1] and daisTop[2] - daisTop[1] > 30, daisTop
   assert f"{sum(reach)} NPC islands players reach" in drawn["legend"]
+  numbers = {name: [island["number"] for island in sorted(manifest["nav"]["islands"], key=lambda island: island["center"][2]) if islandsOn([island], box)] for name, box in (("platform", platform), ("dais", dais))}
+  assert drawn["islandsUnder"] == {numbers["platform"][0]: numbers["platform"][1], numbers["dais"][0]: numbers["dais"][1]}
+  assert drawn["islandNumbersWritten"] == len(inspection["islands"]) and drawn["legend"][-1] == "plan: +X (north) up, +Y left"
+  # The ramp, steeper than the NPC nav walks, is hatched; the scale bar lies below the plan's lowest point.
+  assert any(text.startswith("collision steeper than the NPC nav walks") for text in drawn["legend"])
+  assert frame.pixel((-half, 0))[1] < drawn["frame"]["size"][1] - serverMapDrawing.scaleRoom + 1
 
 
 def testALeakRefusesTheGameExportAndSaysWhere(stageBlenderServer, tmp_path):
@@ -472,6 +480,18 @@ def testAnIslandIsAFindingNotAFailure(stageBlenderServer, tmp_path):
   assert [(found["islands"], found["playersReach"]) for found in finding] == [(5, 1)]
   manifest = json.loads((tmp_path / f"{short}_export.json").read_text(encoding="ascii"))
   assert [island["playersReach"] for island in manifest["nav"]["islands"]] == [island["playersReach"] for island in islands]
+  # In the server's view the roof is drawn as an island no player reaches, the platform's top as one players reach.
+  maps = tmp_path / "server" / "maps"
+  inspection = serverNav.inspectNav((maps / "nav" / f"{short}.nav").read_bytes(), [0, 0, 0], [], stageBlenderServer.toolingRoot, noProgress)
+  picture = tmp_path / "roofServerView.png"
+  drawn = serverMapDrawing.drawServerPlan(
+    picture, serverMapFiles.readMap((maps / "base" / f"{short}.map").read_bytes()), serverMapFiles.readWater((maps / "water" / f"{short}.wtr").read_bytes()),
+    ["ATP_1_north"], inspection, [{"at": [0, 0], "label": "safe point"}], islandReach=[island["playersReach"] for island in manifest["nav"]["islands"]],
+  )
+  frame = planDrawing.PlanFrame(drawn["frame"]["center"], drawn["frame"]["width"], drawn["frame"]["size"])
+  pixels = numpy.asarray(Image.open(picture).convert("RGB"), dtype=numpy.int64)
+  onRoofPixel, onPlatformPixel = (pixels[int(y), int(x)] for x, y in (frame.pixel((-16, 12)), frame.pixel((44, 36))))
+  assert onRoofPixel[2] > onRoofPixel[0] > onRoofPixel[1] and onPlatformPixel[0] > onPlatformPixel[1] > onPlatformPixel[2], (onRoofPixel, onPlatformPixel)
 
 
 def testATestExportComputesNoLane(stageBlenderServer, tmp_path):

@@ -3,7 +3,8 @@ by height and slope (faces seen edge-on from above, such as upright walls, show 
 region boxes outlined and numbered; two collisions side by side with the triangles that differ between them; a nav mesh's polygons
 (serverNav.inspectNav's) filled by nav area, by NPC component with the islands numbered, or as a difference against another nav, in
 panels side by side on one frame, each titled and with its legend; and the server's view of a zone, its collision (what stands upright
-drawn as lines, so a thin wall shows), region boxes, NPC nav, and marked points in one plan."""
+drawn as lines, so a thin wall shows, and what is too steep for the NPC nav hatched), region boxes, NPC nav (an island under a higher
+one outlined dashed), and marked points in one plan."""
 import collections
 import math
 
@@ -13,6 +14,7 @@ from PIL import Image, ImageDraw
 import eqAxes
 import planDrawing
 import serverMapFiles
+import serverNav
 
 backgroundColor = (238, 236, 232)
 heightStops = ((0.0, (52, 84, 120)), (0.35, (96, 132, 86)), (0.7, (176, 156, 112)), (1.0, (246, 244, 236)))
@@ -46,7 +48,18 @@ serverGroundStops = ((0.0, (140, 140, 140)), (1.0, (240, 240, 240)))
 passableColor = (40, 110, 230)
 passableAlpha = 115
 navFillAlpha = 120
-unreachedIslandColor = (150, 150, 150)
+unreachedIslandColor = (165, 120, 220)
+# The server's relief darkens a slope facing away from the light to no less than this share, so no face reads as the dark of what the
+# ground filter never walks.
+serverShadeFloor = 0.75
+steepColor = (95, 70, 40)
+steepHatchSpacing = 6
+underDash = 8
+underWidth = 2
+underShare = 0.25
+# The pixels a server plan keeps clear under its lowest point, where planDrawing.drawScale puts the scale bar.
+scaleRoom = 56
+planNote = "plan: +X (north) up, +Y left"
 markerRadius = 6
 markerLabelSize = 14
 uprightColor = (150, 20, 20)
@@ -119,9 +132,14 @@ def topSurface(zoneTriangles, frame):
 
 
 def shadedCollision(zoneTriangles, frame, stops=heightStops):
-  """The top surface as RGB: a color by height (stops, between the 1st and 99th percentile of what it covers) darkened by slope away
-  from a light in the north-west, the background where nothing is."""
+  """The top surface as RGB (shadeSurface)."""
   heights, owners = topSurface(zoneTriangles, frame)
+  return shadeSurface(heights, owners, zoneTriangles, stops)
+
+
+def shadeSurface(heights, owners, zoneTriangles, stops=heightStops, shadeFloor=0.5):
+  """A top surface (topSurface's heights and owners) as RGB: a color by height (stops, between the 1st and 99th percentile of what it
+  covers) darkened by slope away from a light in the north-west, down to shadeFloor of it, the background where nothing is."""
   image = numpy.empty((*heights.shape, 3), dtype=numpy.float64)
   image[:] = backgroundColor
   covered = owners >= 0
@@ -130,7 +148,7 @@ def shadedCollision(zoneTriangles, frame, stops=heightStops):
     normals = numpy.cross(corners[:, 1] - corners[:, 0], corners[:, 2] - corners[:, 0])
     normals /= numpy.linalg.norm(normals, axis=1, keepdims=True)
     normals[normals[:, 2] < 0] *= -1
-    shade = 0.5 + 0.5 * numpy.clip(normals @ lightDirection, 0, 1)
+    shade = shadeFloor + (1 - shadeFloor) * numpy.clip(normals @ lightDirection, 0, 1)
     low, high = numpy.percentile(heights[covered], (1, 99))
     share = numpy.clip((heights[covered] - low) / max(high - low, 1e-9), 0, 1)
     places = numpy.array([place for place, _ in stops])
@@ -386,26 +404,115 @@ def uprightSegments(zoneTriangles, frame):
   return numpy.stack([x[rows, longest[:, 0]], y[rows, longest[:, 0]], x[rows, longest[:, 1]], y[rows, longest[:, 1]]], axis=1)
 
 
+def steepPixels(zoneTriangles, owners):
+  """Where the top surface (topSurface's owners) is a face steeper than the NPC nav walks (serverNavSettings' maxSlope) yet short of
+  upright, which the nav leaves bare though players may walk it."""
+  steep = numpy.zeros(owners.shape, dtype=bool)
+  covered = owners >= 0
+  if covered.any():
+    corners = zoneTriangles[owners[covered]].astype(numpy.float64)
+    normals = numpy.cross(corners[:, 1] - corners[:, 0], corners[:, 2] - corners[:, 0])
+    slope = numpy.degrees(numpy.arccos(numpy.clip(numpy.abs(normals[:, 2]) / numpy.linalg.norm(normals, axis=1), 0, 1)))
+    steep[covered] = (slope > serverNav.serverNavSettings["maxSlope"]) & (slope < 90 - uprightDegrees)
+  return steep
+
+
+def withScaleRoom(frame):
+  """frame grown downward by scaleRoom pixels, its top where it was, so the scale bar drawn in its bottom left corner covers no plan."""
+  unitsPerPixel = frame.width / frame.size[0]
+  return planDrawing.PlanFrame((frame.center[0] - scaleRoom * unitsPerPixel / 2, frame.center[1]), frame.width, (frame.size[0], frame.size[1] + scaleRoom))
+
+
+def shrunk(mask, steps):
+  """mask with every pixel within steps of its edge (or the image's) cleared."""
+  inner = mask.copy()
+  for _ in range(steps):
+    inner[1:, :] &= inner[:-1, :].copy()
+    inner[:-1, :] &= inner[1:, :].copy()
+    inner[:, 1:] &= inner[:, :-1].copy()
+    inner[:, :-1] &= inner[:, 1:].copy()
+    inner[0, :] = inner[-1, :] = inner[:, 0] = inner[:, -1] = False
+  return inner
+
+
+def islandsUnder(islands, polygons, frame):
+  """The islands lying under a higher one over at least underShare of their plan, as {number: the number of the higher island covering
+  the most of it}, and each island's footprint as (mask, left, top) in the frame's pixels."""
+  outlines = collections.defaultdict(list)
+  for polygon in polygons:
+    if polygon["component"] > 0:
+      outlines[polygon["component"]].append([frame.pixel(point) for point in polygon["outline"]])
+  footprints = {}
+  for number, shapes in outlines.items():
+    xs = [x for shape in shapes for x, _ in shape]
+    ys = [y for shape in shapes for _, y in shape]
+    left, top = max(0, math.floor(min(xs)) - 2), max(0, math.floor(min(ys)) - 2)
+    right, bottom = min(frame.size[0], math.ceil(max(xs)) + 3), min(frame.size[1], math.ceil(max(ys)) + 3)
+    if right <= left or bottom <= top:
+      continue
+    canvas = Image.new("L", (right - left, bottom - top), 0)
+    draw = ImageDraw.Draw(canvas)
+    for shape in shapes:
+      draw.polygon([(x - left, y - top) for x, y in shape], fill=255)
+    footprints[number] = (numpy.asarray(canvas) > 0, left, top)
+  owner = numpy.zeros((frame.size[1], frame.size[0]), dtype=numpy.int32)
+  covering = collections.defaultdict(collections.Counter)
+  for number in sorted(footprints, key=lambda found: islands[found - 1]["center"][2]):
+    mask, left, top = footprints[number]
+    window = owner[top:top + mask.shape[0], left:left + mask.shape[1]]
+    lower, counts = numpy.unique(window[mask & (window > 0)], return_counts=True)
+    for covered, count in zip(lower.tolist(), counts.tolist()):
+      covering[covered][number] += count
+    window[mask] = number
+  under = {}
+  for number, over in covering.items():
+    higher, count = over.most_common(1)[0]
+    if count >= underShare * footprints[number][0].sum():
+      under[number] = higher
+  return under, footprints
+
+
 def islandLegend(islands, islandReach):
   atRisk = sum(island["snapRisk"] for island in islands)
   if islandReach is None:
-    return [(islandColor, f"{len(islands):,} NPC islands, {atRisk} at snap risk; players' reach not checked")]
+    return [("fill", islandColor, f"{len(islands):,} NPC islands, {atRisk} at snap risk; players' reach not checked")]
   reached = sum(islandReach)
   return [
-    (islandColor, f"{reached:,} NPC islands players reach"),
-    (unreachedIslandColor, f"{len(islands) - reached:,} NPC islands players do not reach ({atRisk} of all at snap risk)"),
+    ("fill", islandColor, f"{reached:,} NPC islands players reach"),
+    ("fill", unreachedIslandColor, f"{len(islands) - reached:,} NPC islands players do not reach"),
+    ("text", titleColor, f"{atRisk} of the {len(islands):,} islands at snap risk: the server's nearest-polygon search can put an NPC onto them"),
   ]
+
+
+def drawLegendRow(draw, left, top, item):
+  kind, color, text = item
+  box = [left, top, left + swatchSize, top + swatchSize]
+  if kind == "fill":
+    draw.rectangle(box, fill=color, outline=darker(color))
+  elif kind == "hatch":
+    draw.rectangle(box, outline=(170, 170, 170))
+    for offset in range(-swatchSize, swatchSize, steepHatchSpacing):
+      start, end = max(offset, 0), min(offset + swatchSize, swatchSize)
+      draw.line([(left + start, top + swatchSize - (start - offset)), (left + end, top + swatchSize - (end - offset))], fill=color, width=2)
+  elif kind == "dashed":
+    for x in range(left, left + swatchSize, underDash):
+      draw.line([(x, top + swatchSize // 2), (min(x + underDash // 2, left + swatchSize), top + swatchSize // 2)], fill=color, width=underWidth)
+  elif kind != "text":
+    raise ValueError(f"No legend mark '{kind}'")
+  draw.text((left if kind == "text" else left + swatchSize + 8, top - 1), text, fill=titleColor, font=planDrawing.fontOf(15))
 
 
 def drawServerPlan(outputPath, mapContent, waterRecords, regionLabels, inspection, markers, islandReach=None, longSide=1000):
   """The server's view of a zone from its files alone, north up: the .map's collision in grey relief, what of it stands upright (walls,
-  the sides of blocks) as dark red lines along it, and what it holds that the server never collides with tinted blue; the nav's
-  polygons over them (serverNav.inspectNav's), the main piece green, islands orange where players reach them and grey where they do not
-  (islandReach, by island number; None draws every island orange and the legend says players' reach was not checked), numbered, and
-  what the server's ground filter never walks (Disabled, zone line) dark; the .wtr's boxes outlined in their type's color (water cyan,
-  lava magenta, zone lines green), each with its label (regionLabels, in .wtr order); and markers ({at: zone [x, y], label}), such as
-  the safe point. Written as PNG with its legend below; returns the sheet's size, the plan's frame (its center and width in zone units,
-  its size in pixels, at the sheet's top left), the legend, and how many island numbers found room."""
+  the sides of blocks) as dark red lines along it, faces steeper than the NPC nav walks hatched, and what it holds that the server never
+  collides with tinted blue; the nav's polygons over them (serverNav.inspectNav's), the main piece green, islands orange where players
+  reach them and lavender where they do not (islandReach, by island number; None draws every island orange and the legend says players'
+  reach was not checked), numbered, an island lying under a higher one outlined dashed and numbered "N (under M)", and what the server's
+  ground filter never walks (Disabled, zone line) dark; the .wtr's boxes outlined in their type's color (water cyan, lava magenta, zone
+  lines green), each with its label (regionLabels, in .wtr order); and markers ({at: zone [x, y], label}), such as the safe point.
+  Written as PNG with its legend below; returns the sheet's size, the plan's frame (its center and width in zone units, its size in
+  pixels, at the sheet's top left), the legend, how many island numbers found room, and the islands drawn under others ({number: the
+  number over it})."""
   islands = inspection["islands"]
   if islandReach is not None and len(islandReach) != len(islands):
     raise ValueError(f"islandReach holds {len(islandReach)} flags for {len(islands)} islands")
@@ -413,23 +520,41 @@ def drawServerPlan(outputPath, mapContent, waterRecords, regionLabels, inspectio
     raise ValueError(f"{len(regionLabels)} region labels for {len(waterRecords)} .wtr records")
   collision = serverMapFiles.collisionTriangles(mapContent)
   passable = serverMapFiles.passableTriangles(mapContent)
-  frame = collisionFrame(collision, longSide)
-  image = shadedCollision(eqAxes.zoneFromServer(collision), frame, serverGroundStops).convert("RGBA")
+  frame = withScaleRoom(collisionFrame(collision, longSide))
+  ground = eqAxes.zoneFromServer(collision)
+  heights, owners = topSurface(ground, frame)
+  image = shadeSurface(heights, owners, ground, serverGroundStops, serverShadeFloor).convert("RGBA")
+  steep = steepPixels(ground, owners)
+  down, across = numpy.indices(steep.shape)
+  hatch = numpy.zeros((*steep.shape, 4), dtype=numpy.uint8)
+  hatch[steep & ((across + down) % steepHatchSpacing < 2)] = (*steepColor, 255)
+  image = Image.alpha_composite(image, Image.fromarray(hatch, "RGBA"))
   if len(passable):
-    _, owners = topSurface(eqAxes.zoneFromServer(passable), frame)
-    tint = numpy.zeros((*owners.shape, 4), dtype=numpy.uint8)
-    tint[owners >= 0] = (*passableColor, passableAlpha)
+    _, passableOwners = topSurface(eqAxes.zoneFromServer(passable), frame)
+    tint = numpy.zeros((*passableOwners.shape, 4), dtype=numpy.uint8)
+    tint[passableOwners >= 0] = (*passableColor, passableAlpha)
     image = Image.alpha_composite(image, Image.fromarray(tint, "RGBA"))
+  polygons = polygonsOf(inspection)
+  depth = {number: island["center"][2] for number, island in enumerate(islands, 1)}
   fills = Image.new("RGBA", frame.size, (0, 0, 0, 0))
   fillDraw = ImageDraw.Draw(fills)
-  for polygon in polygonsOf(inspection):
+  for polygon in sorted(polygons, key=lambda polygon: depth.get(polygon["component"], -math.inf)):
     color = serverPolygonColor(polygon["component"], islandReach)
     fillDraw.polygon([frame.pixel(point) for point in polygon["outline"]], fill=(*color, navFillAlpha), outline=(*darker(color), 255))
   image = Image.alpha_composite(image, fills)
+  under, footprints = islandsUnder(islands, polygons, frame)
+  dashes = numpy.zeros((frame.size[1], frame.size[0], 4), dtype=numpy.uint8)
+  for number in under:
+    mask, left, top = footprints[number]
+    edge = mask & ~shrunk(mask, underWidth)
+    rows, columns = numpy.nonzero(edge)
+    dashed = (rows + top + columns + left) % underDash < underDash // 2
+    dashes[rows[dashed] + top, columns[dashed] + left] = (*darker(serverPolygonColor(number, islandReach)), 255)
+  image = Image.alpha_composite(image, Image.fromarray(dashes, "RGBA"))
   layer = Image.new("RGBA", frame.size, (0, 0, 0, 0))
   draw = ImageDraw.Draw(layer)
   planDrawing.drawGrid(draw, frame)
-  upright = uprightSegments(eqAxes.zoneFromServer(collision), frame)
+  upright = uprightSegments(ground, frame)
   for segment in upright:
     draw.line(segment.tolist(), fill=(*uprightColor, 255), width=uprightLineWidth)
   outlines = [[frame.pixel(point) for point in regionOutline(record)] for record in waterRecords]
@@ -446,33 +571,38 @@ def drawServerPlan(outputPath, mapContent, waterRecords, regionLabels, inspectio
     board.place((x + markerRadius + 4, y), marker["label"], (0, 0, 0), markerLabelSize, "lm")
   for record, outline, label in zip(waterRecords, outlines, regionLabels):
     board.place((planDrawing.centroidOf(outline)[0], min(y for _, y in outline) - regionLabelLift), label, regionColor(record), 13)
-  written = 0
-  for island in islands:
-    x, y = frame.pixel(island["center"][:2])
+  dots = [frame.pixel(island["center"][:2]) for island in islands]
+  for x, y in dots:
     draw.ellipse([x - 2, y - 2, x + 2, y + 2], fill=(*islandLabelColor, 255))
-    spot = board.clearSpot((x, y - 9), str(island["number"]), islandLabelSize)
+    board.avoid([x - 3, y - 3, x + 3, y + 3])
+  written = 0
+  for island, (x, y) in zip(islands, dots):
+    number = island["number"]
+    text, wanted = (f"{number} (under {under[number]})", (x, y + 11)) if number in under else (str(number), (x, y - 9))
+    spot = board.clearSpot(wanted, text, islandLabelSize)
     if spot is not None:
-      board.write(spot, str(island["number"]), islandLabelColor, islandLabelSize)
+      board.write(spot, text, islandLabelColor, islandLabelSize)
       written += 1
   plan = Image.alpha_composite(image, layer).convert("RGB")
   typeCounts = collections.Counter(record["type"] for record in waterRecords)
   main = inspection["mainPiece"]
-  legend = [((150, 150, 150), f"collision (.map): {len(collision):,} triangles, lighter higher")]
-  legend += [(uprightColor, f"upright collision (.map): {len(upright):,} triangles, as lines")] if len(upright) else []
-  legend += [(passableColor, f"never collided with (.map): {len(passable):,} triangles")] if len(passable) else []
-  legend += [(regionColor({"type": kind}), f"{serverMapFiles.waterRegionTypeNames.get(kind, kind)} boxes (.wtr): {count}") for kind, count in sorted(typeCounts.items())]
-  legend += [(mainPieceColor, f"NPC main piece{' (stand-in: largest)' if main['standIn'] else ''}: {main['polygons']:,} polygons")]
+  legend = [("fill", (150, 150, 150), f"collision (.map): {len(collision):,} triangles, lighter higher")]
+  legend += [("fill", uprightColor, f"upright collision (.map): {len(upright):,} triangles, as lines")] if len(upright) else []
+  legend += [("fill", passableColor, f"never collided with (.map): {len(passable):,} triangles")] if len(passable) else []
+  legend += [("fill", regionColor({"type": kind}), f"{serverMapFiles.waterRegionTypeNames.get(kind, kind)} boxes (.wtr): {count}") for kind, count in sorted(typeCounts.items())]
+  legend += [("fill", mainPieceColor, f"NPC main piece{' (stand-in: largest)' if main['standIn'] else ''}: {main['polygons']:,} polygons")]
   legend += islandLegend(islands, islandReach)
-  legend += [(excludedColor, f"Disabled and zone line: {inspection['excludedPolygons']:,} polygons")]
+  legend += [("fill", excludedColor, f"Disabled and zone line: {inspection['excludedPolygons']:,} polygons")]
+  legend += [("dashed", darker(unreachedIslandColor), f"an island under a higher one, numbered N (under M): {len(under)}")] if under else []
+  legend += [("hatch", steepColor, f"collision steeper than the NPC nav walks (maxSlope {serverNav.serverNavSettings['maxSlope']:g} degrees)")] if steep.any() else []
+  legend += [("text", titleColor, planNote)]
   sheet = Image.new("RGB", (plan.width, plan.height + 2 * panelGap + legendRowHeight * len(legend)), (255, 255, 255))
   sheet.paste(plan, (0, 0))
   sheetDraw = ImageDraw.Draw(sheet)
-  for row, (color, text) in enumerate(legend):
-    top = plan.height + panelGap + row * legendRowHeight
-    sheetDraw.rectangle([panelGap, top, panelGap + swatchSize, top + swatchSize], fill=color, outline=darker(color))
-    sheetDraw.text((panelGap + swatchSize + 8, top - 1), text, fill=titleColor, font=planDrawing.fontOf(15))
+  for row, item in enumerate(legend):
+    drawLegendRow(sheetDraw, panelGap, plan.height + panelGap + row * legendRowHeight, item)
   sheet.save(outputPath, "PNG")
   return {
     "width": sheet.width, "height": sheet.height, "frame": {"center": list(frame.center), "width": frame.width, "size": list(frame.size)},
-    "legend": [text for _, text in legend], "islandNumbersWritten": written,
+    "legend": [text for _, _, text in legend], "islandNumbersWritten": written, "islandsUnder": under,
   }
