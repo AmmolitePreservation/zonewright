@@ -7,6 +7,7 @@ import time
 import bpy
 import mathutils
 import numpy
+import OpenImageIO
 
 import bridgeBoundaries
 import bridgeCaveLight
@@ -22,7 +23,7 @@ import bridgeStructureData
 import bridgeSurfacing
 import bridgeSwim
 import skyDrawing
-from buildTolerances import groundSearchAbove, groundSearchDistance
+from buildTolerances import groundSearchAbove, groundSearchDistance, laneTintNormalZ
 from playerScale import eyeHeight, stepHeight, swimEyeAboveSurface
 
 requiredZoneKeys = (
@@ -63,6 +64,8 @@ layoutStripeShade = 0.15
 # Swim volumes tint a view: cyan for water and magenta for lava, which shows over lava's oranges.
 swimColors = {"water": (0.1, 0.85, 1.0), "lava": (1.0, 0.15, 0.85)}
 swimAlpha = 0.3
+# A lane tint's columns are read this many at a time, so a zone's whole lane never sits in memory at once.
+laneTintChunk = 1 << 22
 boundaryColor = (1.0, 0.12, 0.08)
 zoneLineColor = (0.2, 1.0, 0.25)
 guideAlpha = 0.4
@@ -91,6 +94,7 @@ class PreviewScene:
     self.guides = guides
     self.sky = sky
     self.skyImage = None
+    self.figure = None
     self.createdObjects = []
     self.createdMaterials = []
     self.loadedImages = []
@@ -189,11 +193,12 @@ class PreviewScene:
   def addFigure(self, groundPoint, figureModel, facingHeadingDegrees):
     """The figure model faces +X and stands its origin avatarHeight above the ground; facingHeadingDegrees is 0 = +Y, clockwise."""
     origin = groundPoint + mathutils.Vector((0, 0, figureModel["avatarHeight"]))
-    figure = bridgeModels.modelObject(figureModel["folder"], previewName + "Figure", figureModel["scale"], origin, 90 - facingHeadingDegrees)
-    return self.addObject(figure)
+    self.figure = self.addObject(bridgeModels.modelObject(figureModel["folder"], previewName + "Figure", figureModel["scale"], origin, 90 - facingHeadingDegrees))
+    return self.figure
 
-  def tint(self, viewPath, overlays):
-    """Tint a rendered view with see-through overlays, each (alpha, place) where place adds its blocks: rendered apart, alone with the
+  def tint(self, viewPath, overlays, under=None):
+    """Tint a rendered view: first with under (cover and colors over the frame, as laneDecal gives them) where no overlay that hides it
+    draws, then with see-through overlays, each (alpha, place, hidesUnder) where place adds its blocks: rendered apart, alone with the
     ground held out and the water left out, each laid over the view at its alpha where it stands, whatever the shading."""
     # A swim box's top lies at the surface it was built under or a little below it (on a sloping river); drawn in one render with the
     # water, the two fight for depth or the surface hides the top. Layout and relief shading override every material, so a guide drawn
@@ -205,6 +210,7 @@ class PreviewScene:
     render = self.scene.render
     view = readImagePixels(viewPath)
     overlayPath = os.path.splitext(viewPath)[0] + "_overlay.png"
+    drawnOverlays = []
     try:
       for sceneObject in list(self.scene.collection.objects):
         if sceneObject is not self.camera:
@@ -216,19 +222,80 @@ class PreviewScene:
       render.film_transparent = True
       render.image_settings.color_mode = "RGBA"
       render.filepath = overlayPath
-      for alpha, place in overlays:
+      for alpha, place, hidesUnder in overlays:
         placed = place()
         bpy.ops.render.render(write_still=True, scene=self.scene.name)
         for block in placed:
           self.scene.collection.objects.unlink(block)
-        drawn = readImagePixels(overlayPath)
-        cover = drawn[:, :, 3:] * alpha
-        view[:, :, :3] = view[:, :, :3] * (1 - cover) + drawn[:, :, :3] * cover
-      os.remove(overlayPath)
+        drawnOverlays.append((alpha, readImagePixels(overlayPath), hidesUnder))
+      if overlays:
+        os.remove(overlayPath)
     finally:
       viewLayer.material_override = override
       bpy.data.collections.remove(holdout)
+    if under is not None:
+      cover, colors = under
+      for _, drawn, hidesUnder in drawnOverlays:
+        if hidesUnder:
+          cover = cover * (1 - drawn[:, :, 3])
+      view[:, :, :3] = view[:, :, :3] * (1 - cover[:, :, None]) + colors * cover[:, :, None]
+    for alpha, drawn, _ in drawnOverlays:
+      cover = drawn[:, :, 3:] * alpha
+      view[:, :, :3] = view[:, :, :3] * (1 - cover) + drawn[:, :, :3] * cover
     writeImagePixels(view, viewPath)
+
+  def surfaceData(self, dataPath):
+    """The view rendered again for what each pixel shows (OpenEXR, OpenImageIO-read): its depth from the camera's plane, its normal,
+    and whether it shows the zone's surfaces at all, the scale figure held out and the water left out, so the floor under the water
+    shows: (depth, normal z, covered) arrays, rows bottom to top as readImagePixels gives them."""
+    render, viewLayer = self.scene.render, self.scene.view_layers[0]
+    settings = render.image_settings
+    holdout = bpy.data.collections.new(previewName + "FigureHoldout")
+    self.scene.collection.children.link(holdout)
+    water = [sceneObject for sceneObject in self.scene.collection.objects if bridgeMeshAccess.waterProperty in sceneObject]
+    kept = (render.film_transparent, settings.color_mode, settings.color_depth, render.filepath)
+    try:
+      for sceneObject in water:
+        self.scene.collection.objects.unlink(sceneObject)
+      if self.figure is not None:
+        self.scene.collection.objects.unlink(self.figure)
+        holdout.objects.link(self.figure)
+        viewLayer.layer_collection.children[holdout.name].holdout = True
+      viewLayer.use_pass_z = viewLayer.use_pass_normal = True
+      render.film_transparent = True
+      settings.media_type = "MULTI_LAYER_IMAGE"
+      settings.file_format = "OPEN_EXR_MULTILAYER"
+      settings.color_depth = "32"
+      render.filepath = dataPath
+      bpy.ops.render.render(write_still=True, scene=self.scene.name)
+    finally:
+      if self.figure is not None:
+        holdout.objects.unlink(self.figure)
+        self.scene.collection.objects.link(self.figure)
+      bpy.data.collections.remove(holdout)
+      for sceneObject in water:
+        self.scene.collection.objects.link(sceneObject)
+      viewLayer.use_pass_z = viewLayer.use_pass_normal = False
+      settings.media_type = "IMAGE"
+      settings.file_format = "PNG"
+      render.film_transparent, settings.color_mode, settings.color_depth, render.filepath = kept
+    source = OpenImageIO.ImageInput.open(dataPath)
+    if source is None:
+      raise ValueError(f"The view's surface data at {dataPath} cannot be read: {OpenImageIO.geterror()}")
+    try:
+      passes = {}
+      index = 0
+      while source.seek_subimage(index, 0):
+        names = list(source.spec().channelnames)
+        passes |= {name.split(".", 1)[1]: pixels for name, pixels in zip(names, numpy.moveaxis(source.read_image(OpenImageIO.FLOAT), -1, 0))}
+        index += 1
+    finally:
+      source.close()
+    os.remove(dataPath)
+    missing = sorted({"Combined.A", "Depth.Z", "Normal.Z"} - set(passes))
+    if missing:
+      raise ValueError(f"The view's surface data lacks {missing}; it holds {sorted(passes)}")
+    return passes["Depth.Z"][::-1], passes["Normal.Z"][::-1], passes["Combined.A"][::-1] > 0.5
 
   def placeSwimVolumes(self):
     """Each swim volume as a block in its liquid's color."""
@@ -658,10 +725,92 @@ def liquidTimeModulo(liquidTime):
   return math.fmod(liquidTime, 100.0)
 
 
-def renderView(sourceScene, zone, sky, view, outputPath, figureModel, shading, bandHeight, guides, swimVolumes, labels, emitters, frame=None, liquidTime=None, carriedLight=None):
+def laneTintColumns(preview, tint):
+  """The lane's reached floors a view holds, from a lane tint (tint: playerReach.laneTint's file of columns and the lane's grid): those
+  within the camera's far clip and its field, a column's diagonal to spare, sorted by column (key, z times the grid's columns along x
+  plus x) and floor: (key, low, label) arrays."""
+  columns = numpy.load(tint["path"], mmap_mode="r")
+  origin, cellSize, cellHeight = tint["origin"], tint["cellSize"], tint["cellHeight"]
+  camera = preview.camera
+  eye = numpy.array(camera.location)
+  axes = numpy.array(camera.rotation_quaternion.to_matrix())
+  clip = camera.data.clip_end
+  spare = cellSize * math.sqrt(2)
+  width, height = preview.frameSize()
+  kept = []
+  for start in range(0, len(columns), laneTintChunk):
+    part = numpy.asarray(columns[start:start + laneTintChunk])
+    points = numpy.stack([origin[2] + (part["z"] + 0.5) * cellSize, origin[0] + (part["x"] + 0.5) * cellSize, origin[1] + part["low"].astype(numpy.float64) * cellHeight], axis=1)
+    local = (points - eye) @ axes
+    depth = -local[:, 2]
+    if camera.data.type == "ORTHO":
+      halfWidth = camera.data.ortho_scale / 2
+      inside = (numpy.abs(local[:, 0]) <= halfWidth + spare) & (numpy.abs(local[:, 1]) <= halfWidth * height / width + spare)
+      inside &= (depth >= -spare) & (depth <= clip + spare)
+    else:
+      tangent = math.tan(camera.data.angle / 2)
+      across = tangent * width / height
+      inside = (depth >= -spare) & (numpy.linalg.norm(points - eye, axis=1) <= clip + spare)
+      inside &= numpy.abs(local[:, 0]) <= numpy.maximum(depth, 0) * across + spare * (1 + across)
+      inside &= numpy.abs(local[:, 1]) <= numpy.maximum(depth, 0) * tangent + spare * (1 + tangent)
+    kept.append(part[inside])
+  shown = numpy.concatenate(kept) if kept else numpy.zeros(0, dtype=columns.dtype)
+  key = shown["z"].astype(numpy.int64) * tint["columnsX"] + shown["x"]
+  low = shown["low"].astype(numpy.int64)
+  order = numpy.lexsort((low, key))
+  return key[order], low[order], shown["label"][order].astype(numpy.int64)
+
+
+def laneDecal(preview, tint, columns, dataPath):
+  """Where a view shows the lane's reached floor, pixel by pixel (columns: laneTintColumns): the view's surface data (surfaceData)
+  places each pixel's point from its depth by the camera's projection, and a pixel showing the zone on a face whose normal z is at
+  least laneTintNormalZ takes its column's reached floor that it lies on: within a cell height of the floor, which the lane knows to a
+  cell height, and down the floor's reach at the pixel's slope under it besides (tint's slopeReach: the column's floor is the highest
+  ground in it). Returns the cover (tint's alpha where tinted) and colors over the frame, rows bottom to top as readImagePixels gives
+  them, and the labels tinted."""
+  depth, normalZ, covered = preview.surfaceData(dataPath)
+  height, width = depth.shape
+  camera = preview.camera
+  projection = numpy.array(camera.calc_matrix_camera(preview.depsgraph(), x=width, y=height))
+  rows, across = numpy.indices((height, width), dtype=numpy.float64)
+  ndcX = 2 * (across + 0.5) / width - 1
+  ndcY = 2 * (rows + 0.5) / height - 1
+  if camera.data.type == "ORTHO":
+    localX, localY = (ndcX - projection[0, 3]) / projection[0, 0], (ndcY - projection[1, 3]) / projection[1, 1]
+  else:
+    localX, localY = (ndcX + projection[0, 2]) * depth / projection[0, 0], (ndcY + projection[1, 2]) * depth / projection[1, 1]
+  local = numpy.stack([localX, localY, -depth, numpy.ones_like(depth)], axis=-1)
+  world = local @ numpy.array(camera.matrix_world).T
+  origin, cellSize, cellHeight = tint["origin"], tint["cellSize"], tint["cellHeight"]
+  keys, lows, labels = columns
+  columnZ = numpy.floor((world[..., 0] - origin[2]) / cellSize).astype(numpy.int64)
+  columnX = numpy.floor((world[..., 1] - origin[0]) / cellSize).astype(numpy.int64)
+  facing = covered & (normalZ >= laneTintNormalZ) & (columnX >= 0) & (columnX < tint["columnsX"]) & (columnZ >= 0)
+  pixelKey = columnZ * tint["columnsX"] + columnX
+  first, last = numpy.searchsorted(keys, pixelKey, "left"), numpy.searchsorted(keys, pixelKey, "right")
+  reach = numpy.interp(normalZ, *numpy.array(tint["slopeReach"]).T)
+  chosen = numpy.full(depth.shape, -1, dtype=numpy.int64)
+  floors = origin[1] + lows * cellHeight
+  for offset in range(int((last - first)[facing].max()) if facing.any() else 0):
+    candidate = first + offset
+    pending = facing & (chosen < 0) & (candidate < last)
+    floor = floors[numpy.minimum(candidate, len(floors) - 1)]
+    lies = pending & (world[..., 2] <= floor + cellHeight) & (world[..., 2] >= floor - reach - cellHeight)
+    chosen[lies] = candidate[lies]
+  tinted = chosen >= 0
+  colors = numpy.zeros((height, width, 3), dtype=numpy.float32)
+  shownLabels = sorted({int(label) for label in numpy.unique(labels[chosen[tinted]])})
+  for label in shownLabels:
+    colors[tinted & (labels[numpy.maximum(chosen, 0)] == label)] = tint["colors"][str(label)]
+  return numpy.where(tinted, tint["alpha"], 0.0).astype(numpy.float32), colors, shownLabels
+
+
+def renderView(sourceScene, zone, sky, view, outputPath, figureModel, shading, bandHeight, guides, swimVolumes, labels, emitters, frame=None, liquidTime=None, carriedLight=None, laneTint=None):
   """Render a view; in client shading the zone's point lights and emitters are drawn too (emitters: the server's prepared emitter
   assets, or None without a client), its liquids as they stand at liquidTime on the effect clock (0 when it is None), and the light
-  the view's character carries (a clientPointLights.carriedLight record, or None)."""
+  the view's character carries (a clientPointLights.carriedLight record, or None); with laneTint (a lane's tint file and grid, its
+  labels' colors by number, and the floor's reach by slope), the view is tinted where it shows floor the lane reached (laneDecal), under
+  the swim volumes' tint and hidden by the guides'."""
   if shading not in viewShadings:
     raise ValueError(f"shading must be one of {list(viewShadings)}, got '{shading}'")
   if carriedLight is not None and shading != "client":
@@ -680,9 +829,13 @@ def renderView(sourceScene, zone, sky, view, outputPath, figureModel, shading, b
     if frame is not None:
       preview.setFrame(requireFrame(frame))
     description = placeCamera(preview, view, figureModel)
+    if preview.camera.data.type == "PERSP":
+      description["verticalFieldOfViewDegrees"] = round(math.degrees(preview.camera.data.angle), 4)
     preview.drawSky()
     if shading != "client" and preview.camera.data.type != "ORTHO":
       preview.camera.data.clip_end = max((corner - preview.camera.location).length for corner in sceneCorners(preview)) + mapClearance
+    if laneTint is not None:
+      laneColumns = laneTintColumns(preview, laneTint)
     if labels is not None or shading in valueShadings:
       description |= bridgeShadings.prepareView(preview, shading, labels, os.path.splitext(outputPath)[0] + "_pass.exr")
     if shading == "client":
@@ -697,13 +850,20 @@ def renderView(sourceScene, zone, sky, view, outputPath, figureModel, shading, b
     preview.scene.render.filepath = outputPath
     start = time.perf_counter()
     bpy.ops.render.render(write_still=True, scene=preview.scene.name)
+    decal = None
+    if laneTint is not None:
+      cover, colors, shownLabels = laneDecal(preview, laneTint, laneColumns, os.path.splitext(outputPath)[0] + "_surface.exr")
+      decal = (cover, colors)
+      description["laneTint"] = {
+        "columns": len(laneColumns[0]), "tintedShare": round(float((cover > 0).mean()), 4), "labels": shownLabels, "farClip": round(preview.camera.data.clip_end, 2),
+      }
     overlays = []
     if swimVolumes and bridgeSwim.swimBoxes():
-      overlays.append((swimAlpha, preview.placeSwimVolumes))
+      overlays.append((swimAlpha, preview.placeSwimVolumes, False))
     if guides and bridgeBoundaries.guideCorners():
-      overlays.append((guideAlpha, lambda: preview.placeBoundaries(guideThickness(view))))
-    if overlays:
-      preview.tint(outputPath, overlays)
+      overlays.append((guideAlpha, lambda: preview.placeBoundaries(guideThickness(view)), True))
+    if overlays or decal is not None:
+      preview.tint(outputPath, overlays, decal)
     renderSeconds = time.perf_counter() - start
     width, height = preview.frameSize()
   finally:

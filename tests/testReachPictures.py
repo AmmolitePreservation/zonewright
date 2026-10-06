@@ -164,12 +164,22 @@ def testLaneWalksACaveUnderItsVaultAndShowsThroughItsPlanFloor(stageBlenderServe
   vault = float(lane.height(nodes.high[room]))
   assert abs(vault - float(nodes.height[room]) - hall["heights"][3]) <= hall["breakup"]["amplitude"] + cellHeight
   assert float(nodes.height[nodes.floorNodeAt(roomPoint)]) > vault
-  # In plan the lane's fill lies over the cave's pale floor: the room shows walked green, dotted as a level under a higher one, where
-  # the plan without the lane shows the pale floor alone.
+  # In plan the lane's fill lies over the cave's pale floor and under its walls: the room shows walked green, dotted as a level under a
+  # higher one, beside its middle line, where the plan without the lane shows the pale floor alone; its walls stay cave purple.
   sketchImage, sketchReport = sketched
   plainImage, plainReport = plain
   sketch, bare = Image.open(io.BytesIO(sketchImage)), Image.open(io.BytesIO(plainImage))
   sketch.save(tmp_path / "caveSketchLane.png")
-  inRoom = pixelsAround(sketch, sketchReport, roomPoint)
+  besideMiddle = [roomPoint[0] + hall["widths"][3] / 4, roomPoint[1]]
+  inRoom = pixelsAround(sketch, sketchReport, besideMiddle)
   assert greenShare(inRoom) > 0.9 and colorShare(inRoom, laneDrawing.layeredColor) > 0
-  assert greenShare(pixelsAround(bare, plainReport, roomPoint)) == 0
+  assert greenShare(pixelsAround(bare, plainReport, besideMiddle)) == 0
+  wall = [roomPoint[0] + hall["widths"][3] / 2, roomPoint[1]]
+  assert colorShare(pixelsAround(sketch, sketchReport, wall, 2), planDrawing.caveColor) > 0.2
+  assert colorShare(pixelsAround(bare, plainReport, wall, 2), planDrawing.caveColor) > 0.2
+  # The room's blind end, which the cut rounds off over half its width beyond its last point, closes in a half circle there, and the
+  # walked floor reaches round under it.
+  (endX, endY, _), half = hall["path"][-1], hall["widths"][-1] / 2
+  capWall = [endX + half * math.cos(math.radians(45)), endY + half * math.sin(math.radians(45))]
+  assert sketchReport["caveEndsUnknown"] == [] and colorShare(pixelsAround(sketch, sketchReport, capWall, 2), planDrawing.caveColor) > 0.2
+  assert greenShare(pixelsAround(sketch, sketchReport, [endX, endY + half / 2])) > 0.9

@@ -11,6 +11,7 @@ from testModelsAndDressing import freshScene
 from testReviewViews import crateScene, environment
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
+import viewSheets
 from playerScale import eyeHeight
 
 longNote = "The crate from the south, low over the ground: does it sit on the grass, and does the grass run on behind it to the edge"
@@ -65,7 +66,8 @@ def testReviewCamerasReproduceTheirViewsAndRenderAsOneSheet(stageBlenderServer, 
   assert figure[2] == 0.0 and 13 <= math.hypot(figure[0], figure[1]) <= 17 and figure[0] > 0 and figure[1] > 0
   # One sheet of the three in name order, each render as renderView gives it; the long note wraps to a second line under its cell.
   image, described = sheet
-  assert Image.open(io.BytesIO(image)).size == (8 + 3 * (640 + 8), 8 + 360 + 20 + 17 + 8)
+  (cellWidth, cellHeight), gap = viewSheets.cellSize, viewSheets.gap
+  assert Image.open(io.BytesIO(image)).size == (gap + 3 * (cellWidth + gap), gap + cellHeight + viewSheets.labelHeight + viewSheets.lineHeight + gap)
   assert [camera["name"] for camera in described["cameras"]] == ["crateFrame", "high", "standing"]
   for camera in described["cameras"]:
     assert Path(camera["outputPath"]).read_bytes() == pairs[camera["name"]][1][0]
@@ -116,7 +118,8 @@ def testReviewRoutesWalkByNameAndRenderAsAStripOfEyeLevelFrames(stageBlenderServ
   # down to the ground below.
   assert abs(frames[0]["view"]["pitchDegrees"] - math.degrees(math.atan2(-eyeHeight, 30))) < 0.02
   assert drop[0]["view"]["pitchDegrees"] < -60
-  assert Image.open(io.BytesIO(image)).size == (8 + 4 * (640 + 8), 8 + 2 * (360 + 20 + 8))
+  (cellWidth, cellHeight), gap = viewSheets.cellSize, viewSheets.gap
+  assert Image.open(io.BytesIO(image)).size == (gap + 4 * (cellWidth + gap), gap + 2 * (cellHeight + viewSheets.labelHeight + gap))
   # A frame is the eye-level view of its standAt, heading, and pitch without the scale figure: the same view rendered by renderView
   # differs only where she stands, 15 ahead and a step aside: a figure-shaped box beside the middle of the picture.
   left, top, right, bottom = withFigure[1]["changedBounds"]

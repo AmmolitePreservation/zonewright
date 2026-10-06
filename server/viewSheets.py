@@ -10,8 +10,9 @@ import planDrawing
 cellSize = (640, 360)
 jpegQuality = 90
 gap = 8
-labelHeight = 20
-lineHeight = 17
+labelSize = 18
+labelHeight = 26
+lineHeight = 22
 backgroundColor = (40, 40, 40)
 labelColor = (235, 235, 235)
 nameColor = (20, 20, 20)
@@ -58,7 +59,7 @@ def writeGrid(cells, columns, outputPath):
   as tall as the longest label needs); written as JPEG."""
   rows = -(-len(cells) // columns)
   width, height = cellSize
-  font = ImageFont.load_default(size=14)
+  font = ImageFont.load_default(size=labelSize)
   measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
   labels = [wrappedLines(measure, label, font, width) for _, label in cells]
   labelArea = labelHeight + lineHeight * (max(len(lines) for lines in labels) - 1)

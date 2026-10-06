@@ -1747,6 +1747,7 @@ def splice(sceneObject, name, definition, strokes):
   known[name] = {
     "definition": definition, "plug": report.pop("records"), "paint": strokes,
     "groundHeights": {runName: run["groundHeights"] for runName, run in worked.items() if run["groundHeights"]},
+    "rounded": {runName: tube["rows"]["rounded"] for runName, tube in tubes.items()},
   }
   bridgeCaveData.writeCaves(sceneObject, known)
   replayStrokes(sceneObject, name, strokes)
@@ -2299,7 +2300,8 @@ def runPolyline(line):
 def caveGuides(sceneObject=None, caveName=None):
   """Each cave's runs as cut, for drawings and walks: per terrain mesh holding caves (or the one named, and the cave named), each run's
   centerline samples [x, y, floor, width, height, along] every guideSpacing, its polyline (runPolyline), its stations, landings, ends,
-  daylight, and the floor strokes on it; and each junction."""
+  which ends the cut rounded off ({start, end}; None for a cave cut before its record kept them), daylight, and the floor strokes on
+  it; and each junction."""
   objects = [sceneObject] if sceneObject is not None else [candidate for candidate in bpy.context.scene.objects if candidate.type == "MESH" and bridgeCaveData.holdsCaves(candidate)]
   guides = []
   for terrain in objects:
@@ -2323,6 +2325,7 @@ def caveGuides(sceneObject=None, caveName=None):
           "polyline": polyline.round(3).tolist(), "polylineAlongs": polylineAlongs.round(3).tolist(),
           "stations": [round(float(value), 3) for value in line.stations], "landings": [{"point": index, "arc": [round(span, 3) for span in line.turns[index]]} for index in line.landings],
           "daylight": run["daylight"], "strokes": strokes, "overlook": run["overlook"], "into": run["into"],
+          "rounded": record["rounded"][runName] if "rounded" in record else None,
           "segments": [
             {"from": index, "degrees": round(math.degrees(math.atan2(float(line.floors[index + 1] - line.floors[index]), line.segmentRun(index))), 2), "middle": (line.exit(index) + line.entry(index + 1)) / 2}
             for index in range(len(line.floors) - 1)

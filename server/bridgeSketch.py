@@ -556,9 +556,26 @@ def offsetLine(samples, offsets):
   return points + right * numpy.asarray(offsets)[:, None]
 
 
+# A rounded end's half circle in plan takes this many points.
+capArcPoints = 17
+
+
+def capArc(samples, row):
+  """Where a run's end rounded off by its cut closes in plan, as tubeRows rounds it: a half circle of half the end's width beyond it,
+  from its left wall round to its right at its last sample, from its right round to its left at its first."""
+  center, half = samples[row, :2], samples[row, 3] / 2
+  direction = samples[-1, :2] - samples[-2, :2] if row == -1 else samples[0, :2] - samples[1, :2]
+  direction = direction / max(numpy.linalg.norm(direction), 1e-9)
+  side = numpy.array([direction[1], -direction[0]])
+  angles = numpy.linspace(0.0, math.pi, capArcPoints)
+  return center + half * (numpy.outer(numpy.cos(angles), -side) + numpy.outer(numpy.sin(angles), direction))
+
+
 def planCaves():
-  """The caves' runs in plan (bridgeCaves.caveGuides): each run's walls at floor height, its floor height at each path point, its
-  junctions, the outlines of its floor strokes, its name, and its mean floor height (runs are drawn lowest first)."""
+  """The caves' runs in plan (bridgeCaves.caveGuides): each run's walls at floor height, closed round each end its cut rounded off
+  (endCap and startCap, empty at an end it left open or square, or for a cave whose record does not say: endsKnown false), its floor
+  height at each path point, its junctions, the outlines of its floor strokes, its name, and its mean floor height (runs are drawn
+  lowest first)."""
   drawn = []
   for guide in bridgeCaves.caveGuides():
     for run in guide["runs"]:
@@ -577,9 +594,12 @@ def planCaves():
         left = offsetLine(inside, numpy.full(len(inside), stroke["across"][0]))
         right = offsetLine(inside, numpy.full(len(inside), stroke["across"][1]))
         strokes.append({"name": stroke["name"], "kind": stroke["kind"], "outline": numpy.round(numpy.vstack([left, right[::-1]]), 2).tolist()})
+      roundedEnds = run["rounded"]
       drawn.append({
         "cave": guide["cave"], "run": run["run"], "label": guide["cave"] + ("" if run["run"] == bridgeCaveRuns.mainRun else f" {run['run']}"),
         "left": numpy.round(offsetLine(samples, -halves), 2).tolist(), "right": numpy.round(offsetLine(samples, halves), 2).tolist(),
+        "endCap": numpy.round(capArc(samples, -1), 2).tolist() if roundedEnds is not None and roundedEnds["end"] else [],
+        "startCap": numpy.round(capArc(samples, 0), 2).tolist() if roundedEnds is not None and roundedEnds["start"] else [], "endsKnown": roundedEnds is not None,
         "middle": numpy.round(samples[:, :2], 2).tolist(), "floors": [{"at": roundPoint(spot[:2]), "floor": rounded(spot[2], 1)} for spot in spots],
         "junction": roundPoint(samples[0, :2]) if run["from"] is not None else None, "opening": roundPoint(samples[-1, :2]) if run["into"] is not None else None, "strokes": strokes, "meanFloor": rounded(float(samples[:, 2].mean()), 2),
       })

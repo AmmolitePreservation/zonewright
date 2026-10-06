@@ -548,7 +548,6 @@ def testLaneKeyFollowsSwimBoxesZoneLinesAndTheUnderworld(stageBlenderServer):
   assert files[0] == files[1] and len(set(files)) == 5
 
 
-
 def testLaneWalksABridgeDeckOverTheGorgeItSpans(stageBlenderServer, tmp_path):
   async def steps(session):
     kitPath = await kitAndPlot(session, tmp_path)

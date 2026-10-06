@@ -32,6 +32,9 @@ approachGroundReach = 4.0
 # A ground border wants a transition strip where a side's normal z is at least this, reading as ground underfoot; a steeper face reads
 # as a cliff, where materials meet without one.
 transitionGroundNormalZ = 0.5
+# A view's lane tint covers a face whose normal z is at least this, a floor players stand or slide on; a steeper face is a wall beside
+# the lane's floors, or something standing on them, and stays untinted.
+laneTintNormalZ = 0.1
 
 # Footing and ground under a structure's part are looked for from this far over where the part is wanted, so ground a little higher
 # (an end sunk into it) is found.
