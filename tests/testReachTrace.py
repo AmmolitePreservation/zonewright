@@ -533,7 +533,7 @@ def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
     ford = await session.expectImage("renderSection", {"start": [-138, -40], "end": [-82, -40], "layers": ["ground", "swim", "lane"]})
     return found, ford
 
-  found, (_, ford) = stageBlenderServer.session(steps)
+  found, (fordImage, ford) = stageBlenderServer.session(steps)
   results = {}
   for name, result in found.items():
     assert result.is_error is False, (name, result.content[-1].text)
@@ -572,3 +572,12 @@ def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
   cut = json.loads(Path(ford["laneState"]["laneCut"]).read_text())
   assert [(band["s"], band["label"]) for band in cut["bands"]] == [([28.5, 48.5], "swim")], cut["bands"]
   assert [(bar["s"], bar["label"]) for bar in cut["bars"]] == [([0.0, 7.5], "walk"), ([7.5, 28.5], "walk"), ([28.5, 48.5], "swim"), ([48.5, 56.0], "walk")], cut["bars"]
+  # The deep water's floor runs half a column past the box's far edge in the cut, whose columns are centered on whole units; drawn, its
+  # bar ends at the box's edge, as its band does.
+  fordSection = Image.open(io.BytesIO(fordImage))
+  fordSection.save(tmp_path / "fordSection.png")
+  x, y = (round(value) for value in sectionPixel(ford, 48, cut["bars"][2]["z"]))
+  row = y - laneDrawing.sectionBarLift - laneDrawing.sectionBarHeight // 2
+  inBox, pastBox = (pixelsOf(fordSection)[row, x + offset][None] for offset in (-3, 3))
+  swimColor = laneDrawing.labelColors[playerReach.swimLabel]
+  assert (colorShare(inBox, swimColor), colorShare(pastBox, swimColor)) == (1.0, 0.0), (inBox, pastBox)

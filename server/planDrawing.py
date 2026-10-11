@@ -837,7 +837,7 @@ def sectionImage(cuts, size, scale, title=None, lane=None):
         labels.append(((x, y - 15), mark["label"], caveColor, 12))
   ledLabels = []
   if lane is not None:
-    avoided, ledLabels = lane.drawMarks(draw, pixel, length, bottom, top, cuts["ground"])
+    avoided, ledLabels = lane.drawMarks(draw, pixel, length, bottom, top, cuts["ground"], cuts["swim"])
     for box in avoided:
       board.avoid(box)
   for entry in cuts["boundaries"]:

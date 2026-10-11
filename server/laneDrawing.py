@@ -530,12 +530,12 @@ class RoutePlan(LanePlan):
 class SectionLane:
   """A lane cut (playerReach.laneCut) drawn into a section: reached water as bands from its bottom to its top in its label's color, each
   end on the swim box's edge within a column of it; reached floors as bars standing just over their heights in their labels' colors,
-  walkable floor never reached dashed grey, each end on the ground's steep face within a column of it, where the lane's columns run
-  past a block's edge; and leak edges as magenta ticks down from the floor a fall starts from; each kept to the section's frame (length
-  along, bottom to top) and placed by pixel(s, z). marks ({kind, s, z, text, and for a separation over columns s1, z1}) are a trace's:
-  the reached place nearest (a white disc), the traced point (a black ring round a dot), and what separates them (a dark diamond named by its kind,
-  a dashed line to a second diamond where it ends); the disc and ring lie over the diamonds, and every name keeps clear of the marks.
-  The legend names what the cut and the marks hold."""
+  walkable floor never reached dashed grey, each end on the ground's steep face or the edge of the swim box holding it within a column
+  of it, where the lane's columns run past a block's or a box's edge; and leak edges as magenta ticks down from the floor a fall starts
+  from; each kept to the section's frame (length along, bottom to top) and placed by pixel(s, z). marks ({kind, s, z, text, and for a
+  separation over columns s1, z1}) are a trace's: the reached place nearest (a white disc), the traced point (a black ring round a dot),
+  and what separates them (a dark diamond named by its kind, a dashed line to a second diamond where it ends); the disc and ring lie
+  over the diamonds, and every name keeps clear of the marks. The legend names what the cut and the marks hold."""
 
   def __init__(self, cut, marks=()):
     self.cut, self.marks = cut, list(marks)
@@ -551,9 +551,10 @@ class SectionLane:
         color = labelColors[playerReach.labelNames.index(band["label"])]
         draw.rectangle([pixel(s0, high), pixel(s1, low)], fill=(*color, sectionBandAlpha))
 
-  def trimmed(self, mark, ground):
-    """A floor's span along the line, each end moved to the ground's face steeper than walkable that rises to the floor's height within
-    a column of it, where the lane's whole columns run past a block's edge."""
+  def trimmed(self, mark, ground, swim):
+    """A floor's span along the line, each end moved back to where the floor ends within a column of it, where the lane's whole columns
+    run past: the ground's face steeper than walkable that rises to the floor's height, or the edge of a swim box (swim, the section's
+    cuts of them) holding the floor, where it enters the box for a start and leaves it for an end."""
     cellSize, cellHeight = playerReach.reachGrid["cellSize"], playerReach.reachGrid["cellHeight"]
     steep = math.tan(math.radians(playerScale.steepestWalkableDegrees))
     s0, s1 = mark["s"]
@@ -562,17 +563,18 @@ class SectionLane:
       rise = abs(z1 - z0)
       if rise > steep * abs(a1 - a0) and mark["z"] - cellHeight <= max(z0, z1) <= mark["z"] + cellHeight:
         faces.append(a0 if z0 > z1 else a1)
-    starts = [face for face in faces if s0 <= face <= s0 + cellSize and face < s1]
-    ends = [face for face in faces if s1 - cellSize <= face <= s1 and face > s0]
+    holding = [box["s"] for box in swim if box["z"][0] <= mark["z"] <= box["z"][1]]
+    starts = [face for face in faces + [enter for enter, _ in holding] if s0 <= face <= s0 + cellSize and face < s1]
+    ends = [face for face in faces + [leave for _, leave in holding] if s1 - cellSize <= face <= s1 and face > s0]
     return (max(starts) if starts else s0), (min(ends) if ends else s1)
 
-  def drawMarks(self, draw, pixel, length, bottom, top, ground):
+  def drawMarks(self, draw, pixel, length, bottom, top, ground, swim):
     """Draw the bars, dashes, ticks, and trace marks; return the boxes labels keep clear of and the names to place, each led back to
     its mark when set off it: ([box], [(position, text, color, size, mark)])."""
     avoided, names = [], []
 
     def spanned(mark):
-      s0, s1 = self.trimmed(mark, ground)
+      s0, s1 = self.trimmed(mark, ground, swim)
       s0, s1 = max(s0, 0.0), min(s1, length)
       return (s0, s1) if s1 > s0 and bottom <= mark["z"] <= top else None
 
