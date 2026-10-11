@@ -16,12 +16,13 @@ previewCopySuffix = "PointLit"
 previewTerrainProperty = "zonewrightPreviewTerrain"
 
 
-def sceneLights(scene):
-  """The scene's zone lights as the client keeps them: point lights carrying an EQ radius, drawn in renders."""
+def sceneLights(scene, leftOut):
+  """The scene's zone lights as the client keeps them: point lights carrying an EQ radius, drawn in renders, but those named in
+  leftOut."""
   depsgraph = bridgeEnvironment.sceneDepsgraph(scene)
   lights = []
   for sceneObject in scene.objects:
-    if sceneObject.type == "LIGHT" and not sceneObject.hide_render and bridgeEnvironment.radiusProperty in sceneObject.data:
+    if sceneObject.type == "LIGHT" and not sceneObject.hide_render and bridgeEnvironment.radiusProperty in sceneObject.data and sceneObject.name not in leftOut:
       lights.append(bridgeEnvironment.lightRecord(sceneObject.evaluated_get(depsgraph)))
   return lights
 
@@ -172,7 +173,7 @@ def litCopy(preview, part, light, label):
 def applyPointLights(preview, sourceScene, carriedLights):
   """Draw the source scene's zone lights, and the lights the view's character carries (clientPointLights.carriedLight), on the preview's
   meshes; returns what was lit and what could not be."""
-  lights = sceneLights(sourceScene) + list(carriedLights)
+  lights = sceneLights(sourceScene, preview.leftOut) + list(carriedLights)
   if not lights:
     return {"lights": 0, "litObjects": 0, "notLit": []}
   terrainCollection = bpy.data.collections.get(bridgeExport.terrainCollectionName)

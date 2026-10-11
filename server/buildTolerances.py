@@ -1,6 +1,6 @@
 """The tolerances a build is judged by apart from how a player moves (playerScale): how far a part may stand off what it rests on before
-a gap shows, however high a player steps, which faces read as ground underfoot, and how far over a part its ground is probed from. The
-bridge's modules judge by them and the server's tool descriptions state them."""
+a gap shows, however high a player steps, which faces read as ground underfoot, how far over a part its ground is probed from, and how
+alike an exported zone must draw to its scene. The bridge's modules judge by them and the server's tool descriptions state them."""
 # A structure's end, foot, or deck this far or less over what it stands on reads as resting on it; higher, a gap shows under it.
 supportTolerance = 2.0
 # A kit piece's base this far or less over the lowest ground under it reads as standing on it; higher, it floats.
@@ -59,3 +59,10 @@ sightShort = 2.0
 # A floor is looked at this far over it, so a sight to it is not lost in the floor's own faces: a problem's view target and a region's
 # points in a lane view.
 floorSightLift = 1.0
+
+# A zone drawn from its exported archive looks as its scene drew when, over the same view, the mean difference of every pixel's channels
+# is under this many levels (of 255) and the 99th percentile of each pixel's largest channel difference at most this many: the same
+# picture outside a few antialiased edge pixels (verifyExport's look check, and the round trips testZoneExport makes).
+roundTripMeanLevels = 0.5
+roundTripPercentile = 99
+roundTripPercentileLevels = 2

@@ -235,8 +235,8 @@ def placeOf(problem):
   return {key: problem[key] for key in placeKeys if key in problem}
 
 
-def leakFailure(problem, underworld):
-  """A lane problem that refuses a game export, with its place and its mapReach problem number."""
+def leakFailure(problem, underworld, numbered="mapReach problem"):
+  """A lane problem that refuses a game export, with its place and its number (numbered says whose: mapReach's, for the scene's lane)."""
   kind, number, center = problem["kind"], problem["number"], problem["center"]
   said = {
     "voidEdge": f"Players walk or slide off an edge onto nothing, along {problem.get('length')}: a boundary wall, or shaping, closes it",
@@ -255,7 +255,7 @@ def leakFailure(problem, underworld):
     ),
     "unreachedPlot": f"No player reaches the entrance of plot '{problem.get('plot')}'",
   }[kind]
-  return {"failure": kind} | placeOf(problem) | {"message": f"{said} (mapReach problem {number}, at {center})"}
+  return {"failure": kind} | placeOf(problem) | {"message": f"{said} ({numbered} {number}, at {center})"}
 
 
 def laneFindings(lane, description, analysis):

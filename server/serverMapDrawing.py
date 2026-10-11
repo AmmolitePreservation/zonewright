@@ -510,10 +510,10 @@ def drawServerPlan(outputPath, mapContent, waterRecords, regionLabels, inspectio
   reach was not checked), numbered, an island lying under a higher one outlined dashed and numbered "N (under M)", and what the server's
   ground filter never walks (Disabled, zone line) dark; the .wtr's boxes outlined in their type's color (water cyan, lava magenta, zone
   lines green), each with its label (regionLabels, in .wtr order); and markers ({at: zone [x, y], label}), such as the safe point.
-  Written as PNG with its legend below; returns the sheet's size, the plan's frame (its center and width in zone units, its size in
+  Without an inspection (None: no .nav was read) no nav is drawn, and the legend says so. Written as PNG with its legend below; returns the sheet's size, the plan's frame (its center and width in zone units, its size in
   pixels, at the sheet's top left), the legend, how many island numbers found room, and the islands drawn under others ({number: the
   number over it})."""
-  islands = inspection["islands"]
+  islands = [] if inspection is None else inspection["islands"]
   if islandReach is not None and len(islandReach) != len(islands):
     raise ValueError(f"islandReach holds {len(islandReach)} flags for {len(islands)} islands")
   if len(regionLabels) != len(waterRecords):
@@ -534,7 +534,7 @@ def drawServerPlan(outputPath, mapContent, waterRecords, regionLabels, inspectio
     tint = numpy.zeros((*passableOwners.shape, 4), dtype=numpy.uint8)
     tint[passableOwners >= 0] = (*passableColor, passableAlpha)
     image = Image.alpha_composite(image, Image.fromarray(tint, "RGBA"))
-  polygons = polygonsOf(inspection)
+  polygons = [] if inspection is None else polygonsOf(inspection)
   depth = {number: island["center"][2] for number, island in enumerate(islands, 1)}
   fills = Image.new("RGBA", frame.size, (0, 0, 0, 0))
   fillDraw = ImageDraw.Draw(fills)
@@ -585,14 +585,17 @@ def drawServerPlan(outputPath, mapContent, waterRecords, regionLabels, inspectio
       written += 1
   plan = Image.alpha_composite(image, layer).convert("RGB")
   typeCounts = collections.Counter(record["type"] for record in waterRecords)
-  main = inspection["mainPiece"]
   legend = [("fill", (150, 150, 150), f"collision (.map): {len(collision):,} triangles, lighter higher")]
   legend += [("fill", uprightColor, f"upright collision (.map): {len(upright):,} triangles, as lines")] if len(upright) else []
   legend += [("fill", passableColor, f"never collided with (.map): {len(passable):,} triangles")] if len(passable) else []
   legend += [("fill", regionColor({"type": kind}), f"{serverMapFiles.waterRegionTypeNames.get(kind, kind)} boxes (.wtr): {count}") for kind, count in sorted(typeCounts.items())]
-  legend += [("fill", mainPieceColor, f"NPC main piece{' (stand-in: largest)' if main['standIn'] else ''}: {main['polygons']:,} polygons")]
-  legend += islandLegend(islands, islandReach)
-  legend += [("fill", excludedColor, f"Disabled and zone line: {inspection['excludedPolygons']:,} polygons")]
+  if inspection is None:
+    legend += [("text", titleColor, "no NPC nav drawn: no .nav was read")]
+  else:
+    main = inspection["mainPiece"]
+    legend += [("fill", mainPieceColor, f"NPC main piece{' (stand-in: largest)' if main['standIn'] else ''}: {main['polygons']:,} polygons")]
+    legend += islandLegend(islands, islandReach)
+    legend += [("fill", excludedColor, f"Disabled and zone line: {inspection['excludedPolygons']:,} polygons")]
   legend += [("dashed", darker(unreachedIslandColor), f"an island under a higher one, numbered N (under M): {len(under)}")] if under else []
   legend += [("hatch", steepColor, f"collision steeper than the NPC nav walks (maxSlope {serverNav.serverNavSettings['maxSlope']:g} degrees)")] if steep.any() else []
   legend += [("text", titleColor, planNote)]

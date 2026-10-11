@@ -13,6 +13,7 @@ import bridgeBoundaries
 import bridgeCaveLight
 import bridgeClientLight
 import bridgeEmitterDrawing
+import bridgeExport
 import bridgeExportChecks
 import bridgeMeshAccess
 import bridgeModels
@@ -83,13 +84,15 @@ def requireZone(zone):
 class PreviewScene:
   """A scene holding links to the open scene's renderable objects (guides, such as plot outlines, only when asked for) plus the
   preview's own camera and world, the client's lighting set from the zone. Where nothing is drawn shows the fog color, or the zone's
-  sky (eqSky's state) once drawSky places it for the camera."""
+  sky (eqSky's state) once drawSky places it for the camera. Objects named in leftOut are neither linked nor drawn as lights or
+  emitters, for this preview only."""
 
-  def __init__(self, sourceScene, zone, guides=True, sky=None):
+  def __init__(self, sourceScene, zone, guides=True, sky=None, leftOut=frozenset()):
     requireZone(zone)
     self.zone = zone
     self.guides = guides
     self.sky = sky
+    self.leftOut = frozenset(leftOut)
     self.skyImage = None
     self.figure = None
     self.createdObjects = []
@@ -97,7 +100,10 @@ class PreviewScene:
     self.loadedImages = []
     self.scene = bpy.data.scenes.new(previewName)
     for sourceObject in sourceScene.objects:
-      if sourceObject.type not in ("LIGHT", "CAMERA") and not sourceObject.hide_render and (guides or bridgeMeshAccess.guideProperty not in sourceObject):
+      if (
+        sourceObject.type not in ("LIGHT", "CAMERA") and not sourceObject.hide_render and (guides or bridgeMeshAccess.guideProperty not in sourceObject)
+        and sourceObject.name not in self.leftOut
+      ):
         self.scene.collection.objects.link(sourceObject)
     self.camera = self.addObject(bpy.data.objects.new(previewName + "Camera", bpy.data.cameras.new(previewName + "Camera")))
     self.camera.data.sensor_fit = "VERTICAL"
@@ -802,30 +808,61 @@ def laneDecal(preview, tint, columns, dataPath):
   return numpy.where(tinted, tint["alpha"], 0.0).astype(numpy.float32), colors, shownLabels
 
 
-def renderView(sourceScene, zone, sky, view, outputPath, figureModel, shading, bandHeight, guides, swimVolumes, labels, emitters, frame=None, liquidTime=None, carriedLight=None, laneTint=None):
+def exportLeavesOut():
+  """The names of everything a zone export leaves out (bridgeExport.classifyObjects' excluded list: reference zones, placed client
+  spawns, doors, and objects, guides, and the rest), which the archive cannot hold."""
+  return frozenset(entry["object"] for entry in bridgeExport.classifyObjects()[1])
+
+
+def requireFigureOn(figureOn, view, figureModel):
+  """A figure stood by hand on a footing as given: {at: [x, y, z], facingDegrees}, in an eye view, with the figure's model."""
+  if (
+    not isinstance(figureOn, dict) or set(figureOn) != {"at", "facingDegrees"} or not isinstance(figureOn["at"], list) or len(figureOn["at"]) != 3
+    or not all(isinstance(value, (int, float)) and math.isfinite(value) for value in [*figureOn["at"], figureOn["facingDegrees"]])
+  ):
+    raise ValueError(f"figureOn is {{at: [x, y, z], facingDegrees}}, got {figureOn!r}")
+  if set(view) != {"eye", "target"} or figureModel is None:
+    raise ValueError("figureOn stands the scale figure in an {eye, target} view, with her model")
+  return figureOn
+
+
+def renderView(
+  sourceScene, zone, sky, view, outputPath, figureModel, shading, bandHeight, guides, swimVolumes, labels, emitters, frame=None, liquidTime=None,
+  carriedLight=None, laneTint=None, exportedOnly=False, figureOn=None,
+):
   """Render a view; in client shading the zone's point lights and emitters are drawn too (emitters: the server's prepared emitter
   assets, or None without a client), its liquids as they stand at liquidTime on the effect clock (0 when it is None), and the light
   the view's character carries (a clientPointLights.carriedLight record, or None); with laneTint (a lane's tint file and grid, its
   labels' colors by number, and the floor's reach by slope), the view is tinted where it shows floor the lane reached (laneDecal), under
-  the swim volumes' tint and hidden by the guides'."""
+  the swim volumes' tint and hidden by the guides'. exportedOnly leaves out of this render alone, objects, lights, and emitters alike,
+  everything a zone export leaves out (exportLeavesOut), as the exported archive draws; figureOn ({at, facingDegrees}) stands the
+  scale figure exactly there in an eye view, as viewPose read where a view stood her."""
   if shading not in viewShadings:
     raise ValueError(f"shading must be one of {list(viewShadings)}, got '{shading}'")
   if carriedLight is not None and shading != "client":
     raise ValueError(f"A carried light draws only in client shading, not '{shading}'")
   if frame is not None and ("map" in view or "camera" in view):
     raise ValueError("A frame is set for an eye, standAt, or frame view; a map keeps the preview's frame and a review camera its own")
+  if figureOn is not None:
+    requireFigureOn(figureOn, view, figureModel)
   if liquidTime is not None:
     tau = liquidTimeModulo(liquidTime)
     requireScrollingLiquids(sourceScene)
   # A map, or a drawing for reading shape, coverage, or values, is neither fogged nor has a sky.
   shapeOnly = "map" in view or shading != "client"
-  preview = PreviewScene(sourceScene, zone | {"fogOn": False} if shapeOnly else zone, guides, None if shapeOnly else sky)
+  leftOut = exportLeavesOut() if exportedOnly else frozenset()
+  preview = PreviewScene(sourceScene, zone | {"fogOn": False} if shapeOnly else zone, guides, None if shapeOnly else sky, leftOut)
   try:
     if liquidTime is not None:
       preview.scene[bridgeSurfacing.liquidTimeProperty] = tau
     if frame is not None:
       preview.setFrame(requireFrame(frame))
     description = placeCamera(preview, view, figureModel)
+    if figureOn is not None:
+      preview.addFigure(mathutils.Vector(figureOn["at"]), figureModel, figureOn["facingDegrees"])
+      description |= {"figure": list(figureOn["at"]), "figureFacingDegrees": figureOn["facingDegrees"]}
+    if exportedOnly:
+      description["leftOut"] = len(leftOut)
     if preview.camera.data.type == "PERSP":
       description["verticalFieldOfViewDegrees"] = round(math.degrees(preview.camera.data.angle), 4)
     preview.drawSky()
@@ -871,6 +908,26 @@ def renderView(sourceScene, zone, sky, view, outputPath, figureModel, shading, b
     "height": height,
     "renderSeconds": round(renderSeconds, 2),
   }
+
+
+def viewPose(sourceScene, zone, view, figureModel):
+  """A perspective view's pose as an {eye, target} view takes it again exactly, read without rendering: its eye, a target a unit ahead,
+  its frame, and where it stands the scale figure ({at, facingDegrees}, or None), at full precision."""
+  preview = PreviewScene(sourceScene, zone, False, None)
+  try:
+    description = placeCamera(preview, view, figureModel)
+    camera = preview.camera
+    if camera.data.type != "PERSP":
+      raise ValueError(f"A pose is read from a perspective view, not {view!r}")
+    forward = camera.rotation_quaternion @ mathutils.Vector((0, 0, -1))
+    width, height = preview.frameSize()
+    return {
+      "eye": list(camera.location), "target": list(camera.location + forward),
+      "frame": {"size": [width, height], "verticalFieldOfViewDegrees": math.degrees(camera.data.angle)},
+      "figure": None if description["figure"] is None else {"at": list(description["figure"]), "facingDegrees": description["figureFacingDegrees"]},
+    }
+  finally:
+    preview.remove()
 
 
 def renderPasses(sourceScene, zone, view, outputFolder, passNames):

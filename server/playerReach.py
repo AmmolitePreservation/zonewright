@@ -388,12 +388,12 @@ def footingOnTriangles(triangles, point):
   return [float(x), float(y), float(z[best])], float(normalZ[best])
 
 
-def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress, regions=None, plots=None):
+def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress, regions=None, plots=None, underworld=None):
   """The lane a zone's server files give: the collision the server rebuilds from the .map (zone axes) and the .wtr's boxes, water and
   lava as swim boxes and zone lines as zone lines, each negative extent swapped as the server swaps it. seeds are [{name, point (zone
   axes), kind ("safePoint", "zoneIn", or "landing"), isolated, and headingDegrees or none}], each standing on the footing found under its point; regions as
-  getRegions gives them and plot entrances [{name, point}] are optional. A record of another type is listed, not modelled. Returns
-  (Lane, description, "computed" or "reused", seconds)."""
+  getRegions gives them, plot entrances [{name, point}], and the underworld (the zone row's) are optional. A record of another type is
+  listed, not modelled. Returns (Lane, description, "computed" or "reused", seconds)."""
   triangles = eqAxes.zoneFromServer(serverMapFiles.mapCollision(mapBytes))
   swimBoxes, zoneLines, ignored = [], [], []
   for index, record in enumerate(serverMapFiles.readWater(waterBytes)):
@@ -419,7 +419,7 @@ def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress
   described.sort(key=lambda seed: seed["kind"] != "safePoint")
   description = {
     "swimBoxes": swimBoxes, "zoneLines": zoneLines, "seeds": described, "plotEntrances": list(plots or []), "regions": list(regions or []),
-    "underworld": None, "undecidedBodies": [], "notFollowed": [], "ignoredRegions": ignored, "boundariesKnown": False,
+    "underworld": underworld, "undecidedBodies": [], "notFollowed": [], "ignoredRegions": ignored, "boundariesKnown": False,
   }
   boundary = numpy.zeros(len(triangles), dtype=bool)
   lane, status, seconds = computeLane(toolingRoot, reachRoot(toolingRoot) / serverFilesFolder, triangles, boundary, description, reportProgress)

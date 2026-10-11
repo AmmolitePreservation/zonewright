@@ -341,11 +341,22 @@ def previewZone(sky):
   return zone | sky["environment"] if sky is not None else zone
 
 
-def renderView(view, outputPath, figureModel, shading, bandHeight, guides, sky, swimVolumes, labels, emitters, frame=None, liquidTime=None, carriedLight=None, viewerSpecialAmbient=None, laneTint=None):
+def renderView(
+  view, outputPath, figureModel, shading, bandHeight, guides, sky, swimVolumes, labels, emitters, frame=None, liquidTime=None, carriedLight=None,
+  viewerSpecialAmbient=None, laneTint=None, exportedOnly=False, figureOn=None,
+):
   """A view rendered; viewerSpecialAmbient, the special ambient the client gives the view's character where it stands, replaces the
-  zone's own specialAmbientColor when given; laneTint tints where the lane reached floor (bridgeViews.renderView)."""
+  zone's own specialAmbientColor when given; laneTint tints where the lane reached floor; exportedOnly leaves out of the render what
+  export leaves out, and figureOn stands the scale figure where given (bridgeViews.renderView)."""
   zone = previewZone(sky) | ({} if viewerSpecialAmbient is None else {"specialAmbientColor": viewerSpecialAmbient})
-  return bridgeViews.renderView(bpy.context.scene, zone, sky, view, outputPath, figureModel, shading, bandHeight, guides, swimVolumes, labels, emitters, frame, liquidTime, carriedLight, laneTint)
+  return bridgeViews.renderView(
+    bpy.context.scene, zone, sky, view, outputPath, figureModel, shading, bandHeight, guides, swimVolumes, labels, emitters, frame, liquidTime, carriedLight,
+    laneTint, exportedOnly, figureOn,
+  )
+
+
+def viewPose(view, figureModel, sky):
+  return bridgeViews.viewPose(bpy.context.scene, previewZone(sky), view, figureModel)
 
 
 def pick(view, pixel, sky):
@@ -366,6 +377,7 @@ commands = {
   "setZoneProperties": (setZoneProperties, True),
   "getZoneProperties": (getZoneProperties, False),
   "renderView": (renderView, False),
+  "viewPose": (viewPose, False),
   "pick": (pick, False),
   "renderPasses": (renderPasses, False),
   "renderModelThumbnails": (bridgeViews.renderModelThumbnails, False),

@@ -1,0 +1,384 @@
+import base64
+import hashlib
+import io
+import json
+import re
+import shutil
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+import numpy
+import pytest
+from PIL import Image
+
+from conftest import StagedServer, pinnedBlender, serverRowValues, writePNG
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
+import buildTolerances
+import planDrawing
+import serverMapFiles
+import serverNav
+import serverRows
+from playerScale import playerHeight, stepHeight
+from testModelsAndDressing import freshScene
+from testReach import cube, rectangle, region
+
+short = "verified"
+environment = {
+  "ambientColor": [0.3, 0.3, 0.35], "specialAmbientColor": [0, 0, 0], "bounceColor": [0.1, 0.1, 0.15], "sunColor": [0.6, 0.5, 0.4],
+  "sunAzimuthDegrees": 40, "sunElevationDegrees": 35, "fogColor": [0.5, 0.55, 0.6], "fogStart": 100, "fogEnd": 3000, "fogDensity": 0.1,
+  "fogOn": False, "minClip": 50, "maxClip": 4000, "sky": "none", "newEngineZone": False,
+}
+# 240 north to south and 96 across, so the safe point with its axes swapped lies off the ground.
+halfLength, halfWidth = 120.0, 48.0
+safePoint = [80, 20, 0, 0]
+wallHeight = stepHeight + 2 * playerHeight
+otherZone = {"zone": "qeynos2", "x": 10, "y": 20, "z": 3, "headingDegrees": 90}
+northLine = {"minimum": [104, -10, -5], "maximum": [116, 10, 20]}
+loopLine = {"minimum": [-116, -10, -5], "maximum": [-104, 10, 20]}
+loopLanding = [-60, -20, 0]
+pond = {"minimum": [-40, -40, -10], "maximum": [-20, -24, 2]}
+fromQeynos = {"name": "fromQeynos", "at": [-40, 30], "headingDegrees": 90, "kind": "zoneIn", "fromZone": "qeynos2", "fromNumber": 3}
+overview = {"standAt": [-70, 0], "headingDegrees": 90, "pitchDegrees": -5}
+checkNames = ["manifest", "current", "archive", "map", "water", "nav", "rows", "ground", "containment", "looks"]
+
+
+async def referenceArchive(session, folder):
+  """A small zone exported for a test load, to stand in the verified zone as an imported reference zone: ground lifted 20 over the
+  origin with a pillar on it."""
+  await freshScene(session)
+  await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [32, 32], "spacing": 8, "location": [0, 0, 20], "collection": "terrain"})
+  await session.expectSuccess("createMaterial", {"name": "slate", "diffuseTexture": str(writePNG(folder / "slate.png", 4, 4, (60, 70, 140, 255)))})
+  await cube(session, "pillar", [-4, -4, 20], [4, 4, 36])
+  for name in ("ground", "pillar"):
+    await session.expectSuccess("assignMaterial", {"objectName": name, "materialName": "slate"})
+    await session.expectSuccess("projectUVs", {"objectName": name, "method": "box", "worldUnitsPerRepeat": 8})
+  await session.expectSuccess("setZoneProperties", environment)
+  await session.expectSuccess("saveFile", {"path": str(folder / "reference.blend")})
+  await session.expectSuccess("exportZone", {"path": str(folder / "reference.eqg"), "purpose": "test"})
+  return folder / "reference.eqg"
+
+
+async def verifiedZone(session, folder):
+  """Flat ground walled all round with a crate, a swim box standing alone, a zone line to qeynos2 and one leading back into the zone, a
+  zoneIn entry naming its neighbour's row, one play region, and the zone row's values; an imported reference zone and a placed client
+  object stand in view of a review camera. Saved as verified.blend in folder; returns the reference zone's archive."""
+  reference = await referenceArchive(session, folder)
+  await freshScene(session)
+  await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [2 * halfLength, 2 * halfWidth], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+  await session.expectSuccess("createMaterial", {"name": "grass", "diffuseTexture": str(writePNG(folder / "grass.png", 4, 4, (90, 120, 60, 255)))})
+  await session.expectSuccess("createMaterial", {"name": "stone", "diffuseTexture": str(writePNG(folder / "stone.png", 4, 4, (120, 110, 100, 255)))})
+  await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "grass"})
+  await session.expectSuccess("projectUVs", {"objectName": "ground", "method": "planar", "worldUnitsPerRepeat": 64, "direction": [0, 0, 1]})
+  x, y = halfLength - 0.1, halfWidth - 0.1
+  for name, path in {"westWall": [[-x, y], [x, y]], "northWall": [[x, y], [x, -y]], "eastWall": [[x, -y], [-x, -y]], "southWall": [[-x, -y], [-x, y]]}.items():
+    await session.expectSuccess("placeBoundaryWall", {"name": name, "path": path, "height": wallHeight})
+  await cube(session, "crate", [30, -30, 0], [38, -22, 8])
+  await session.expectSuccess("assignMaterial", {"objectName": "crate", "materialName": "stone"})
+  await session.expectSuccess("projectUVs", {"objectName": "crate", "method": "box", "worldUnitsPerRepeat": 8})
+  await session.expectSuccess("placeSwimVolume", {"name": "pond", "liquid": "water"} | pond)
+  await session.expectSuccess("setZoneProperties", environment | serverRowValues(short) | {"underworld": -50, "safePoint": safePoint})
+  await session.expectSuccess("placeZoneLine", {"number": 1, "label": "north", "target": otherZone} | northLine)
+  loop = {"zone": short, "x": loopLanding[0], "y": loopLanding[1], "z": loopLanding[2], "headingDegrees": 0}
+  await session.expectSuccess("placeZoneLine", {"number": 2, "label": "loop", "target": loop} | loopLine)
+  await region(session, "yard", rectangle([-halfLength, -halfWidth], [halfLength, halfWidth]), "play", bottom=-20, top=40)
+  await session.expectImage("placeEntry", fromQeynos)
+  await session.expectSuccess("importZoneFile", {"path": str(reference)})
+  await session.expectSuccess("placeObject", {"zone": None, "model": "IT10800_ACTORDEF", "name": "kiln", "location": [40, 10, 0], "headingDegrees": 0})
+  await session.expectSuccess("saveReviewCamera", {"name": "overview", "view": overview, "note": "the yard, the kiln, and the reference zone"})
+  await session.expectSuccess("saveFile", {"path": str(folder / f"{short}.blend")})
+  return reference
+
+
+async def verified(session, path):
+  """verifyExport's pictures (each its bytes and type) and result."""
+  result, _ = await session.call("verifyExport", {"path": str(path)})
+  texts = [content.text for content in result.content if content.type == "text"]
+  assert result.is_error is False, texts
+  pictures = [(base64.b64decode(content.data), content.mime_type) for content in result.content if content.type == "image"]
+  return pictures, json.loads(texts[-1])
+
+
+def byCheck(result):
+  return {check["check"]: check for check in result["checks"]}
+
+
+@pytest.fixture(scope="module")
+def exportedZone(warmServer, tmp_path_factory):
+  """The verified zone saved and exported for the game once, for the tests that break a copy of its export."""
+  folder = tmp_path_factory.mktemp("verifiedZone")
+  export = folder / "export"
+  export.mkdir()
+
+  async def steps(session):
+    reference = await verifiedZone(session, folder)
+    await session.expectSuccess("exportZone", {"path": str(export / f"{short}.eqg"), "purpose": "game"})
+    return reference
+
+  reference = warmServer.session(steps)
+  return SimpleNamespace(folder=folder, export=export, blend=folder / f"{short}.blend", reference=reference)
+
+
+def copiedExport(exportedZone, tmp_path):
+  """A copy of the zone's export to break, its manifest still naming the zone's .blend."""
+  copy = tmp_path / "export"
+  shutil.copytree(exportedZone.export, copy)
+  return copy
+
+
+def verifyCopy(server, exportedZone, copy):
+  async def steps(session):
+    await session.expectSuccess("openFile", {"path": str(exportedZone.blend), "discardUnsavedChanges": True})
+    return await verified(session, copy / f"{short}.eqg")
+  return server.session(steps)
+
+
+def pixels(data):
+  return numpy.asarray(Image.open(io.BytesIO(data)).convert("RGB"), dtype=numpy.int64)
+
+
+def testVerifyExportPassesAFreshGameExport(stageBlenderServer, exportedZone):
+  async def steps(session):
+    await session.expectSuccess("openFile", {"path": str(exportedZone.blend)})
+    # The kiln and the reference zone stand in the review camera's view, drawn as the scene stands.
+    seen, _ = await session.expectImage("renderView", {"view": {"camera": "overview"}})
+    _, labelled = await session.expectImage("renderView", {"view": {"camera": "overview"}, "labels": ["kiln", "reference"]})
+    pictures, result = await verified(session, exportedZone.export / f"{short}.eqg")
+    return seen, labelled, pictures, result
+
+  seen, labelled, pictures, result = stageBlenderServer.session(steps)
+  assert sorted(place["object"] for place in labelled["labels"]["shown"]) == ["kiln", "reference"]
+  assert result["passed"] is True and result["failedChecks"] == [] and [check["check"] for check in result["checks"]] == checkNames
+  checks = byCheck(result)
+  assert checks["manifest"]["details"]["listed"] == 6
+  assert checks["current"]["details"]["identical"] is True
+  assert checks["archive"]["details"]["regions"] == ["AWT_pond", "ATP_1_north", "ATP_2_loop"]
+  collision = checks["map"]["details"]
+  assert collision["collisionTriangles"] == collision["archiveSolidTriangles"] > 0 and collision["largestDifference"] <= 3.2e-4
+  # The nav's water polygons, which must lie in the pond's box, are there to be judged.
+  maps = exportedZone.export / "server" / "maps"
+  inspection = serverNav.inspectNav((maps / "nav" / f"{short}.nav").read_bytes(), safePoint[:3], [], stageBlenderServer.toolingRoot, lambda *arguments: None)
+  water = [polygon for tile in inspection["tiles"] for polygon in tile["polygons"] if polygon["area"] == 1]
+  assert water and all(pond["minimum"][0] - 1 < x < pond["maximum"][0] + 1 and pond["minimum"][1] - 1 < y < pond["maximum"][1] + 1 for polygon in water for x, y in polygon["outline"])
+  assert checks["rows"]["details"] == {"zonePoints": [10, 20], "guards": 7, "waysIn": True, "failures": []}
+  ground = checks["ground"]["details"]
+  assert [(place["arrival"], place["at"]) for place in ground["places"]] == [
+    ("safe point", [float(value) for value in safePoint[:3]]), ("fromQeynos", [-40.0, 30.0, 0.0]), ("zone_points 20", loopLanding),
+  ]
+  assert [(landed["zonePoint"], landed["zone"]) for landed in ground["otherZones"]] == [(10, "qeynos2")] and ground["otherZones"][0]["ground"] is not None
+  lane = checks["containment"]["details"]
+  assert [(entry["name"], entry["connected"]) for entry in lane["entries"]] == [("safe point", True), ("fromQeynos", True)]
+  assert lane["reachedArea"] == lane["manifestReachedArea"] and lane["reachedArea"]["walk"] > 0
+  # Every review camera and the tour's eight eyes, the scene drawn without the kiln and the reference zone as the archive draws.
+  views = checks["looks"]["details"]["views"]
+  assert sorted(view["name"] for view in views) == ["overview"] + [f"tour {number}" for number in range(1, 9)]
+  assert all(view["meanDifference"] < buildTolerances.roundTripMeanLevels and view["percentileDifference"] <= buildTolerances.roundTripPercentileLevels for view in views)
+  camera = next(view for view in views if view["name"] == "overview")
+  scene, archive = (numpy.asarray(Image.open(camera[key]).convert("RGB"), dtype=numpy.int64) for key in ("scene", "archive"))
+  shown = numpy.abs(pixels(seen) - scene).max(axis=-1) > buildTolerances.roundTripPercentileLevels
+  assert shown.mean() > 0.01 and numpy.abs(scene - archive).max() <= buildTolerances.roundTripPercentileLevels
+  # Both pictures: the server's view, the comparison sheet of five rows, largest differences first.
+  assert [kind for _, kind in pictures] == ["image/png", "image/jpeg"]
+  view = result["serverView"]
+  assert view["notDrawn"] == {} and view["legend"][2:4] == ["Water boxes (.wtr): 1", "ZoneLine boxes (.wtr): 2"]
+  frame = planDrawing.PlanFrame(view["frame"]["center"], view["frame"]["width"], view["frame"]["size"])
+  plan = pixels(pictures[0][0])
+  for point in (safePoint[:2], [-40, 30], loopLanding[:2]):
+    x, y = frame.pixel(point)
+    assert tuple(plan[int(y), int(x)]) == (255, 255, 255), point
+  sheet = result["comparison"]
+  assert (sheet["rows"], sheet["views"]) == (5, 9)
+
+
+def testVerifyExportCatchesAMovedSwimBox(stageBlenderServer, tmp_path):
+  folder = tmp_path / "export"
+  folder.mkdir()
+
+  async def steps(session):
+    await verifiedZone(session, tmp_path)
+    await session.expectSuccess("exportZone", {"path": str(folder / f"{short}.eqg"), "purpose": "game"})
+    await session.expectSuccess("transformObjects", {"names": ["AWT_pond"], "translate": [10, 0, 0]})
+    await session.expectSuccess("saveFile", {})
+    return await verified(session, folder / f"{short}.eqg")
+
+  pictures, result = stageBlenderServer.session(steps)
+  assert result["failedChecks"] == ["current", "archive"]
+  checks = byCheck(result)
+  assert checks["current"]["details"]["failures"] == [
+    {"entry": f"{short}.zon", "change": "differs", "message": f"{short}.zon differs: the scene changed since this export"},
+  ]
+  moved = checks["archive"]["details"]["failures"]
+  assert [(failure["region"], failure["center"]) for failure in moved] == [("AWT_pond", [-30.0, -32.0, -4.0])]
+  assert moved[0]["message"] == "Region AWT_pond stands at [-30.0, -32.0, -4.0] with half extents [10.0, 8.0, 6.0] in the .zon, at [-20.0, -32.0, -4.0] with [10.0, 8.0, 6.0] in the scene"
+  assert len(pictures) == 2
+
+
+def testVerifyExportCatchesAViewThatDrawsOtherwise(stageBlenderServer, tmp_path):
+  folder = tmp_path / "export"
+  folder.mkdir()
+
+  async def steps(session):
+    await verifiedZone(session, tmp_path)
+    await session.expectSuccess("exportZone", {"path": str(folder / f"{short}.eqg"), "purpose": "game"})
+    await session.expectSuccess("transformObjects", {"names": ["crate"], "translate": [0, 12, 0]})
+    await session.expectSuccess("saveFile", {})
+    return await verified(session, folder / f"{short}.eqg")
+
+  pictures, result = stageBlenderServer.session(steps)
+  assert result["failedChecks"] == ["current", "looks"]
+  checks = byCheck(result)
+  assert [failure["entry"] for failure in checks["current"]["details"]["failures"]] == [f"{short}.zon"]
+  # The views that hold the crate draw it where the scene has it and the archive does not; those that do not hold it pass. The sheet
+  # leads with the largest difference.
+  views = checks["looks"]["details"]["views"]
+  failed = [failure["view"] for failure in checks["looks"]["details"]["failures"]]
+  assert failed and failed == [view["name"] for view in views if not view["passed"]] and "overview" in failed
+  assert views[0]["meanDifference"] == max(view["meanDifference"] for view in views) > buildTolerances.roundTripMeanLevels
+  ordered = [(view["passed"], -view["meanDifference"]) for view in views]
+  assert ordered == sorted(ordered)
+  assert all(view["meanDifference"] < buildTolerances.roundTripMeanLevels and view["percentileDifference"] <= buildTolerances.roundTripPercentileLevels for view in views if view["passed"])
+  (tmp_path / "comparisonSheet.jpg").write_bytes(pictures[1][0])
+
+
+def testVerifyExportCatchesATruncatedWaterMap(stageBlenderServer, exportedZone, tmp_path):
+  copy = copiedExport(exportedZone, tmp_path)
+  water = copy / "server" / "maps" / "water" / f"{short}.wtr"
+  water.write_bytes(water.read_bytes()[:-10])
+  pictures, result = verifyCopy(stageBlenderServer, exportedZone, copy)
+  assert result["failedChecks"] == ["manifest", "water", "nav", "containment"]
+  checks = byCheck(result)
+  told = checks["water"]["details"]["failures"]
+  assert [failure["message"] for failure in told] == [
+    'the .wtr: region 2 at byte 122 needs 52 bytes; 42 remain: the server would log "Loaded Water Map" and drop it (water_map.cpp:48-63),'
+    " and without a water map turns NPC nav pathing off (mob_movement_manager.cpp:1035)",
+  ]
+  assert [failure["file"] for failure in checks["manifest"]["details"]["failures"]] == [f"server/maps/water/{short}.wtr"]
+  # The server's view needs the .wtr; the comparison sheet is drawn.
+  assert result["serverView"] == {"drawn": False, "why": "the .wtr does not read: the .wtr: region 2 at byte 122 needs 52 bytes; 42 remain"}
+  assert [kind for _, kind in pictures] == ["image/jpeg"]
+
+
+def testVerifyExportCatchesAMapFromAnotherArchive(stageBlenderServer, exportedZone, tmp_path):
+  copy = copiedExport(exportedZone, tmp_path)
+  other = serverMapFiles.mapBytes(serverMapFiles.zoneFilesOf(exportedZone.reference.read_bytes()))
+  (copy / "server" / "maps" / "base" / f"{short}.map").write_bytes(other)
+  pictures, result = verifyCopy(stageBlenderServer, exportedZone, copy)
+  checks = byCheck(result)
+  assert result["failedChecks"] == ["manifest", "map", "nav", "ground", "containment"]
+  told = checks["map"]["details"]["failures"]
+  assert len(told) == 1 and told[0]["message"].startswith("The .map is not the one the archive makes (serverMapFiles.mapBytes): this .map, then the archive's, hold")
+  ours = serverMapFiles.readMap((exportedZone.export / "server" / "maps" / "base" / f"{short}.map").read_bytes())
+  theirs = serverMapFiles.readMap(other)
+  assert told[0]["counts"]["collidableIndices"] == {"map": len(theirs["collidableIndices"]), "archive": len(ours["collidableIndices"])}
+  # The nav is judged against the .map it lies beside: its parameters and payload are not the other archive's.
+  navTold = [failure["message"] for failure in checks["nav"]["details"]["failures"]]
+  assert len(navTold) == 2 and navTold[0].startswith("The .nav's parameters ['origin'] are ")
+  assert navTold[1].startswith("The pinned helper rebuilt on this .map and .wtr makes another nav")
+  # On the other zone's collision the safe point stands over nothing.
+  assert [failure["arrival"] for failure in checks["ground"]["details"]["failures"]] == ["safe point", "fromQeynos", "zone_points 20"]
+  assert len(pictures) == 2
+
+
+def testVerifyExportCatchesAMissingNav(stageBlenderServer, exportedZone, tmp_path):
+  copy = copiedExport(exportedZone, tmp_path)
+  (copy / "server" / "maps" / "nav" / f"{short}.nav").unlink()
+  pictures, result = verifyCopy(stageBlenderServer, exportedZone, copy)
+  assert result["failedChecks"] == ["manifest", "nav"]
+  checks = byCheck(result)
+  assert checks["manifest"]["details"]["failures"] == [{"file": f"server/maps/nav/{short}.nav", "message": f"server/maps/nav/{short}.nav is missing"}]
+  assert checks["nav"]["details"]["failures"] == [{"message": "No .nav lies in the export: the server would path NPCs straight, through walls"}]
+  # The server's view is drawn without a nav, and says so.
+  assert result["serverView"]["drawn"] is True and "no NPC nav drawn: no .nav was read" in result["serverView"]["legend"]
+  assert len(pictures) == 2
+
+
+def swappedSafeAxes(text):
+  """<short>.sql with the zone row's safe_x and safe_y swapped in its insert and its update."""
+  lines = text.split("\n")
+  insert = next(index for index, line in enumerate(lines) if line.startswith("  INSERT INTO zone ("))
+  head, rest = lines[insert].split(" SELECT ", 1)
+  selected, tail = rest.split(" FROM zone AS ", 1)
+  items = selected.split(", ")
+  assert len(items) == len(serverRows.zoneColumns)
+  first, second = serverRows.zoneColumns.index("safe_x"), serverRows.zoneColumns.index("safe_y")
+  items[first], items[second] = items[second], items[first]
+  lines[insert] = f"{head} SELECT {', '.join(items)} FROM zone AS {tail}"
+  update = next(index for index, line in enumerate(lines) if line.startswith("  UPDATE zone SET "))
+  lines[update] = re.sub(r"safe_x = ([^,]+), safe_y = ([^,]+),", r"safe_x = \2, safe_y = \1,", lines[update])
+  return "\n".join(lines)
+
+
+def testVerifyExportCatchesSwappedSafeAxes(stageBlenderServer, exportedZone, tmp_path):
+  copy = copiedExport(exportedZone, tmp_path)
+  rowsPath = copy / "server" / "sql" / f"{short}.sql"
+  rowsPath.write_text(swappedSafeAxes(rowsPath.read_text(encoding="ascii")), encoding="ascii", newline="")
+  swapped = serverRows.readRows(rowsPath.read_text(encoding="ascii"))
+  assert (swapped["zoneUpdate"]["values"]["safe_x"], swapped["zoneUpdate"]["values"]["safe_y"]) == (safePoint[0], safePoint[1])
+  pictures, result = verifyCopy(stageBlenderServer, exportedZone, copy)
+  assert result["failedChecks"] == ["manifest", "rows", "ground"]
+  checks = byCheck(result)
+  columns = [(failure["file"], failure["column"], failure["found"], failure["expected"]) for failure in checks["rows"]["details"]["failures"]]
+  assert columns == [
+    (f"{short}.sql's zone insert", "safe_x", safePoint[0], safePoint[1]), (f"{short}.sql's zone insert", "safe_y", safePoint[1], safePoint[0]),
+    (f"{short}.sql's zone update", "safe_x", safePoint[0], safePoint[1]), (f"{short}.sql's zone update", "safe_y", safePoint[1], safePoint[0]),
+  ]
+  fallen = checks["ground"]["details"]["failures"]
+  assert [(failure["arrival"], failure["at"], failure["ground"]) for failure in fallen] == [("safe point", [20.0, 80.0, 0.0], None)]
+  assert fallen[0]["message"].startswith("The safe point at [20.0, 80.0, 0.0] stands over no ground the server finds in the .map")
+  assert len(pictures) == 2
+
+
+def testVerifyExportLeavesTheWorkFileAsSaved(stageBlenderServer, exportedZone):
+  def blendHash():
+    return hashlib.sha256(exportedZone.blend.read_bytes()).hexdigest()
+
+  async def steps(session):
+    await session.expectSuccess("openFile", {"path": str(exportedZone.blend)})
+    before = await session.expectSuccess("getSceneSummary", {})
+    savedBefore = blendHash()
+    _, result = await verified(session, exportedZone.export / f"{short}.eqg")
+    after = await session.expectSuccess("getSceneSummary", {})
+    return before, savedBefore, result, after
+
+  before, savedBefore, result, after = stageBlenderServer.session(steps)
+  assert result["passed"] is True
+  # The renders hid the kiln and the reference zone, and a new file held the archive; the work file, opened again, is as saved.
+  assert after == before and after["status"]["filePath"] == str(exportedZone.blend) and after["status"]["unsavedChanges"] is False
+  assert {entry["name"]: entry["hiddenInRender"] for entry in after["objects"] if entry["name"] in ("kiln", "reference")} == {"kiln": False, "reference": False}
+  assert blendHash() == savedBefore
+
+
+def testVerifyExportRefusesWhatItCannotJudge(stageBlenderServer, exportedZone, tmp_path):
+  archive = exportedZone.export / f"{short}.eqg"
+  bare = tmp_path / "bare"
+  bare.mkdir()
+  shutil.copy(archive, bare / f"{short}.eqg")
+
+  async def steps(session):
+    refusals = {
+      "relative": await session.expectError("verifyExport", {"path": f"{short}.eqg"}),
+      "noManifest": await session.expectError("verifyExport", {"path": str(bare / f"{short}.eqg")}),
+      "testExport": await session.expectError("verifyExport", {"path": str(exportedZone.reference)}),
+    }
+    await session.expectSuccess("openFile", {"path": str(exportedZone.folder / "reference.blend")})
+    refusals["otherFile"] = await session.expectError("verifyExport", {"path": str(archive)})
+    await session.expectSuccess("openFile", {"path": str(exportedZone.blend)})
+    await session.expectSuccess("transformObjects", {"names": ["crate"], "translate": [0, 0, 1]})
+    refusals["unsaved"] = await session.expectError("verifyExport", {"path": str(archive)})
+    return refusals
+
+  refusals = stageBlenderServer.session(steps)
+  assert f"'{short}.eqg' is not an absolute path to an exported <short>.eqg" in refusals["relative"]
+  assert f"No manifest {short}_export.json lies beside '{bare / f'{short}.eqg'}'" in refusals["noManifest"]
+  assert "is a 'test' export's manifest; verifyExport reads back a game export" in refusals["testExport"]
+  assert f"{short}.eqg was exported from '{exportedZone.blend}', but the open file is '{exportedZone.folder / 'reference.blend'}'" in refusals["otherFile"]
+  assert "The open file has unsaved changes; verifyExport judges an export against the scene as saved" in refusals["unsaved"]
+
+
+def testVerifyExportNeedsTheRecastHelper(stageServer, tmp_path):
+  server = stageServer({"blender": pinnedBlender, "extensions": {}})
+  (tmp_path / f"{short}.eqg").write_bytes(b"an archive")
+  (tmp_path / f"{short}_export.json").write_text(json.dumps({"purpose": "game", "shortName": short, "blend": str(tmp_path / "zone.blend"), "files": {}}), encoding="ascii")
+  refusal = server.callToolExpectingError("verifyExport", {"path": str(tmp_path / f"{short}.eqg")})
+  assert "The Recast helper is missing" in refusal and "run syncTooling to build it" in refusal, refusal

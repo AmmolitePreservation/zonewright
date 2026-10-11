@@ -45,6 +45,7 @@ import eqTextures
 import eqWorldFile
 import eqZones
 import exportPipeline
+import exportVerification
 import extensionCatalog
 import laneDrawing
 import laneViews
@@ -55,6 +56,7 @@ import playerReach
 import playerScale
 import recastHelper
 import serverNav
+import serverRows
 import skyDrawing
 import toolingLog
 import viewerLight
@@ -1553,6 +1555,196 @@ async def exportZone(context: Context, path: str, purpose: str):
   return result | {"serverFilesRemoved": written["removedServerFiles"]}
 
 
+async def sceneArchive(context, short, client):
+  """The archive the saved scene makes now, built in memory as a game export builds it: (bytes, None), or (None, why not)."""
+  checked = await callBridge(context, "collectZoneExport", {"outputFolder": str(toolingRoot / "exports" / short), "zoneName": short, "purpose": "game", "client": client})
+  if checked["collected"] is None:
+    return None, f"the checks find what no zone file can hold: {[exportPipeline.failureName(failure) for failure in checked['report']['hardFailures']]}"
+  try:
+    return (await anyio.to_thread.run_sync(exportPipeline.zoneArchive, checked["collected"]))[0], None
+  except ToolError as error:
+    return None, str(error)
+
+
+async def verifiedTour(context, zone):
+  """The scene's lane tour (laneTour), its lane through currentLane as every lane's consumer takes it: (tour, "computed" or "reused")."""
+  lane, description, _, _ = await sceneLaneOnly(context)
+  far = laneViews.farSight(zone)
+  kept, _ = laneViews.keptTour(lane, far)
+  nodes = None if kept is not None else await anyio.to_thread.run_sync(playerReach.Nodes, lane)
+  tour, _, status = await laneTour(context, lane, nodes, description, far)
+  return tour, status
+
+
+def rowsSafePoint(rowsData, short):
+  """The safe point the zone row holds, zone axes, or None where the rows do not read."""
+  try:
+    values = serverRows.readRows(rowsData.decode("ascii"), f"{short}.sql")["zoneUpdate"]["values"]
+  except (AttributeError, UnicodeDecodeError, ValueError):
+    return None
+  return [values["safe_y"], values["safe_x"], values["safe_z"]]
+
+
+async def renderPoses(context, poses, folder, prefix, exportedOnly, sky, figureModel, emitters, step):
+  """Each pose rendered in client shading as an {eye, target} view in its frame, the scale figure where it stood, without guides;
+  exportedOnly hides what export leaves out. Returns the renders' paths."""
+  paths = []
+  for index, pose in enumerate(poses):
+    await step(f"rendering {prefix} view {index + 1} of {len(poses)}")
+    outputPath = folder / f"{prefix}{index + 1:02d}.png"
+    await callBridge(context, "renderView", {
+      "view": {"eye": pose["eye"], "target": pose["target"]}, "outputPath": str(outputPath), "figureModel": figureModel if pose["figure"] else None,
+      "shading": "client", "bandHeight": 50.0, "guides": False, "sky": sky, "swimVolumes": False, "labels": None, "emitters": emitters,
+      "frame": pose["frame"], "exportedOnly": exportedOnly, "figureOn": pose["figure"],
+    })
+    paths.append(outputPath)
+  return paths
+
+
+@guardedTool(description=(
+  "Read a game export back from its folder and check it against the open, saved scene and against itself, writing nothing beside it."
+  " `path` is the export's absolute <short>.eqg, its game manifest (<short>_export.json) beside it. Refused: unsaved changes, a path"
+  " that is not an absolute <short>.eqg with a game export's manifest beside it, a manifest whose .blend is not the open file, and the"
+  " Recast helper missing or stale (syncTooling builds it). Ten checks, each {check, passed, details}, every one run whatever the others"
+  " find, and every failure listed in its details with where it lies: 1 manifest, every file the manifest lists in place with its size"
+  " and SHA-256, every file a game export writes listed (the archive, .map, .wtr, .nav, and rows), nothing of the zone's beside it"
+  " unlisted, and the server files named by the lowercase short name; 2 current, the archive the saved scene makes now, built in"
+  " memory, equal to the exported one entry by entry, those that differ named (the scene changed since this export); 3 archive, every"
+  " entry read by its kind's reader, every placement's model held, and the .zon's regions the swim boxes and then the zone lines as the"
+  " scene holds them (names, centers, half extents); 4 map, the .map inflating to its stated size and read to its last byte, every"
+  " placement naming a model it holds, equal to the .map the archive makes, and the collision the server rebuilds from it the archive's"
+  f" solid triangles as the client places them, in count and order, within {exportVerification.collisionTolerance:g} (Highpass Hold's"
+  " measured float-path difference); 5 water, the .wtr as the server reads it (magic, version 2, exact length; a file cut short is one"
+  " the server says it loaded and drops) and equal to what the .zon's regions make; 6 nav, the container inflating, its parameters"
+  " serverNavSettings over the .map's extents, the pinned helper rebuilt on this .map and .wtr reproducing its payload byte for byte,"
+  " Detour loading every tile, and its water, lava, and Disabled polygons lying in their .wtr boxes; 7 rows, both SQL files read by"
+  " zonewright's reader, the zone row's written columns what the stored inputs make and its template serverTemplate, every guard"
+  " present with its values, one zone_points row per zone line numbered ten times its number at a point inside its box with the"
+  " client's target id, and the ways-in file holding exactly the zoneIn entries naming a neighbour's row; 8 ground, the ground the"
+  f" server finds on the .map (straight down from {serverNav.serverPathing['findBestZHeightAdjust']:g} over the point, at or above the"
+  " underworld, as the zone row holds both) under the zone row's safe point, every stored entry, and every zone_points landing back"
+  " in the zone, and under a landing in another zone the ground on that zone's client collision, where a miss is a finding, its"
+  " underworld being unknown here; 9 containment, the lane the server files give (seeded where the scene's entries stand, judged with"
+  " its regions, plot entrances, and underworld) holding no leak a game export refuses, its reached area beside the manifest's; 10 looks,"
+  " every review camera and the lane tour's eyes (viewFromLane's tour, chosen and kept if none is), their poses and where a view stood"
+  " the scale figure read first, each rendered in client shading in the work file with everything export leaves out (reference zones,"
+  " placed client spawns, doors, and objects, guides) hidden for the render only, then newFile, importZoneFile of the archive with the"
+  " zone's view values, the same poses, then openFile of the saved work file: alike when the mean difference is under"
+  f" {buildTolerances.roundTripMeanLevels:g} levels and the {buildTolerances.roundTripPercentile}th percentile of each pixel's largest"
+  f" channel difference at most {buildTolerances.roundTripPercentileLevels:g}. Pictures: the server's view from the exported files alone"
+  " (the .map's collision in grey relief, upright collision as lines, what the server never collides with in blue, the .wtr's boxes"
+  " labelled with their regions and the zone_points rows in them, the NPC nav's main piece green and its islands orange where players"
+  " reach them and lavender where not, numbered, Disabled dark, and the safe point, zone_points positions, landings, and ways in the"
+  " rows name), and the comparison sheet, a row per view of the scene, the archive, and their difference (red where they differ),"
+  " largest differences first (the views that draw otherwise, then the rest, each by mean difference),"
+  f" {exportVerification.sheetRows} rows at most; every view's numbers and its three files on disk are in the JSON, in that order."
+  " Nothing done in Blender survives it: the saved work file is opened again, so its unsaved flag and scene are as before."
+))
+async def verifyExport(context: Context, path: str):
+  archivePath, short, manifest = exportVerification.exportedGame(path)
+  recastHelper.requireHelper(toolingRoot)
+  status = await callBridge(context, "getStatus", {})
+  if status["unsavedChanges"]:
+    raise ToolError("The open file has unsaved changes; verifyExport judges an export against the scene as saved: save it (saveFile) or open it again")
+  if status["filePath"] is None or not checkpoints.samePath(status["filePath"], manifest["blend"]):
+    opened = "never saved" if status["filePath"] is None else f"'{status['filePath']}'"
+    raise ToolError(f"{archivePath.name} was exported from '{manifest['blend']}', but the open file is {opened}: open that file (openFile) to verify its export")
+  workFile = status["filePath"]
+  folder = archivePath.parent
+  files = exportVerification.exportedFiles(folder, short)
+  done = [0]
+
+  async def step(message):
+    done[0] += 1
+    await context.report_progress(done[0], None, message)
+
+  await step("reading the scene's inputs")
+  zone = await callBridge(context, "getZoneProperties", {})
+  sky = await zoneSky(zone)
+  client = await zoneRowClientFacts(context, zone)
+  clientZones = await clientZoneIDs()
+  swimVolumes = (await callBridge(context, "getSwimVolumes", {"name": None}))["volumes"]
+  zoneLines = (await callBridge(context, "getZoneLines", {}))["zoneLines"]
+  entries = (await callBridge(context, "getEntries", {}))["entries"]
+  regions = (await callBridge(context, "getRegions", {}))["regions"]
+  cameras = (await callBridge(context, "getReviewCameras", {}))["cameras"]
+  rebuilt, rebuildWhy = await sceneArchive(context, short, client)
+  try:
+    tour, tourStatus = await verifiedTour(context, zone)
+    tourWhy = None
+  except ToolError as error:
+    tour, tourStatus, tourWhy = None, None, f"The lane tour's eyes cannot be had: {error}"
+  progress = progressReporter(context)
+  checks = []
+  await step("checking the manifest, archive, .map, and .wtr")
+  checks += await anyio.to_thread.run_sync(lambda: [
+    exportVerification.manifestCheck(folder, short, manifest), exportVerification.currentCheck(files["archive"], rebuilt, rebuildWhy),
+    exportVerification.archiveCheck(files["archive"], short, swimVolumes, zoneLines), exportVerification.mapCheck(files["map"], files["archive"], short),
+    exportVerification.waterCheck(files["water"], files["archive"], short),
+  ])
+  await step("rebuilding and inspecting the .nav")
+  navChecked, inspection = await anyio.to_thread.run_sync(
+    exportVerification.navCheck, files["nav"], files["map"], files["water"], rowsSafePoint(files["rows"], short), toolingRoot, progress,
+  )
+  checks.append(navChecked)
+  await step("checking the rows and the ground under arrivals")
+  skyFogColor = None if sky is None else sky["environment"]["fogColor"]
+  checks.append(exportVerification.rowsCheck(files["rows"], files["waysIn"], zone, zoneLines, entries, clientZones, skyFogColor, files["archive"], short))
+  checks.append(await anyio.to_thread.run_sync(exportVerification.groundCheck, files["map"], files["rows"], entries, zoneSources.resolveClientRoot(), clientZones, short))
+  await step("mapping the lane the server files give")
+  checks.append(await anyio.to_thread.run_sync(
+    exportVerification.containmentCheck, files["map"], files["water"], entries, regions, zone.get("underworld"), manifest, toolingRoot, progress,
+  ))
+
+  views = [{"name": camera["name"], "source": "review camera", "view": {"camera": camera["name"]}} for camera in cameras]
+  views += [{"name": f"tour {eye['number']}", "source": "lane tour", "view": eye["view"]} for eye in ([] if tour is None else tour["eyes"])]
+  figureModel = await zoneFigureModel(zone)
+  emitters = await previewEmitterAssets()
+  unviewed = [] if tourWhy is None else [{"message": tourWhy}]
+  posed = []
+  for entry in views:
+    try:
+      posed.append((entry, await callBridge(context, "viewPose", {"view": entry["view"], "figureModel": figureModel, "sky": sky})))
+    except ToolError as error:
+      unviewed.append({"view": entry["name"], "message": f"{entry['name']}'s pose cannot be read: {error}"})
+  poses = [pose for _, pose in posed]
+  renders = toolingRoot / "renders" / f"verify-{short}-{newRenderPath().stem}"
+  renders.mkdir(parents=True)
+  scenePaths = await renderPoses(context, poses, renders, "scene", True, sky, figureModel, emitters, step)
+  viewValues = {key: value for key, value in zone.items() if key not in serverRows.rowIdentityKeys + serverRows.rowArrivalKeys}
+  archivePaths = []
+  if poses:
+    try:
+      await step("importing the archive into a new file")
+      await callBridge(context, "newFile", {"discardUnsavedChanges": True})
+      await importZoneFile(context, str(archivePath))
+      await callBridge(context, "setZoneProperties", {"updates": viewValues, "clientZones": None})
+      archivePaths = await renderPoses(context, poses, renders, "archive", False, sky, figureModel, emitters, step)
+    finally:
+      await step("opening the saved work file again")
+      await openWorkFile(context, workFile, True)
+  await step("comparing the views")
+  compared = await anyio.to_thread.run_sync(lambda: exportVerification.largestFirst([
+    exportVerification.comparedView(entry["name"], entry["source"], pose, scenePath, archiveRender, renders / f"difference{index + 1:02d}.png")
+    for index, ((entry, pose), scenePath, archiveRender) in enumerate(zip(posed, scenePaths, archivePaths, strict=True))
+  ]))
+  checks.append(exportVerification.looksCheck(compared, unviewed))
+  await step("drawing the server's view and the comparison sheet")
+  serverViewPath = newRenderPath()
+  serverView = await anyio.to_thread.run_sync(exportVerification.drawServerView, serverViewPath, files, inspection, manifest, short)
+  pictures = [Image(data=serverViewPath.read_bytes(), format="png")] if serverView["drawn"] else []
+  comparison = {"drawn": False, "why": "no view was compared"}
+  if compared:
+    sheetPath = newRenderPath().with_suffix(".jpg")
+    comparison = {"drawn": True, "outputPath": str(sheetPath)} | await anyio.to_thread.run_sync(exportVerification.writeComparisonSheet, compared, sheetPath)
+    pictures.append(Image(data=sheetPath.read_bytes(), format="jpeg"))
+  return pictures + [{
+    "path": str(archivePath), "zone": short, "passed": all(check["passed"] for check in checks),
+    "failedChecks": [check["check"] for check in checks if not check["passed"]], "checks": checks, "tour": tourStatus, "renders": str(renders),
+    "serverView": serverView, "comparison": comparison,
+  }]
+
+
 def passArrays(passes):
   """Render passes as arrays, their colors no longer premultiplied by coverage as a transparent render stores them."""
   arrays = {}
@@ -2643,6 +2835,18 @@ async def groundedTour(context, picks):
   return chosen, spacing, (standing, eyes)
 
 
+async def laneTour(context, lane, nodes, description, far):
+  """The lane's tour (laneViews): the one kept beside it while its inputs hold, else chosen and kept: (tour, its path, "computed" or
+  "reused")."""
+  kept, tourPath = laneViews.keptTour(lane, far)
+  if kept is not None:
+    return kept, tourPath, "reused"
+  picks = await anyio.to_thread.run_sync(laneViews.tourPicks, nodes, description)
+  chosen, spacing, placed = await groundedTour(context, picks)
+  kept, tourPath = await anyio.to_thread.run_sync(laneViews.finishTour, nodes, description, far, picks, chosen, spacing, placed)
+  return kept, tourPath, "computed"
+
+
 async def fittedLanePlan(context, framing, lanePlan, sky):
   """lanePlanRender over a laneViews.planFraming: as wide as its extent across needs, widened when its extent up would not fit the plan's
   shape. Returns (path, width, drawn plan)."""
@@ -2710,13 +2914,7 @@ async def viewFromLane(context: Context, target: str | list[float] | None = None
   result["limits"] += laneViews.limits(far, target is not None)
   result |= {"lane": laneStatus, "seconds": seconds, "laneFile": str(lane.path), "farSight": far}
   if target is None:
-    kept, tourPath = laneViews.keptTour(lane, far)
-    tourStatus = "reused"
-    if kept is None:
-      picks = await anyio.to_thread.run_sync(laneViews.tourPicks, nodes, description)
-      chosen, spacing, placed = await groundedTour(context, picks)
-      kept, tourPath = await anyio.to_thread.run_sync(laneViews.finishTour, nodes, description, far, picks, chosen, spacing, placed)
-      tourStatus = "computed"
+    kept, tourPath, tourStatus = await laneTour(context, lane, nodes, description, far)
     eyes = kept["eyes"][:count]
     result |= {
       "tour": tourStatus, "tourFile": str(tourPath), "candidates": kept["candidates"], "openCandidates": kept["openCandidates"],

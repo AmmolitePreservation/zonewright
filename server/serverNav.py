@@ -72,6 +72,20 @@ def navBounds(collision):
   return [float(value) for value in points.min(axis=0)], [float(value) for value in points.max(axis=0)]
 
 
+def navParameters(collision):
+  """The dtNavMeshParams map_edit derives from the collidable triangles (server axes) and serverNavSettings: the origin at the bounds'
+  minimum (Recast axes), tiles of tileSize cells, and the tile and polygon bits of a grid of (int)(extent / cellSize + 0.5) cells a
+  side, counted over the whole grid (tile bits at most 14, polygon bits 22 less)."""
+  low, high = navBounds(collision)
+  tileWidth = float(numpy.float32(serverNavSettings["tileSize"] * serverNavSettings["cellSize"]))
+  tiles = 1
+  for axis in (0, 2):
+    cells = int((high[axis] - low[axis]) / serverNavSettings["cellSize"] + 0.5)
+    tiles *= -(-cells // serverNavSettings["tileSize"])
+  tileBits = min((tiles - 1).bit_length(), 14)
+  return {"origin": tuple(low), "tileWidth": tileWidth, "tileHeight": tileWidth, "maximumTiles": 1 << tileBits, "maximumPolygons": 1 << (22 - tileBits)}
+
+
 def navFromCollision(collision, waterRecords, toolingRoot, reportProgress):
   """The .nav map_edit would build from the server's collidable triangles (float32 [n, 3, 3], server axes, in the .map's order) and the
   .wtr's records ({type, position, rotation (degrees), scale, halfExtents}, zone axes, in .wtr order), with serverNavSettings and the

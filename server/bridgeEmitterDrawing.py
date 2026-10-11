@@ -35,12 +35,12 @@ def loadAssets(assetsPath):
   return assetsCache[assetsPath][1]
 
 
-def sceneEmitters(scene):
-  """The scene's emitters drawn in renders, as export records them (bridgeEnvironment.emitterRecord)."""
+def sceneEmitters(scene, leftOut):
+  """The scene's emitters drawn in renders, but those named in leftOut, as export records them (bridgeEnvironment.emitterRecord)."""
   depsgraph = bridgeEnvironment.sceneDepsgraph(scene)
   return [
     bridgeEnvironment.emitterRecord(sceneObject.evaluated_get(depsgraph))
-    for sceneObject in scene.objects if bridgeEnvironment.isEmitter(sceneObject) and not sceneObject.hide_render
+    for sceneObject in scene.objects if bridgeEnvironment.isEmitter(sceneObject) and not sceneObject.hide_render and sceneObject.name not in leftOut
   ]
 
 
@@ -180,7 +180,7 @@ def emitterParticlesOrReason(emitter, definitions, textures, camera):
 def drawEmitters(preview, sourceScene, assetsPath):
   """Draw the source scene's emitters into the preview for its camera; returns how many were drawn and their particles, and the ones
   not drawn grouped by why, each group with its count and its first names."""
-  emitters = sceneEmitters(sourceScene)
+  emitters = sceneEmitters(sourceScene, preview.leftOut)
   if not emitters:
     return {"emitters": 0, "particles": 0, "notDrawn": []}
   if assetsPath is None:
