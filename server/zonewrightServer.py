@@ -2938,10 +2938,10 @@ async def renderSection(
   the ground makes in it: rooms and passages cut across, one over another), and at each bend the ground's heights where its two legs
   meet (groundAtJoins). Asked for, the `lane` layer draws where the line crosses the lane mapReach maps: each reached floor as a bar
   standing just over its height in its label's color (walk green, swim blue for a floor in a swim box, slide orange, squeeze pink,
-  taken by a zone line yellow), reached water as a blue band from its bottom to its top across its swim box, walkable floor never
-  reached dashed grey, a floor's ends kept to the block's edge where the lane's columns run past it, and leak edges as magenta ticks
-  down from the floor a fall onto nothing or under the underworld starts from, each named in the legend band with the section's own
-  layers; its laneState gives whether the lane was computed or reused, the constants, what is not
+  taken by a zone line yellow), reached water as a band from its bottom to its top across its swim box in its label's color (water
+  the design player wades shown by the floor under it), walkable floor never reached dashed grey, a floor's ends kept to the block's
+  edge where the lane's columns run past it, and leak edges as magenta ticks down from the floor a fall onto nothing or under the
+  underworld starts from, each named in the legend band with the section's own layers; its laneState gives whether the lane was computed or reused, the constants, what is not
   modelled, and the limits as mapReach does, the counts of each, and laneCut, a file holding them (s along the line, z height,
   label)."""
   outputPath, cuts, drawn, laneState = await drawnSection(context, {"start": start, "end": end, "path": path, "cave": cave, "bottom": bottom, "top": top}, layers)

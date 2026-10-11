@@ -524,9 +524,10 @@ def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
     for name, arguments in (routes | stops).items():
       result, _ = await session.call("traceReach", arguments)
       found[name] = result
-    return found
+    ford = await session.expectImage("renderSection", {"start": [-138, -40], "end": [-82, -40], "layers": ["ground", "swim", "lane"]})
+    return found, ford
 
-  found = stageBlenderServer.session(steps)
+  found, (_, ford) = stageBlenderServer.session(steps)
   results = {}
   for name, result in found.items():
     assert result.is_error is False, (name, result.content[-1].text)
@@ -558,3 +559,8 @@ def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
   assert [(stop["kind"], stop["face"]) for stop in highBank["separations"]] == [("rise", "bankHigh")], highBank["separations"]
   standAt, nearest = highBank["view"]["view"]["standAt"], highBank["nearest"]["at"]
   assert abs(standAt[2] - nearest[2]) <= cellHeight and 30 <= standAt[1] < nearest[1], (standAt, nearest)
+  # Across the ford (its box from x -130, 8 along the line, to -90; the shelf to -110, 28 along) the shelf's floor is walked under water
+  # too shallow to swim in, shown by its bar alone as the plan shows it; the deep water beside it is swum, its band and floor swim blue.
+  cut = json.loads(Path(ford["laneState"]["laneCut"]).read_text())
+  assert [(band["s"], band["label"]) for band in cut["bands"]] == [([28.5, 48.5], "swim")], cut["bands"]
+  assert [(bar["s"], bar["label"]) for bar in cut["bars"]] == [([0.0, 7.5], "walk"), ([7.5, 28.5], "walk"), ([28.5, 48.5], "swim"), ([48.5, 56.0], "walk")], cut["bars"]

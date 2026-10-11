@@ -1386,7 +1386,8 @@ def mergedSeparations(stated, cellSize):
 
 def laneCut(nodes, points, bottom, top):
   """Where a section's line (points [x, y], its legs laid end to end, s along it) crosses the lane, between bottom and top: reached
-  floors as bars at their heights by label, reached water as bands from its bottom to its top, walkable floor never reached that open
+  floors as bars at their heights by label, reached water as bands from its bottom to its top (water the design player wades shown by
+  the floor under it, as the plan shows it), walkable floor never reached that open
   space joins to the lane (never the inside of a closed solid or a boundary's top), and leak edges (where a fall onto nothing or under
   the underworld starts, at the floor it starts from); each run of columns of one kind, label, and height merged."""
   lane = nodes.lane
@@ -1403,6 +1404,8 @@ def laneCut(nodes, points, bottom, top):
     for node in columnNodes(nodes, column):
       low, high = float(lane.height(nodes.low[node])), float(lane.height(nodes.high[node]))
       if nodes.reached[node] and nodes.wet[node]:
+        if nodes.shallow[node]:
+          continue
         key, inside = ("bands", labelNames[nodes.label[node]], low, high), high >= bottom and low <= top
       elif nodes.reached[node]:
         key, inside = ("bars", labelNames[nodes.label[node]], low, None), bottom <= low <= top

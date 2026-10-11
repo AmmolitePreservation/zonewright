@@ -28,6 +28,9 @@ labelWords = {
   playerReach.walkLabel: "walk", playerReach.swimLabel: "swim (a floor in a swim box)", playerReach.slideLabel: "slide (too steep to stand)",
   playerReach.squeezeLabel: "squeeze (only a smaller player)", playerReach.zoneLineLabel: "taken by a zone line",
 }
+# What a section's water bands are, by label: water the design player swims, water only a smaller player passes through (under too little
+# open space for the design player), and water a zone line takes.
+bandWords = {playerReach.swimLabel: "water swum", playerReach.squeezeLabel: "water only a smaller player swims", playerReach.zoneLineLabel: "water a zone line takes"}
 fillAlpha = 125
 # A view's lane tint moves each pixel of reached floor this share of the way toward its label's color.
 tintAlpha = 0.35
@@ -628,7 +631,7 @@ class SectionLane:
     ]
     labels = {playerReach.labelNames.index(mark["label"]) for mark in self.cut["bars"]}
     items += [("bar", labelColors[label], labelWords[label]) for label in labelColors if label in labels]
-    items += [("band", labelColors[playerReach.labelNames.index(label)], "water swum") for label in sorted({band["label"] for band in self.cut["bands"]})]
+    items += [("band", labelColors[playerReach.labelNames.index(label)], bandWords[playerReach.labelNames.index(label)]) for label in sorted({band["label"] for band in self.cut["bands"]})]
     if self.cut["unreached"]:
       items.append(("dashed", sectionUnreachedColor, "walkable, never reached"))
     if self.cut["leaks"]:
