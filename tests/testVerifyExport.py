@@ -1,13 +1,18 @@
 import base64
+import functools
 import hashlib
 import io
 import json
+import os
 import re
 import shutil
+import signal
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import anyio
 import numpy
 import pytest
 from PIL import Image
@@ -42,6 +47,8 @@ pond = {"minimum": [-40, -40, -10], "maximum": [-20, -24, 2]}
 fromQeynos = {"name": "fromQeynos", "at": [-40, 30], "headingDegrees": 90, "kind": "zoneIn", "fromZone": "qeynos2", "fromNumber": 3}
 overview = {"standAt": [-70, 0], "headingDegrees": 90, "pitchDegrees": -5}
 checkNames = ["manifest", "current", "archive", "map", "water", "nav", "rows", "ground", "containment", "looks"]
+# How often, a quarter second apart, the scene's status is read after a cancelled verifyExport until the work file is open again.
+reopenPolls = 240
 
 
 async def referenceArchive(session, folder):
@@ -347,6 +354,73 @@ def testVerifyExportLeavesTheWorkFileAsSaved(stageBlenderServer, exportedZone):
   assert after == before and after["status"]["filePath"] == str(exportedZone.blend) and after["status"]["unsavedChanges"] is False
   assert {entry["name"]: entry["hiddenInRender"] for entry in after["objects"] if entry["name"] in ("kiln", "reference")} == {"kiln": False, "reference": False}
   assert blendHash() == savedBefore
+
+
+def blenderProcessID(server):
+  """The process id of the server's Blender, known by its staged bridge script on its command line."""
+  script = str(server.staged.repositoryPath / "server" / "bridgeMain.py")
+  query = f"(Get-CimInstance Win32_Process -Filter \"Name = 'blender.exe'\" | Where-Object {{ $_.CommandLine.Contains('{script}') }}).ProcessId"
+  found = subprocess.run(["powershell", "-NoProfile", "-Command", query], capture_output=True, encoding="utf-8", check=True).stdout.split()
+  assert len(found) == 1, found
+  return int(found[0])
+
+
+def startsArchiveRenders(message):
+  return message is not None and message.startswith("rendering archive view 1 of ")
+
+
+def testVerifyExportListsArchiveRendersThatFailAndOpensTheWorkFileAgain(stageBlenderServer, exportedZone):
+  async def steps(session):
+    await session.expectSuccess("openFile", {"path": str(exportedZone.blend)})
+    blender = await anyio.to_thread.run_sync(blenderProcessID, stageBlenderServer)
+    killed = []
+
+    async def killBlender(done, total, message):
+      if startsArchiveRenders(message) and not killed:
+        os.kill(blender, signal.SIGTERM)
+        killed.append(blender)
+
+    result = await session.client.call_tool("verifyExport", {"path": str(exportedZone.export / f"{short}.eqg")}, progress_callback=killBlender)
+    status = (await session.expectSuccess("getSceneSummary", {"objectLimit": 0}))["status"]
+    return killed, result, status
+
+  killed, result, status = stageBlenderServer.session(steps)
+  # Blender dies while it draws the archive: the other checks stand, the looks name why no view was compared, and the work file is open
+  # again in a new Blender, as saved.
+  assert len(killed) == 1 and result.is_error is False
+  verdict = json.loads([content.text for content in result.content if content.type == "text"][-1])
+  assert verdict["failedChecks"] == ["looks"] and verdict["comparison"] == {"drawn": False, "why": "no view was compared"}
+  told = byCheck(verdict)["looks"]["details"]
+  assert told["views"] == [] and [failure["message"].split(";")[0] for failure in told["failures"]] == [
+    "The archive's views were not drawn, so none was compared: Blender exited with code 15 during renderView",
+  ]
+  assert [content.type for content in result.content] == ["image", "text"]
+  assert status == {"filePath": str(exportedZone.blend), "unsavedChanges": False, "scene": "Scene"}
+
+
+def testVerifyExportCancelledOpensTheWorkFileAgain(stageBlenderServer, exportedZone):
+  async def steps(session):
+    await session.expectSuccess("openFile", {"path": str(exportedZone.blend)})
+    rendering = anyio.Event()
+
+    async def cancelOnArchiveRenders(done, total, message):
+      if startsArchiveRenders(message):
+        rendering.set()
+
+    async with anyio.create_task_group() as group:
+      group.start_soon(functools.partial(session.client.call_tool, "verifyExport", {"path": str(exportedZone.export / f"{short}.eqg")}, progress_callback=cancelOnArchiveRenders))
+      await rendering.wait()
+      group.cancel_scope.cancel()
+    # The cancelled call opens the work file again after the render it was in; until then the archive's new file is open, never saved.
+    for _ in range(reopenPolls):
+      status = (await session.expectSuccess("getSceneSummary", {"objectLimit": 0}))["status"]
+      if status["filePath"] is not None:
+        return status
+      await anyio.sleep(0.25)
+    return status
+
+  status = stageBlenderServer.session(steps)
+  assert status == {"filePath": str(exportedZone.blend), "unsavedChanges": False, "scene": "Scene"}
 
 
 def testVerifyExportRefusesWhatItCannotJudge(stageBlenderServer, exportedZone, tmp_path):

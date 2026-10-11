@@ -1634,7 +1634,8 @@ async def renderPoses(context, poses, folder, prefix, exportedOnly, sky, figureM
   " every review camera and the lane tour's eyes (viewFromLane's tour, chosen and kept if none is), their poses and where a view stood"
   " the scale figure read first, each rendered in client shading in the work file with everything export leaves out (reference zones,"
   " placed client spawns, doors, and objects, guides) hidden for the render only, then newFile, importZoneFile of the archive with the"
-  " zone's view values, the same poses, then openFile of the saved work file: alike when the mean difference is under"
+  " zone's view values, the same poses, then openFile of the saved work file, also when the call is cancelled (an archive that does not"
+  " import or draw is a looks failure naming why): alike when the mean difference is under"
   f" {buildTolerances.roundTripMeanLevels:g} levels and the {buildTolerances.roundTripPercentile}th percentile of each pixel's largest"
   f" channel difference at most {buildTolerances.roundTripPercentileLevels:g}. Pictures: the server's view from the exported files alone"
   " (the .map's collision in grey relief, upright collision as lines, what the server never collides with in blue, the .wtr's boxes"
@@ -1725,11 +1726,15 @@ async def verifyExport(context: Context, path: str):
       await importZoneFile(context, str(archivePath))
       await callBridge(context, "setZoneProperties", {"updates": viewValues, "clientZones": None})
       archivePaths = await renderPoses(context, poses, renders, "archive", False, sky, figureModel, emitters, step)
+    except ToolError as error:
+      unviewed.append({"message": f"The archive's views were not drawn, so none was compared: {error}"})
     finally:
-      await step("opening the saved work file again")
-      await openWorkFile(context, workFile, True)
+      # A cancelled call must still leave Blender on the saved work file, never on the imported archive.
+      with anyio.CancelScope(shield=True):
+        await openWorkFile(context, workFile, True)
+      await step("opened the saved work file again")
   await step("comparing the views")
-  compared = await anyio.to_thread.run_sync(lambda: exportVerification.largestFirst([
+  compared = [] if not archivePaths else await anyio.to_thread.run_sync(lambda: exportVerification.largestFirst([
     exportVerification.comparedView(entry["name"], entry["source"], pose, scenePath, archiveRender, renders / f"difference{index + 1:02d}.png")
     for index, ((entry, pose), scenePath, archiveRender) in enumerate(zip(posed, scenePaths, archivePaths, strict=True))
   ]))
