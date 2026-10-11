@@ -54,17 +54,19 @@ def fitted(image):
   return cell
 
 
-def writeGrid(cells, columns, outputPath, below=None):
+def writeGrid(cells, columns, outputPath, below=None, heading=None):
   """cells: [(image, label)] laid out in rows of `columns`, each fitted to cellSize, labeled under it (wrapped to its width, every row
   as tall as the longest label needs); below, an (image, label) set under the rows at its own size, centered, so its lines and words
-  keep their size (a plan with its legend); written as JPEG."""
+  keep their size (a plan with its legend); heading, a caption over the rows wrapped to their width; written as JPEG."""
   rows = -(-len(cells) // columns)
   width, height = cellSize
   font = ImageFont.load_default(size=labelSize)
   measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
   labels = [wrappedLines(measure, label, font, width) for _, label in cells]
   labelArea = labelHeight + lineHeight * (max((len(lines) for lines in labels), default=1) - 1)
-  gridHeight = gap + rows * (height + labelArea + gap)
+  headingLines = [] if heading is None else wrappedLines(measure, heading, font, columns * (width + gap) - gap)
+  headingHeight = 0 if heading is None else labelHeight + lineHeight * (len(headingLines) - 1)
+  gridHeight = headingHeight + gap + rows * (height + labelArea + gap)
   sheetWidth, sheetHeight = gap + columns * (width + gap), gridHeight
   if below is not None:
     belowLines = wrappedLines(measure, below[1], font, below[0].width)
@@ -72,9 +74,11 @@ def writeGrid(cells, columns, outputPath, below=None):
     sheetHeight += below[0].height + labelHeight + lineHeight * (len(belowLines) - 1) + gap
   sheet = Image.new("RGB", (sheetWidth, sheetHeight), backgroundColor)
   draw = ImageDraw.Draw(sheet)
+  for line, text in enumerate(headingLines):
+    draw.text((gap, gap + line * lineHeight), text, fill=labelColor, font=font)
   for index, ((image, _), lines) in enumerate(zip(cells, labels)):
     left = gap + index % columns * (width + gap)
-    top = gap + index // columns * (height + labelArea + gap)
+    top = headingHeight + gap + index // columns * (height + labelArea + gap)
     sheet.paste(fitted(image), (left, top))
     for line, text in enumerate(lines):
       draw.text((left, top + height + 2 + line * lineHeight), text, fill=labelColor, font=font)

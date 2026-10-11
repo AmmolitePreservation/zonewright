@@ -200,8 +200,12 @@ def testVerifyExportPassesAFreshGameExport(stageBlenderServer, exportedZone):
   for point in (safePoint[:2], [-40, 30], loopLanding[:2]):
     x, y = frame.pixel(point)
     assert tuple(plan[int(y), int(x)]) == (255, 255, 255), point
-  sheet = result["comparison"]
-  assert (sheet["rows"], sheet["views"]) == (5, 9)
+  comparison = result["comparison"]
+  assert (comparison["shown"], comparison["views"]) == (5, 9) and [len(sheet["views"]) for sheet in comparison["sheets"]] == [5]
+  assert comparison["sheets"][0]["caption"] == (
+    "5 of 9 views shown, those that draw otherwise first, then by mean difference, largest first. A view draws alike when its mean"
+    " difference is under 0.5 levels, its 99th percentile at most 2 levels, and under 0.1% of its pixels are over 8 levels off."
+  )
 
 
 def testVerifyExportCatchesAMovedSwimBox(stageBlenderServer, tmp_path):
@@ -265,6 +269,18 @@ def quietlyDiffering(views):
   ]
 
 
+def assertEveryDifferingViewPictured(result, pictures):
+  """More views draw otherwise than one comparison sheet holds: each is pictured, on a second sheet past the first's rows."""
+  views = byCheck(result)["looks"]["details"]["views"]
+  differing = [view["name"] for view in views if not view["passed"]]
+  comparison = result["comparison"]
+  rows = [len(sheet["views"]) for sheet in comparison["sheets"]]
+  assert len(differing) > rows[0] and rows == [rows[0], len(differing) - rows[0]]
+  assert [name for sheet in comparison["sheets"] for name in sheet["views"]] == differing
+  assert [sheet["caption"].split(",")[0] for sheet in comparison["sheets"]] == [f"{len(differing)} of {len(views)} views shown (sheet {index} of 2)" for index in (1, 2)]
+  assert [kind for _, kind in pictures] == ["image/png", "image/jpeg", "image/jpeg"]
+
+
 def testVerifyExportCatchesARedCrateTexture(stageBlenderServer, tmp_path):
   folder = tmp_path / "export"
   folder.mkdir()
@@ -284,7 +300,7 @@ def testVerifyExportCatchesARedCrateTexture(stageBlenderServer, tmp_path):
   views = checks["looks"]["details"]["views"]
   assert [view["passed"] for view in views] == [view["changedShare"] == 0 for view in views] and not all(view["passed"] for view in views)
   assert quietlyDiffering(views) and all(view["changedShare"] >= buildTolerances.roundTripChangedShare for view in quietlyDiffering(views))
-  assert len(pictures) >= 2
+  assertEveryDifferingViewPictured(result, pictures)
 
 
 def testVerifyExportCatchesAMissingPlacementModel(stageBlenderServer, exportedZone, tmp_path):
@@ -314,7 +330,7 @@ def testVerifyExportCatchesAMissingPlacementModel(stageBlenderServer, exportedZo
   views = checks["looks"]["details"]["views"]
   assert [view["passed"] for view in views] == [view["changedShare"] == 0 for view in views] and not all(view["passed"] for view in views)
   assert "overview" in [view["name"] for view in quietlyDiffering(views)]
-  assert len(pictures) >= 2
+  assertEveryDifferingViewPictured(result, pictures)
 
 
 def testVerifyExportCatchesATruncatedWaterMap(stageBlenderServer, exportedZone, tmp_path):

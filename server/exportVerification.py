@@ -38,7 +38,7 @@ collisionTolerance = 3.2e-4
 # getSwimVolumes and getZoneLines give a box's corners to two decimals.
 listedCornerTolerance = 0.01
 failuresListed = 20
-# Rows of three cells, so a sheet holds no more views than renderReviewSet's.
+# Rows of three cells, so a sheet holds no more views than renderReviewSet's; views drawing otherwise past them go on more sheets.
 sheetRows = 5
 # A pixel draws full red in the difference cell at this many levels, so differences inside the 99th-percentile tolerance read faint.
 differenceFullRed = 2 * buildTolerances.roundTripPercentileLevels
@@ -722,11 +722,40 @@ def largestFirst(views):
   return sorted(views, key=lambda view: (view["passed"], -view["meanDifference"], -view["percentileDifference"]))
 
 
-def writeComparisonSheet(views, outputPath):
-  """The comparison sheet: a row per view, largest differences first and at most sheetRows of them: the scene, the archive, and the
-  difference."""
+def comparisonSheets(views):
+  """The views (largestFirst) the comparison sheets show, sheetRows to a sheet: every view that draws otherwise, then the largest
+  differences, sheetRows of them at least where there are."""
+  shown = views[:max(sheetRows, sum(not view["passed"] for view in views))]
+  return [shown[start:start + sheetRows] for start in range(0, len(shown), sheetRows)]
+
+
+def alikeRule():
+  return (
+    f"A view draws alike when its mean difference is under {buildTolerances.roundTripMeanLevels:g} levels, its"
+    f" {buildTolerances.roundTripPercentile}th percentile at most {buildTolerances.roundTripPercentileLevels:g} levels, and under"
+    f" {buildTolerances.roundTripChangedShare:.1%} of its pixels are over {buildTolerances.roundTripChangedLevels} levels off."
+  )
+
+
+def writeComparisonSheets(views, outputPaths):
+  """The comparison sheets (comparisonSheets, one per outputPath), each captioned with how many of the views are shown and when a view
+  draws alike: a row per view of the scene, the archive, and the difference. Returns each sheet's path, caption, views, and size."""
+  sheets = comparisonSheets(views)
+  if len(sheets) != len(outputPaths):
+    raise ValueError(f"{len(sheets)} comparison sheets for {len(outputPaths)} paths")
+  shown = sum(len(sheet) for sheet in sheets)
+  written = []
+  for index, (sheet, path) in enumerate(zip(sheets, outputPaths), 1):
+    part = f" (sheet {index} of {len(sheets)})" if len(sheets) > 1 else ""
+    heading = f"{shown} of {len(views)} views shown{part}, those that draw otherwise first, then by mean difference, largest first. {alikeRule()}"
+    written.append({"outputPath": str(path), "caption": heading, "views": [view["name"] for view in sheet]} | writeComparisonSheet(sheet, path, heading))
+  return written
+
+
+def writeComparisonSheet(views, outputPath, heading):
+  """One comparison sheet, captioned with heading: a row per view, the scene, the archive, and the difference."""
   cells = []
-  for view in views[:sheetRows]:
+  for view in views:
     verdict = "alike" if view["passed"] else "DIFFERS"
     cells += [
       (viewSheets.openRender(view["scene"]), f"{view['name']} ({view['source']}): the scene, what export leaves out hidden"),
@@ -736,7 +765,7 @@ def writeComparisonSheet(views, outputPath):
         f" {view['changedShare']:.2%} over {buildTolerances.roundTripChangedLevels} levels: {verdict}"
       )),
     ]
-  return viewSheets.writeGrid(cells, 3, outputPath) | {"rows": len(cells) // 3, "views": len(views)}
+  return viewSheets.writeGrid(cells, 3, outputPath, heading=heading)
 
 
 def serverViewLabels(zoneRegions, records, rows):

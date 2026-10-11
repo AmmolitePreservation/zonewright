@@ -1645,9 +1645,11 @@ async def renderPoses(context, poses, folder, prefix, exportedOnly, sky, figureM
   " (the .map's collision in grey relief, upright collision as lines, what the server never collides with in blue, the .wtr's boxes"
   " labelled with their regions and the zone_points rows in them, the NPC nav's main piece green and its islands orange where players"
   " reach them and lavender where not, numbered, Disabled dark, and the safe point, zone_points positions, landings, and ways in the"
-  " rows name), and the comparison sheet, a row per view of the scene, the archive, and their difference (red where they differ),"
-  " largest differences first (the views that draw otherwise, then the rest, each by mean difference),"
-  f" {exportVerification.sheetRows} rows at most; every view's numbers and its three files on disk are in the JSON, in that order."
+  " rows name), and the comparison sheets, a row per view of the scene, the archive, and their difference (red where they differ),"
+  " largest differences first (the views that draw otherwise, then the rest, each by mean difference): every view that draws otherwise,"
+  f" and the others up to {exportVerification.sheetRows} rows, {exportVerification.sheetRows} rows to a sheet, each sheet captioned"
+  " with how many of the views are shown and when a view draws alike; every view's numbers and its three files on disk are in the"
+  " JSON, in that order."
   " Nothing done in Blender survives it: the saved work file is opened again, so its unsaved flag and scene are as before."
 ))
 async def verifyExport(context: Context, path: str):
@@ -1749,9 +1751,11 @@ async def verifyExport(context: Context, path: str):
   pictures = [Image(data=serverViewPath.read_bytes(), format="png")] if serverView["drawn"] else []
   comparison = {"drawn": False, "why": "no view was compared"}
   if compared:
-    sheetPath = newRenderPath().with_suffix(".jpg")
-    comparison = {"drawn": True, "outputPath": str(sheetPath)} | await anyio.to_thread.run_sync(exportVerification.writeComparisonSheet, compared, sheetPath)
-    pictures.append(Image(data=sheetPath.read_bytes(), format="jpeg"))
+    base = newRenderPath()
+    sheetPaths = [base.with_name(f"{base.stem}-sheet{index}.jpg") for index in range(1, len(exportVerification.comparisonSheets(compared)) + 1)]
+    sheets = await anyio.to_thread.run_sync(exportVerification.writeComparisonSheets, compared, sheetPaths)
+    comparison = {"drawn": True, "views": len(compared), "shown": sum(len(sheet["views"]) for sheet in sheets), "sheets": sheets}
+    pictures += [Image(data=path.read_bytes(), format="jpeg") for path in sheetPaths]
   return pictures + [{
     "path": str(archivePath), "zone": short, "passed": all(check["passed"] for check in checks),
     "failedChecks": [check["check"] for check in checks if not check["passed"]], "checks": checks, "tour": tourStatus, "renders": str(renders),
