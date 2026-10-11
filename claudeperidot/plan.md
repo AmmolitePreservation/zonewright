@@ -6,11 +6,11 @@ claudeperidot is Claude's own EQEmu server: a faithful copy of Peridot on a LAN-
 
 ## In progress
 
-8. Expansion fixture: Expansion:CurrentExpansion 19 (Rain of Fear, owner's answer 1) in ruleset 1 default, set with world and zones stopped, then started; its revert puts back Peridot's 4 [0011]
+10. Measure the spare's first and second zone load on the HDD before relying on it; at first launch confirm Logs\dbg.txt reads Total Virtual: 4095, and watch 30 or more zone loads
 
 ## Next
 
-10. Measure the spare's first and second zone load on the HDD before relying on it; at first launch confirm Logs\dbg.txt reads Total Virtual: 4095, and watch 30 or more zone loads
+12. Credential claudeperidot/eqLogin (a client change: its step generates the password and stores it with CredWrite, never on a command line; its check is the credential's existence), and Claude's MacroQuest cfg: MQ2EQBC and mq2netbots unloaded and MQClaudeLink loaded, each with noauto
 
 ## Steps
 
@@ -24,7 +24,7 @@ Each step is ticked when it is done. A step that names ledger changes in bracket
 - [x] 5. VM 143 ClaudePeridot provisioned on labradorite (8 cores, 16 GB unballooned on NUMA node 0, 100 GB on alpha, Ubuntu 24.04, not started at boot; its boot disk imported as root through facet, as claude@pve cannot import a path) and bootstrapped: Docker; akk-stack EQEmu/akk-stack 13f442d; image akkadius/eqemu-server:v16 by digest; fresh secrets; EQEmu ae4bd2833 fetched by its SHA and built in 6.3 minutes with no errors; quests c327bed; maps fbd3b19128; world claudeperidot on 10.111.111.235 with its own login server; the binary log on in ROW format with annotated rows and a 90-day expiry. Two bootstrap fixes on the way: Spire's assets before its binary (38fcbd9) and the running-server check by command line (ae496ff)
 - [x] 6. Enrolled in facet: inventory entry (operations 4e18740), Claude's account with its credential claude/claudeperidot.strata.unseencolor.com; the temporary ssh/10.111.111.235 credential deleted after
 - [x] 7. Seeded: Peridot's two untracked quest files committed on the quests checkout's local claude branch (39f68e9); Peridot's whole peq streamed (peq-20261011T180850Z.sql.gz, 35.7 MB, live secrets included as the owner chose) and loaded: 273 tables, 5 views, db_version 9325/0/0; world booted once (no migrations, 1,001 rules, expansion 4) and stopped; the Proxmox snapshot baseline taken with the server stopped; `ledger.py seed --baseline` recorded 151 watched tables at mysql-bin.000007:121167
-- [ ] 8. Expansion fixture: Expansion:CurrentExpansion 19 (Rain of Fear, owner's answer 1) in ruleset 1 default, set with world and zones stopped, then started; its revert puts back Peridot's 4 [0011]
+- [x] 8. Expansion fixture: Expansion:CurrentExpansion 19 (Rain of Fear, owner's answer 1) in ruleset 1 default, set with world and zones stopped, then started; its revert puts back Peridot's 4 [0011]
 - [x] 9. Spare client S:\Research\EverQuest\housingclient: the copy, eqhost.txt, the large-address flag and eqclient.ini (owner's answers 9 to 11) [0001, 0002, 0003, 0004]
 - [ ] 10. Measure the spare's first and second zone load on the HDD before relying on it; at first launch confirm Logs\dbg.txt reads Total Virtual: 4095, and watch 30 or more zone loads
 - [x] 11. MQClaudeLink junctioned into the owner's MacroQuest tree and built into its plugins folder (owner's answers 12 and 13) [0005]
