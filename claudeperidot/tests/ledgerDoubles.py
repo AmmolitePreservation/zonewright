@@ -387,17 +387,19 @@ class Parser:
     self.take("(")
     if name == "IF":
       tested = self.expression()
-      self.take("IS")
-      negated = self.isWord("NOT")
-      if negated:
+      if self.isWord("IS"):
         self.take()
-      self.take("NULL")
+        negated = self.isWord("NOT")
+        if negated:
+          self.take()
+        self.take("NULL")
+        tested = ("isNull", tested, negated)
       self.take(",")
       whenTrue = self.expression()
       self.take(",")
       whenFalse = self.expression()
       self.take(")")
-      return ("ifNull", tested, negated, whenTrue, whenFalse)
+      return ("if", tested, whenTrue, whenFalse)
     if name == "CAST":
       argument = self.expression()
       self.take("AS")
@@ -644,7 +646,10 @@ class FakeMariaDB:
     if column.dataType in binaryTypes:
       return Text(value, "binary")
     if column.dataType == "enum":
-      return Member(value, column.members.index(value.decode(charsetCodecs[column.charset])) + 1, column.charset)
+      text = value.decode(charsetCodecs[column.charset])
+      if text not in column.members and text:
+        raise AssertionError(f"{column.name} holds {text!r}, which is not one of its ENUM's members")
+      return Member(value, column.members.index(text) + 1 if text in column.members else 0, column.charset)
     if column.dataType == "set":
       names = value.decode(charsetCodecs[column.charset]).split(",") if value else []
       return Member(value, sum(1 << column.members.index(name) for name in names), column.charset)
@@ -679,9 +684,11 @@ class FakeMariaDB:
     if kind == "arithmetic":
       return arithmetic(self.evaluate(node[2], session, environment, group), self.evaluate(node[3], session, environment,
         group), node[1])
-    if kind == "ifNull":
-      isNull = self.evaluate(node[1], session, environment, group) is None
-      return self.evaluate(node[3] if isNull != node[2] else node[4], session, environment, group)
+    if kind == "isNull":
+      return int((self.evaluate(node[1], session, environment, group) is None) != node[2])
+    if kind == "if":
+      chosen = node[2] if truth(self.evaluate(node[1], session, environment, group)) is True else node[3]
+      return self.evaluate(chosen, session, environment, group)
     if kind == "cast":
       value = self.evaluate(node[1], session, environment, group)
       if value is None:

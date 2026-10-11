@@ -113,7 +113,7 @@ keyNamePattern = re.compile(r"^[A-Za-z0-9_.-]+$")
 clientPathPattern = re.compile(r"^([A-Za-z]:\\|~\\)")
 credentialTargetPattern = re.compile(r"^[A-Za-z0-9_.:@/-]+$")
 hashPattern = re.compile(r"^[0-9a-f]{64}$")
-encodedValuePattern = re.compile(r"^(N|V(?:[0-9A-F]{2})*)$")
+encodedValuePattern = re.compile(r"^(N|E|V(?:[0-9A-F]{2})*)$")
 stepPattern = re.compile(r"^- \[( |x)\] (\d+)\. (.+?)(?: \[(\d{4}(?:, \d{4})*)\])?$")
 mysqlErrorPattern = re.compile(r"^ERROR (\d+) \(([0-9A-Z]+)\)(?: at line (\d+))?: (.*)$")
 quotedValuePattern = re.compile(r"'(?:[^'\\]|\\.|'')*'")
@@ -530,11 +530,14 @@ def columnFromRecord(record):
 
 def fetchExpression(column):
   """An expression giving the column's value as N for NULL or V and the hex of its bytes (text and binary) or of a text form
-  that converts back exactly: floats as doubles, which MariaDB prints with every digit they need."""
+  that converts back exactly: floats as doubles, which MariaDB prints with every digit they need. An ENUM holding its invalid
+  value (index 0, which a write outside strict sql_mode leaves) is E."""
   name = quoteIdentifier(column.name)
+  if column.dataType == "enum":
+    return f"IF({name} IS NULL, 'N', IF({name} + 0 = 0, 'E', CONCAT('V', HEX(CONCAT({name})))))"
   if column.dataType in binaryTypes or column.dataType in textTypes - {"enum", "set"}:
     inner = f"HEX({name})"
-  elif column.dataType in {"enum", "set"}:
+  elif column.dataType == "set":
     inner = f"HEX(CONCAT({name}))"
   elif column.dataType in bitTypes:
     inner = f"HEX(CAST({name} + 0 AS CHAR))"
@@ -551,6 +554,9 @@ def literal(column, encoded):
   """The SQL literal that stores exactly the value saved as encoded."""
   if encoded == "N":
     return "NULL"
+  if encoded == "E":
+    raise LedgerError(f"column {column.name} holds its ENUM's invalid value (index 0, which a write outside strict sql_mode "
+      "leaves), which revert could not write back under strict sql_mode; correct the row first")
   data = bytes.fromhex(encoded[1:])
   if column.dataType in binaryTypes:
     return f"X'{data.hex().upper()}'"

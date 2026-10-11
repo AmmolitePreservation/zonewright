@@ -172,6 +172,27 @@ def test_eachTableInTheScopeGetsItsDeleteAndInsertInScopeOrder(repository):
     "DELETE FROM `payloads` WHERE", "INSERT INTO `payloads`"]
 
 
+def test_anEnumHoldingItsInvalidValueIsSavedAsSuchAndRefusedBeforeRevertSQLIsWritten(repository):
+  fake = payloadFake()
+  fake.tables["payloads"].rows[0]["mood"] = b""
+  tables = savedScope(repository, fake)
+  assert [row[9] for row in tables[0]["rows"]] == ["E", "V63616C6D", "N", "V736164", "V63616C6D"]
+  with pytest.raises(ledger.LedgerError, match=r"column mood holds its ENUM's invalid value \(index 0"):
+    ledger.revertScript(tables)
+
+
+def test_anEnumsEmptyMemberIsAValueLikeAnyOther(repository):
+  fake = payloadFake()
+  fake.tables["payloads"].column("mood").members = ("", "calm", "angry", "sad")
+  fake.tables["payloads"].rows[0]["mood"] = b""
+  before = rowsOf(fake, "payloads")
+  tables = savedScope(repository, fake)
+  assert tables[0]["rows"][0][9] == "V"
+  fake.tables["payloads"].rows[0]["mood"] = b"sad"
+  runRevert(fake, tables)
+  assert rowsOf(fake, "payloads") == before
+
+
 def test_aColumnTypeTheLedgerCannotSaveExactlyRefusesStage(repository):
   fake = payloadFake()
   fake.tables["payloads"].columns.append(FakeColumn("shape", "geometry"))

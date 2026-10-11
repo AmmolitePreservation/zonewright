@@ -1,7 +1,8 @@
 """The ledger against claudeperidot's real MariaDB 10.5.4, in a scratch database ledgerTest that the module makes and drops:
-float, enum, set, bit and temporal round trips, the server's digests against the ledger's, the guards inside apply and
-revert, per-statement check failures from the real mysql client, and reading the real binary log. Their writes carry GTID
-domain 77, not the ledger's 7, and stay out of peq, so drift never counts them.
+float, enum, set, bit and temporal round trips, an ENUM's invalid value refused at stage, the server's digests against the
+ledger's, the guards inside apply and revert, per-statement check failures from the real mysql client, and reading the real
+binary log, where a schema change's CREATE TABLE and DROP TABLE keep their tags. Their writes carry GTID domain 77, not the
+ledger's 7, and stay out of peq, so drift never counts them.
 
 They run only when a connection to claudeperidot is configured: facet's inventory (the facetInventory environment variable)
 holds claudeperidot and Claude's credential for it is in Credential Manager."""
@@ -155,6 +156,15 @@ def test_anApplyOverRowsChangedSinceStageRollsBack(repository, payloads):
   with pytest.raises(ledger.LedgerError, match="changed since stage"):
     ledgerUnderTest.apply("0001")
   assert exactRows(payloads) == changed
+
+
+def test_aRowWhoseEnumHoldsItsInvalidValueIsRefusedAtStage(repository, payloads):
+  payloads.sql("SET SESSION sql_mode = '';\nUPDATE payloads SET mood = 'furious' WHERE id = 1;\n", writes=True)
+  assert payloads.sql("SELECT mood + 0, HEX(CONCAT(mood)) FROM payloads WHERE id = 1;\n") == [["0", ""]]
+  ledgerUnderTest = payloadChange(repository, payloads)
+  with pytest.raises(ledger.LedgerError, match=r"column mood holds its ENUM's invalid value \(index 0"):
+    ledgerUnderTest.stage("0001")
+  assert not (repository / "changes" / "0001-payloads" / "saved.json").exists()
 
 
 def test_eachFailingStatementIsReportedAtItsOwnIndex(payloads):
