@@ -58,9 +58,9 @@ heavyGroups = {
   "calibration": clientZoneFiles | {"server/eqCalibration.py"},
   "serverMaps": {f"server/{name}.py" for name in (
     "serverMapFiles", "serverMapDrawing", "eqAxes", "eqgFiles", "eqArchive", "playerReach", "laneDrawing", "planDrawing", "playerScale",
-    "buildTolerances", "checkpoints", "serverNav",
+    "buildTolerances", "checkpoints", "serverNav", "viewSheets",
   )} | recastHelperBuild | serverReferenceFiles,
-  "serverNav": {f"server/{name}.py" for name in ("serverNav", "serverMapFiles", "eqAxes", "eqgFiles", "eqArchive", "serverMapDrawing", "planDrawing")}
+  "serverNav": {f"server/{name}.py" for name in ("serverNav", "serverMapFiles", "eqAxes", "eqgFiles", "eqArchive", "serverMapDrawing", "planDrawing", "viewSheets")}
     | recastHelperBuild | serverReferenceFiles,
   "install": {f"server/{name}.py" for name in (
     "toolingSync", "toolingManifest", "toolingStatus", "extensionCatalog", "machineProfile", "machineBenchmark", "blenderProcess",

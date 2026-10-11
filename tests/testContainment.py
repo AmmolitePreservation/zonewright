@@ -496,6 +496,16 @@ def testAnIslandIsAFindingNotAFailure(stageBlenderServer, tmp_path):
   pixels = numpy.asarray(Image.open(picture).convert("RGB"), dtype=numpy.int64)
   onRoofPixel, onPlatformPixel = (pixels[int(y), int(x)] for x, y in (frame.pixel((-16, 12)), frame.pixel((44, 36))))
   assert onRoofPixel[2] > onRoofPixel[0] > onRoofPixel[1] and onPlatformPixel[0] > onPlatformPixel[1] > onPlatformPixel[2], (onRoofPixel, onPlatformPixel)
+  # On a narrow sheet the legend's long island lines wrap, none running into the sheet's right margin.
+  narrowPicture = tmp_path / "narrowServerView.png"
+  narrow = serverMapDrawing.drawServerPlan(
+    narrowPicture, serverMapFiles.readMap((maps / "base" / f"{short}.map").read_bytes()), serverMapFiles.readWater((maps / "water" / f"{short}.wtr").read_bytes()),
+    ["ATP_1_north"], inspection, [{"at": [0, 0], "label": "safe point"}], islandReach=[island["playersReach"] for island in manifest["nav"]["islands"]], longSide=400,
+  )
+  assert any(text.endswith("at snap risk: the server's nearest-polygon search can put an NPC onto them") for text in narrow["legend"])
+  legendRows = (narrow["height"] - narrow["frame"]["size"][1] - 2 * serverMapDrawing.panelGap) // serverMapDrawing.legendRowHeight
+  band = numpy.asarray(Image.open(narrowPicture).convert("RGB"))[narrow["frame"]["size"][1]:, -serverMapDrawing.panelGap:]
+  assert legendRows > len(narrow["legend"]) and (band == 255).all()
 
 
 def testATestExportComputesNoLane(stageBlenderServer, tmp_path):

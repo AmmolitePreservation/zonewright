@@ -15,6 +15,7 @@ import eqAxes
 import planDrawing
 import serverMapFiles
 import serverNav
+import viewSheets
 
 backgroundColor = (238, 236, 232)
 heightStops = ((0.0, (52, 84, 120)), (0.35, (96, 132, 86)), (0.7, (176, 156, 112)), (1.0, (246, 244, 236)))
@@ -44,6 +45,7 @@ islandLabelColor = (120, 50, 0)
 islandLabelSize = 11
 legendRowHeight = 22
 swatchSize = 14
+legendTextGap = 8
 serverGroundStops = ((0.0, (140, 140, 140)), (1.0, (240, 240, 240)))
 passableColor = (40, 110, 230)
 passableAlpha = 115
@@ -372,7 +374,7 @@ def drawNav(outputPath, panels, panelWidth=760):
     for row, (color, text) in enumerate(panel["legend"]):
       top = titleHeight + frame.size[1] + 6 + row * legendRowHeight
       draw.rectangle([left, top, left + swatchSize, top + swatchSize], fill=color, outline=darker(color))
-      draw.text((left + swatchSize + 8, top - 1), text, fill=titleColor, font=planDrawing.fontOf(15))
+      draw.text((left + swatchSize + legendTextGap, top - 1), text, fill=titleColor, font=legendFont())
   sheet.save(outputPath, "PNG")
   return {
     "width": sheet.width, "height": sheet.height,
@@ -473,6 +475,8 @@ def islandsUnder(islands, polygons, frame):
 
 
 def islandLegend(islands, islandReach):
+  if not islands:
+    return []
   atRisk = sum(island["snapRisk"] for island in islands)
   if islandReach is None:
     return [("fill", islandColor, f"{len(islands):,} NPC islands, {atRisk} at snap risk; players' reach not checked")]
@@ -482,6 +486,19 @@ def islandLegend(islands, islandReach):
     ("fill", unreachedIslandColor, f"{len(islands) - reached:,} NPC islands players do not reach"),
     ("text", titleColor, f"{atRisk} of the {len(islands):,} islands at snap risk: the server's nearest-polygon search can put an NPC onto them"),
   ]
+
+
+def legendRows(draw, legend, width):
+  """The legend's items wrapped to width: each item's first line beside its mark, the rest under its text."""
+  rows = []
+  for kind, color, text in legend:
+    lines = viewSheets.wrappedLines(draw, text, legendFont(), width - (0 if kind == "text" else swatchSize + legendTextGap))
+    rows += [(kind, color, lines[0])] + [("text" if kind == "text" else "indented", color, line) for line in lines[1:]]
+  return rows
+
+
+def legendFont():
+  return planDrawing.fontOf(15)
 
 
 def drawLegendRow(draw, left, top, item):
@@ -497,9 +514,9 @@ def drawLegendRow(draw, left, top, item):
   elif kind == "dashed":
     for x in range(left, left + swatchSize, underDash):
       draw.line([(x, top + swatchSize // 2), (min(x + underDash // 2, left + swatchSize), top + swatchSize // 2)], fill=color, width=underWidth)
-  elif kind != "text":
+  elif kind not in ("text", "indented"):
     raise ValueError(f"No legend mark '{kind}'")
-  draw.text((left if kind == "text" else left + swatchSize + 8, top - 1), text, fill=titleColor, font=planDrawing.fontOf(15))
+  draw.text((left if kind == "text" else left + swatchSize + legendTextGap, top - 1), text, fill=titleColor, font=legendFont())
 
 
 def drawServerPlan(outputPath, mapContent, waterRecords, regionLabels, inspection, markers, islandReach=None, longSide=1000):
@@ -510,9 +527,10 @@ def drawServerPlan(outputPath, mapContent, waterRecords, regionLabels, inspectio
   reach was not checked), numbered, an island lying under a higher one outlined dashed and numbered "N (under M)", and what the server's
   ground filter never walks (Disabled, zone line) dark; the .wtr's boxes outlined in their type's color (water cyan, lava magenta, zone
   lines green), each with its label (regionLabels, in .wtr order); and markers ({at: zone [x, y], label}), such as the safe point.
-  Without an inspection (None: no .nav was read) no nav is drawn, and the legend says so. Written as PNG with its legend below; returns the sheet's size, the plan's frame (its center and width in zone units, its size in
-  pixels, at the sheet's top left), the legend, how many island numbers found room, and the islands drawn under others ({number: the
-  number over it})."""
+  Without an inspection (None: no .nav was read) no nav is drawn, and the legend says so. Written as PNG with its legend below, wrapped
+  to the sheet's width, naming islands only where the nav has some; returns the sheet's size, the plan's frame (its center and width in
+  zone units, its size in pixels, at the sheet's top left), the legend, how many island numbers found room, and the islands drawn under
+  others ({number: the number over it})."""
   islands = [] if inspection is None else inspection["islands"]
   if islandReach is not None and len(islandReach) != len(islands):
     raise ValueError(f"islandReach holds {len(islandReach)} flags for {len(islands)} islands")
@@ -599,10 +617,11 @@ def drawServerPlan(outputPath, mapContent, waterRecords, regionLabels, inspectio
   legend += [("dashed", darker(unreachedIslandColor), f"an island under a higher one, numbered N (under M): {len(under)}")] if under else []
   legend += [("hatch", steepColor, f"collision steeper than the NPC nav walks (maxSlope {serverNav.serverNavSettings['maxSlope']:g} degrees)")] if steep.any() else []
   legend += [("text", titleColor, planNote)]
-  sheet = Image.new("RGB", (plan.width, plan.height + 2 * panelGap + legendRowHeight * len(legend)), (255, 255, 255))
+  rows = legendRows(ImageDraw.Draw(plan), legend, plan.width - 2 * panelGap)
+  sheet = Image.new("RGB", (plan.width, plan.height + 2 * panelGap + legendRowHeight * len(rows)), (255, 255, 255))
   sheet.paste(plan, (0, 0))
   sheetDraw = ImageDraw.Draw(sheet)
-  for row, item in enumerate(legend):
+  for row, item in enumerate(rows):
     drawLegendRow(sheetDraw, panelGap, plan.height + panelGap + row * legendRowHeight, item)
   sheet.save(outputPath, "PNG")
   return {

@@ -24,6 +24,7 @@ import buildTolerances
 import eqArchive
 import eqgWriter
 import planDrawing
+import serverMapDrawing
 import serverMapFiles
 import serverNav
 import serverRows
@@ -193,6 +194,9 @@ def testVerifyExportPassesAFreshGameExport(stageBlenderServer, exportedZone):
   assert view["notDrawn"] == {} and view["legend"][2:4] == ["Water boxes (.wtr): 1", "ZoneLine boxes (.wtr): 2"]
   frame = planDrawing.PlanFrame(view["frame"]["center"], view["frame"]["width"], view["frame"]["size"])
   plan = pixels(pictures[0][0])
+  # The nav holds no island, so the legend names none, and no line of it runs into the sheet's right margin.
+  assert not any("island" in text for text in view["legend"])
+  assert (plan[view["frame"]["size"][1]:, -serverMapDrawing.panelGap:] == 255).all()
   for point in (safePoint[:2], [-40, 30], loopLanding[:2]):
     x, y = frame.pixel(point)
     assert tuple(plan[int(y), int(x)]) == (255, 255, 255), point
