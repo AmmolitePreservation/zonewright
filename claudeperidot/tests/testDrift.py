@@ -405,6 +405,15 @@ def test_eachAccountStatementIsAServerAccountChangeInAnyDatabase(statement):
       + ledger.redactValues(statement)]
 
 
+def test_aDatabaseStatementIsTheDatabaseItNamesWhateverSessionTheParserCarries():
+  transaction = ledger.BinaryLogTransaction("0-1-53", 0, "261011 13:15:00", "10010", {}, [
+    (None, "CREATE DATABASE ledgerTest CHARACTER SET utf8mb4", "peq"), (None, "DROP DATABASE IF EXISTS ledgerTest", "peq"),
+    (None, "DROP DATABASE `peq`", "mysql"), (None, "ALTER DATABASE CHARACTER SET utf8mb4", "peq"),
+    (None, "CREATE SCHEMA IF NOT EXISTS /* copy */ peq", None)])
+  assert account([transaction]).problems == ["unaccounted write: 261011 13:15:00 GTID 0-1-53 at 10010: DROP DATABASE `peq`; "
+    "ALTER DATABASE CHARACTER SET utf8mb4; CREATE SCHEMA IF NOT EXISTS /* copy */ peq"]
+
+
 def test_aSessionWithNoDatabaseWritesPeqOnlyByNamingIt():
   transaction = ledger.BinaryLogTransaction("0-1-51", 0, "261011 13:05:00", "9995", {}, [
     (None, "CREATE DATABASE scratch", None), (None, "CREATE TABLE scratch.notes (id INT)", None),
@@ -490,6 +499,19 @@ def test_aServerStartLeavesDriftCleanWithItsAccountChangesAndRuntimeWritesApart(
     "runtime (the servers' own writes, not drift): UPDATE spire_server_database_connections x2",
     "runtime (the servers' own writes, not drift): ALTER TABLE spire_settings x1",
     "runtime (the servers' own writes, not drift): TRUNCATE trader x1"]
+
+
+def test_theIntegrationTestsScratchDatabaseAfterAPeqStatementIsNotPeqsDrift(repository):
+  fake = driftFake()
+  fake.tables["trader"] = FakeTable([("id", "int")], ("id",), [{"id": 7}])
+  harness = driftHarness(repository, fake)
+  fake.externalWrite("TRUNCATE TABLE trader", lambda fake: fake.tables["trader"].rows.clear())
+  fake.externalWrite("DROP DATABASE IF EXISTS ledgerTest", lambda fake: None, domain=77, database="mysql")
+  fake.externalWrite("CREATE DATABASE ledgerTest CHARACTER SET utf8mb4", lambda fake: None, domain=77, database="mysql")
+  fake.externalWrite("CREATE TABLE payloads (id INT)", lambda fake: None, domain=77, database="ledgerTest")
+  rendered = fake.renderBinaryLog(4321)
+  assert [line for line in rendered.splitlines() if line.startswith("use ")] == ["use `peq`/*!*/;", "use `ledgerTest`/*!*/;"]
+  assert harness.ledger.drift() == ["drift: clean", "runtime (the servers' own writes, not drift): TRUNCATE trader x1"]
 
 
 def test_driftListsTableDifferencesAndUnaccountedWrites(repository):

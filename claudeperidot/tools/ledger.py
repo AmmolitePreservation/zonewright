@@ -1034,7 +1034,8 @@ versionedCommentPattern = re.compile(r"/\*M?!\d{5,6} ?(.*?)\*/", re.DOTALL)
 clientCommandCommentPattern = re.compile(r"/\*!\\C [^*]*\*/")
 # mysqlbinlog names a statement's session database, not the one it writes, and prints a use line only when that changes to a
 # database: None is a session with no database, which writes peq only by naming it, and a statement that names peq counts as
-# peq's whatever database it ran in.
+# peq's whatever database it ran in. MariaDB logs CREATE, ALTER and DROP DATABASE without their session's database, so no use
+# line comes before them either: they count as the database they name.
 databaseQualifierPattern = re.compile(rf"(?<![\w$`.])(?:`{databaseName}`|{databaseName})\s*\.")
 ignoredQueryStatements = re.compile(r"^(SET\b(?!\s+(?:PASSWORD|DEFAULT\s+ROLE)\b)|use\b|BEGIN\b|COMMIT\b|START TRANSACTION\b|"
   r"ROLLBACK\b|XA\b)", re.IGNORECASE)
@@ -1044,6 +1045,8 @@ tableStatementPatterns = {
   "ALTER TABLE": re.compile(rf"^ALTER\s+(?:ONLINE\s+)?(?:IGNORE\s+)?TABLE\s+(?:IF\s+EXISTS\s+)?(?:({identifierText})\s*\.\s*)?"
     rf"({identifierText})", re.IGNORECASE),
 }
+databaseStatementPattern = re.compile(rf"^(?:CREATE(?:\s+OR\s+REPLACE)?|ALTER|DROP)\s+(?:DATABASE|SCHEMA)\s+"
+  rf"(?:IF\s+(?:NOT\s+)?EXISTS\s+)?(?!(?:CHARACTER|CHARSET|DEFAULT|COLLATE|COMMENT)\b)({identifierText})", re.IGNORECASE)
 
 
 def isAccountStatement(statement):
@@ -1060,10 +1063,20 @@ def unquoteIdentifier(text):
   return text[1:-1].replace("``", "`") if text.startswith("`") else text
 
 
+def withoutComments(statement):
+  return "".join(" " if kind == "comment" else piece for kind, piece in sqlPieces(statement)).strip()
+
+
+def namedDatabase(statement):
+  """The database a CREATE, ALTER or DROP DATABASE names, or None."""
+  match = databaseStatementPattern.match(withoutComments(statement))
+  return unquoteIdentifier(match.group(1)) if match else None
+
+
 def runtimeStatement(statement, database):
   """(table, operation) for a statement the servers or Spire run in peq on their own, or None: a TRUNCATE of a runtime table
   (world empties the trader and buyer tables at boot), or Spire's migration of one of its own spire_ tables at start."""
-  text = "".join(" " if kind == "comment" else piece for kind, piece in sqlPieces(statement)).strip()
+  text = withoutComments(statement)
   for operation, pattern in tableStatementPatterns.items():
     match = pattern.match(text)
     if not match:
@@ -1187,7 +1200,8 @@ class DriftAccount:
       elif isWatched(table):
         parts.append(f"{operation} {table} x{count}")
     accounts = []
-    for _, text, database in transaction.statements:
+    for _, text, session in transaction.statements:
+      database = namedDatabase(text) or session
       shown = redactValues(" ".join(text.split()))[:200]
       runtime = runtimeStatement(text, database)
       if isAccountStatement(text):

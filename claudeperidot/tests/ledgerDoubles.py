@@ -1209,7 +1209,8 @@ def renderTransaction(transaction, printed):
   """A transaction as mysqlbinlog 10.5.4 prints it, given the session state it printed before (updated): its GTID event
   with the variables that changed, then BEGIN, each statement's Annotate_rows printed with its first table map (cut short by
   one character for each newline the statement holds, as 10.5.4's mysqlbinlog cuts it), its rows, and Xid; or a DDL
-  statement's Query event, after a use line when its session database differs from the last one printed and is not none."""
+  statement's Query event, after a use line when its session database differs from the last one printed and is not none;
+  CREATE, ALTER and DROP DATABASE are logged without their session's database, so no use line comes before them."""
   stamp = "261011 10:00:00"
   position = transaction.start
   isQuery = transaction.events[0][0] == "query"
@@ -1232,9 +1233,12 @@ def renderTransaction(transaction, printed):
     if event[0] == "query":
       lines += [f"# at {position}", f"#{stamp} server id 1  end_log_pos {position + 90} CRC32 0x0000abcd \tQuery\t"
         "thread_id=12\texec_time=0\terror_code=0"]
-      if transaction.database and printed.get("database", "") != transaction.database:
-        lines.append(f"use `{transaction.database}`/*!*/;")
-      printed["database"] = transaction.database or ""
+      if re.match(r"^(CREATE|ALTER|DROP)\s+(DATABASE|SCHEMA)\b", event[1], re.IGNORECASE):
+        printed["database"] = ""
+      else:
+        if transaction.database and printed.get("database", "") != transaction.database:
+          lines.append(f"use `{transaction.database}`/*!*/;")
+        printed["database"] = transaction.database or ""
       lines += ["SET TIMESTAMP=1791626760/*!*/;"] if printed.get("query") else firstQueryPreamble
       printed["query"] = True
       lines += event[1].split("\n") + ["/*!*/;"]
