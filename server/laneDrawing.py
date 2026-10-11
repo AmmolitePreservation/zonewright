@@ -81,6 +81,9 @@ legendPadding = 8
 legendTextSize = 14
 legendBackground = (250, 250, 247)
 legendTextColor = (20, 20, 20)
+# What a plan's regions players do not simply play in are, by access, and its caves' floor strokes, by kind, as its legend names them.
+accessWords = {"view": "view region: seen, never entered", "none": "none region: never reached", None: "region, its access undecided"}
+strokeWords = {"level": "cave level way", "pad": "cave pad", "rough": "cave rough ground"}
 # The relief runs between these greys, its highest kept apart from the background.
 reliefLow, reliefHigh = (70, 66, 60), (200, 196, 186)
 trapFlag, layeredFlag, unreachedFlag, squeezeLayeredFlag, wadedFlag = 1, 2, 4, 8, 16
@@ -115,10 +118,9 @@ separationTextSize = 13
 class LanePlan:
   """A lane drawn over a plan: fill (the labels, hatches, dots, ledges, and, for a whole lane plan, the region outlines as one layer, so
   the plan's boundaries draw over the outlines), strokes (swim boxes, void and catch edges, zone lines, seeds, plot entrances, problem
-  rings), claim
-  (the marks labels keep clear of), labels (problem numbers, zone line, seed and region names), and its legend of what the drawing
-  showed. level {bottom, top} keeps only nodes whose height lies in it. Drawn as a layer of another plan (complete false), the problems,
-  the regions, and the zone lines' names, which that plan draws its own way, are left out."""
+  rings), claim (the marks labels keep clear of), labels (problem numbers, zone line, seed and region names), and its legend of what the
+  drawing showed. level {bottom, top} keeps only nodes whose height lies in it. Drawn as a layer of another plan (complete false), the
+  problems, the regions, and the zone lines' names, which that plan draws its own way, are left out."""
 
   def __init__(self, analysis, description, level, complete):
     nodes = analysis["nodes"]
@@ -531,12 +533,12 @@ class RoutePlan(LanePlan):
 class SectionLane:
   """A lane cut (playerReach.laneCut) drawn into a section: reached water as bands from its bottom to its top in its label's color, each
   end on the swim box's edge within a column of it; reached floors as bars standing just over their heights in their labels' colors,
-  walkable floor never reached dashed grey, each end on the ground's steep face within a column of it, where the lane's columns run
-  past a block's edge; and leak edges as magenta ticks down from the floor a fall starts from; each kept to the section's frame (length
-  along, bottom to top) and placed by pixel(s, z). marks ({kind, s, z, text, and for a separation over columns s1, z1}) are a trace's:
-  the reached place nearest (a white disc), the traced point (a black ring round a dot), and what separates them (a dark diamond named by its kind,
-  a dashed line to a second diamond where it ends); the disc and ring lie over the diamonds, and every name keeps clear of the marks.
-  The legend names what the cut and the marks hold."""
+  walkable floor never reached dashed grey, each end on the ground's steep face or the edge of the swim box holding it within a column
+  of it, where the lane's columns run past a block's or a box's edge; and leak edges as magenta ticks down from the floor a fall starts
+  from; each kept to the section's frame (length along, bottom to top) and placed by pixel(s, z). marks ({kind, s, z, text, and for a
+  separation over columns s1, z1}) are a trace's: the reached place nearest (a white disc), the traced point (a black ring round a dot),
+  and what separates them (a dark diamond named by its kind, a dashed line to a second diamond where it ends); the disc and ring lie
+  over the diamonds, and every name keeps clear of the marks. The legend names what the cut and the marks hold."""
 
   def __init__(self, cut, marks=()):
     self.cut, self.marks = cut, list(marks)
@@ -552,9 +554,10 @@ class SectionLane:
         color = labelColors[playerReach.labelNames.index(band["label"])]
         draw.rectangle([pixel(s0, high), pixel(s1, low)], fill=(*color, sectionBandAlpha))
 
-  def trimmed(self, mark, ground):
-    """A floor's span along the line, each end moved to the ground's face steeper than walkable that rises to the floor's height within
-    a column of it, where the lane's whole columns run past a block's edge."""
+  def trimmed(self, mark, ground, swim):
+    """A floor's span along the line, each end moved back to where the floor ends within a column of it, where the lane's whole columns
+    run past: the ground's face steeper than walkable that rises to the floor's height, or the edge of a swim box (swim, the section's
+    cuts of them) holding the floor, where it enters the box for a start and leaves it for an end."""
     cellSize, cellHeight = playerReach.reachGrid["cellSize"], playerReach.reachGrid["cellHeight"]
     steep = math.tan(math.radians(playerScale.steepestWalkableDegrees))
     s0, s1 = mark["s"]
@@ -563,17 +566,18 @@ class SectionLane:
       rise = abs(z1 - z0)
       if rise > steep * abs(a1 - a0) and mark["z"] - cellHeight <= max(z0, z1) <= mark["z"] + cellHeight:
         faces.append(a0 if z0 > z1 else a1)
-    starts = [face for face in faces if s0 <= face <= s0 + cellSize and face < s1]
-    ends = [face for face in faces if s1 - cellSize <= face <= s1 and face > s0]
+    holding = [box["s"] for box in swim if box["z"][0] <= mark["z"] <= box["z"][1]]
+    starts = [face for face in faces + [enter for enter, _ in holding] if s0 <= face <= s0 + cellSize and face < s1]
+    ends = [face for face in faces + [leave for _, leave in holding] if s1 - cellSize <= face <= s1 and face > s0]
     return (max(starts) if starts else s0), (min(ends) if ends else s1)
 
-  def drawMarks(self, draw, pixel, length, bottom, top, ground):
+  def drawMarks(self, draw, pixel, length, bottom, top, ground, swim):
     """Draw the bars, dashes, ticks, and trace marks; return the boxes labels keep clear of and the names to place, each led back to
     its mark when set off it: ([box], [(position, text, color, size, mark)])."""
     avoided, names = [], []
 
     def spanned(mark):
-      s0, s1 = self.trimmed(mark, ground)
+      s0, s1 = self.trimmed(mark, ground, swim)
       s0, s1 = max(s0, 0.0), min(s1, length)
       return (s0, s1) if s1 > s0 and bottom <= mark["z"] <= top else None
 
@@ -669,20 +673,51 @@ def sectionLayerLegend(cuts):
 
 
 def planLayerLegend(overlays, frame):
-  """A plan's own layers the frame shows under a lane, as legend entries, each fill as it shows over the relief: the relief, water by
-  liquid, boundaries' walls, and their lids and floors (the lane draws the swim volumes and names them in its own entries)."""
+  """A plan's own layers the frame shows under a lane, as legend entries, each fill as it shows over the relief: the relief, the
+  ground's spot heights, water by liquid, regions (their outlines and the fills of those players do not simply play in, by access),
+  caves (runs, floor heights, junctions, floor strokes by kind), plots, entries (filled, isolated, or keeping the heading), zone lines,
+  boundaries' walls and their lids and floors, and sketch shapes (the lane draws the swim volumes and names them in its own entries)."""
   def shows(points):
     pixels = [frame.pixel(point) for point in points]
     xs, ys = [x for x, _ in pixels], [y for _, y in pixels]
     return bool(pixels) and max(xs) >= 0 and min(xs) < frame.size[0] and max(ys) >= 0 and min(ys) < frame.size[1]
 
   items = [("relief", None, "relief: lighter is higher")]
+  if any(shows([spot["at"]]) for spot in overlays["spots"]):
+    items.append(("spot", planDrawing.spotColor, "the ground's height at a grid crossing"))
   liquids = sorted({body["liquid"] for body in overlays["water"] if shows([point for x0, y0, x1, y1 in body["runs"] for point in ((x0, y0), (x1, y1))] + [point for loop in body["loops"] for point in loop])})
   items += [("fill", overRelief(planDrawing.liquidColors[liquid], planDrawing.waterAlpha), f"{liquid} surface") for liquid in liquids]
+  regions = [region for region in overlays["regions"] if shows(region["outline"])]
+  if regions:
+    items.append(("dashed", planDrawing.regionColor, "region, named"))
+  accesses = {region["access"] for region in regions}
+  items += [("accessHatch", planDrawing.accessColors[access], words) for access, words in accessWords.items() if access in accesses]
+  caves = [cave for cave in overlays["caves"] if shows(cave["left"] + cave["right"])]
+  if caves:
+    items.append(("caveRun", planDrawing.caveColor, "cave run: walls at its floor's height, middle dashed, over its pale floor"))
+    if any(cave["floors"] for cave in caves):
+      items.append(("caveFloor", planDrawing.caveColor, "cave floor height at a path point"))
+    if any(cave["junction"] is not None or cave["opening"] is not None for cave in caves):
+      items.append(("caveJunction", planDrawing.caveColor, "where a cave branch meets its parent"))
+    kinds = {stroke["kind"] for cave in caves for stroke in cave["strokes"]}
+    items += [("dashed" if kind == "rough" else "stroke", planDrawing.strokeColors[kind], words) for kind, words in strokeWords.items() if kind in kinds]
+  if any(shows(plot["corners"]) for plot in overlays["plots"]):
+    items.append(("plot", planDrawing.plotColor, "plot, by address, its mark out of the entrance side"))
+  shownEntries = [entry for entry in overlays["entries"] if shows([entry["at"]])]
+  if any(entry["headingDegrees"] != "keep" and not entry["isolated"] for entry in shownEntries):
+    items.append(("entryArrow", planDrawing.entryColor, "entry: where players arrive, toward their heading"))
+  if any(entry["headingDegrees"] != "keep" and entry["isolated"] for entry in shownEntries):
+    items.append(("isolatedEntryArrow", planDrawing.entryColor, "isolated entry"))
+  if any(entry["headingDegrees"] == "keep" for entry in shownEntries):
+    items.append(("entryRing", planDrawing.entryColor, "entry keeping the player's heading"))
+  if any(shows(line["corners"]) for line in overlays["zoneLines"]):
+    items.append(("box", planDrawing.zoneLineColor, "zone line"))
   if any(shows([point for line in boundary["lines"] for point in line]) for boundary in overlays["boundaries"]):
     items.append(("line", planDrawing.boundaryColor, "boundary wall"))
   if any(shows([point for area in boundary["areas"] for point in area]) for boundary in overlays["boundaries"]):
     items.append(("fill", overRelief(planDrawing.boundaryColor, planDrawing.boundaryAreaAlpha), "boundary lid or floor"))
+  if any(shows(shape["plan"]) for sheet in overlays["sheets"] for shape in sheet["shapes"]):
+    items.append(("dashed", planDrawing.sheetColors[0], "sketch areas (dashed), footprints, paths, and points, in their sheets' colors"))
   return items
 
 
@@ -867,7 +902,41 @@ def drawLegendItem(draw, left, top, item):
     for y in range(top + 2, bottom, wadedSpacing):
       draw.line([(left, y), (right, y)], fill=color, width=2)
   elif kind in ("arrow", "hollowArrow"):
-    draw.polygon([(right, middle), (left + 2, top + 2), (left + 2, bottom - 2)], fill=None if kind == "hollowArrow" else seedFill, outline=color, width=2)
+    # On the legend's near-white band a white arrow and a hollow one look alike; on the walked ground seeds stand on, they do not.
+    draw.rectangle([left, top, right, bottom], fill=overRelief(labelColors[playerReach.walkLabel], fillAlpha))
+    draw.polygon([(right - 1, middle), (left + 2, top + 2), (left + 2, bottom - 2)], fill=None if kind == "hollowArrow" else seedFill, outline=color, width=2)
+  elif kind in ("entryArrow", "isolatedEntryArrow"):
+    draw.rectangle([left, top, right, bottom], fill=tuple(round(channel) for channel in reliefMiddle))
+    if kind == "entryArrow":
+      draw.polygon([(right - 1, middle), (left + 2, top + 2), (left + 2, bottom - 2)], fill=color, outline=(255, 255, 255), width=1)
+    else:
+      draw.polygon([(right - 1, middle), (left + 2, top + 2), (left + 2, bottom - 2)], fill=(255, 255, 255), outline=color, width=2)
+  elif kind == "entryRing":
+    draw.ellipse([left + 2, top + 2, right - 2, bottom - 2], outline=color, width=3)
+  elif kind == "spot":
+    draw.ellipse([left + 1, middle - 2, left + 5, middle + 2], fill=(0, 0, 0))
+    draw.text((left + 7, middle + 1), "7", fill=color, font=planDrawing.fontOf(12), anchor="lm")
+  elif kind == "accessHatch":
+    draw.rectangle([left, top, right, bottom], fill=overRelief(color, planDrawing.accessFillAlpha))
+    for offset in range(-legendSwatch + 3, legendSwatch, 6):
+      start, end = max(offset, 0), min(offset + legendSwatch, legendSwatch)
+      draw.line([(left + start, bottom - (start - offset)), (left + end, bottom - (end - offset))], fill=overRelief(color, planDrawing.accessHatchAlpha), width=planDrawing.hatchWidth)
+  elif kind == "caveRun":
+    draw.rectangle([left, top + 3, right, bottom - 3], fill=overRelief(planDrawing.caveFloorFill[:3], planDrawing.caveFloorFill[3]))
+    for y in (top + 3, bottom - 3):
+      draw.line([(left, y), (right, y)], fill=color, width=2)
+    planDrawing.dashedLine(draw, [(left, middle), (right, middle)], color, 2)
+  elif kind == "caveFloor":
+    draw.rectangle([left + 3, top + 2, right - 3, bottom - 2], outline=color, width=1)
+    draw.text(((left + right) / 2, middle), "8", fill=color, font=planDrawing.fontOf(11), anchor="mm")
+  elif kind == "caveJunction":
+    draw.ellipse([left + 4, top + 4, right - 4, bottom - 4], fill=(255, 255, 255), outline=color, width=2)
+  elif kind == "stroke":
+    draw.rectangle([left + 1, top + 3, right - 1, bottom - 3], fill=overRelief(color, 70), outline=color, width=2)
+  elif kind == "plot":
+    draw.rectangle([left + 1, top + 5, right - 1, bottom - 1], outline=color, width=2)
+    center = (left + right) / 2
+    draw.polygon([(center, top), (center - 5, top + 5), (center + 5, top + 5)], fill=color)
   elif kind == "plus":
     draw.line([(left + 2, middle), (right - 2, middle)], fill=color, width=3)
     draw.line([((left + right) / 2, top + 2), ((left + right) / 2, bottom - 2)], fill=color, width=3)

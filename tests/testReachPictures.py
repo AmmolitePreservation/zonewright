@@ -13,8 +13,10 @@ import buildTolerances
 import laneDrawing
 import planDrawing
 import playerReach
+from playerScale import playerHeight, stepHeight
 from testCaves import caveCanyon, hall
-from testReach import cellHeight, cellSize, reachCourse
+from testModelsAndDressing import freshScene
+from testReach import cellHeight, cellSize, cube, heightMargin, reachCourse
 from testWater import environment
 
 
@@ -184,6 +186,86 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   assert greenShare(pixelsAround(sketch, sketchReport, [20, -10])) > 0.9
   assert greenShare(pixelsAround(bare, plainReport, [20, -10])) == 0
   assert colorShare(pixelsAround(sketch, sketchReport, [125, 103]), laneDrawing.unreachedColor) > 0.1
+
+
+def composited(under, color, alpha):
+  """Pixels with a color laid over them at alpha, as a plan composites a layer."""
+  return under * (1 - alpha / 255) + numpy.array(color) * alpha / 255
+
+
+def testUnreachedFloorIsDimmedAloneAndShowsTheLevelReachedUnderIt(stageBlenderServer, tmp_path):
+  # A canopy hung a player's height and a margin over the walked ground, and a block rising more than the step: the tops of both are
+  # walkable floor never reached, the canopy's over a level reached under it.
+  canopyBottom = playerHeight + 2 * heightMargin
+  canopy, block = ([10, 10, canopyBottom], [30, 30, canopyBottom + 1]), ([10, -30, 0], [30, -10, stepHeight + 2 * heightMargin])
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [96, 96], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("setZoneProperties", environment | {"safePoint": [0, -30, 0, 0]})
+    await cube(session, "canopy", *canopy)
+    await cube(session, "block", *block)
+    sketch = {"center": [15, 0], "width": 80, "layers": []}
+    return await session.expectImage("renderSketch", sketch | {"layers": ["lane"]}), await session.expectImage("renderSketch", sketch)
+
+  (lanedImage, lanedReport), (plainImage, plainReport) = stageBlenderServer.session(steps)
+  assert lanedReport["frameSize"] == plainReport["frameSize"]
+  (tmp_path / "unreachedTint.png").write_bytes(lanedImage)
+  laned, plain = (numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB")).astype(float) for image in (lanedImage, plainImage))
+
+  def window(point):
+    """The pixels round where a zone point falls, halfway between the grid's lines, and which of them the never reached hatch crosses."""
+    x, y = (round(value) for value in planFrame(lanedReport).pixel(point))
+    down, across = numpy.mgrid[y - 12:y + 13, x - 12:x + 13]
+    crossing = ((across - down) % laneDrawing.hatchSpacing == 0) | ((across + down) % laneDrawing.hatchSpacing == 0)
+    return (slice(y - 12, y + 13), slice(x - 12, x + 13)), crossing
+
+  # Both tops are cross-hatched. Over the walked ground under the canopy the walk fill shows between the hatch's lines, untouched by the
+  # dimming laid between them over the block's top, where no level is reached under the floor never reached.
+  between = {
+    "canopy": ([25, 15], laneDrawing.labelColors[playerReach.walkLabel], laneDrawing.fillAlpha),
+    "block": ([25, -15], laneDrawing.unreachedColor, laneDrawing.unreachedFillAlpha),
+  }
+  for name, (point, color, alpha) in between.items():
+    place, crossing = window(point)
+    hatch = composited(plain[place], laneDrawing.unreachedColor, laneDrawing.hatchAlpha)
+    assert numpy.abs(laned[place][crossing] - hatch[crossing]).max() <= 2, name
+    assert numpy.abs(laned[place][~crossing] - composited(plain[place], color, alpha)[~crossing]).max() <= 2, name
+
+
+def testALanePlansLegendNamesThePlansOwnLayersInItsFrame():
+  """A plan 100 across about the origin holding a view region, a cave run with its floor heights and a branch's junction, a safe point's
+  entry, a plot, and spot heights; a none region, a zone line, and a boundary lie outside it."""
+  frame = planDrawing.PlanFrame([0, 0], 100, (960, 540))
+  outside = [[400, 400], [420, 400], [420, 420], [400, 420]]
+  overlays = {
+    "sheets": [], "water": [], "swim": [], "spots": [{"at": [0, 0], "height": 0.0}],
+    "regions": [{"name": "hill", "outline": [[-10, -10], [10, -10], [10, 10], [-10, 10]], "access": "view"}, {"name": "rim", "outline": outside, "access": "none"}],
+    "caves": [{
+      "label": "hall", "left": [[-20, -2], [20, -2]], "right": [[-20, 2], [20, 2]], "middle": [[-20, 0], [20, 0]], "endCap": [], "startCap": [],
+      "floors": [{"at": [-20, 0], "floor": 2.0}], "junction": [-20, 0], "opening": None, "strokes": [], "meanFloor": 2.0,
+    }],
+    "plots": [{"address": "1 Hill Street", "corners": [[5, 5], [15, 5], [15, 15], [5, 15]], "facingDegrees": 0.0}],
+    "entries": [{"label": "S", "at": [0, -20], "headingDegrees": 90.0, "isolated": False}],
+    "zoneLines": [{"name": "ATP_1_far", "corners": outside}],
+    "boundaries": [{"name": "rimWall", "lines": [outside], "areas": []}],
+  }
+  assert [text for _, _, text in laneDrawing.planLayerLegend(overlays, frame)] == [
+    "relief: lighter is higher", "the ground's height at a grid crossing", "region, named", "view region: seen, never entered",
+    "cave run: walls at its floor's height, middle dashed, over its pale floor", "cave floor height at a path point",
+    "where a cave branch meets its parent", "plot, by address, its mark out of the entrance side", "entry: where players arrive, toward their heading",
+  ]
+
+
+def testSeedAndIsolatedSeedSwatchesDiffer():
+  # Inside its arrow a seed's swatch is the seeds' white fill; an isolated seed's shows the walked ground under it, apart from the
+  # near-white legend band.
+  items = [("arrow", laneDrawing.seedOutline, "seed"), ("hollowArrow", laneDrawing.seedOutline, "isolated seed")]
+  sheet = laneDrawing.withLegend(Image.new("RGB", (600, 10), (0, 0, 0)), items)
+  places, _ = laneDrawing.legendLayout(600, items)
+  inside = [sheet.getpixel((left + 6, 10 + top + laneDrawing.legendSwatch // 2)) for left, top in places]
+  walked = laneDrawing.overRelief(laneDrawing.labelColors[playerReach.walkLabel], laneDrawing.fillAlpha)
+  assert inside == [laneDrawing.seedFill, walked] and math.dist(walked, laneDrawing.legendBackground) > 100
 
 
 def testLaneWalksACaveUnderItsVaultAndShowsThroughItsPlanFloor(stageBlenderServer, tmp_path):

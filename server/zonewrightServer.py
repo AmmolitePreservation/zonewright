@@ -2656,11 +2656,13 @@ async def renderSketch(
   and regions, over the regions' fills and the caves' pale floors and under the caves' walls: walk green, swim blue, water waded lined
   blue, slide orange, squeeze pink, taken by a zone line yellow, traps hatched orange, walkable floor never reached cross-hatched (alone,
   or over a level reached under it), ledges dark, leak edges magenta, zone lines hatched when reached, swim boxes dashed, seeds as white
-  arrows, with a legend in a band under the plan of what it shows; the result's laneState says whether the lane was computed or reused,
-  the constants it used, what it does not model, and its limits). A cave run's end its cut rounded off closes in a half circle;
-  `caveEndsUnknown` names the caves cut before their records kept which ends were rounded, whose ends are drawn open (cut them again
-  with editCave). Labels are placed clear of one another, and beside the spot heights rather than over them where they can be; an area
-  is named only where it reaches into the drawing. frameSize is the plan's size in pixels, above any legend band."""
+  arrows (hollow when isolated), with a legend in a band under the plan naming what it draws, the lane's marks and the plan's own
+  layers in the frame (the relief, spot heights, water, regions and their access fills, caves, plots, entries, zone lines, boundaries,
+  and sketch shapes); the result's laneState says whether the lane was computed or reused, the constants it used, what it does not
+  model, and its limits). A cave run's end its cut rounded off closes in a half circle; `caveEndsUnknown` names the caves cut before
+  their records kept which ends were rounded, whose ends are drawn open (cut them again with editCave). Labels are placed clear of one
+  another, and beside the spot heights rather than over them where they can be; an area is named only where it reaches into the
+  drawing. frameSize is the plan's size in pixels, above any legend band."""
   if len(center) != 2 or width <= 0:
     raise ToolError(f"center is [x, y] and width positive, got {center} and {width}")
   zone = await callBridge(context, "getZoneProperties", {})
@@ -2872,9 +2874,9 @@ async def viewFromLane(context: Context, target: str | list[float] | None = None
   per 16-unit block (the member with the most open floor round it), spread away from where players arrive and from the world's end
   (each the candidate farthest from the safe point, the stored entries, reached floor beside columns where the zone ships nothing, and
   the eyes before it), leaving out a candidate beside a roomier one, each facing the one of 16 headings whose view holds the most
-  reached ground (the mean run across the view's width, its middle counting most; a run ends at a column no one reaches or whose floor
-  rises more than playerHeight over the eye); the tour is kept beside the
-  lane and reused while the lane, the far sight, and its rules hold, so later tours show the same views. With a target (a region's or
+  reached ground (the mean run across the view's width, its middle counting most; a run ends at a column no one reaches or whose lowest
+  reached floor rises over the eye, solid ground at the eye's height hiding what lies past it); the tour is kept beside the lane and
+  reused while the lane, the far sight, and its rules hold, so later tours show the same views. With a target (a region's or
   an object's name, or a point [x, y] or [x, y, z] on the lane's floor), up to `count` eyes (at most 6, and 6 unless given) that see it,
   the best of each bearing sector it is seen from (standing beyond its radius from its middle before within it, then seeing the most
   of it inside its view, then standing nearest 2.5 of its radii from its middle, where the view holds it whole), spread round it, each looking at the middle of what it sees of it; what players see of it is tried from up
@@ -3581,6 +3583,25 @@ def facingView(near, far, wet):
   return {"standAt": playerReach.roundedPoint(near, 3), "headingDegrees": round(heading, 2), "pitchDegrees": round(pitch, 2)}
 
 
+def asideFigure(nodes, eye, aim, nearPoint):
+  """Where a trace view's scale figure stands, so what separates the nearest place from the point shows past her: a quarter column
+  from the nearest place's middle toward the eye (a middle can lie on a block's edge, where her footing would fall past it), then
+  beside the line of sight from eye to aim, buildTolerances.figureAside of the way from the frame's middle to its edge at her distance,
+  on the view's right, else its left, wherever the lane holds reached floor there within the step of the nearest place's floor, on
+  that floor; None where neither side does."""
+  ahead = numpy.array(aim[:2], dtype=numpy.float64) - eye[:2]
+  ahead /= numpy.linalg.norm(ahead)
+  near = numpy.array(nearPoint[:2], dtype=numpy.float64)
+  base = near + (numpy.array(eye[:2]) - near) * playerReach.reachGrid["cellSize"] / 4 / math.dist(eye[:2], nearPoint[:2])
+  aside = buildTolerances.figureAside * float((base - eye[:2]) @ ahead) * math.tan(math.radians(laneViews.viewHalfField))
+  for side in (1, -1):
+    stand = base + side * aside * numpy.array([ahead[1], -ahead[0]])
+    node = nodes.floorNodeAt([*stand, nearPoint[2]], tolerance=playerScale.stepHeight)
+    if node is not None and nodes.reached[node]:
+      return playerReach.roundedPoint([*stand, float(nodes.height[node])], 3)
+  return None
+
+
 @guardedTool()
 async def traceReach(context: Context, to: list[float], fromEntry: str | None = None):
   """How players get to a point, or what keeps them from it, on the lane mapReach maps (from the safe point and every stored entry, or
@@ -3616,10 +3637,12 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   dashed line to where a run ends) named with its measure, the name led back to it where it is set off; picture 2, an eye-level view
   from the reached floor up to 12 back from the nearest node, away from the point, as far as the lane joins it without a drop of more
   than the step, facing the point and pitched to the middle of the span between the nearest node's floor and it, the swim boxes tinted
-  and the scale figure standing on the nearest node's floor (a player's height or more off; view.figure gives where she stands). Every
-  result gives the constants, what is not modelled (doors taken as open among them: the client collides with a closed door), the limits,
-  and whether the lane was computed or reused. Refused: `to` not [x, y] or [x, y, z], or outside what the zone ships; an unknown
-  fromEntry; no reached place beside the point; and mapReach's refusals."""
+  and the scale figure standing at the nearest node (a player's height or more off) but beside the line of sight, so what separates
+  shows past her: 0.5 of the way from the frame's middle to its edge at her distance, on the view's right, else its left, on the
+  reached floor there within the step of the nearest node's floor (none where neither side holds it; view.figure gives where she
+  stands). Every result gives the constants, what is not modelled (doors taken as open among them: the client collides with a closed
+  door), the limits, and whether the lane was computed or reused. Refused: `to` not [x, y] or [x, y, z], or outside what the zone
+  ships; an unknown fromEntry; no reached place beside the point; and mapReach's refusals."""
   if len(to) not in (2, 3) or not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in to):
     raise ToolError(f"to is [x, y] or [x, y, z], got {to}")
   lane, description, status, seconds = await sceneLaneOnly(context, fromEntry)
@@ -3704,13 +3727,10 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   )
   result["section"] = {"outputPath": str(sectionPath), "start": playerReach.roundedPoint(start), "end": playerReach.roundedPoint(end), "length": cuts["length"], "bottom": cuts["bottom"], "top": cuts["top"], "laneCut": laneState["laneCut"]}
   view = facingView(backPoint, aimPoint, backWet)
-  standsFigure = not backWet and math.dist(backPoint[:2], nearPoint[:2]) >= playerScale.playerHeight
+  figureAt = None if backWet or math.dist(backPoint[:2], nearPoint[:2]) < playerScale.playerHeight else asideFigure(nodes, backPoint, aimPoint, nearPoint)
+  standsFigure = figureAt is not None
   if standsFigure:
-    # A column's middle can lie on a block's edge (faces on whole units run through column middles), where the figure's footing falls
-    # past the edge; a quarter column toward the eye stands her on the column's floor.
-    toward = math.dist(backPoint[:2], nearPoint[:2])
-    shift = playerReach.reachGrid["cellSize"] / 4 / toward
-    view["figureAt"] = playerReach.roundedPoint([nearPoint[0] + (backPoint[0] - nearPoint[0]) * shift, nearPoint[1] + (backPoint[1] - nearPoint[1]) * shift, nearPoint[2]], 3)
+    view["figureAt"] = figureAt
   viewPath = newRenderPath()
   rendered = await callBridge(context, "renderView", {
     "view": view, "outputPath": str(viewPath), "figureModel": await zoneFigureModel(zone) if standsFigure else None, "shading": "client", "bandHeight": 50.0,

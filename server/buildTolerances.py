@@ -66,3 +66,7 @@ floorSightLift = 1.0
 roundTripMeanLevels = 0.5
 roundTripPercentile = 99
 roundTripPercentileLevels = 2
+
+# A trace view's scale figure stands beside its line of sight, this share of the way from the frame's middle to its edge at her
+# distance, so what lies along the line past her shows.
+figureAside = 0.5
