@@ -336,6 +336,50 @@ def testVerifyExportCatchesSwappedSafeAxes(stageBlenderServer, exportedZone, tmp
   assert len(pictures) == 2
 
 
+def rehashed(copy):
+  """The copy's manifest recording its files as they now lie, as an export that wrote them so would."""
+  manifestPath = copy / f"{short}_export.json"
+  manifest = json.loads(manifestPath.read_text(encoding="ascii"))
+  manifest["files"] = {name: {"bytes": len((copy / name).read_bytes()), "sha256": hashlib.sha256((copy / name).read_bytes()).hexdigest()} for name in manifest["files"]}
+  manifestPath.write_text(json.dumps(manifest), encoding="ascii")
+
+
+def changedRows(text):
+  """<short>.sql with zone_points 10 moved out of its box and leading elsewhere in qeynos2, zone_points 20 facing another way and
+  shown to one client version, and the template guard dropped."""
+  edits = [
+    ("('verified', 0, 10, 110.0, 0.0, 7.5, 0, 10, 20, 3, 0.0, 0, 2, 0, 0, 4294967295,", "('verified', 0, 10, 50.0, 0.0, 7.5, 0, 10, 2000, 3, 0.0, 0, 2, 0, 0, 4294967295,"),
+    ("-60, -20, 0, 128.0, 0, 901, 0, 0, 4294967295,", "-60, -20, 0, 64.0, 0, 901, 0, 0, 1,"),
+  ]
+  for old, new in edits:
+    assert text.count(old) == 1, old
+    text = text.replace(old, new)
+  lines = text.split("\n")
+  kept = [line for line in lines if "not exactly one to copy" not in line]
+  assert len(kept) == len(lines) - 1
+  return "\n".join(kept)
+
+
+def testVerifyExportCatchesChangedZonePointsAndADroppedGuard(stageBlenderServer, exportedZone, tmp_path):
+  copy = copiedExport(exportedZone, tmp_path)
+  rowsPath = copy / "server" / "sql" / f"{short}.sql"
+  rowsPath.write_text(changedRows(rowsPath.read_text(encoding="ascii")), encoding="ascii", newline="")
+  rehashed(copy)
+  pictures, result = verifyCopy(stageBlenderServer, exportedZone, copy)
+  assert result["failedChecks"] == ["rows"]
+  told = byCheck(result)["rows"]["details"]["failures"]
+  assert [failure["message"] for failure in told if "column" not in failure] == [
+    "zone_points 10 stands at [50.0, 0.0, 7.5], outside zone line ATP_1_north's box [104.0, -10.0, -5.0] to [116.0, 10.0, 20.0]",
+    f"{short}.sql lacks its template guard on {{'shortName': '{short}', 'template': 'qeynos2'}}",
+  ]
+  # Every column a row writes is compared with what the scene's zone line makes: its place, its target and heading, and the rest.
+  assert [(failure["file"], failure["column"], failure["found"], failure["expected"]) for failure in told if "column" in failure] == [
+    (f"{short}.sql's zone_points 10", "target_x", 2000, 20), (f"{short}.sql's zone_points 10", "y", 50.0, 110.0),
+    (f"{short}.sql's zone_points 20", "client_version_mask", 1, 4294967295), (f"{short}.sql's zone_points 20", "target_heading", 64.0, 128.0),
+  ]
+  assert len(pictures) == 2
+
+
 def testVerifyExportLeavesTheWorkFileAsSaved(stageBlenderServer, exportedZone):
   def blendHash():
     return hashlib.sha256(exportedZone.blend.read_bytes()).hexdigest()

@@ -468,7 +468,8 @@ def guardsExpected(zone, targets, numbers):
 def rowsCheck(rowsData, waysInData, zone, zoneLines, entries, clientZones, skyFogColor, archiveBytes, short):
   """Check 7: our reader parses both files; the zone row's written columns are what the stored inputs make and its template is
   serverTemplate; every guard is there with its values; one zone_points row per zone line box, numbered ten times its number, at a point
-  inside the box, its target id the client's; and the ways-in file holds exactly the zoneIn entries naming their neighbour's row."""
+  inside the box, every column it writes what serverRows.zonePointRows makes of the scene's line (its place, target and heading, the
+  client's target id, and the rest); and the ways-in file holds exactly the zoneIn entries naming their neighbour's row."""
   if rowsData is None:
     return checked("rows", [{"message": f"No {short}.sql lies in the export"}])
   try:
@@ -502,19 +503,14 @@ def rowsCheck(rowsData, waysInData, zone, zoneLines, entries, clientZones, skyFo
     at = [point["y"], point["x"], point["z"]]
     if not all(low <= value <= high for value, low, high in zip(at, line["minimum"], line["maximum"])):
       failures.append({"zonePoint": point["number"], "at": at, "message": f"zone_points {point['number']} stands at {at}, outside zone line {line['name']}'s box {line['minimum']} to {line['maximum']}"})
-    if line["target"] is None:
-      failures.append({"zonePoint": point["number"], "message": f"Zone line {line['name']} has no target in the scene; zone_points {point['number']} leads somewhere"})
+    try:
+      row = serverRows.zonePointRows(zone, [line], clientZones)[0]
+    except ValueError as error:
+      failures.append({"zonePoint": point["number"], "message": f"zone_points {point['number']} is written for zone line {line['name']}, which makes no row now: {error}"})
       continue
-    target = line["target"]["zone"]
-    if target == short:
-      targetID = zone["zoneId"]
-    elif target in clientZones:
-      targetID = targets[target] = clientZones[target]
-    else:
-      failures.append({"zonePoint": point["number"], "message": f"zone_points {point['number']} leads to '{target}', which the client does not register"})
-      continue
-    if point["target_zone_id"] != targetID:
-      failures.append({"zonePoint": point["number"], "message": f"zone_points {point['number']} leads to zone id {point['target_zone_id']}, the client's id for {target} is {targetID}"})
+    if line["target"]["zone"] != short:
+      targets[line["target"]["zone"]] = row["target_zone_id"]
+    failures += columnFailures(f"{short}.sql's zone_points {point['number']}", point, row)
   found = [(guard["guard"], {key: value for key, value in guard.items() if key not in ("guard", "message", "owned")}) for guard in rows["guards"]]
   for kind, values in guardsExpected(zone, targets, [point["number"] for point in points]):
     if (kind, values) not in found:
