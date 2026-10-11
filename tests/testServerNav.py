@@ -102,6 +102,14 @@ def assertTileForTile(ours, report, peridotFile, tileCount, areas, differingDeta
   assert [ourTiles[key]["reference"] for key in ordered] == [(1 << 22) | (index << polygonBits) for index in range(tileCount)]
 
 
+@pytest.mark.parametrize(("zone", "maximumTiles"), [("highpasshold", 64), ("thulehouse2", 32)])
+def testNavParametersAreMapEditsOverManyTiles(zone, maximumTiles):
+  # map_edit's parameters for a nav of many tiles, from the .map alone: Highpass Hold's 5 by 9 tiles, and thulehouse2's, whose project
+  # lowered only its bounds' top, which the parameters do not hold.
+  parameters = serverNav.navParameters(serverMapFiles.mapCollision(referenceBytes(f"base/{zone}.map")))
+  assert parameters == serverMapFiles.readNav(referenceBytes(f"nav/{zone}.nav"))["parameters"] and parameters["maximumTiles"] == maximumTiles
+
+
 def testNavReproducesHighpassHoldTileForTile(recastToolingRoot):
   ours, report = navOfPeridotsFiles("highpasshold", recastToolingRoot)
   assertTileForTile(ours, report, referenceBytes("nav/highpasshold.nav"), 28, {0: 7692, 1: 452, 11: 53}, 4709)

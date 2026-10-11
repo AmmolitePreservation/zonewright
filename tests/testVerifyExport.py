@@ -22,6 +22,7 @@ from conftest import StagedServer, pinnedBlender, serverRowValues, writePNG
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import buildTolerances
 import eqArchive
+import exportVerification
 import eqgWriter
 import planDrawing
 import serverMapDrawing
@@ -404,6 +405,25 @@ def testVerifyExportCatchesServerFilesNamedInAnotherCase(stageBlenderServer, exp
     },
   ]
   assert len(pictures) == 2
+
+
+def testVolumeFailuresFindNavPolygonsOutsideTheirBoxes(stageBlenderServer, exportedZone):
+  maps = exportedZone.export / "server" / "maps"
+  inspection = serverNav.inspectNav((maps / "nav" / f"{short}.nav").read_bytes(), safePoint[:3], [], stageBlenderServer.toolingRoot, lambda *arguments: None)
+  records = serverMapFiles.readWater((maps / "water" / f"{short}.wtr").read_bytes())
+  marked = [
+    (list(tile["key"]), index, serverMapFiles.navAreaNames[polygon["area"]]) for tile in inspection["tiles"]
+    for index, polygon in enumerate(tile["polygons"]) if polygon["area"] in serverNav.volumeAreas.values()
+  ]
+  water, disabled = ([place for place in marked if place[2] == area] for area in ("Water", "Disabled"))
+  assert water and disabled and len(water) + len(disabled) == len(marked)
+  assert exportVerification.volumeFailures(inspection, records) == []
+  # The pond's box moved past its own length, its water polygons lie in no water box; without the zone lines' boxes, their Disabled
+  # polygons lie in none.
+  moved = [record | {"position": [record["position"][0] + 30, *record["position"][1:]]} if record["type"] == 1 else record for record in records]
+  assert [(failure["tile"], failure["polygon"], failure["area"]) for failure in exportVerification.volumeFailures(inspection, moved)] == water
+  unlined = [record for record in records if record["type"] != 3]
+  assert [(failure["tile"], failure["polygon"], failure["area"]) for failure in exportVerification.volumeFailures(inspection, unlined)] == disabled
 
 
 def swappedSafeAxes(text):
