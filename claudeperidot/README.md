@@ -113,13 +113,13 @@ Copy `changes/template` to `changes/NNNN-<name>` with the next free number and a
 | `schemaSteps` | A schema change: the number of DDL statements in `apply.sql` |
 | `repository`, `source` | `quest` and `config`: the checkout's absolute path on claudeperidot, and the workstation clone the commits are made in |
 | `rendered`, `render` | A config change the host fills with secrets: each live file with its template and the names of the keys the host fills, and the host command that renders them |
-| `steps`, `undo`, `checks` | `client`: PowerShell 5.1 scripts to apply and undo it, and checks of existence (file, directory, junction and its target, a Credential Manager entry, a persona row in MacroQuest's login.db), SHA-256, or an ini key's value. `lab`: the facet run or sonicwall calls made, their inverse, and checks with what they must show |
+| `steps`, `undo`, `checks` | `client`: PowerShell 5.1 scripts to apply and undo it, and checks of existence (file, directory, junction and its target, a Credential Manager entry, a persona row in MacroQuest's login.db), SHA-256, an ini key's value, or a name a DLL's export table lists. `lab`: the facet run or sonicwall calls made, their inverse, and checks with what they must show |
 
 | Kind | Covers | Apply and revert | Check |
 |---|---|---|---|
 | `db` | database rows and schema | SQL, guarded | `check.sql` |
 | `quest`, `config` | quest scripts, server settings; settings are templates whose secrets are filled in on the host and never committed | a commit fast-forwarded on the host; a revert commit made in the source | file hashes on the host; for a rendered setting, its template and the names of its filled keys |
-| `client` | the spare client folder, Claude's files in the owner's MacroQuest tree, the link DLL, Credential Manager entries, the login.db persona row | the recorded steps and undo | existence, hash, or ini value |
+| `client` | the spare client folder, Claude's files in the owner's MacroQuest tree, the link DLL, Credential Manager entries, the login.db persona row, MacroQuest's own MQ2Main build | the recorded steps and undo | existence, hash, ini value, or a DLL export |
 | `lab` | Peridot, olivine's DNS, the SonicWall | by hand, through facet or the sonicwall MCP | by hand: each check's call and what it must show |
 
 | Disposition | Meaning | At session close |

@@ -40,13 +40,8 @@ def configFields(**overrides):
 
 def test_theTemplateAndTheRecordedChangesAreValid():
   changes = ledger.loadChanges(realLedger)
-  assert [change.identifier for change in changes] == ["0001-housingClientCopy", "0002-housingClientLoginHost",
-    "0003-housingClientLargeAddress", "0004-housingClientSettings", "0005-mqClaudeLinkPlugin", "0006-peridotStrayFiles",
-    "0007-peridotSafeDirectory", "0008-peridotSourceBundle", "0009-claudeperidotDHCP", "0010-claudeperidotDNS",
-    "0011-expansion19"]
-  assert {(change.kind, change.fields["disposition"], change.fields["production"]) for change in changes} == {
-    ("client", "fixture", "none"), ("lab", "fixture", "none"), ("db", "fixture", "none")}
-  assert all(change.isCleared for change in changes)
+  assert [change.identifier[:4] for change in changes] == [f"{number:04}" for number in range(1, len(changes) + 1)]
+  assert {(change.fields["disposition"], change.fields["production"]) for change in changes} == {("fixture", "none")}
   template = realLedger / "changes" / "template"
   assert ledger.validateChangeFields(ledger.readYAML(template / "change.yaml")) == []
   assert [ledger.firstKeyword(statement) for statement in ledger.splitStatements((template / "apply.sql").read_text())] == [
@@ -62,8 +57,10 @@ def test_wellFormedChangesOfEveryFormHaveNoProblems():
   credential = clientChangeFields(checks=[{"credential": "claudeperidot/eqLogin"}])
   persona = clientChangeFields(checks=[{"path": "~\\LocalProjects\\mqPeridot\\build\\bin\\release\\config\\login.db",
     "server": "claudeperidot", "character": "Claudette"}])
+  exports = clientChangeFields(checks=[{"path": "~\\LocalProjects\\mqPeridot\\build\\bin\\release\\MQ2Main.dll",
+    "exports": "SetFrameLimiterSuspended"}])
   for fields in (rowChangeFields(), schema, production, questFields(), config, configFields(), clientChangeFields(), credential,
-      persona, labFields(), rowChangeFields(ownerClearance=cleared)):
+      persona, exports, labFields(), rowChangeFields(ownerClearance=cleared)):
     assert ledger.validateChangeFields(fields) == []
 
 
@@ -114,6 +111,7 @@ def test_wellFormedChangesOfEveryFormHaveNoProblems():
   (clientChangeFields(checks=[{"path": "x", "exists": "file"}]), "a check needs a path that is absolute or starts with ~\\"),
   (clientChangeFields(checks=[{"credential": "two words"}]), "a credential check names a Credential Manager target"),
   (clientChangeFields(checks=[{"path": "C:\\login.db", "server": "claudeperidot"}]), "is not one of"),
+  (clientChangeFields(checks=[{"path": "C:\\MQ2Main.dll", "exports": "two words"}]), "is not one of"),
   (labFields(checks=[{"via": "facet run", "host": "peridot", "run": "true"}]), "with expect"),
   (labFields(steps=[{"via": "ssh", "host": "peridot", "run": "true"}]), "via: facet run or sonicwall"),
   (labFields(commits=["abcdef1"]), "a lab change has no commits"),

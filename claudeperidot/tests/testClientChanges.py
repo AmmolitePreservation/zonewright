@@ -50,6 +50,21 @@ def test_aHashCheckPassesOnlyForThoseExactBytes(tmp_path):
   assert not ledger.clientCheckPasses({"path": str(tmp_path / "missing.txt"), "sha256": digest})
 
 
+@pytest.mark.parametrize("image", [r"C:\Windows\SysWOW64\kernel32.dll", r"C:\Windows\System32\kernel32.dll"])
+def test_anExportCheckReadsThePEExportTable(image):
+  assert ledger.clientCheckPasses({"path": image, "exports": "GetProcAddress"})
+  assert not ledger.clientCheckPasses({"path": image, "exports": "GetProcAddres"})
+  assert not ledger.clientCheckPasses({"path": image, "exports": "SetFrameLimiterSuspended"})
+
+
+def test_anExportCheckFailsForAMissingFileAndRefusesAFileThatIsNoPEImage(tmp_path):
+  assert not ledger.clientCheckPasses({"path": str(tmp_path / "absent.dll"), "exports": "GetProcAddress"})
+  notAnImage = tmp_path / "notAnImage.dll"
+  notAnImage.write_bytes(b"MZ" + bytes(62))
+  with pytest.raises(ledger.LedgerError, match="cannot be read as a PE image: it has no PE signature"):
+    ledger.clientCheckPasses({"path": str(notAnImage), "exports": "GetProcAddress"})
+
+
 def test_anIniCheckReadsTheKeyInItsSectionOnly(tmp_path):
   ini = tmp_path / "eqclient.ini"
   ini.write_bytes(b"[Defaults]\r\nSound=FALSE\r\nMaximized=0\r\n[Options]\r\nMaxBGFPS=80\r\nSound=TRUE\r\nName=caf\xe9\r\n")

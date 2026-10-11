@@ -10,6 +10,7 @@ import logging.handlers
 import os
 import re
 import sqlite3
+import struct
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -126,6 +127,7 @@ keyNamePattern = re.compile(r"^[A-Za-z0-9_.-]+$")
 clientPathPattern = re.compile(r"^([A-Za-z]:\\|~\\)")
 credentialTargetPattern = re.compile(r"^[A-Za-z0-9_.:@/-]+$")
 hashPattern = re.compile(r"^[0-9a-f]{64}$")
+exportNamePattern = re.compile(r"^[A-Za-z0-9_?@$]+$")
 encodedValuePattern = re.compile(r"^(N|E|V(?:[0-9A-F]{2})*)$")
 stepPattern = re.compile(r"^- \[( |x)\] (\d+)\. (.+?)(?: \[(\d{4}(?:, \d{4})*)\])?$")
 mysqlErrorPattern = re.compile(r"^ERROR (\d+) \(([0-9A-Z]+)\)(?: at line (\d+))?: (.*)$")
@@ -228,8 +230,10 @@ def clientCheckProblem(check):
     return None
   if keys == {"path", "server", "character"} and all(isOneLine(check[name]) for name in ("server", "character")):
     return None
+  if keys == {"path", "exports"} and isinstance(check["exports"], str) and exportNamePattern.match(check["exports"]):
+    return None
   return (f"check {check!r} is not one of: exists file or directory; exists junction with a target; a lowercase sha256; "
-    "an ini section, key and value; a credential; a login.db server and character")
+    "an ini section, key and value; a credential; a login.db server and character; a name a DLL exports")
 
 
 def labActionProblem(action, name):
@@ -913,6 +917,45 @@ def loginPersonaExists(path, server, character):
   return row[0] == 1
 
 
+def exportedNames(path):
+  """The names in a PE image's export table (PE32 or PE32+)."""
+  data = path.read_bytes()
+  try:
+    if data[:2] != b"MZ":
+      raise ValueError("it has no MZ header")
+    header = struct.unpack_from("<I", data, 0x3C)[0]
+    if data[header:header + 4] != b"PE\0\0":
+      raise ValueError("it has no PE signature")
+    sectionCount, = struct.unpack_from("<H", data, header + 6)
+    optionalSize, = struct.unpack_from("<H", data, header + 20)
+    optional = header + 24
+    magic, = struct.unpack_from("<H", data, optional)
+    directoryOffsets = {0x10B: 96, 0x20B: 112}
+    if magic not in directoryOffsets:
+      raise ValueError(f"its optional header magic is {magic:#x}, neither PE32 nor PE32+")
+    exportAddress, _ = struct.unpack_from("<II", data, optional + directoryOffsets[magic])
+    if exportAddress == 0:
+      return set()
+    sections = [struct.unpack_from("<IIII", data, optional + optionalSize + index * 40 + 8) for index in range(sectionCount)]
+
+    def fileOffset(address):
+      for virtualSize, virtualAddress, rawSize, rawPointer in sections:
+        if virtualAddress <= address < virtualAddress + max(virtualSize, rawSize):
+          return address - virtualAddress + rawPointer
+      raise ValueError(f"the address {address:#x} lies in no section")
+
+    exportTable = fileOffset(exportAddress)
+    nameCount, = struct.unpack_from("<I", data, exportTable + 24)
+    nameAddresses = fileOffset(struct.unpack_from("<I", data, exportTable + 32)[0]) if nameCount else 0
+    names = set()
+    for index in range(nameCount):
+      start = fileOffset(struct.unpack_from("<I", data, nameAddresses + index * 4)[0])
+      names.add(data[start:data.index(b"\0", start)].decode("ascii"))
+    return names
+  except (ValueError, struct.error, UnicodeDecodeError) as error:
+    raise LedgerError(f"{path} cannot be read as a PE image: {error}") from error
+
+
 def clientCheckPasses(check):
   if "credential" in check:
     return credentialExists(check["credential"])
@@ -928,6 +971,8 @@ def clientCheckPasses(check):
     return path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == check["sha256"]
   if "server" in check:
     return loginPersonaExists(path, check["server"], check["character"])
+  if "exports" in check:
+    return path.is_file() and check["exports"] in exportedNames(path)
   return iniValue(path, check["section"], check["key"]) == check["value"]
 
 

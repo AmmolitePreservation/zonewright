@@ -14,7 +14,7 @@
 #     a list of PowerShell 5.1 scripts that never put a secret on a command line, and checks, each one of:
 #     {path, exists: file or directory}; {path, exists: junction, target}; {path, sha256}; {path, section, key, value}
 #     for an ini key; {credential: a Credential Manager target} for an entry's existence; {path, server, character} for a
-#     persona row in MacroQuest's login.db. No SQL files.
+#     persona row in MacroQuest's login.db; {path, exports: a name} for a name a DLL's export table lists. No SQL files.
 #   lab: a change on another lab host or device (Peridot, olivine, the SonicWall), made through facet or the sonicwall
 #     MCP; steps, undo and checks are {via: facet run or sonicwall, host, run} (checks add expect). The ledger records it;
 #     Claude runs its steps and checks by hand.
