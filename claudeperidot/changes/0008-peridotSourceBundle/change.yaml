@@ -1,0 +1,30 @@
+title: S:\Research\EverQuest\claudeperidot\peridot-ae4bd2833.bundle holds Peridot's running commit ae4bd2833 as branch peridotRunning
+why: claudeperidot is built from the commit Peridot runs, which GitHub reaches only by its full SHA (PhoenixCampfire/peridot's claude was rewritten). The owner chose a local copy over a tag on GitHub (2026-10-11). The bundle is a snapshot of that one commit (2,922 objects, 19,159,122 bytes); remade, its bytes may differ, so the check is its recorded hash.
+kind: client
+scope:
+  - S:\Research\EverQuest\claudeperidot\peridot-ae4bd2833.bundle
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-11, the owner''s later answer: no tag on GitHub; keep a local copy only, S:\Research\EverQuest\claudeperidot\peridot-ae4bd2833.bundle'
+activation: none
+production: none
+commits: []
+steps:
+  - |-
+    $clone = Join-Path $env:TEMP 'peridotRunningBundle'
+    git init --quiet $clone
+    if ($LASTEXITCODE -ne 0) { throw "git init failed with exit code $LASTEXITCODE" }
+    git -C $clone fetch --quiet --depth 1 https://github.com/PhoenixCampfire/peridot.git ae4bd2833c0e6ff00b97e26789fc806341180260
+    if ($LASTEXITCODE -ne 0) { throw "git fetch failed with exit code $LASTEXITCODE" }
+    git -C $clone branch peridotRunning ae4bd2833c0e6ff00b97e26789fc806341180260
+    New-Item -ItemType Directory -Force -Path 'S:\Research\EverQuest\claudeperidot' | Out-Null
+    git -C $clone bundle create 'S:\Research\EverQuest\claudeperidot\peridot-ae4bd2833.bundle' peridotRunning
+    if ($LASTEXITCODE -ne 0) { throw "git bundle failed with exit code $LASTEXITCODE" }
+    Remove-Item -LiteralPath $clone -Recurse -Force
+undo:
+  - |-
+    Remove-Item -LiteralPath 'S:\Research\EverQuest\claudeperidot\peridot-ae4bd2833.bundle'
+checks:
+  - path: S:\Research\EverQuest\claudeperidot\peridot-ae4bd2833.bundle
+    sha256: 31202794f487636ad8626b8828d6faa0ee83cce04919b128869e94a406f4e579

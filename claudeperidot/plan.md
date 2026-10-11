@@ -6,30 +6,30 @@ claudeperidot is Claude's own EQEmu server: a faithful copy of Peridot on a LAN-
 
 ## In progress
 
-3. Read labradorite's free memory and alpha's storage type; write the provisioner (operations services/eqemu/claudeperidot-provision.ps1) and the guest bootstrap (guest-bootstrap-claudeperidot.sh); commit on operations claude
+3. Read labradorite's free memory and alpha's storage type; write the provisioner (operations services/eqemu/claudeperidot-provision.ps1) and the guest bootstrap (guest-bootstrap-claudeperidot.sh); commit on operations claude. Both are written and are being fixed after review
 
 ## Next
 
-4. DHCP reservation 10.111.111.235 for BC:24:11:AC:01:43 (sonicwall createDHCPReservation; ping first, .227 to .229 are spares) and the DNS A record claudeperidot.strata.unseencolor.com (facet run on olivine)
+5. Run the provisioner and build: VM 143 ClaudePeridot on labradorite (8 cores, 16 GB unballooned on one NUMA node, 100 GB on alpha, Ubuntu 24.04, not started at boot), then the bootstrap: Docker; akk-stack Akkadius/akk-stack 13f442d with image akkadius/eqemu-server:v16; fresh secrets; EQEmu built from ae4bd2833 out of the local bundle (owner's later answer: no tag on GitHub); quests ProjectEQ/projecteqquests c327bed plus Peridot's 2 untracked files as one quest commit; maps EQEmu/maps fbd3b19128; world claudeperidot (ClaudePeridot) on 10.111.111.235 with its own login server; MariaDB binary log on (log_bin, binlog_format=ROW, binlog_annotate_row_events on, 90-day expiry). If the year-old build fights back, stop and surface it (owner's answer 5)
 
 ## Steps
 
-Each step is ticked when it is done. A step that names ledger changes in brackets is ticked and unticked by `ledger.py apply` and `revert`, from the changes' checks; Claude ticks the others by hand and keeps In progress and Next on the first two unticked steps.
+Each step is ticked when it is done. A step that names ledger changes in brackets is ticked and unticked by `ledger.py apply` and `revert`, from the changes' checks; Claude ticks the others by hand and keeps In progress and Next on the first two unticked steps. Lab changes (made through facet or the sonicwall MCP) are named in a step's text, since the ledger cannot check them.
 
 - [x] 0. Owner: answer the 15 questions (2026-10-05), reconnect facet, allow the read-only Peridot reads
-- [x] 1. Read Peridot read-only (2026-10-11); the facts are in Baseline below
+- [x] 1. Read Peridot read-only (2026-10-11); the facts are in Baseline below. On the owner's word, the six empty stray files in its akk-stack root and the [safe] section of /root/.gitconfig are gone (lab changes 0006 and 0007), and its running commit is kept as a local bundle [0008]
 - [x] 2. The ledger in zonewright's claudeperidot folder (owner's answer 2): README, this plan, tools/ledger.py, the template change, and the workstation changes already made
-- [ ] 3. Read labradorite's free memory and alpha's storage type; write the provisioner (operations services/eqemu/claudeperidot-provision.ps1) and the guest bootstrap (guest-bootstrap-claudeperidot.sh); commit on operations claude
-- [ ] 4. DHCP reservation 10.111.111.235 for BC:24:11:AC:01:43 (sonicwall createDHCPReservation; ping first, .227 to .229 are spares) and the DNS A record claudeperidot.strata.unseencolor.com (facet run on olivine)
-- [ ] 5. Run the provisioner and build: VM 143 ClaudePeridot on labradorite (8 cores, 16 GB unballooned on one NUMA node, 100 GB on alpha, Ubuntu 24.04, not started at boot), then the bootstrap: Docker; akk-stack Akkadius/akk-stack 13f442d with image akkadius/eqemu-server:v16; fresh secrets; EQEmu built from ae4bd2833 out of a local source archive (RelWithDebInfo, login server, Lua, Perl); quests ProjectEQ/projecteqquests c327bed plus Peridot's 2 untracked files as one quest commit; maps EQEmu/maps fbd3b19128; world claudeperidot (ClaudePeridot) on 10.111.111.235 with its own login server; MariaDB binary log on (log_bin, binlog_format=ROW, 90-day expiry). If the year-old build fights back, stop and surface it (owner's answer 5)
+- [ ] 3. Read labradorite's free memory and alpha's storage type; write the provisioner (operations services/eqemu/claudeperidot-provision.ps1) and the guest bootstrap (guest-bootstrap-claudeperidot.sh); commit on operations claude. Both are written and are being fixed after review
+- [x] 4. DHCP reservation 10.111.111.235 for BC:24:11:AC:01:43 (lab change 0009) and the DNS A record claudeperidot.strata.unseencolor.com on olivine (lab change 0010)
+- [ ] 5. Run the provisioner and build: VM 143 ClaudePeridot on labradorite (8 cores, 16 GB unballooned on one NUMA node, 100 GB on alpha, Ubuntu 24.04, not started at boot), then the bootstrap: Docker; akk-stack Akkadius/akk-stack 13f442d with image akkadius/eqemu-server:v16; fresh secrets; EQEmu built from ae4bd2833 out of the local bundle (owner's later answer: no tag on GitHub); quests ProjectEQ/projecteqquests c327bed plus Peridot's 2 untracked files as one quest commit; maps EQEmu/maps fbd3b19128; world claudeperidot (ClaudePeridot) on 10.111.111.235 with its own login server; MariaDB binary log on (log_bin, binlog_format=ROW, binlog_annotate_row_events on, 90-day expiry). If the year-old build fights back, stop and surface it (owner's answer 5)
 - [ ] 6. Enroll claudeperidot in facet: inventory entry, temporary ssh/10.111.111.235 credential, enrollHost, then delete the temporary credential; commit on operations claude
-- [ ] 7. Seed: `ledger.py seed --copyScript <operations database copy script>` streams Peridot's whole peq database (owner's answer 6: everything, accounts and login data included); boot world once; `ledger.py seed --baseline`; take the Proxmox baseline snapshot (a vzdump if alpha is thick LVM)
+- [ ] 7. Seed: `ledger.py seed --copyScript <operations database copy script>` streams Peridot's whole peq database (owner's answer 6: everything, accounts and login data included; owner's later answer: live secrets such as ammolite's login_api_tokens token, discord_webhooks and the Spire and PEQ editor admins copied as is); boot world once; `ledger.py seed --baseline`; take the Proxmox baseline snapshot (a vzdump if alpha is thick LVM)
 - [ ] 8. Expansion fixture: Expansion:CurrentExpansion 19 (Rain of Fear, owner's answer 1) in ruleset 1 default, set with world and zones stopped, then started; its revert puts back Peridot's 4
 - [x] 9. Spare client S:\Research\EverQuest\housingclient: the copy, eqhost.txt, the large-address flag and eqclient.ini (owner's answers 9 to 11) [0001, 0002, 0003, 0004]
 - [ ] 10. Measure the spare's first and second zone load on the HDD before relying on it; at first launch confirm Logs\dbg.txt reads Total Virtual: 4095, and watch 30 or more zone loads
 - [x] 11. MQClaudeLink junctioned into the owner's MacroQuest tree and built into its plugins folder (owner's answers 12 and 13) [0005]
-- [ ] 12. Credential claudeperidot/eqLogin, and Claude's MacroQuest cfg: MQ2EQBC and mq2netbots unloaded and MQClaudeLink loaded, each with noauto
-- [ ] 13. First launch through claudelink, without activating the window: injection, focus never stolen, MQ2EQBC behaviour, affinity and CPU; create the account and a character with Pariator's race and gender; GM fixture: that account's status 255
+- [ ] 12. Credential claudeperidot/eqLogin (a client change: its step generates the password and stores it with CredWrite, never on a command line; its check is the credential's existence), and Claude's MacroQuest cfg: MQ2EQBC and mq2netbots unloaded and MQClaudeLink loaded, each with noauto
+- [ ] 13. First launch through claudelink, without activating the window: injection, focus never stolen, MQ2EQBC behaviour, affinity and CPU; create the account and a character with Pariator's race and gender; GM fixture: that account's status 255 (a row change on account, whose saved rows stay on claudeperidot); the login.db persona row as a client change checked by its existence
 - [ ] 14. The rest of the claudelink commands and its MCP tools, with claudelink managing the frame limiter (owner's answer 14); the first calibration shot
 - [ ] 15. Retire the EQBCS route for Claude's work once a claudelink shot matches one of the owner's screenshots
 - [ ] 16. Experiments through the ledger; close every session as the README says
@@ -40,16 +40,15 @@ What claudeperidot copies, as read from Peridot on 2026-10-11 (read-only, throug
 
 | Piece | Peridot | claudeperidot |
 |---|---|---|
-| EQEmu | Binaries built 2026-09-25 from `ae4bd2833c0e6ff00b97e26789fc806341180260`: `main` `6fedcae` plus a commit stamp in world, zone and cmake, the housing docs, README and .gitignore. `version.h` 9325, custom 0. World has run since 2026-10-03. The `code/` checkout has since moved to local `claude` `142d48e` without a rebuild | Built from `ae4bd2833`, from a local source archive: GitHub reaches that commit only by its full SHA |
+| EQEmu | Binaries built 2026-09-25 from `ae4bd2833c0e6ff00b97e26789fc806341180260`: `main` `6fedcae` plus a commit stamp in world, zone and cmake, the housing docs, README and .gitignore. `version.h` 9325, custom 0. World has run since 2026-10-03. The `code/` checkout has since moved to local `claude` `142d48e` without a rebuild | Built from `ae4bd2833`, out of `S:\Research\EverQuest\claudeperidot\peridot-ae4bd2833.bundle` (branch `peridotRunning`; change 0008): GitHub reaches that commit only by its full SHA, and the owner chose no tag |
 | akk-stack | `Akkadius/akk-stack` `master` `13f442d` (not the PhoenixCampfire fork); file-mode changes only, no content edits; image `akkadius/eqemu-server:v16` | The same commit, cloned on the guest |
 | Quests | `ProjectEQ/projecteqquests` `master` `c327bed` (2025-06-28); no content edits, plus 2 untracked files, `global/spells/17779.lua` and `global/spells/9177.pl.bazaarbounce` | The same commit plus the 2 files as one quest commit |
 | Maps | `EQEmu/maps` `fbd3b19128`, byte-identical | The same commit |
-| Database | MariaDB 10.5.4; `db_version` 9325, bots 0, custom 0; 273 InnoDB tables and 5 views, 2,210 MB; no MyISAM, so `--single-transaction` is consistent; `log_bin` off | The whole database, streamed; binary log on |
+| Database | MariaDB 10.5.4; `db_version` 9325, bots 0, custom 0; 273 InnoDB tables and 5 views, 2,210 MB; no MyISAM, so `--single-transaction` is consistent; `log_bin` off | The whole database, streamed, live secrets included (owner, 2026-10-11); binary log on in ROW format |
 | Expansion | Ruleset 1 `default`: `Expansion:CurrentExpansion` 4, `AutoGrantAAExpansion` -1, `UseCurrentExpansionAAOnly` true; `World:ExpansionSettings` 524287; 40 zones bypass the expansion check | `Expansion:CurrentExpansion` 19 (step 8) |
 | Settings | `.env` keys match `.env.example`; `login.json` has `account.auto_create_accounts` and `client_configuration.max_expansions_mask`. No values were read | Fresh secrets; never Peridot's `.env`, `eqemu_config.json` or `login.json` |
 | Containers | eqemu-server, mariadb, peq-editor and its proxy, two fail2ban, pok web, EQBCS | eqemu-server and mariadb; no pok, EQBCS, ammolite link, public address or SonicWall forwards |
 
 ## Open with the owner
 
-- Peridot's `/root/.gitconfig` holds `[safe] directory = /opt/eqemu/akk-stack/code`, a specific path rather than the `*` that answer 8 said to remove, and root's git operations in `code/` may rely on it. It was left in place. `/tmp/zwb` and `/tmp/zwn` were already gone.
 - Peridot has no binary log and no backups (no cron job, no backup container): a production risk outside this plan.
