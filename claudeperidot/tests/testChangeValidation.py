@@ -42,9 +42,10 @@ def test_theTemplateAndTheRecordedChangesAreValid():
   changes = ledger.loadChanges(realLedger)
   assert [change.identifier for change in changes] == ["0001-housingClientCopy", "0002-housingClientLoginHost",
     "0003-housingClientLargeAddress", "0004-housingClientSettings", "0005-mqClaudeLinkPlugin", "0006-peridotStrayFiles",
-    "0007-peridotSafeDirectory", "0008-peridotSourceBundle", "0009-claudeperidotDHCP", "0010-claudeperidotDNS"]
+    "0007-peridotSafeDirectory", "0008-peridotSourceBundle", "0009-claudeperidotDHCP", "0010-claudeperidotDNS",
+    "0011-expansion19"]
   assert {(change.kind, change.fields["disposition"], change.fields["production"]) for change in changes} == {
-    ("client", "fixture", "none"), ("lab", "fixture", "none")}
+    ("client", "fixture", "none"), ("lab", "fixture", "none"), ("db", "fixture", "none")}
   assert all(change.isCleared for change in changes)
   template = realLedger / "changes" / "template"
   assert ledger.validateChangeFields(ledger.readYAML(template / "change.yaml")) == []
