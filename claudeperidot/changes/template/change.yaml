@@ -1,0 +1,36 @@
+# The template for a ledger change. Copy this folder to changes/NNNN-<name>, with the next free number and a
+# drinkingCamelCase name, fill it in, then run: python claudeperidot/tools/ledger.py stage NNNN
+#
+# The example is a row change (kind db). The other forms:
+#   db schema change: add schemaSteps, the number of statements in apply.sql (one DDL statement per step); scope lists
+#     tables only ({table: name}); revert.sql is written by hand, one inverse statement per step, in reverse order;
+#     check.sql gives the number of steps done.
+#   quest or config: add repository, the checkout's absolute path on claudeperidot, and source, the workstation clone the
+#     commits are made in (its origin is the remote the host checkout fetches); scope lists the files the commits change,
+#     relative to the repository; commits lists the commit SHAs, oldest first. No SQL files. A config change whose files
+#     the host renders with secrets adds rendered, a list of {template: a scope file, file: the live file's absolute path
+#     on the host, filledKeys: the names of the keys the host fills}, and render, the host command that renders them.
+#   client: scope lists the workstation paths touched (absolute, or ~\ for the user's profile); add steps and undo, each
+#     a list of PowerShell 5.1 scripts that never put a secret on a command line, and checks, each one of:
+#     {path, exists: file or directory}; {path, exists: junction, target}; {path, sha256}; {path, section, key, value}
+#     for an ini key; {credential: a Credential Manager target} for an entry's existence; {path, server, character} for a
+#     persona row in MacroQuest's login.db. No SQL files.
+#   lab: a change on another lab host or device (Peridot, olivine, the SonicWall), made through facet or the sonicwall
+#     MCP; steps, undo and checks are {via: facet run or sonicwall, host, run} (checks add expect). The ledger records it;
+#     Claude runs its steps and checks by hand.
+# apply.sql never holds a secret: a change that must write one reads it on the host.
+title: The ledgerExample variable is 1
+why: Shows the shape of a row change; this line says why the change is made.
+kind: db
+scope:
+  # The rows apply touches, before and after it runs: revert deletes what this predicate matches and puts back the
+  # rows saved at stage, and apply refuses to write any other row of the table.
+  - table: variables
+    where: varname = 'ledgerExample'
+disposition: exploration  # fixture, exploration or production
+significance: minor  # minor or significant; promote waits for the owner to clear significant production changes
+# pending, or {ownerMessage: the owner's message that cleared the change, quoted with its date}; never Claude's judgment
+ownerClearance: pending
+activation: restart world  # what makes the server see the change, such as "#reload rules" or a restart
+production: none  # none unless production: contentSQL or customMigration (db), questCommit, runbook or provisioner
+commits: []  # quest and config: the commit SHAs, oldest first

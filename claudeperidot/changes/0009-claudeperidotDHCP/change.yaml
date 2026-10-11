@@ -1,0 +1,25 @@
+title: The SonicWall reserves 10.111.111.235 for claudeperidot (DHCP reservation ClaudePeridot for BC:24:11:AC:01:43, domain strata.unseencolor.com, lease 1440)
+why: claudeperidot's address is fixed (owner's answer 4) and its VM's MAC is set by the provisioner; the reservation gives the guest that address from the lab's DHCP. Plan step 4.
+kind: lab
+scope:
+  - the SonicWall's DHCP reservation ClaudePeridot
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-05, the owner''s answer 4 (host): VM 143 on labradorite, 8 cores, 16 GB, 100 GB, Ubuntu 24.04, 10.111.111.235, LAN only, not started at boot'
+activation: none
+production: none
+commits: []
+steps:
+  - via: sonicwall
+    host: sonicwall
+    run: createDHCPReservation with name ClaudePeridot, IP 10.111.111.235, MAC BC:24:11:AC:01:43, domain strata.unseencolor.com, lease 1440
+undo:
+  - via: sonicwall
+    host: sonicwall
+    run: deleteDHCPReservation ClaudePeridot
+checks:
+  - via: sonicwall
+    host: sonicwall
+    run: listDHCPReservations
+    expect: one reservation ClaudePeridot, 10.111.111.235 for BC:24:11:AC:01:43, domain strata.unseencolor.com, lease 1440, and no other reservation of 10.111.111.235

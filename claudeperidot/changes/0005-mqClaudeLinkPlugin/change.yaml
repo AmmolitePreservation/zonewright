@@ -1,0 +1,45 @@
+title: MQClaudeLink is junctioned into the owner's MacroQuest tree (~\LocalProjects\mqPeridot) and built into its build\bin\release\plugins folder
+why: Claude's client link (owner's answers 12 and 13, PhoenixCampfire/claudelink) builds inside the MacroQuest tree as MQPeridotEmu does, while its source stays in the claudelink repository. Only the plugin project is built, never the MacroQuest solution. MQClaudeLink is not listed in MacroQuest.ini [Plugins], so it loads only where Claude's per-character cfg loads it with noauto. The build also left its intermediate files in build\obj\Win32\release\MQClaudeLink.
+kind: client
+scope:
+  - ~\LocalProjects\mqPeridot\plugins\MQClaudeLink
+  - ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.dll
+  - ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.exp
+  - ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.lib
+  - ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.pdb
+  - ~\LocalProjects\mqPeridot\build\obj\Win32\release\MQClaudeLink
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-05, the owner''s answers 12 (link): new plugin MQClaudeLink coupled with an MCP server, both in one new repo PhoenixCampfire/claudelink; and 13 (Python side): the separate MCP in claudelink'
+activation: none
+production: none
+commits: []
+steps:
+  - |-
+    cmd /c mklink /J "$env:USERPROFILE\LocalProjects\mqPeridot\plugins\MQClaudeLink" "$env:USERPROFILE\git\github\PhoenixCampfire\claudelink\plugin"
+    if ($LASTEXITCODE -ne 0) { throw "mklink failed with exit code $LASTEXITCODE" }
+  - |-
+    & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' "$env:USERPROFILE\LocalProjects\mqPeridot\plugins\MQClaudeLink\MQClaudeLink.vcxproj" /p:Configuration=Release /p:Platform=Win32
+    if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE" }
+undo:
+  - |-
+    foreach ($extension in @('dll', 'exp', 'lib', 'pdb')) { Remove-Item -LiteralPath "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.$extension" -Force }
+    Remove-Item -LiteralPath "$env:USERPROFILE\LocalProjects\mqPeridot\build\obj\Win32\release\MQClaudeLink" -Recurse -Force
+  - |-
+    cmd /c rmdir "$env:USERPROFILE\LocalProjects\mqPeridot\plugins\MQClaudeLink"
+    if ($LASTEXITCODE -ne 0) { throw "removing the MQClaudeLink junction failed with exit code $LASTEXITCODE" }
+checks:
+  - path: ~\LocalProjects\mqPeridot\plugins\MQClaudeLink
+    exists: junction
+    target: ~\git\github\PhoenixCampfire\claudelink\plugin
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.dll
+    exists: file
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.exp
+    exists: file
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.lib
+    exists: file
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.pdb
+    exists: file
+  - path: ~\LocalProjects\mqPeridot\build\obj\Win32\release\MQClaudeLink
+    exists: directory

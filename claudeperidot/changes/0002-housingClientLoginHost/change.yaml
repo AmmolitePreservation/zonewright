@@ -1,0 +1,23 @@
+title: housingclient's eqhost.txt sends the spare to claudeperidot's login server (Host=claudeperidot.strata.unseencolor.com:5999, CRLF)
+why: The spare must log in to claudeperidot, never Peridot. 5999 is RoF2's port, as in the owner's eqhost.txt. The owner's file ends in a blank line; the spare's does not.
+kind: client
+scope:
+  - S:\Research\EverQuest\housingclient\eqhost.txt
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-05, the owner''s answers 9 (spare folder): S:\Research\EverQuest\housingclient; and 15 (login server): claudeperidot''s own'
+activation: none
+production: none
+commits: []
+steps:
+  - |-
+    $text = "[LoginServer]`r`nHost=claudeperidot.strata.unseencolor.com:5999`r`n"
+    [IO.File]::WriteAllText('S:\Research\EverQuest\housingclient\eqhost.txt', $text, (New-Object Text.ASCIIEncoding))
+undo:
+  - |-
+    $text = "[LoginServer]`r`nHost=peridot.strata.unseencolor.com:5999`r`n`r`n"
+    [IO.File]::WriteAllText('S:\Research\EverQuest\housingclient\eqhost.txt', $text, (New-Object Text.ASCIIEncoding))
+checks:
+  - path: S:\Research\EverQuest\housingclient\eqhost.txt
+    sha256: 10e5b365b3540c306760ad2b1c9d34308f67a78677ba295fbc81e8ef2faecdc9

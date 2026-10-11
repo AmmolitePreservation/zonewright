@@ -1,0 +1,25 @@
+title: olivine's DNS has the A record claudeperidot.strata.unseencolor.com to 10.111.111.235, with no PTR record (as for pyreal)
+why: The spare client's eqhost.txt (0002) and the ledger's facet entry name claudeperidot.strata.unseencolor.com, so the name must resolve to the reserved address (0009). Plan step 4.
+kind: lab
+scope:
+  - the A record claudeperidot in the strata.unseencolor.com zone on olivine
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-05, the owner''s answer 4 (host): VM 143 on labradorite, 8 cores, 16 GB, 100 GB, Ubuntu 24.04, 10.111.111.235, LAN only, not started at boot'
+activation: none
+production: none
+commits: []
+steps:
+  - via: facet run
+    host: olivine
+    run: Add-DnsServerResourceRecordA -ZoneName strata.unseencolor.com -Name claudeperidot -IPv4Address 10.111.111.235
+undo:
+  - via: facet run
+    host: olivine
+    run: Remove-DnsServerResourceRecord -ZoneName strata.unseencolor.com -Name claudeperidot -RRType A -Force
+checks:
+  - via: facet run
+    host: olivine
+    run: (Get-DnsServerResourceRecord -ZoneName strata.unseencolor.com -Name claudeperidot -RRType A).RecordData.IPv4Address.IPAddressToString
+    expect: 10.111.111.235, and only that address
