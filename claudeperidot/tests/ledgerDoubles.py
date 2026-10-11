@@ -1136,6 +1136,15 @@ def literalNumber(text):
   return Decimal(text) if "." in text else int(text)
 
 
+def literalDouble(text):
+  """A number literal as a double: one with an exponent is a double literal already; one without is an exact integer or
+  DECIMAL, which has no negative zero, so -0 is 0."""
+  value = literalNumber(text)
+  if isinstance(value, float):
+    return value
+  return float(value) if value != 0 else 0.0
+
+
 def storedValue(table, column, token, session):
   """What MariaDB stores for a literal in column under the session's sql_mode (strict, as MariaDB 10.5 runs by default)."""
   kind, payload, charset = token
@@ -1153,10 +1162,9 @@ def storedValue(table, column, token, session):
     return roundedInteger(literalNumber(payload))
   if column.dataType == "decimal":
     return Decimal(payload).quantize(Decimal(1).scaleb(-column.scale), ROUND_HALF_UP)
-  if column.dataType == "float":
-    return single(float(payload) if kind == "number" else float(payload.decode("ascii")))
-  if column.dataType == "double":
-    return float(payload) if kind == "number" else float(payload.decode("ascii"))
+  if column.dataType in ("float", "double"):
+    value = literalDouble(payload) if kind == "number" else float(payload.decode("ascii"))
+    return single(value) if column.dataType == "float" else value
   if column.dataType == "bit":
     return int(payload) if kind == "number" else int.from_bytes(payload, "big")
   if kind == "number":
