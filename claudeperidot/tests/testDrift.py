@@ -9,7 +9,7 @@ from ledgerDoubles import (FakeTable, committedFiles, expansionCheck, expansionU
 
 # mysqlbinlog --base64-output=decode-rows --verbose output as claudeperidot's MariaDB 10.5.4 prints it: a ledger write (GTID
 # domain 7) tagged with its change, its annotation cut short as 10.5.4 cuts one holding a newline, a GM session's writes to a
-# player table and a content table, a DDL statement, a write to a state table and world's eqtime save made without
+# player table and a content table, a DDL statement, a zone's respawn_times purge and world's eqtime save made without
 # annotations, a view the server rebuilt, and a statement inside versioned comments, which the server logs as sent.
 binaryLogSample = """/*!50530 SET @@SESSION.PSEUDO_SLAVE_MODE=1*/;
 /*!40019 SET @@session.max_insert_delayed_threads=0*/;
@@ -232,7 +232,8 @@ def test_onlyWritesNoChangeAccountsForToWatchedTablesAreUnaccountedAndRuntimeWri
     "unaccounted write: 261011 10:11:00 GTID 0-1-20 at 5688: CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY "
     "DEFINER VIEW `v_spawns` AS select '?' AS `x`",
     "unaccounted write: 261011 10:12:00 GTID 0-1-21 at 5900: ALTER TABLE spawn2 COMMENT = '?'"]
-  assert drift.runtimeLines() == ["runtime (the servers' own writes, not drift): UPDATE eqtime x1"]
+  assert drift.runtimeLines() == ["runtime (the servers' own writes, not drift): UPDATE eqtime x1",
+    "runtime (the servers' own writes, not drift): DELETE respawn_times x1"]
 
 
 def test_aLedgerWriteOutsideItsChangesScopeOrWithoutATagIsReported(repository):
@@ -375,6 +376,22 @@ def test_aStatementBeforeAnyUseLineRanInNoDatabaseAndSetPasswordIsKept():
     [(None, "FLUSH PRIVILEGES", "peq")]]
 
 
+def test_aServerStartsOwnWritesAreRuntimeAndAccountStatementsAreServerAccountChanges():
+  drift = account(ledger.parseBinaryLog(serverStartSample))
+  assert drift.problems == []
+  assert drift.accountLines() == [
+    "server account change (not a peq write): 261011 15:38:08 GTID 0-1-7237 at 121867: DROP USER IF EXISTS '?'@'?'",
+    "server account change (not a peq write): 261011 15:40:00 GTID 0-1-7242 at 125559: SET PASSWORD FOR '?'@'?' = "
+    "PASSWORD('?')",
+    "server account change (not a peq write): 261011 15:40:01 GTID 0-1-7243 at 125687: GRANT ALL PRIVILEGES ON `peq`.* TO "
+    "'?'@'?'",
+    "server account change (not a peq write): 261011 15:40:02 GTID 0-1-7244 at 125825: FLUSH PRIVILEGES"]
+  assert drift.runtimeLines() == [
+    "runtime (the servers' own writes, not drift): UPDATE spire_server_database_connections x1",
+    "runtime (the servers' own writes, not drift): ALTER TABLE spire_settings x1",
+    "runtime (the servers' own writes, not drift): TRUNCATE trader x1"]
+
+
 @pytest.mark.parametrize("statement", ["CREATE USER 'claude'@'%' IDENTIFIED BY 'x'", "create or replace user claude",
   "ALTER USER 'eqemu'@'%' IDENTIFIED BY 'x'", "RENAME USER 'a'@'%' TO 'b'@'%'", "DROP USER 'root'@'%'",
   "REVOKE ALL PRIVILEGES ON *.* FROM 'eqemu'@'%'", "CREATE ROLE editor", "DROP ROLE IF EXISTS editor",
@@ -388,28 +405,27 @@ def test_eachAccountStatementIsAServerAccountChangeInAnyDatabase(statement):
       + ledger.redactValues(statement)]
 
 
-def test_accountStatementsInAServerStartAreServerAccountChanges():
-  drift = account(ledger.parseBinaryLog(serverStartSample))
-  assert drift.accountLines() == [
-    "server account change (not a peq write): 261011 15:38:08 GTID 0-1-7237 at 121867: DROP USER IF EXISTS '?'@'?'",
-    "server account change (not a peq write): 261011 15:40:00 GTID 0-1-7242 at 125559: SET PASSWORD FOR '?'@'?' = "
-    "PASSWORD('?')",
-    "server account change (not a peq write): 261011 15:40:01 GTID 0-1-7243 at 125687: GRANT ALL PRIVILEGES ON `peq`.* TO "
-    "'?'@'?'",
-    "server account change (not a peq write): 261011 15:40:02 GTID 0-1-7244 at 125825: FLUSH PRIVILEGES"]
-  assert drift.problems == [
-    "unaccounted write: 261011 15:38:19 GTID 0-1-7238 at 122002: ALTER TABLE `spire_settings` MODIFY COLUMN `setting` "
-    "varchar(190)",
-    "unaccounted write: 261011 15:38:19 GTID 0-1-7239 at 122175: UPDATE spire_server_database_connections x1",
-    "unaccounted write: 261011 15:38:34 GTID 0-1-7241 at 125430: TRUNCATE TABLE trader"]
-
-
 def test_aSessionWithNoDatabaseWritesPeqOnlyByNamingIt():
   transaction = ledger.BinaryLogTransaction("0-1-51", 0, "261011 13:05:00", "9995", {}, [
     (None, "CREATE DATABASE scratch", None), (None, "CREATE TABLE scratch.notes (id INT)", None),
     (None, "ALTER TABLE peq.items ADD COLUMN note INT", None)])
   assert account([transaction]).problems == ["unaccounted write: 261011 13:05:00 GTID 0-1-51 at 9995: ALTER TABLE peq.items "
     "ADD COLUMN note INT"]
+
+
+def test_aDeliberateChangeToARuntimeOrSpireTableIsStillDrift():
+  transaction = ledger.BinaryLogTransaction("0-1-52", 0, "261011 13:10:00", "9999", {
+    ("peq", "spire_users", "UPDATE", None): 1, ("peq", "spire_settings", "INSERT", None): 1}, [
+    (None, "ALTER TABLE eqtime ADD COLUMN note INT", "peq"), (None, "TRUNCATE TABLE items", "peq"),
+    (None, "TRUNCATE character_data", "peq"), (None, "CREATE INDEX byName ON spire_users (user_name)", "peq"),
+    (None, "ALTER TABLE `peq`.`spire_settings` MODIFY COLUMN `setting` varchar(190)", "mysql"),
+    (None, "TRUNCATE /* world */ TABLE `peq` . `buyer`", "mysql"), (None, "TRUNCATE TABLE trader", "ledgerTest")])
+  drift = account([transaction])
+  assert drift.problems == ["unaccounted write: 261011 13:10:00 GTID 0-1-52 at 9999: INSERT spire_settings x1; UPDATE "
+    "spire_users x1; ALTER TABLE eqtime ADD COLUMN note INT; TRUNCATE TABLE items; TRUNCATE character_data; CREATE INDEX "
+    "byName ON spire_users (user_name)"]
+  assert drift.runtimeLines() == ["runtime (the servers' own writes, not drift): TRUNCATE buyer x1",
+    "runtime (the servers' own writes, not drift): ALTER TABLE spire_settings x1"]
 
 
 def writeBaseline(repository, fake, position):
@@ -451,6 +467,29 @@ def test_driftIsCleanWhenOnlyTheLedgerAndTheServersRuntimeWrote(repository):
   harness.fake.externalWrite("UPDATE character_data SET zone_id = 202 WHERE id = 1",
     lambda fake: fake.tables["character_data"].rows[0].update(zone_id=202))
   assert harness.ledger.drift() == ["drift: clean", "runtime (the servers' own writes, not drift): UPDATE eqtime x1"]
+
+
+def test_aServerStartLeavesDriftCleanWithItsAccountChangesAndRuntimeWritesApart(repository):
+  fake = driftFake()
+  fake.tables["spire_server_database_connections"] = FakeTable([("id", "int"), ("db_password", "varchar", "latin1")], ("id",),
+    [{"id": 1, "db_password": b"sealed once"}])
+  fake.tables["spire_settings"] = FakeTable([("id", "int"), ("setting", "varchar", "latin1")], ("id",),
+    [{"id": 1, "setting": b"AUTH_ENABLED"}])
+  fake.tables["trader"] = FakeTable([("id", "int")], ("id",), [{"id": 7}])
+  harness = driftHarness(repository, fake)
+  fake.externalWrite("DROP USER IF EXISTS 'root'@'%'", lambda fake: None, database=None)
+  fake.externalWrite("ALTER TABLE `spire_settings` MODIFY COLUMN `setting` varchar(190)", lambda fake: None)
+  for sealed in (b"sealed twice", b"sealed again"):
+    fake.externalWrite("UPDATE `spire_server_database_connections` SET `db_password`='sealed' WHERE `id` = 1",
+      lambda fake, sealed=sealed: fake.tables["spire_server_database_connections"].rows[0].update(db_password=sealed))
+  fake.externalWrite("TRUNCATE TABLE trader", lambda fake: fake.tables["trader"].rows.clear())
+  fake.externalWrite("UPDATE eqtime SET minute = 11", lambda fake: fake.tables["eqtime"].rows[0].update(minute=11))
+  assert harness.ledger.drift() == ["drift: clean",
+    "server account change (not a peq write): 261011 10:00:00 GTID 0-1-15 at 4321: DROP USER IF EXISTS '?'@'?'",
+    "runtime (the servers' own writes, not drift): UPDATE eqtime x1",
+    "runtime (the servers' own writes, not drift): UPDATE spire_server_database_connections x2",
+    "runtime (the servers' own writes, not drift): ALTER TABLE spire_settings x1",
+    "runtime (the servers' own writes, not drift): TRUNCATE trader x1"]
 
 
 def test_driftListsTableDifferencesAndUnaccountedWrites(repository):

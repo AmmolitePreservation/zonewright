@@ -68,10 +68,23 @@ securityTables = frozenset("""
   login_api_tokens login_server_admins login_server_list_types discord_webhooks server_scheduled_events
   player_event_log_settings gm_ips banned_ips ip_exemptions
 """.split())
-# Server tables the servers write on their own at ae4bd2833: world saves eqtime every 10 minutes, zones save spawn_events and
-# spawn_condition_values as events fire, ucs saves chatchannels as channels are made. Their other boot writes (rules, commands,
-# log categories, db_version, variables) add only what is missing, so those tables stay watched.
-runtimeTables = frozenset("eqtime spawn_events spawn_condition_values chatchannels".split())
+# The tables world, zone, ucs and loginserver (ae4bd2833) and Spire (v4.24.2) write on their own, at start, on a timer or as
+# play goes on; the README's Runtime tables gives each one's source. Their other start writes (rules, commands, log
+# categories, player event settings, db_version, variables, Spire's settings) add only what is missing, so those stay watched.
+runtimeTables = frozenset("""
+  eqtime data_buckets group_id group_leaders raid_members raid_details raid_leaders guild_members inventory_snapshots trader
+  buyer buyer_buy_lines buyer_trade_items bot_pet_buffs merchantlist_temp character_corpses character_corpse_items
+  dynamic_zones dynamic_zone_members dynamic_zone_lockouts character_expedition_lockouts character_task_timers instance_list
+  instance_list_player respawn_times spawn_condition_values spawn2_disabled shared_tasks shared_task_members
+  shared_task_activity_state shared_task_dynamic_zones zone_state_spawns character_parcels player_event_logs
+  player_event_loot_items player_event_merchant_sell player_event_merchant_purchase player_event_npc_handin
+  player_event_npc_handin_entries player_event_trade player_event_trade_entries player_event_speech player_event_killed_npc
+  player_event_killed_named_npc player_event_killed_raid_npc player_event_aa_purchase
+  spawn_events quest_globals saylink
+  mail chatchannels
+  login_world_servers
+  spire_server_database_connections
+""".split())
 contentTables = frozenset("""
   aa_ability aa_rank_effects aa_rank_prereqs aa_ranks adventure_template adventure_template_entry
   adventure_template_entry_flavor alternate_currency auras base_data blocked_spells books char_create_combinations
@@ -1025,6 +1038,12 @@ clientCommandCommentPattern = re.compile(r"/\*!\\C [^*]*\*/")
 databaseQualifierPattern = re.compile(rf"(?<![\w$`.])(?:`{databaseName}`|{databaseName})\s*\.")
 ignoredQueryStatements = re.compile(r"^(SET\b(?!\s+(?:PASSWORD|DEFAULT\s+ROLE)\b)|use\b|BEGIN\b|COMMIT\b|START TRANSACTION\b|"
   r"ROLLBACK\b|XA\b)", re.IGNORECASE)
+identifierText = r"(?:`(?:[^`]|``)+`|[\w$]+)"
+tableStatementPatterns = {
+  "TRUNCATE": re.compile(rf"^TRUNCATE\s+(?:TABLE\s+)?(?:({identifierText})\s*\.\s*)?({identifierText})", re.IGNORECASE),
+  "ALTER TABLE": re.compile(rf"^ALTER\s+(?:ONLINE\s+)?(?:IGNORE\s+)?TABLE\s+(?:IF\s+EXISTS\s+)?(?:({identifierText})\s*\.\s*)?"
+    rf"({identifierText})", re.IGNORECASE),
+}
 
 
 def isAccountStatement(statement):
@@ -1035,6 +1054,27 @@ def isAccountStatement(statement):
     return True
   subject = words[3:4] if words[1:3] == ["OR", "REPLACE"] else words[1:2]
   return words[:1] in (["CREATE"], ["DROP"], ["ALTER"], ["RENAME"]) and subject in (["USER"], ["ROLE"])
+
+
+def unquoteIdentifier(text):
+  return text[1:-1].replace("``", "`") if text.startswith("`") else text
+
+
+def runtimeStatement(statement, database):
+  """(table, operation) for a statement the servers or Spire run in peq on their own, or None: a TRUNCATE of a runtime table
+  (world empties the trader and buyer tables at boot), or Spire's migration of one of its own spire_ tables at start."""
+  text = "".join(" " if kind == "comment" else piece for kind, piece in sqlPieces(statement)).strip()
+  for operation, pattern in tableStatementPatterns.items():
+    match = pattern.match(text)
+    if not match:
+      continue
+    table = unquoteIdentifier(match.group(2))
+    if (unquoteIdentifier(match.group(1)) if match.group(1) else database) != databaseName:
+      return None
+    if operation == "TRUNCATE" and table in runtimeTables or operation == "ALTER TABLE" and table.startswith("spire_"):
+      return table, operation
+    return None
+  return None
 
 
 def splitTag(text):
@@ -1149,8 +1189,11 @@ class DriftAccount:
     accounts = []
     for _, text, database in transaction.statements:
       shown = redactValues(" ".join(text.split()))[:200]
+      runtime = runtimeStatement(text, database)
       if isAccountStatement(text):
         accounts.append(shown)
+      elif runtime:
+        self.countRuntime(*runtime, 1)
       elif database == databaseName or databaseQualifierPattern.search(text):
         parts.append(shown)
     if accounts:
