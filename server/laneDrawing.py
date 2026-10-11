@@ -81,6 +81,9 @@ legendPadding = 8
 legendTextSize = 14
 legendBackground = (250, 250, 247)
 legendTextColor = (20, 20, 20)
+# What a plan's regions players do not simply play in are, by access, and its caves' floor strokes, by kind, as its legend names them.
+accessWords = {"view": "view region: seen, never entered", "none": "none region: never reached", None: "region, its access undecided"}
+strokeWords = {"level": "cave level way", "pad": "cave pad", "rough": "cave rough ground"}
 # The relief runs between these greys, its highest kept apart from the background.
 reliefLow, reliefHigh = (70, 66, 60), (200, 196, 186)
 trapFlag, layeredFlag, unreachedFlag, squeezeLayeredFlag, wadedFlag = 1, 2, 4, 8, 16
@@ -670,20 +673,51 @@ def sectionLayerLegend(cuts):
 
 
 def planLayerLegend(overlays, frame):
-  """A plan's own layers the frame shows under a lane, as legend entries, each fill as it shows over the relief: the relief, water by
-  liquid, boundaries' walls, and their lids and floors (the lane draws the swim volumes and names them in its own entries)."""
+  """A plan's own layers the frame shows under a lane, as legend entries, each fill as it shows over the relief: the relief, the
+  ground's spot heights, water by liquid, regions (their outlines and the fills of those players do not simply play in, by access),
+  caves (runs, floor heights, junctions, floor strokes by kind), plots, entries (filled, isolated, or keeping the heading), zone lines,
+  boundaries' walls and their lids and floors, and sketch shapes (the lane draws the swim volumes and names them in its own entries)."""
   def shows(points):
     pixels = [frame.pixel(point) for point in points]
     xs, ys = [x for x, _ in pixels], [y for _, y in pixels]
     return bool(pixels) and max(xs) >= 0 and min(xs) < frame.size[0] and max(ys) >= 0 and min(ys) < frame.size[1]
 
   items = [("relief", None, "relief: lighter is higher")]
+  if any(shows([spot["at"]]) for spot in overlays["spots"]):
+    items.append(("spot", planDrawing.spotColor, "the ground's height at a grid crossing"))
   liquids = sorted({body["liquid"] for body in overlays["water"] if shows([point for x0, y0, x1, y1 in body["runs"] for point in ((x0, y0), (x1, y1))] + [point for loop in body["loops"] for point in loop])})
   items += [("fill", overRelief(planDrawing.liquidColors[liquid], planDrawing.waterAlpha), f"{liquid} surface") for liquid in liquids]
+  regions = [region for region in overlays["regions"] if shows(region["outline"])]
+  if regions:
+    items.append(("dashed", planDrawing.regionColor, "region, named"))
+  accesses = {region["access"] for region in regions}
+  items += [("accessHatch", planDrawing.accessColors[access], words) for access, words in accessWords.items() if access in accesses]
+  caves = [cave for cave in overlays["caves"] if shows(cave["left"] + cave["right"])]
+  if caves:
+    items.append(("caveRun", planDrawing.caveColor, "cave run: walls at its floor's height, middle dashed, over its pale floor"))
+    if any(cave["floors"] for cave in caves):
+      items.append(("caveFloor", planDrawing.caveColor, "cave floor height at a path point"))
+    if any(cave["junction"] is not None or cave["opening"] is not None for cave in caves):
+      items.append(("caveJunction", planDrawing.caveColor, "where a cave branch meets its parent"))
+    kinds = {stroke["kind"] for cave in caves for stroke in cave["strokes"]}
+    items += [("dashed" if kind == "rough" else "stroke", planDrawing.strokeColors[kind], words) for kind, words in strokeWords.items() if kind in kinds]
+  if any(shows(plot["corners"]) for plot in overlays["plots"]):
+    items.append(("plot", planDrawing.plotColor, "plot, by address, its mark out of the entrance side"))
+  shownEntries = [entry for entry in overlays["entries"] if shows([entry["at"]])]
+  if any(entry["headingDegrees"] != "keep" and not entry["isolated"] for entry in shownEntries):
+    items.append(("entryArrow", planDrawing.entryColor, "entry: where players arrive, toward their heading"))
+  if any(entry["headingDegrees"] != "keep" and entry["isolated"] for entry in shownEntries):
+    items.append(("isolatedEntryArrow", planDrawing.entryColor, "isolated entry"))
+  if any(entry["headingDegrees"] == "keep" for entry in shownEntries):
+    items.append(("entryRing", planDrawing.entryColor, "entry keeping the player's heading"))
+  if any(shows(line["corners"]) for line in overlays["zoneLines"]):
+    items.append(("box", planDrawing.zoneLineColor, "zone line"))
   if any(shows([point for line in boundary["lines"] for point in line]) for boundary in overlays["boundaries"]):
     items.append(("line", planDrawing.boundaryColor, "boundary wall"))
   if any(shows([point for area in boundary["areas"] for point in area]) for boundary in overlays["boundaries"]):
     items.append(("fill", overRelief(planDrawing.boundaryColor, planDrawing.boundaryAreaAlpha), "boundary lid or floor"))
+  if any(shows(shape["plan"]) for sheet in overlays["sheets"] for shape in sheet["shapes"]):
+    items.append(("dashed", planDrawing.sheetColors[0], "sketch areas (dashed), footprints, paths, and points, in their sheets' colors"))
   return items
 
 
@@ -868,7 +902,41 @@ def drawLegendItem(draw, left, top, item):
     for y in range(top + 2, bottom, wadedSpacing):
       draw.line([(left, y), (right, y)], fill=color, width=2)
   elif kind in ("arrow", "hollowArrow"):
-    draw.polygon([(right, middle), (left + 2, top + 2), (left + 2, bottom - 2)], fill=None if kind == "hollowArrow" else seedFill, outline=color, width=2)
+    # On the legend's near-white band a white arrow and a hollow one look alike; on the walked ground seeds stand on, they do not.
+    draw.rectangle([left, top, right, bottom], fill=overRelief(labelColors[playerReach.walkLabel], fillAlpha))
+    draw.polygon([(right - 1, middle), (left + 2, top + 2), (left + 2, bottom - 2)], fill=None if kind == "hollowArrow" else seedFill, outline=color, width=2)
+  elif kind in ("entryArrow", "isolatedEntryArrow"):
+    draw.rectangle([left, top, right, bottom], fill=tuple(round(channel) for channel in reliefMiddle))
+    if kind == "entryArrow":
+      draw.polygon([(right - 1, middle), (left + 2, top + 2), (left + 2, bottom - 2)], fill=color, outline=(255, 255, 255), width=1)
+    else:
+      draw.polygon([(right - 1, middle), (left + 2, top + 2), (left + 2, bottom - 2)], fill=(255, 255, 255), outline=color, width=2)
+  elif kind == "entryRing":
+    draw.ellipse([left + 2, top + 2, right - 2, bottom - 2], outline=color, width=3)
+  elif kind == "spot":
+    draw.ellipse([left + 1, middle - 2, left + 5, middle + 2], fill=(0, 0, 0))
+    draw.text((left + 7, middle + 1), "7", fill=color, font=planDrawing.fontOf(12), anchor="lm")
+  elif kind == "accessHatch":
+    draw.rectangle([left, top, right, bottom], fill=overRelief(color, planDrawing.accessFillAlpha))
+    for offset in range(-legendSwatch + 3, legendSwatch, 6):
+      start, end = max(offset, 0), min(offset + legendSwatch, legendSwatch)
+      draw.line([(left + start, bottom - (start - offset)), (left + end, bottom - (end - offset))], fill=overRelief(color, planDrawing.accessHatchAlpha), width=planDrawing.hatchWidth)
+  elif kind == "caveRun":
+    draw.rectangle([left, top + 3, right, bottom - 3], fill=overRelief(planDrawing.caveFloorFill[:3], planDrawing.caveFloorFill[3]))
+    for y in (top + 3, bottom - 3):
+      draw.line([(left, y), (right, y)], fill=color, width=2)
+    planDrawing.dashedLine(draw, [(left, middle), (right, middle)], color, 2)
+  elif kind == "caveFloor":
+    draw.rectangle([left + 3, top + 2, right - 3, bottom - 2], outline=color, width=1)
+    draw.text(((left + right) / 2, middle), "8", fill=color, font=planDrawing.fontOf(11), anchor="mm")
+  elif kind == "caveJunction":
+    draw.ellipse([left + 4, top + 4, right - 4, bottom - 4], fill=(255, 255, 255), outline=color, width=2)
+  elif kind == "stroke":
+    draw.rectangle([left + 1, top + 3, right - 1, bottom - 3], fill=overRelief(color, 70), outline=color, width=2)
+  elif kind == "plot":
+    draw.rectangle([left + 1, top + 5, right - 1, bottom - 1], outline=color, width=2)
+    center = (left + right) / 2
+    draw.polygon([(center, top), (center - 5, top + 5), (center + 5, top + 5)], fill=color)
   elif kind == "plus":
     draw.line([(left + 2, middle), (right - 2, middle)], fill=color, width=3)
     draw.line([((left + right) / 2, top + 2), ((left + right) / 2, bottom - 2)], fill=color, width=3)

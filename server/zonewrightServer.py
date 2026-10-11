@@ -2462,11 +2462,13 @@ async def renderSketch(
   and regions, over the regions' fills and the caves' pale floors and under the caves' walls: walk green, swim blue, water waded lined
   blue, slide orange, squeeze pink, taken by a zone line yellow, traps hatched orange, walkable floor never reached cross-hatched (alone,
   or over a level reached under it), ledges dark, leak edges magenta, zone lines hatched when reached, swim boxes dashed, seeds as white
-  arrows, with a legend in a band under the plan of what it shows; the result's laneState says whether the lane was computed or reused,
-  the constants it used, what it does not model, and its limits). A cave run's end its cut rounded off closes in a half circle;
-  `caveEndsUnknown` names the caves cut before their records kept which ends were rounded, whose ends are drawn open (cut them again
-  with editCave). Labels are placed clear of one another, and beside the spot heights rather than over them where they can be; an area
-  is named only where it reaches into the drawing. frameSize is the plan's size in pixels, above any legend band."""
+  arrows (hollow when isolated), with a legend in a band under the plan naming what it draws, the lane's marks and the plan's own
+  layers in the frame (the relief, spot heights, water, regions and their access fills, caves, plots, entries, zone lines, boundaries,
+  and sketch shapes); the result's laneState says whether the lane was computed or reused, the constants it used, what it does not
+  model, and its limits). A cave run's end its cut rounded off closes in a half circle; `caveEndsUnknown` names the caves cut before
+  their records kept which ends were rounded, whose ends are drawn open (cut them again with editCave). Labels are placed clear of one
+  another, and beside the spot heights rather than over them where they can be; an area is named only where it reaches into the
+  drawing. frameSize is the plan's size in pixels, above any legend band."""
   if len(center) != 2 or width <= 0:
     raise ToolError(f"center is [x, y] and width positive, got {center} and {width}")
   zone = await callBridge(context, "getZoneProperties", {})

@@ -233,6 +233,41 @@ def testUnreachedFloorIsDimmedAloneAndShowsTheLevelReachedUnderIt(stageBlenderSe
     assert numpy.abs(laned[place][~crossing] - composited(plain[place], color, alpha)[~crossing]).max() <= 2, name
 
 
+def testALanePlansLegendNamesThePlansOwnLayersInItsFrame():
+  """A plan 100 across about the origin holding a view region, a cave run with its floor heights and a branch's junction, a safe point's
+  entry, a plot, and spot heights; a none region, a zone line, and a boundary lie outside it."""
+  frame = planDrawing.PlanFrame([0, 0], 100, (960, 540))
+  outside = [[400, 400], [420, 400], [420, 420], [400, 420]]
+  overlays = {
+    "sheets": [], "water": [], "swim": [], "spots": [{"at": [0, 0], "height": 0.0}],
+    "regions": [{"name": "hill", "outline": [[-10, -10], [10, -10], [10, 10], [-10, 10]], "access": "view"}, {"name": "rim", "outline": outside, "access": "none"}],
+    "caves": [{
+      "label": "hall", "left": [[-20, -2], [20, -2]], "right": [[-20, 2], [20, 2]], "middle": [[-20, 0], [20, 0]], "endCap": [], "startCap": [],
+      "floors": [{"at": [-20, 0], "floor": 2.0}], "junction": [-20, 0], "opening": None, "strokes": [], "meanFloor": 2.0,
+    }],
+    "plots": [{"address": "1 Hill Street", "corners": [[5, 5], [15, 5], [15, 15], [5, 15]], "facingDegrees": 0.0}],
+    "entries": [{"label": "S", "at": [0, -20], "headingDegrees": 90.0, "isolated": False}],
+    "zoneLines": [{"name": "ATP_1_far", "corners": outside}],
+    "boundaries": [{"name": "rimWall", "lines": [outside], "areas": []}],
+  }
+  assert [text for _, _, text in laneDrawing.planLayerLegend(overlays, frame)] == [
+    "relief: lighter is higher", "the ground's height at a grid crossing", "region, named", "view region: seen, never entered",
+    "cave run: walls at its floor's height, middle dashed, over its pale floor", "cave floor height at a path point",
+    "where a cave branch meets its parent", "plot, by address, its mark out of the entrance side", "entry: where players arrive, toward their heading",
+  ]
+
+
+def testSeedAndIsolatedSeedSwatchesDiffer():
+  # Inside its arrow a seed's swatch is the seeds' white fill; an isolated seed's shows the walked ground under it, apart from the
+  # near-white legend band.
+  items = [("arrow", laneDrawing.seedOutline, "seed"), ("hollowArrow", laneDrawing.seedOutline, "isolated seed")]
+  sheet = laneDrawing.withLegend(Image.new("RGB", (600, 10), (0, 0, 0)), items)
+  places, _ = laneDrawing.legendLayout(600, items)
+  inside = [sheet.getpixel((left + 6, 10 + top + laneDrawing.legendSwatch // 2)) for left, top in places]
+  walked = laneDrawing.overRelief(laneDrawing.labelColors[playerReach.walkLabel], laneDrawing.fillAlpha)
+  assert inside == [laneDrawing.seedFill, walked] and math.dist(walked, laneDrawing.legendBackground) > 100
+
+
 def testLaneWalksACaveUnderItsVaultAndShowsThroughItsPlanFloor(stageBlenderServer, tmp_path):
   async def steps(session):
     await caveCanyon(session, tmp_path)
