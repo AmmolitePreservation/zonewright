@@ -136,13 +136,13 @@ def test_aPathUnderTheProfileIsExpanded():
 
 
 def test_aStepsScriptNeverReachesACommandLine(tmp_path):
-  seen = tmp_path / "commandLine.txt"
-  ledger.runPowerShell(f"$marker = 'stepSecret' + '{uuid.uuid4().hex}'\n"
-    f"[IO.File]::WriteAllText('{seen}', [Environment]::CommandLine + \"`n\" + $marker)")
-  commandLine, marker = seen.read_text(encoding="utf-8").rsplit("\n", 1)
-  assert marker.startswith("stepSecret")
-  assert marker not in commandLine
-  assert "stepSecret" not in commandLine
+  commandLines = []
+  for index, secret in enumerate(("short", "a much longer stand-in for a generated password " * 4)):
+    seen = tmp_path / f"commandLine{index}.txt"
+    ledger.runPowerShell(f"$secret = '{secret}'\n[IO.File]::WriteAllText('{seen}', [Environment]::CommandLine)")
+    commandLines.append(seen.read_text(encoding="utf-8"))
+  assert commandLines[0] == commandLines[1]
+  assert "powershell" in commandLines[0].lower()
 
 
 def clientHarness(repository, tmp_path, steps=None):
