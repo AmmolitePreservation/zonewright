@@ -251,6 +251,15 @@ def test_aLedgerWriteOutsideItsChangesScopeOrWithoutATagIsReported(repository):
     "INT in ledgerTest by 0002, which is not a schema change in the ledger"]
 
 
+def test_aLedgerSchemaStatementFromASessionWithNoDatabaseIsOutsideItsScope(repository):
+  writeChange(repository, "0002-itemsColumns", schemaChangeFields(), {})
+  transaction = ledger.BinaryLogTransaction("7-1-31", 7, "261011 11:05:00", "9100", {}, [
+    ("0002", "ALTER TABLE items ADD COLUMN a INT", None)])
+  assert account([transaction], ledger.loadChanges(repository)).problems == ["ledger write outside its change's scope: "
+    "261011 11:05:00 GTID 7-1-31 at 9100: ALTER TABLE items ADD COLUMN a INT in no database by 0002, which is not a schema "
+    "change in the ledger"]
+
+
 def test_writesInAnotherDatabaseAreNotThePeqDatabasesDrift():
   transaction = ledger.BinaryLogTransaction("0-1-40", 0, "261011 12:00:00", "9900", {("ledgerTest", "payloads", "INSERT",
     None): 2, ("mysql", "user", "UPDATE", None): 1}, [(None, "CREATE TABLE payloads (id INT)", "ledgerTest"),
@@ -266,6 +275,141 @@ def test_aStatementNamingPeqIsPeqsDriftWhateverDatabaseItRanIn():
     (None, "CREATE TABLE notpeq.items (id INT)", "mysql")])
   assert account([transaction]).problems == ["unaccounted write: 261011 12:05:00 GTID 0-1-41 at 9950: ALTER TABLE peq.items "
     "DROP INDEX byName; ALTER TABLE `peq` . `spawn2` ADD INDEX byZone (zone)"]
+
+
+# A server start as claudeperidot's mysqlbinlog printed it: the provisioner's DROP USER from a session with no database (no
+# use line, at the start of the stream), Spire's migration and its connection sync in peq, world emptying the trader table,
+# then account statements from a session with no database, which mysqlbinlog prints without a use line after peq's.
+serverStartSample = """/*!50530 SET @@SESSION.PSEUDO_SLAVE_MODE=1*/;
+DELIMITER /*!*/;
+# at 121867
+#261011 15:38:08 server id 1  end_log_pos 416 CRC32 0x53709eab 	GTID 0-1-7237 ddl
+/*!100001 SET @@session.gtid_domain_id=0*//*!*/;
+/*!100001 SET @@session.gtid_seq_no=7237*//*!*/;
+# at 121909
+#261011 15:38:08 server id 1  end_log_pos 509 CRC32 0x58a1deb6 	Query	thread_id=5	exec_time=0	error_code=0
+SET TIMESTAMP=1791751088/*!*/;
+SET @@session.pseudo_thread_id=5/*!*/;
+SET @@session.sql_mode=1411383296/*!*/;
+/*!\\C latin1 *//*!*/;
+SET @@session.collation_database=DEFAULT/*!*/;
+DROP USER IF EXISTS 'root'@'%'
+/*!*/;
+# at 122002
+#261011 15:38:19 server id 1  end_log_pos 551 CRC32 0x31cb86c0 	GTID 0-1-7238 ddl
+/*!100001 SET @@session.gtid_seq_no=7238*//*!*/;
+# at 122044
+#261011 15:38:19 server id 1  end_log_pos 682 CRC32 0xd9da8301 	Query	thread_id=8	exec_time=0	error_code=0
+use `peq`/*!*/;
+SET TIMESTAMP=1791751099/*!*/;
+ALTER TABLE `spire_settings` MODIFY COLUMN `setting` varchar(190)
+/*!*/;
+# at 122175
+#261011 15:38:19 server id 1  end_log_pos 724 CRC32 0xb07f6508 	GTID 0-1-7239 trans
+/*!100001 SET @@session.gtid_seq_no=7239*//*!*/;
+BEGIN
+/*!*/;
+# at 122217
+# at 122996
+#261011 15:38:19 server id 1  end_log_pos 1503 CRC32 0x3702581b 	Annotate_rows:
+#Q> UPDATE `spire_server_database_connections` SET `name`='ClaudePeridot',`db_password`='secret' WHERE `id` = 1
+#261011 15:38:19 server id 1  end_log_pos 1641 CRC32 0x6b79e10a 	Table_map: `peq`.`spire_server_database_connections` mapped to number 23
+# at 123134
+#261011 15:38:19 server id 1  end_log_pos 2279 CRC32 0x6c9f6a47 	Update_rows: table id 23 flags: STMT_END_F
+### UPDATE `peq`.`spire_server_database_connections`
+### WHERE
+###   @1=1
+### SET
+###   @1=1
+# Number of rows: 1
+# at 123772
+#261011 15:38:19 server id 1  end_log_pos 2310 CRC32 0xcd46b869 	Xid = 488
+COMMIT/*!*/;
+# at 125430
+#261011 15:38:34 server id 1  end_log_pos 3979 CRC32 0xb1be5888 	GTID 0-1-7241 ddl
+/*!100001 SET @@session.gtid_seq_no=7241*//*!*/;
+# at 125472
+#261011 15:38:34 server id 1  end_log_pos 4066 CRC32 0xe25d4d07 	Query	thread_id=12	exec_time=1	error_code=0
+SET TIMESTAMP=1791751114/*!*/;
+TRUNCATE TABLE trader
+/*!*/;
+# at 125559
+#261011 15:40:00 server id 1  end_log_pos 4108 CRC32 0x60649a2c 	GTID 0-1-7242 ddl
+/*!100001 SET @@session.gtid_seq_no=7242*//*!*/;
+# at 125601
+#261011 15:40:00 server id 1  end_log_pos 4194 CRC32 0xef0b95bb 	Query	thread_id=14	exec_time=0	error_code=0
+SET TIMESTAMP=1791751200/*!*/;
+SET PASSWORD FOR 'eqemu'@'%' = PASSWORD('hunter2')
+/*!*/;
+# at 125687
+#261011 15:40:01 server id 1  end_log_pos 4236 CRC32 0x1aac2bc7 	GTID 0-1-7243 ddl
+/*!100001 SET @@session.gtid_seq_no=7243*//*!*/;
+# at 125729
+#261011 15:40:01 server id 1  end_log_pos 4332 CRC32 0x117dcdd9 	Query	thread_id=14	exec_time=0	error_code=0
+SET TIMESTAMP=1791751201/*!*/;
+GRANT ALL PRIVILEGES ON `peq`.* TO 'eqemu'@'%'
+/*!*/;
+# at 125825
+#261011 15:40:02 server id 1  end_log_pos 4374 CRC32 0x98e7669c 	GTID 0-1-7244 ddl
+/*!100001 SET @@session.gtid_seq_no=7244*//*!*/;
+# at 125867
+#261011 15:40:02 server id 1  end_log_pos 4472 CRC32 0x6d4c9388 	Query	thread_id=14	exec_time=0	error_code=0
+SET TIMESTAMP=1791751202/*!*/;
+FLUSH PRIVILEGES
+/*!*/;
+DELIMITER ;
+# End of log file
+ROLLBACK /* added by mysqlbinlog */;
+"""
+
+
+def test_aStatementBeforeAnyUseLineRanInNoDatabaseAndSetPasswordIsKept():
+  transactions = ledger.parseBinaryLog(serverStartSample)
+  assert [transaction.statements for transaction in transactions] == [
+    [(None, "DROP USER IF EXISTS 'root'@'%'", None)],
+    [(None, "ALTER TABLE `spire_settings` MODIFY COLUMN `setting` varchar(190)", "peq")],
+    [],
+    [(None, "TRUNCATE TABLE trader", "peq")],
+    [(None, "SET PASSWORD FOR 'eqemu'@'%' = PASSWORD('hunter2')", "peq")],
+    [(None, "GRANT ALL PRIVILEGES ON `peq`.* TO 'eqemu'@'%'", "peq")],
+    [(None, "FLUSH PRIVILEGES", "peq")]]
+
+
+@pytest.mark.parametrize("statement", ["CREATE USER 'claude'@'%' IDENTIFIED BY 'x'", "create or replace user claude",
+  "ALTER USER 'eqemu'@'%' IDENTIFIED BY 'x'", "RENAME USER 'a'@'%' TO 'b'@'%'", "DROP USER 'root'@'%'",
+  "REVOKE ALL PRIVILEGES ON *.* FROM 'eqemu'@'%'", "CREATE ROLE editor", "DROP ROLE IF EXISTS editor",
+  "SET DEFAULT ROLE editor FOR 'eqemu'@'%'", "/* provisioner */ GRANT SELECT ON peq.spawn2 TO 'reader'@'%'",
+  "FLUSH TABLES"])
+def test_eachAccountStatementIsAServerAccountChangeInAnyDatabase(statement):
+  for database in (None, "peq", "mysql"):
+    drift = account([ledger.BinaryLogTransaction("0-1-50", 0, "261011 13:00:00", "9990", {}, [(None, statement, database)])])
+    assert drift.problems == []
+    assert drift.accountLines() == ["server account change (not a peq write): 261011 13:00:00 GTID 0-1-50 at 9990: "
+      + ledger.redactValues(statement)]
+
+
+def test_accountStatementsInAServerStartAreServerAccountChanges():
+  drift = account(ledger.parseBinaryLog(serverStartSample))
+  assert drift.accountLines() == [
+    "server account change (not a peq write): 261011 15:38:08 GTID 0-1-7237 at 121867: DROP USER IF EXISTS '?'@'?'",
+    "server account change (not a peq write): 261011 15:40:00 GTID 0-1-7242 at 125559: SET PASSWORD FOR '?'@'?' = "
+    "PASSWORD('?')",
+    "server account change (not a peq write): 261011 15:40:01 GTID 0-1-7243 at 125687: GRANT ALL PRIVILEGES ON `peq`.* TO "
+    "'?'@'?'",
+    "server account change (not a peq write): 261011 15:40:02 GTID 0-1-7244 at 125825: FLUSH PRIVILEGES"]
+  assert drift.problems == [
+    "unaccounted write: 261011 15:38:19 GTID 0-1-7238 at 122002: ALTER TABLE `spire_settings` MODIFY COLUMN `setting` "
+    "varchar(190)",
+    "unaccounted write: 261011 15:38:19 GTID 0-1-7239 at 122175: UPDATE spire_server_database_connections x1",
+    "unaccounted write: 261011 15:38:34 GTID 0-1-7241 at 125430: TRUNCATE TABLE trader"]
+
+
+def test_aSessionWithNoDatabaseWritesPeqOnlyByNamingIt():
+  transaction = ledger.BinaryLogTransaction("0-1-51", 0, "261011 13:05:00", "9995", {}, [
+    (None, "CREATE DATABASE scratch", None), (None, "CREATE TABLE scratch.notes (id INT)", None),
+    (None, "ALTER TABLE peq.items ADD COLUMN note INT", None)])
+  assert account([transaction]).problems == ["unaccounted write: 261011 13:05:00 GTID 0-1-51 at 9995: ALTER TABLE peq.items "
+    "ADD COLUMN note INT"]
 
 
 def writeBaseline(repository, fake, position):

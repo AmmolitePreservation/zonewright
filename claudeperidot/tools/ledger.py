@@ -690,11 +690,16 @@ def taggedStatements(change, action, statements):
   return "".join(f"{tagged(statement, ledgerTag(change, action))};\n" for statement in statements)
 
 
+def codeWords(statement):
+  """The words of statement outside its quoted text and comments, in capitals."""
+  return [word.upper() for kind, text in sqlPieces(statement) if kind == "code" for word in re.findall(r"[A-Za-z_]+", text)]
+
+
 def untaggedLogReason(statement):
   """Why MariaDB 10.5 writes statement to the binary log without the ledger's tag, so drift could not tell the ledger made
   it, or None: it rebuilds views, triggers, routines and events with their definer and CREATE TABLE ... SELECT as a CREATE
   TABLE of its own, and keeps a DROP TABLE's tag only in its plain form."""
-  words = [word.upper() for kind, text in sqlPieces(statement) if kind == "code" for word in re.findall(r"[A-Za-z_]+", text)]
+  words = codeWords(statement)
   if words[:1] == ["DROP"] and words[1:2] in (["TABLES"], ["TEMPORARY"]):
     return "MariaDB keeps the tag of a DROP TABLE only when it is written DROP TABLE [IF EXISTS] name"
   if words[:1] not in (["CREATE"], ["ALTER"]):
@@ -1014,10 +1019,22 @@ rowEventPattern = re.compile(r"^### (INSERT INTO|UPDATE|DELETE FROM) `([^`]+)`\.
 tagPattern = re.compile(r"^(\s*|DROP TABLE (?:IF EXISTS )?)/\* ledger (\d{4}) (apply|revert) \*/\s*")
 versionedCommentPattern = re.compile(r"/\*M?!\d{5,6} ?(.*?)\*/", re.DOTALL)
 clientCommandCommentPattern = re.compile(r"/\*!\\C [^*]*\*/")
-# mysqlbinlog names a statement's session database, not the one it writes, and prints no use line when a session has none,
-# so a statement that names peq counts as peq's whatever database it ran in.
+# mysqlbinlog names a statement's session database, not the one it writes, and prints a use line only when that changes to a
+# database: None is a session with no database, which writes peq only by naming it, and a statement that names peq counts as
+# peq's whatever database it ran in.
 databaseQualifierPattern = re.compile(rf"(?<![\w$`.])(?:`{databaseName}`|{databaseName})\s*\.")
-ignoredQueryStatements = re.compile(r"^(SET\b|use\b|BEGIN\b|COMMIT\b|START TRANSACTION\b|ROLLBACK\b|XA\b)", re.IGNORECASE)
+ignoredQueryStatements = re.compile(r"^(SET\b(?!\s+(?:PASSWORD|DEFAULT\s+ROLE)\b)|use\b|BEGIN\b|COMMIT\b|START TRANSACTION\b|"
+  r"ROLLBACK\b|XA\b)", re.IGNORECASE)
+
+
+def isAccountStatement(statement):
+  """True for a statement that changes the server's users, roles or privileges, or flushes: it writes no peq table."""
+  words = codeWords(statement)
+  if words[:1] in (["GRANT"], ["REVOKE"], ["FLUSH"]) or words[:2] == ["SET", "PASSWORD"] \
+      or words[:3] == ["SET", "DEFAULT", "ROLE"]:
+    return True
+  subject = words[3:4] if words[1:3] == ["OR", "REPLACE"] else words[1:2]
+  return words[:1] in (["CREATE"], ["DROP"], ["ALTER"], ["RENAME"]) and subject in (["USER"], ["ROLE"])
 
 
 def splitTag(text):
@@ -1102,16 +1119,20 @@ def parseBinaryLog(text):
 
 
 class DriftAccount:
-  """Sorts binary-log transactions into what the ledger wrote within its changes' scopes, the runtime tables' writes, and
-  everything else drift reports."""
+  """Sorts binary-log transactions into what the ledger wrote within its changes' scopes, the runtime tables' writes, the
+  server account changes, and everything else drift reports."""
 
   def __init__(self, changes):
     self.changes = {change.number: change for change in changes}
     self.problems = []
     self.runtime = {}
+    self.accountChanges = []
 
   def describe(self, transaction, parts):
     return f"{transaction.time} GTID {transaction.gtid} at {transaction.position}: " + "; ".join(parts)
+
+  def countRuntime(self, table, operation, count):
+    self.runtime[(table, operation)] = self.runtime.get((table, operation), 0) + count
 
   def add(self, transaction):
     if transaction.domain == ledgerGTIDDomain:
@@ -1122,11 +1143,18 @@ class DriftAccount:
       if database != databaseName:
         continue
       if table in runtimeTables:
-        self.runtime[(table, operation)] = self.runtime.get((table, operation), 0) + count
+        self.countRuntime(table, operation, count)
       elif isWatched(table):
         parts.append(f"{operation} {table} x{count}")
-    parts += [redactValues(" ".join(text.split()))[:200] for _, text, database in transaction.statements
-      if database in (None, databaseName) or databaseQualifierPattern.search(text)]
+    accounts = []
+    for _, text, database in transaction.statements:
+      shown = redactValues(" ".join(text.split()))[:200]
+      if isAccountStatement(text):
+        accounts.append(shown)
+      elif database == databaseName or databaseQualifierPattern.search(text):
+        parts.append(shown)
+    if accounts:
+      self.accountChanges.append(self.describe(transaction, accounts))
     if parts:
       self.problems.append("unaccounted write: " + self.describe(transaction, parts))
 
@@ -1144,15 +1172,19 @@ class DriftAccount:
       parts.append(f"{operation} {database}.{table} x{count} {whose}")
     for tag, text, database in transaction.statements:
       change = self.changes.get(tag)
-      if change is None or change.form != "schema" or database not in (None, databaseName):
-        parts.append(redactValues(" ".join(text.split()))[:200] + (f" in {database}" if database not in (None, databaseName)
-          else "") + (f" by {tag}, which is not a schema change in the ledger" if tag else " with no ledger tag"))
+      if change is None or change.form != "schema" or database != databaseName:
+        where = "" if database == databaseName else f" in {database or 'no database'}"
+        parts.append(redactValues(" ".join(text.split()))[:200] + where + (f" by {tag}, which is not a schema change in the "
+          "ledger" if tag else " with no ledger tag"))
     if parts:
       self.problems.append("ledger write outside its change's scope: " + self.describe(transaction, parts))
 
   def runtimeLines(self):
     return [f"runtime (the servers' own writes, not drift): {operation} {table} x{count}"
       for (table, operation), count in sorted(self.runtime.items())]
+
+  def accountLines(self):
+    return [f"server account change (not a peq write): {line}" for line in self.accountChanges]
 
 
 def git(folder, *arguments):
@@ -2014,7 +2046,7 @@ class Ledger:
     self.server.stream(binaryLogCommand(binaryLog["file"], binaryLog["position"]), parser.feed, timeoutSeconds=600)
     parser.finish()
     lines += account.problems
-    return (lines or ["drift: clean"]) + account.runtimeLines(), position, current
+    return (lines or ["drift: clean"]) + account.accountLines() + account.runtimeLines(), position, current
 
   def drift(self):
     return self.driftReport()[0]
