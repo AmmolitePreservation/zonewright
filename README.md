@@ -284,6 +284,21 @@ Each failure and finding names the object (and, for a collection's mesh, the ins
 
 The server's view is `serverMapDrawing.drawServerPlan` on the exported files alone: the `.map`'s collision, its `.wtr` boxes labelled with the archive's regions and the `zone_points` rows standing in them, the `.nav`'s main piece and islands (each island's players' reach as the manifest records it), and the safe point, `zone_points` positions, landings back in the zone, and ways in that the rows name; without a `.nav` it draws none and says so. The comparison sheet sets each view's scene render, archive render, and difference (the scene dimmed, red where the archive's differs, full at twice the percentile tolerance) in a row, the views that draw otherwise first and each group by its mean difference: every view that draws otherwise and the others up to five rows, five rows to a sheet, each sheet captioned "N of M views shown" with when a view draws alike; every view's numbers and its three files are in the JSON.
 
+#### Handing off
+
+The `prepare-export` skill (`.claude/skills/prepare-export`) takes a zone from a settled design to a verified game export and ends in a hand-off note, every step judged in the picture it names. A game export is staged under the tooling root (`%LOCALAPPDATA%\zonewright\staging\<short>\<short>.eqg`), never in the client folder or the work repository. It is applied first on claudeperidot, Claude's own test EQEmu server, through its change ledger (`claudeperidot/`). Peridot is the owner's server: the owner applies the export there from the note, which lists every file with its SHA-256 from the manifest and where each goes:
+
+| File | Goes to |
+|---|---|
+| `<short>.eqg`, `<short>_EnvironmentEmitters.txt`, `<short>_assets.txt` | Every player's client folder |
+| `server\maps` | The server's own `maps` folder, copied whole (`base`, `water`, `nav`) |
+| `server\sql\<short>.sql` | Applied with the `mariadb` client; world reads the zone table when it boots and a zone process loads its maps and zone points when it boots, so world and the zone processes restart after it |
+| `server\sql\<short>_waysIn.sql` | Applied only if the neighbours' rows are to change, since it rewrites another zone's `zone_points` rows |
+| `<short>_housing.json` | The server's plot content, never a client folder |
+| `<short>_export.json` | Neither: the manifest the note's hashes come from |
+
+The note also gives the entry gate (for a zone flag, that each character needs it granted), the template the new zone row copies, the ways in to add on the server for `zoneIn` entries without a neighbour row (`waysInToAdd`), whether the client needs a registration entry for the id, that a reused slot's server maps and rows are replaced for every instance of it, and each finding accepted with its reason. Claude never applies anything to Peridot and never copies into a client folder.
+
 ### Client models
 
 Spawns, doors, objects, and the scale figure come from the client's own models and animations, found the way the client finds them: only in archives the client loads in the zone, never by matching a name in an unrelated archive. The client keeps the first definition of any name it registers (`EQGraphicsDX9.dll` skips a name already present), so the order in which it loads archives decides between archives that define the same name. `findModel` shows the whole search for one model. The order, read from `eqgame.exe`:

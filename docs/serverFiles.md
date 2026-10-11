@@ -2,6 +2,18 @@
 
 An EQEmu server loads three map files per zone from its `maps` folder: the collision map `base/<short>.map`, the region map `water/<short>.wtr` and the nav mesh `nav/<short>.nav`. Peridot's are EQEmu's public map pack, made with zone-utilities (azone, awater, map_edit). zonewright writes the `.map` and `.wtr` itself and reads all three, in `server/serverMapFiles.py` (pure Python); it builds the `.nav` from them with the Recast helper and inspects it as the server loads and searches it, in `server/serverNav.py`; `server/serverMapDrawing.py` draws them. Every server file derives from the zone archive's bytes, the archive the client loads. Line references are to EQEmu 4aceae1 and zone-utilities b361e63, read for behaviour only: no code is copied or translated from either (GPL).
 
+## Tools
+
+| File | Decided with | Written by | Checked by |
+|---|---|---|---|
+| `base/<short>.map` | What the zone ships and collides with: terrain, placed models, boundaries (`placeBoundaryWall`, `placeBoundaryPlane`), and what players pass through (`markPassable`) | `exportZone` with purpose `game`; `checkExport` `game` builds it into `%LOCALAPPDATA%\zonewright\exports\<short>\check` | `verifyExport` checks 4 (map) and 8 (ground) |
+| `water/<short>.wtr` | Swim volumes (`buildSwimVolumes`, `placeSwimVolume`, `acceptSwimVolumes`) and zone lines (`placeZoneLine`) | As above | `verifyExport` check 5 (water) |
+| `nav/<short>.nav` | Derived from the `.map` and `.wtr`; its NPC islands and path probes are findings of `checkExport` `game` | As above | `verifyExport` check 6 (nav) |
+| `sql/<short>.sql` | The zone row (`setZoneProperties`: identity, gate, template, safe point, underworld, view values) and a `zone_points` row per zone line (`placeZoneLine`) | As above | `verifyExport` check 7 (rows) |
+| `sql/<short>_waysIn.sql` | `zoneIn` entries naming a neighbour's row (`placeEntry` `fromNumber`) | As above, only when one does | `verifyExport` check 7 (rows) |
+
+The player lane judged against these files is `mapReach`'s on the scene, and `verifyExport` check 9 computes it again from the files alone (`playerReach.laneFromServerFiles`). `verifyExport` also draws the server's view from the exported files (Verifying an export, below). The `prepare-export` skill orders all of it, from the owner's values to the hand-off; README, Export, says where each file goes.
+
 ## Frames
 
 | Frame | x | y | z |
