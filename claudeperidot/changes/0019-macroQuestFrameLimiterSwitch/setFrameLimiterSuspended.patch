@@ -1,0 +1,77 @@
+From 245f1eaadd7ea79b80a226431e6c84cfd95ddfa3 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Sun, 11 Oct 2026 16:42:31 -0700
+Subject: [PATCH] MQ2FrameLimiter: SetFrameLimiterSuspended export suspends the
+ limiter in this process only
+
+- MQLIB_API void SetFrameLimiterSuspended(bool suspended): while suspended the limiter neither throttles nor overrides the client's own frame caps; in memory only, no setting written
+- ${FrameLimiter.Status} reads Suspended while suspended
+
+Claude-Session: https://claude.ai/code/session_0121Qm1vvZgAKaiV6dKmANxe
+---
+ src/main/MQ2FrameLimiter.cpp | 24 ++++++++++++++++++++----
+ 1 file changed, 20 insertions(+), 4 deletions(-)
+
+diff --git a/src/main/MQ2FrameLimiter.cpp b/src/main/MQ2FrameLimiter.cpp
+index 9f4606e4..c63b4fad 100644
+--- a/src/main/MQ2FrameLimiter.cpp
++++ b/src/main/MQ2FrameLimiter.cpp
+@@ -454,6 +454,7 @@ class FrameLimiter
+ 	bool m_doRender = false;          // if set to false, we won't render (per frame).
+ 	bool m_pauseForZone = true;
+ 	int m_updateDisplayCount = 0;
++	bool m_suspended = false;         // set by SetFrameLimiterSuspended, never saved
+ 	std::string m_characterIni;
+ 
+ 	// Settings
+@@ -530,13 +531,21 @@ public:
+ 	float GetTargetForegroundFPS() const { return m_renderInForeground ? m_foregroundFPS : 0.f; }
+ 	float GetTargetBackgroundFPS() const { return m_renderInBackground ? m_backgroundFPS : 0.f; }
+ 
++	inline bool IsSuspended() const { return m_suspended; }
++
++	void SetSuspended(bool suspended)
++	{
++		if (mq::test_and_set(m_suspended, suspended))
++			UpdateForegroundState();
++	}
++
+ 	inline bool IsEnabled() const {
+-		return IsSupportedGameState() && (IsForeground() ? m_enabledInForeground : m_enabled);
++		return !m_suspended && IsSupportedGameState() && (IsForeground() ? m_enabledInForeground : m_enabled);
+ 	}
+ 	inline bool IsRenderingEnabled() const {
+-		return IsForeground()
++		return m_suspended || (IsForeground()
+ 			? (m_renderInForeground && m_foregroundFPS > 0.f)
+-			: (m_renderInBackground && m_backgroundFPS > 0.f);
++			: (m_renderInBackground && m_backgroundFPS > 0.f));
+ 	}
+ 
+ 	float GetMinimumSimulationFPS() const { return m_minSimulationFPS; }
+@@ -1155,6 +1164,13 @@ bool DoThrottleFrameRate()
+ 	return s_frameLimiter.DoThrottleFrameRate();
+ }
+ 
++// Suspends the frame limiter in this process only: it neither throttles nor overrides the client's own
++// frame caps until resumed. Nothing is written to any settings file.
++MQLIB_API void SetFrameLimiterSuspended(bool suspended)
++{
++	s_frameLimiter.SetSuspended(suspended);
++}
++
+ static void FrameLimiterSettings()
+ {
+ 	s_frameLimiter.UpdateSettingsPanel();
+@@ -1418,7 +1434,7 @@ bool MQ2FrameLimiterType::GetMember(MQVarPtr VarPtr, const char* Member, char* I
+ 
+ 	case FrameLimiterTypeMembers::Status:
+ 		Dest.Type = pStringType;
+-		strcpy_s(DataTypeTemp, s_frameLimiter.IsForeground() ? "Foreground" : "Background");
++		strcpy_s(DataTypeTemp, s_frameLimiter.IsSuspended() ? "Suspended" : s_frameLimiter.IsForeground() ? "Foreground" : "Background");
+ 		Dest.Ptr = &DataTypeTemp[0];
+ 		return true;
+ 
+-- 
+2.51.0.windows.1
+
