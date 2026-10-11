@@ -10,7 +10,7 @@ claudeperidot is Claude's own EQEmu server: a faithful copy of Peridot on a LAN-
 
 ## Next
 
-12. Credential claudeperidot/eqLogin (a client change: its step generates the password and stores it with CredWrite, never on a command line; its check is the credential's existence), and Claude's MacroQuest cfg: MQ2EQBC and mq2netbots unloaded and MQClaudeLink loaded, each with noauto
+12. Credential claudeperidot/eqLogin (a client change: its step generates the password and stores it with CredWrite, never on a command line; its check is the credential's existence), and Claude's MacroQuest cfg: MQ2EQBC and mq2netbots unloaded and MQClaudeLink loaded, each with noauto [0012, 0013]
 
 ## Steps
 
