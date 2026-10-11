@@ -2,12 +2,14 @@
 shell, a real POSIX shell over a temporary folder standing in for the host's /opt/eqemu. Plus helpers that build a ledger in a
 temporary git repository whose pushes really reach a bare remote.
 
-The MariaDB stand-in follows MariaDB's documented semantics on its own: it parses the expressions the ledger sends and
-evaluates them per row with typed values (FLOAT printed to 6 digits, DOUBLE to every digit, ENUM as its member, BIT as a
-number), applies the session's sql_mode, parses literals with MariaDB's escapes and character-set introducers, computes
-SHA2, GROUP_CONCAT and SUM itself, splits scripts as the mysql client does (DELIMITER, --force, --comments), and writes a
-binary log in mysqlbinlog's form from what each transaction changed. Tests give where predicates, the statements a change
-runs and its checks as Python."""
+The MariaDB stand-in does what claudeperidot's MariaDB 10.5.4 does, as testMariaDB.py checks against it: it parses the
+expressions the ledger sends and evaluates them per row with typed values (FLOAT and DOUBLE printed as its my_gcvt prints
+them, ENUM as its member or its invalid value, BIT as a number, dates and times kept to their fractional digits), applies the
+session's sql_mode, parses literals with MariaDB's escapes and character-set introducers, computes SHA2, GROUP_CONCAT and SUM
+itself, reads scripts as its mysql client does (DELIMITER, --comments, --force and the exit code, the line an error names),
+and writes a binary log from what each transaction changed as its mysqlbinlog prints it, a DROP TABLE rebuilt by the server
+and annotations cut short as that mysqlbinlog cuts them. Tests give where predicates, the statements a change runs and its
+checks as Python."""
 import copy
 import hashlib
 import math
