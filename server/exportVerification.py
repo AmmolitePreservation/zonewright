@@ -1,8 +1,8 @@
 """verifyExport's checks: a game export read back from its folder and judged against the open, saved scene and against itself
 (docs/serverFiles.md, Verifying an export). Each check is {check, passed, details}, its details listing each failure with where it
 lies; every check runs whatever the others find, reading only the files it needs. The server's view is drawn from the exported files
-alone (serverMapDrawing.drawServerPlan), and the comparison sheet sets each view of the scene beside the same view of the archive and
-their difference, largest differences first."""
+alone (serverMapDrawing.drawServerPlan), and the comparison sheets set each view of the scene beside the same view of the archive and
+their difference, largest differences first, every view that draws otherwise among them."""
 import hashlib
 import io
 import json
@@ -142,8 +142,8 @@ def manifestCheck(folder, short, manifest):
     if not isinstance(record, dict) or set(record) != {"bytes", "sha256"}:
       failures.append({"file": name, "message": f"The manifest's record of {name} is not {{bytes, sha256}}: {record!r}"})
       continue
-    spelled = spelledOnDisk(folder, name)
-    if name.startswith("server/") and spelled is not None and spelled != name:
+    spelled = spelledOnDisk(folder, name) if name.startswith("server/") else name
+    if spelled is not None and spelled != name:
       failures.append({"file": name, "message": f"{name} lies as {spelled}: the server on Linux opens files by their exact names and would find no {name}"})
       continue
     data = readFile(writes[name])
