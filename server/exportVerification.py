@@ -643,14 +643,16 @@ def containmentCheck(mapData, waterData, entries, regions, underworld, manifest,
 
 def lookNumbers(scenePath, archivePath):
   """The difference of two renders of one view: (mean of every pixel's channels, the roundTripPercentile of each pixel's largest
-  channel difference, the per-pixel largest differences)."""
+  channel difference, the share of pixels whose largest channel difference is over roundTripChangedLevels, the per-pixel largest
+  differences)."""
   scene = numpy.asarray(viewSheets.openRender(scenePath), dtype=numpy.int64)
   archive = numpy.asarray(viewSheets.openRender(archivePath), dtype=numpy.int64)
   if scene.shape != archive.shape:
     raise ValueError(f"The renders of one pose differ in size: {scene.shape} and {archive.shape}")
   difference = numpy.abs(scene - archive)
   largest = difference.max(axis=-1)
-  return float(difference.mean()), float(numpy.percentile(largest, buildTolerances.roundTripPercentile)), largest
+  changed = float((largest > buildTolerances.roundTripChangedLevels).mean())
+  return float(difference.mean()), float(numpy.percentile(largest, buildTolerances.roundTripPercentile)), changed, largest
 
 
 def differenceImage(scenePath, largest):
@@ -671,7 +673,8 @@ def looksCheck(views, unviewed):
         "view": view["name"], "eye": view["pose"]["eye"],
         "message": (
           f"{view['name']} draws otherwise from the archive: mean difference {view['meanDifference']:.3f} (under {buildTolerances.roundTripMeanLevels:g} wanted),"
-          f" {buildTolerances.roundTripPercentile}th percentile {view['percentileDifference']:g} (at most {buildTolerances.roundTripPercentileLevels:g} wanted)"
+          f" {buildTolerances.roundTripPercentile}th percentile {view['percentileDifference']:g} (at most {buildTolerances.roundTripPercentileLevels:g} wanted),"
+          f" {view['changedShare']:.2%} of its pixels over {buildTolerances.roundTripChangedLevels} levels off (under {buildTolerances.roundTripChangedShare:.1%} wanted)"
         ),
       })
   if not views and not unviewed:
@@ -681,11 +684,12 @@ def looksCheck(views, unviewed):
 
 def comparedView(name, source, pose, scenePath, archivePath, differencePath):
   """One view's comparison, its difference image written at differencePath."""
-  mean, percentile, largest = lookNumbers(scenePath, archivePath)
+  mean, percentile, changed, largest = lookNumbers(scenePath, archivePath)
   differenceImage(scenePath, largest).save(differencePath, "PNG")
-  passed = mean < buildTolerances.roundTripMeanLevels and percentile <= buildTolerances.roundTripPercentileLevels
+  passed = mean < buildTolerances.roundTripMeanLevels and percentile <= buildTolerances.roundTripPercentileLevels and changed < buildTolerances.roundTripChangedShare
   return {
-    "name": name, "source": source, "pose": pose, "meanDifference": round(mean, 4), "percentileDifference": round(percentile, 3), "passed": passed,
+    "name": name, "source": source, "pose": pose, "meanDifference": round(mean, 4), "percentileDifference": round(percentile, 3), "changedShare": round(changed, 6),
+    "passed": passed,
     "scene": str(scenePath), "archive": str(archivePath), "difference": str(differencePath),
   }
 
@@ -704,7 +708,10 @@ def writeComparisonSheet(views, outputPath):
     cells += [
       (viewSheets.openRender(view["scene"]), f"{view['name']} ({view['source']}): the scene, what export leaves out hidden"),
       (viewSheets.openRender(view["archive"]), f"{view['name']}: the archive"),
-      (viewSheets.openRender(view["difference"]), f"difference: mean {view['meanDifference']:.3f}, {buildTolerances.roundTripPercentile}th percentile {view['percentileDifference']:g}: {verdict}"),
+      (viewSheets.openRender(view["difference"]), (
+        f"difference: mean {view['meanDifference']:.3f}, {buildTolerances.roundTripPercentile}th percentile {view['percentileDifference']:g},"
+        f" {view['changedShare']:.2%} over {buildTolerances.roundTripChangedLevels} levels: {verdict}"
+      )),
     ]
   return viewSheets.writeGrid(cells, 3, outputPath) | {"rows": len(cells) // 3, "views": len(views)}
 

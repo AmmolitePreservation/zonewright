@@ -61,11 +61,16 @@ sightShort = 2.0
 floorSightLift = 1.0
 
 # A zone drawn from its exported archive looks as its scene drew when, over the same view, the mean difference of every pixel's channels
-# is under this many levels (of 255) and the 99th percentile of each pixel's largest channel difference at most this many: the same
-# picture outside a few antialiased edge pixels (verifyExport's look check, and the round trips testZoneExport makes).
+# is under this many levels (of 255), the 99th percentile of each pixel's largest channel difference at most this many, and under
+# roundTripChangedShare of its pixels have a channel more than roundTripChangedLevels off: the same picture outside a few antialiased
+# edge pixels (verifyExport's look check, and the round trips testZoneExport makes). The mean and the percentile alone pass a model
+# missing or a texture changed over under 1% of the frame (a crate takes 0.3 to 1% of the views that show it); a fresh export draws
+# bit-identical, and testZoneExport's round trips differ by 2 levels at most anywhere.
 roundTripMeanLevels = 0.5
 roundTripPercentile = 99
 roundTripPercentileLevels = 2
+roundTripChangedLevels = 8
+roundTripChangedShare = 0.001
 
 # A trace view's scale figure stands beside its line of sight, this share of the way from the frame's middle to its edge at her
 # distance, so what lies along the line past her shows.

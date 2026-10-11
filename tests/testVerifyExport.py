@@ -21,6 +21,8 @@ from conftest import StagedServer, pinnedBlender, serverRowValues, writePNG
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import buildTolerances
+import eqArchive
+import eqgWriter
 import planDrawing
 import serverMapFiles
 import serverNav
@@ -180,7 +182,7 @@ def testVerifyExportPassesAFreshGameExport(stageBlenderServer, exportedZone):
   # Every review camera and the tour's eight eyes, the scene drawn without the kiln and the reference zone as the archive draws.
   views = checks["looks"]["details"]["views"]
   assert sorted(view["name"] for view in views) == ["overview"] + [f"tour {number}" for number in range(1, 9)]
-  assert all(view["meanDifference"] < buildTolerances.roundTripMeanLevels and view["percentileDifference"] <= buildTolerances.roundTripPercentileLevels for view in views)
+  assert all(view["passed"] and (view["meanDifference"], view["percentileDifference"], view["changedShare"]) == (0, 0, 0) for view in views)
   camera = next(view for view in views if view["name"] == "overview")
   scene, archive = (numpy.asarray(Image.open(camera[key]).convert("RGB"), dtype=numpy.int64) for key in ("scene", "archive"))
   shown = numpy.abs(pixels(seen) - scene).max(axis=-1) > buildTolerances.roundTripPercentileLevels
@@ -244,8 +246,71 @@ def testVerifyExportCatchesAViewThatDrawsOtherwise(stageBlenderServer, tmp_path)
   assert views[0]["meanDifference"] == max(view["meanDifference"] for view in views) > buildTolerances.roundTripMeanLevels
   ordered = [(view["passed"], -view["meanDifference"]) for view in views]
   assert ordered == sorted(ordered)
-  assert all(view["meanDifference"] < buildTolerances.roundTripMeanLevels and view["percentileDifference"] <= buildTolerances.roundTripPercentileLevels for view in views if view["passed"])
+  assert all(
+    view["meanDifference"] < buildTolerances.roundTripMeanLevels and view["percentileDifference"] <= buildTolerances.roundTripPercentileLevels
+    and view["changedShare"] < buildTolerances.roundTripChangedShare for view in views if view["passed"]
+  )
   (tmp_path / "comparisonSheet.jpg").write_bytes(pictures[1][0])
+
+
+def quietlyDiffering(views):
+  """The views that draw otherwise though their mean and 99th percentile are within the round trip's tolerances."""
+  return [
+    view for view in views if not view["passed"] and view["meanDifference"] < buildTolerances.roundTripMeanLevels
+    and view["percentileDifference"] <= buildTolerances.roundTripPercentileLevels
+  ]
+
+
+def testVerifyExportCatchesARedCrateTexture(stageBlenderServer, tmp_path):
+  folder = tmp_path / "export"
+  folder.mkdir()
+
+  async def steps(session):
+    await verifiedZone(session, tmp_path)
+    await session.expectSuccess("exportZone", {"path": str(folder / f"{short}.eqg"), "purpose": "game"})
+    writePNG(tmp_path / "stone.png", 4, 4, (220, 30, 30, 255))
+    await session.expectSuccess("openFile", {"path": str(tmp_path / f"{short}.blend")})
+    return await verified(session, folder / f"{short}.eqg")
+
+  pictures, result = stageBlenderServer.session(steps)
+  assert result["failedChecks"] == ["current", "looks"]
+  checks = byCheck(result)
+  assert [failure["entry"] for failure in checks["current"]["details"]["failures"]] == ["stone.dds"]
+  # Every view the crate shows in draws otherwise, some by the share of pixels changed alone; those without it draw alike.
+  views = checks["looks"]["details"]["views"]
+  assert [view["passed"] for view in views] == [view["changedShare"] == 0 for view in views] and not all(view["passed"] for view in views)
+  assert quietlyDiffering(views) and all(view["changedShare"] >= buildTolerances.roundTripChangedShare for view in quietlyDiffering(views))
+  assert len(pictures) >= 2
+
+
+def testVerifyExportCatchesAMissingPlacementModel(stageBlenderServer, exportedZone, tmp_path):
+  copy = copiedExport(exportedZone, tmp_path)
+  archivePath = copy / f"{short}.eqg"
+  archive = eqArchive.EQArchive(archivePath, archivePath.read_bytes())
+  data = eqgWriter.archiveBytes({name: archive.read(name) for name in archive.entries if name != "obj_crate.mod"})
+  archivePath.write_bytes(data)
+  for name in (f"{short}.sql", f"{short}_waysIn.sql"):
+    rows = copy / "server" / "sql" / name
+    rows.write_text(re.sub(r"-- archive sha256: [0-9a-f]{64}", f"-- archive sha256: {hashlib.sha256(data).hexdigest()}", rows.read_text(encoding="ascii")), encoding="ascii", newline="")
+  rehashed(copy)
+  pictures, result = verifyCopy(stageBlenderServer, exportedZone, copy)
+  assert result["failedChecks"] == ["current", "archive", "map", "looks"]
+  checks = byCheck(result)
+  assert checks["current"]["details"]["failures"] == [
+    {"entry": "obj_crate.mod", "change": "only in the scene's rebuild", "message": "obj_crate.mod only in the scene's rebuild: the scene changed since this export"},
+  ]
+  assert checks["archive"]["details"]["failures"] == [{
+    "placement": "OBJ_crate01", "model": "obj_crate.mod", "at": [34.0, -26.0, 0.0],
+    "message": "Placement 1 'OBJ_crate01' at [34.0, -26.0, 0.0] places obj_crate.mod, which the archive does not hold",
+  }]
+  assert [failure["message"] for failure in checks["map"]["details"]["failures"]] == [
+    "The archive makes no .map to compare: ValueError: Placement 1 'OBJ_crate01' of obj_crate.mod: the zone's files hold no obj_crate.mod;"
+    " azone would drop the placement and the server would have no collision for it",
+  ]
+  views = checks["looks"]["details"]["views"]
+  assert [view["passed"] for view in views] == [view["changedShare"] == 0 for view in views] and not all(view["passed"] for view in views)
+  assert "overview" in [view["name"] for view in quietlyDiffering(views)]
+  assert len(pictures) >= 2
 
 
 def testVerifyExportCatchesATruncatedWaterMap(stageBlenderServer, exportedZone, tmp_path):
