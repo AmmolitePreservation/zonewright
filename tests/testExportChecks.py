@@ -118,7 +118,7 @@ def testCoverageFindingsNameWhatThePicturesShowAndClearAsEachIsFixed(stageBlende
   assert findings["zero texture area"]["faces"] == 4 and findings["zero texture area"]["at"] == [{"center": [24.0, -24.0, 4.0], "faces": 4}]
   assert findings["blockout"]["material"] == "grey" and findings["blockout"]["faces"] == 4
   assert test["coverage"] == {"error": 0, "zeroTexture": 4, "blockout": 4, "stretch": 6, "base": 4, "border": 16, "ok": 42, "back": 1}
-  # A game export refuses the blockout, the zone row's values it lacks, and, until reach mapping exists, any zone.
+  # A game export refuses the blockout, the zone row's values it lacks, and containment unchecked, as no safe point or entry seeds a lane.
   assert [(failure["failure"], failure.get("missing")) for failure in game["failures"]] == [
     ("blockout", None), ("view values missing", ["minClip", "sky"]), ("safe point or underworld missing", ["safePoint", "underworld"]),
     ("zone row values missing", ["shortName", "zoneId", "longName", "timeType", "entryGate", "serverTemplate"]), ("containment not checked", None),
@@ -137,8 +137,9 @@ def testCoverageFindingsNameWhatThePicturesShowAndClearAsEachIsFixed(stageBlende
   assert [failure["failure"] for failure in fixedGame["failures"]] == ["view values missing", "safe point or underworld missing", "zone row values missing", "containment not checked"]
   for name in ("base", "blockout", "border", "slabTop"):
     assert numpy.abs(colorAt(after, name) - shaded("grey")).max() <= 2, (name, colorAt(after, name))
-  assert [failure["failure"] for failure in viewed["failures"]] == ["containment not checked"]
-  assert "exportZone (game) refused, nothing written: 1 failure(s)" in refused and "reach mapping" in refused
+  # Decided, the plot's one failure is its leak: its ground ends without a boundary.
+  assert [failure["failure"] for failure in viewed["failures"]] == ["voidEdge"]
+  assert "exportZone (game) refused, nothing written: 1 failure(s)" in refused and '"failure": "voidEdge"' in refused
   # A zone whose id the client does not register is a finding, never a refusal.
   assert written["failures"] == [] and [finding["finding"] for finding in written["findings"]] == ["unregistered zone id"] and archivePath.is_file()
 

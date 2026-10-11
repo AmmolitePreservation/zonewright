@@ -14,6 +14,7 @@ import re
 
 import eqAxes
 import playerScale
+import skyDrawing
 
 zoneColumns = (
   "zoneidnumber", "version", "short_name", "long_name", "min_status", "map_file_name", "note", "min_expansion", "max_expansion",
@@ -37,6 +38,11 @@ zonePointColumns = (
 fogColumns = ("fog_minclip", "fog_maxclip", "fog_density", "fog_red", "fog_green", "fog_blue")
 # The row's key, never updated: an update never changes a zone's id, which other tables reference.
 keyColumns = ("zoneidnumber", "version", "short_name")
+# The zone properties the zone row is written from, in the groups a game check names its gaps by.
+rowIdentityKeys = ("shortName", "zoneId", "longName", "timeType", "entryGate", "serverTemplate")
+rowArrivalKeys = ("safePoint", "underworld")
+rowViewKeys = ("fogOn", "minClip", "maxClip", "sky")
+rowFogKeys = ("fogStart", "fogEnd", "fogDensity")
 # rof2_structs.h:579.
 timeTypes = {"indoorDungeon": 0, "outdoor": 1, "outdoorCity": 2, "dungeonCity": 3, "indoorCity": 4, "outdoorDungeon": 5}
 entryGateRule = (
@@ -124,14 +130,24 @@ def ownedRows(record, short):
   return [owned[key] for key in sorted(owned)]
 
 
-def requireKeys(zone, keys, why):
-  missing = [key for key in keys if key not in zone]
-  if missing:
-    raise ValueError(f"The zone row needs {missing} ({why})")
-
-
 def drawsSky(zone):
-  return zone["sky"] != "none"
+  return zone["sky"] != skyDrawing.noSky
+
+
+def missingViewKeys(zone):
+  """The view values the zone row needs and the zone lacks: rowViewKeys, and with fog on the fog's start, end, and density (rowFogKeys)
+  and, when the zone draws no sky to take the fog's color from, fogColor."""
+  missing = [key for key in rowViewKeys if key not in zone]
+  if zone.get("fogOn"):
+    missing += [key for key in rowFogKeys if key not in zone]
+    if "sky" in zone and not drawsSky(zone) and "fogColor" not in zone:
+      missing.append("fogColor")
+  return missing
+
+
+def missingRowKeys(zone):
+  """Every zone property the zone row needs and the zone lacks: its identity, where players arrive, and its view values."""
+  return [key for key in rowIdentityKeys + rowArrivalKeys if key not in zone] + missingViewKeys(zone)
 
 
 def zoneRowValues(zone, skyFogColor):
@@ -139,7 +155,9 @@ def zoneRowValues(zone, skyFogColor):
   clips, sky, ztype (the client's fog switch, 255 with fog on), and time type; with fog on, its fog's start, end, density, and color
   (the sky's resolved fog color at its hour, which the client draws with its Sky option on, else fogColor); with fog off the fog columns
   are left to the template, as the client draws no fog then."""
-  requireKeys(zone, ("shortName", "zoneId", "longName", "timeType", "entryGate", "serverTemplate", "safePoint", "underworld", "minClip", "maxClip", "fogOn", "sky"), "setZoneProperties")
+  missing = missingRowKeys(zone)
+  if missing:
+    raise ValueError(f"The zone row needs {missing} (setZoneProperties)")
   if drawsSky(zone) != (skyFogColor is not None):
     raise ValueError("skyFogColor is the fog color of the zone's sky at its hour (eqSky.skyState), given exactly when the zone draws a sky")
   if zone["timeType"] not in timeTypes:
@@ -155,9 +173,6 @@ def zoneRowValues(zone, skyFogColor):
     "ztype": 255 if zone["fogOn"] else 0, "time_type": timeTypes[zone["timeType"]],
   }
   if zone["fogOn"]:
-    requireKeys(zone, ("fogStart", "fogEnd", "fogDensity"), "fog is on")
-    if not drawsSky(zone):
-      requireKeys(zone, ("fogColor",), "fog is on and the zone draws no sky")
     color = skyFogColor if drawsSky(zone) else zone["fogColor"]
     values |= {"fog_minclip": zone["fogStart"], "fog_maxclip": zone["fogEnd"], "fog_density": zone["fogDensity"]}
     values |= {column: round(255 * channel) for column, channel in zip(("fog_red", "fog_green", "fog_blue"), color)}
@@ -207,7 +222,8 @@ def zoneGuards(zone, targets, written, owned):
   """The guards before any write, each a SIGNAL naming what it found: the id another zone's, the row's id another, two version-0 rows, no
   row and no single template row to copy, a zone line target without its row under the client's id ({short name: id}), and per
   zone_points number written now, a row of this zone there that is none an export of this short name wrote (owned): someone else's, or
-  changed on the server since, never overwritten."""
+  changed on the server since, never overwritten. A version -1 row there is never one: the server loads it into every version of the
+  zone beside the version's own (zone.cpp LoadStaticZonePoints), and zonewright writes version 0 only."""
   short, zoneID, template = zone["shortName"], zone["zoneId"], zone["serverTemplate"]
   guards = [
     signal(f"EXISTS (SELECT 1 FROM zone WHERE zoneidnumber = {zoneID} AND short_name <> {literal(short)})", f"zoneidnumber {zoneID} belongs to a zone other than {short}"),
@@ -230,7 +246,7 @@ def zoneGuards(zone, targets, written, owned):
     versions = [row for row in owned if row["number"] == number]
     exclusion = f" AND NOT ({' OR '.join(rowMatch(row) for row in versions)})" if versions else ""
     guards.append(signal(
-      f"EXISTS (SELECT 1 FROM zone_points WHERE zone = {literal(short)} AND version = 0 AND number = {number}{exclusion})",
+      f"EXISTS (SELECT 1 FROM zone_points WHERE zone = {literal(short)} AND number = {number} AND (version = -1 OR (version = 0{exclusion})))",
       f"{short} zone_points {number} is not zonewright's: renumber the zone line or remove that row",
     ))
   return guards
@@ -307,17 +323,22 @@ def arrivalPoint(entry):
 def waysInFile(zone, entries, archiveSHA256):
   """<short>_waysIn.sql for zoneIn entries naming their neighbour's row, or None without any: a guard per entry that SIGNALs unless
   exactly one version-0 row of the neighbour holds the number (counted, as ROW_COUNT() reads 0 for an update that changes nothing, and
-  a number two rows hold is refused, never both rewritten), then an update per entry pointing that row at the entry's arrival point."""
+  a number two rows hold is refused, never both rewritten) and no version -1 row does (the server loads it beside version 0's, zone.cpp
+  LoadStaticZonePoints, so the client would get two zone points of one number), then an update per entry pointing that row at the
+  entry's arrival point."""
   if not entries:
     return None
   ordered = sorted(entries, key=lambda found: (found["fromZone"], found["fromNumber"]))
 
-  def where(entry):
-    return f"zone = {literal(entry['fromZone'])} AND version = 0 AND number = {entry['fromNumber']}"
+  def where(entry, version=0):
+    return f"zone = {literal(entry['fromZone'])} AND version = {version} AND number = {entry['fromNumber']}"
 
   text = [f"-- zonewright ways in: zone {zone['shortName']}", f"-- archive sha256: {archiveSHA256}", *blockStart]
   text += [
-    signal(f"(SELECT COUNT(*) FROM zone_points WHERE {where(entry)}) <> 1", f"ways in: {entry['fromZone']} zone_points number {entry['fromNumber']} is not exactly one version-0 row")
+    signal(
+      f"(SELECT COUNT(*) FROM zone_points WHERE {where(entry)}) <> 1 OR EXISTS (SELECT 1 FROM zone_points WHERE {where(entry, -1)})",
+      f"ways in: {entry['fromZone']} zone_points number {entry['fromNumber']} is not exactly one version-0 row with no version -1 row",
+    )
     for entry in ordered
   ]
   for entry in ordered:
@@ -382,8 +403,8 @@ guardPatterns = {
   ),
   "target": rf"NOT EXISTS \(SELECT 1 FROM zone WHERE short_name = (?P<target>{shortNameLiteral}) AND version = 0 AND zoneidnumber = (?P<targetID>[0-9]+)\)",
   "foreignZonePoints": (
-    rf"EXISTS \(SELECT 1 FROM zone_points WHERE zone = (?P<shortName>{shortNameLiteral}) AND version = 0 AND number = (?P<number>[0-9]+)"
-    r"(?: AND NOT \((?P<owned>.+)\))?\)"
+    rf"EXISTS \(SELECT 1 FROM zone_points WHERE zone = (?P<shortName>{shortNameLiteral}) AND number = (?P<number>[0-9]+) AND \(version = -1 OR"
+    r" \(version = 0(?: AND NOT \((?P<owned>.+)\))?\)\)\)"
   ),
 }
 rowMatchPattern = re.compile(
@@ -509,8 +530,12 @@ def readWaysIn(text, fileName="the ways-in file"):
     lines.exact(statement)
   where = rf"zone = (?P<fromZone>{shortNameLiteral}) AND version = 0 AND number = (?P<fromNumber>[0-9]+)"
   guards = []
+  minusOne = r"zone = (?P=fromZone) AND version = -1 AND number = (?P=fromNumber)"
   while not guards or startsWith(lines, "  IF "):
-    guards.append(lines.take(r"  IF \(SELECT COUNT\(\*\) FROM zone_points WHERE " + where + r"\) <> 1" + signalTail, "the guard counting the neighbour's row"))
+    guards.append(lines.take(
+      r"  IF \(SELECT COUNT\(\*\) FROM zone_points WHERE " + where + r"\) <> 1 OR EXISTS \(SELECT 1 FROM zone_points WHERE " + minusOne + r"\)" + signalTail,
+      "the guard counting the neighbour's row",
+    ))
   updates = []
   while startsWith(lines, "  UPDATE "):
     updates.append(lines.take(

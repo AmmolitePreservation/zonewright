@@ -53,6 +53,7 @@ import planDrawing
 import playerReach
 import playerScale
 import recastHelper
+import serverNav
 import skyDrawing
 import toolingLog
 import viewerLight
@@ -1325,12 +1326,24 @@ exportChecksHelp = (
   " a turned box, a box without size, region names that clash once lowercased); housing the server would refuse. A game export also"
   " refuses blockout materials (createMaterial blockout) on exported faces, pools and rivers whose swimming is undecided or changed"
   " since their boxes were accepted, missing view values (fogOn, minClip, maxClip, sky or sky \"none\" stated, and the fog's start, end, and density"
-  " when it is on), a missing safe point or underworld, a safe point over no ground the zone ships above the underworld (an imported"
+  " when it is on, and its color when the zone draws no sky), a missing safe point or underworld, a safe point over no ground the zone ships above the underworld (an imported"
   " reference zone under it is none), zone lines without a target or sharing a number, a zone without regions, regions whose access is"
-  " undecided (getRegions), a stored entry off its footing (getEntries), structures laid on ground or a kit that has changed since (stale: editStructure lays them again), a nav mesh the Recast"
-  " helper refuses to build (it names why), and, until reach mapping"
-  " exists, any zone: containment cannot be checked yet. A test export lists all of these but"
-  " containment as findings. Findings, never refusals, for both: texture coverage, each with where it lies: the base material showing where no unmuted"
+  " undecided (getRegions), a stored entry off its footing (getEntries), structures laid on ground or a kit that has changed since"
+  " (stale: editStructure lays them again), a nav mesh the Recast helper refuses to build (it names why); containment, judged on the"
+  " player's lane as mapReach computes it (and reuses while nothing it depends on changed): every leak (voidEdge, belowUnderworld,"
+  " noneRegion, outsideRegions), an entry the safe point and it do not reach both ways unless isolated (disconnectedEntry), and a plot"
+  " entrance no player reaches (unreachedPlot), each with its place and mapReach's number for it, or \"containment not checked\" for want"
+  " of seeds (no safe point and no zoneIn or landing entry) or when the lane cannot be computed, naming why; the safe point, a stored"
+  " entry, or a zone line's landing back in the zone over no ground the server finds in the .map at or above the underworld (looking down"
+  f" from {serverNav.serverPathing['findBestZHeightAdjust']:g} over it, as its FindBestZ does); and server rows that cannot be written,"
+  " naming why. A test export lists the scene's gaps as"
+  " findings, builds no server side, and says its containment is \"not checked for a test export\". A game check's or export's findings"
+  " add the NPC nav's islands (each with whether players reach it: some reached floor within a step of it) and its failed path probes"
+  " (from the safe point to each zone line, stored entry, and plot entrance), and the lane's: traps, reach into view regions, zone lines,"
+  " swim boxes, and play floor no player reaches, pools and rivers without swim boxes whose bed players walk, squeeze reach (only a"
+  " player shorter than playerHeight passes), a zone line overlapping a swim box (the server reads the overlap as water), no zone lines,"
+  " no zoneIn entry, and what the lane does not model and its limits. Findings, never refusals, for both: texture coverage, each with"
+  " where it lies: the base material showing where no unmuted"
   f" surfacing layer covers a face (a cave's lining, in its own materials, is not ground under the base); ground borders on the terrain where two ground materials meet, ground no steeper than {math.degrees(math.acos(buildTolerances.transitionGroundNormalZ)):g} degrees on at least one side,"
   " with no paintTransition strip between them, as a length per border and its stretches (each a center, bounds, and length; a cave's"
   " lining meeting the ground is no border); texture stretched or squeezed (a texel lying over 2x longer one way than the other"
@@ -1380,9 +1393,23 @@ def exportTarget(path):
 
 
 def exportReport(report):
-  return {key: report[key] for key in ("purpose", "failures", "findings", "coverage")} | {
+  return {key: report[key] for key in ("purpose", "failures", "findings", "coverage", "containment")} | {
     "excluded": groupedExclusions(report["excluded"]), "toConfirm": report["toConfirm"], "swim": report["swim"],
     "boundaries": report["boundaries"], "zoneLines": report["zoneLines"], "structures": report["structures"], "placedTriangles": report["placedTriangles"],
+  }
+
+
+async def gameInputs(context, zoneProperties, client, workFile, laneInputPath):
+  """What a game export takes from the open scene beside the archive (exportPipeline.build's inputs): the lane's input, written to
+  laneInputPath (bridgeLane.laneInput), every entry stored and derived, the zone lines, the client's registrations, the fog color of the
+  zone's sky at its hour, and the record of the zone_points rows its short name's game exports wrote."""
+  await callBridge(context, "laneInput", {"outputPath": str(laneInputPath)})
+  sky = await zoneSky(zoneProperties)
+  return {
+    "workFile": workFile, "laneInput": laneInputPath, "entries": (await callBridge(context, "getEntries", {}))["entries"],
+    "zoneLines": (await callBridge(context, "getZoneLines", {}))["zoneLines"], "clientZones": client["zones"],
+    "skyFogColor": None if sky is None else sky["environment"]["fogColor"],
+    "record": exportPipeline.readRecord(toolingRoot, zoneProperties["shortName"]) if "shortName" in zoneProperties else [],
   }
 
 
@@ -1393,10 +1420,22 @@ async def buildExport(context, zone, purpose):
     recastHelper.requireHelper(toolingRoot)
   status = await callBridge(context, "getStatus", {})
   zoneProperties = await callBridge(context, "getZoneProperties", {})
+  client = await zoneRowClientFacts(context, zoneProperties)
   checked = await callBridge(context, "collectZoneExport", {
-    "outputFolder": str(toolingRoot / "exports" / zone), "zoneName": zone, "purpose": purpose, "client": await zoneRowClientFacts(context, zoneProperties),
+    "outputFolder": str(toolingRoot / "exports" / zone), "zoneName": zone, "purpose": purpose, "client": client,
   })
-  built = await anyio.to_thread.run_sync(exportPipeline.build, checked, zone, zoneProperties, toolingRoot, progressReporter(context))
+  if purpose != "game" or checked["collected"] is None:
+    built = await anyio.to_thread.run_sync(callReportingFailures, exportPipeline.build, checked, zone, zoneProperties, None, toolingRoot, progressReporter(context))
+    return built, status["filePath"]
+  laneInputPath = playerReach.reachRoot(toolingRoot) / f"input-{newRenderPath().stem}.npz"
+  laneInputPath.parent.mkdir(parents=True, exist_ok=True)
+  try:
+    inputs = await gameInputs(context, zoneProperties, client, status["filePath"], laneInputPath)
+    built = await anyio.to_thread.run_sync(
+      callReportingFailures, exportPipeline.build, checked, zone, zoneProperties, inputs, toolingRoot, progressReporter(context),
+    )
+  finally:
+    laneInputPath.unlink(missing_ok=True)
   return built, status["filePath"]
 
 
@@ -1422,11 +1461,15 @@ def clearCheckFolder(zone):
   "Run every check exportZone runs for a purpose on the open scene, writing nothing at `path`, and list every failure (what would stop"
   " the export) and every finding at once. `path` is where the archive would go (an absolute <zone>.eqg path outside the EverQuest client"
   " folder, the zone's short name in lowercase letters and digits, at most 31 of them). A game check also builds what a game export"
-  " writes, once the checks find nothing no zone file can hold and the file is saved: the archive, its side files, the manifest, and the"
-  " server's map files (.map, .wtr, and .nav, built by the Recast helper, which syncTooling builds), into the tooling root's"
-  " exports\\<zone>\\check folder, replacing the last check's; `serverFiles` gives where they went and the NPC nav's inspection (its main"
-  " piece around the safe point, islands, the largest listed, and paths probed from the safe point to each zone line within Peridot's 1,024"
-  " search nodes), or says \"server files not built\" and names the failures why. Islands and probe failures are findings; a nav the"
+  " writes, once the checks find nothing no zone file can hold and the file is saved: the archive, its side files, the manifest, the"
+  " server's map files (.map, .wtr, and .nav, built by the Recast helper, which syncTooling builds), and the zone's server rows (SQL),"
+  " into the tooling root's exports\\<zone>\\check folder, replacing the last check's; `serverFiles` gives where they went, the NPC nav's"
+  " inspection (its main piece around the safe point, islands with whether players reach each, the largest listed, and paths probed from"
+  " the safe point to each zone line, stored entry, and plot entrance within Peridot's 1,024 search nodes), and the rows (the zone_points"
+  " numbers written and deleted, the ways in to add on the server), or says \"server files not built\" and names the failures why;"
+  " `containment` gives the lane it judged (computed or reused, its key, the constants with their sources, entries connected or not,"
+  " reached area, per region its reach, zone lines, plot entrances, and swim boxes reached or not, and the problems by kind) or why it was"
+  " not checked. A check never changes the record of zone_points rows exports wrote. Islands and probe failures are findings; a nav the"
   " helper refuses is a failure." + exportChecksHelp
 ))
 async def checkExport(context: Context, path: str, purpose: str):
@@ -1434,7 +1477,7 @@ async def checkExport(context: Context, path: str, purpose: str):
   if purpose != "game":
     client = await zoneRowClientFacts(context, await callBridge(context, "getZoneProperties", {}))
     report = await callBridge(context, "checkZoneExport", {"purpose": purpose, "exportName": zone, "client": client})
-    return {"path": str(archivePath), "zone": zone} | exportReport(report)
+    return {"path": str(archivePath), "zone": zone} | exportReport(report | {"containment": exportPipeline.testContainment})
   built, blendPath = await buildExport(context, zone, purpose)
   folder = await anyio.to_thread.run_sync(clearCheckFolder, zone)
   if built["archive"] is not None:
@@ -1449,9 +1492,15 @@ async def checkExport(context: Context, path: str, purpose: str):
   " the checks for its purpose (checkExport): any failure refuses the export and lists them all, and nothing is written. Beside the"
   " archive goes <zone>_export.json, the manifest: the purpose, the short name, the .blend, every file written with its size and SHA-256,"
   " and the failure and finding counts. A game export also writes the server's map files built from the archive's bytes under"
-  " server\\maps, laid out as the server's maps folder (base\\<zone>.map, water\\<zone>.wtr, nav\\<zone>.nav), and records the nav"
-  " settings, the Recast helper, and the nav's islands and probes in the manifest; a test export removes this zone's files under server\\"
-  " (they would no longer match its archive) and lists them in `serverFilesRemoved`. A target that is a folder or read-only, a file"
+  " server\\maps, laid out as the server's maps folder (base\\<zone>.map, water\\<zone>.wtr, nav\\<zone>.nav), and the zone's rows as SQL"
+  " the owner applies with the mariadb client under server\\sql (<zone>.sql: the zone row upserted and a zone_points row per zone line,"
+  " numbered ten times its number, replacing only rows earlier game exports of the short name wrote; <zone>_waysIn.sql, when a zoneIn"
+  " entry names its neighbour's row, pointing that row here); it records the zone's identity and template, the zone_points numbers"
+  " written and deleted, the nav settings, the Recast helper, the nav's islands (with whether players reach each) and probes, and the"
+  " lane's key, grid, constants, and reached area in the manifest, and, before writing, adds its zone_points rows to the record kept"
+  " under the tooling root (exports\\<short>\\zonePointsWritten.json, `zonePointsRecord`), so a later export deletes a removed line's row"
+  " wherever that export is written; a test export removes this zone's files under server\\ (they would no longer match its archive) and"
+  " lists them in `serverFilesRemoved`. A target that is a folder or read-only, a file"
   " where a folder must be, or a <file>.previous an export that did not finish left refuses before anything is written. Every file is"
   " written whole under a temporary name first (making the folders it needs); then the other files take the last export's places and"
   " the archive goes in last, and a failure before the archive is in place puts every file back as it was, so a refused or failed export"
@@ -1488,6 +1537,7 @@ async def exportZone(context: Context, path: str, purpose: str):
       + json.dumps(report["failures"], indent=1)
     )
   folder = archivePath.parent
+  recorded = await anyio.to_thread.run_sync(callReportingFailures, exportPipeline.recordExport, toolingRoot, built) if purpose == "game" else None
   written = await writeExport(folder, built, blendPath)
   sides = exportPipeline.sideFilePaths(folder, zone)
   housing = built["housing"]
@@ -1498,7 +1548,7 @@ async def exportZone(context: Context, path: str, purpose: str):
     "housing": None if housing is None else {"role": housing["housing"]["role"], "plots": len(housing["plots"]), "file": str(sides["housing"]) if hasPlots else None, "assetList": str(sides["assetList"]) if hasPlots else None},
   }
   if purpose == "game":
-    return result | {"serverFiles": exportPipeline.serverFilesReport(built, folder)}
+    return result | {"serverFiles": exportPipeline.serverFilesReport(built, folder), "zonePointsRecord": recorded}
   return result | {"serverFilesRemoved": written["removedServerFiles"]}
 
 
@@ -2410,11 +2460,11 @@ async def renderSketch(
   zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problems
   and regions, over the regions' fills and the caves' pale floors and under the caves' walls: walk green, swim blue, slide orange,
   squeeze pink, taken by a zone line yellow, traps hatched orange, walkable floor never reached cross-hatched (alone, or over a level
-  reached under it), leak edges magenta, zone lines filled when reached, seeds as white arrows, with a legend in a band under the plan
-  of what it shows; the result's laneState says whether the lane was computed or reused, the constants it used, what it does not
-  model, and its limits). A cave run's end its cut rounded off closes in a half circle; `caveEndsUnknown` names the caves cut before
-  their records kept which ends were rounded, whose ends are drawn open (cut them again with editCave). Labels are placed clear of one
-  another, and beside the spot heights rather than over them where they can be; an area is named only where it reaches into the
+  reached under it), ledges dark, leak edges magenta, zone lines hatched when reached, seeds as white arrows, with a legend in a band
+  under the plan of what it shows; the result's laneState says whether the lane was computed or reused, the constants it used, what it
+  does not model, and its limits). A cave run's end its cut rounded off closes in a half circle; `caveEndsUnknown` names the caves cut
+  before their records kept which ends were rounded, whose ends are drawn open (cut them again with editCave). Labels are placed clear
+  of one another, and beside the spot heights rather than over them where they can be; an area is named only where it reaches into the
   drawing. frameSize is the plan's size in pixels, above any legend band."""
   if len(center) != 2 or width <= 0:
     raise ToolError(f"center is [x, y] and width positive, got {center} and {width}")
@@ -2436,7 +2486,7 @@ async def renderSketch(
   basePath.unlink()
   if lanePlan is not None:
     frame = planDrawing.PlanFrame(center, width, drawn["size"])
-    await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, lanePlan.legend(frame) + laneDrawing.planLayerLegend(overlays, frame))
+    await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, lanePlan.legend(frame, laneDrawing.planLayerLegend(overlays, frame)))
   return [Image(data=outputPath.read_bytes(), format="png"), {
     "outputPath": str(outputPath), "center": center, "width": width, "unitsPerPixel": round(width / drawn["size"][0], 4), "heightRange": base["heightRange"],
     "bandHeight": bandHeight, "gridStep": drawn["gridStep"], "sheetColors": drawn["sheetColors"],
@@ -2859,8 +2909,9 @@ async def placeZoneLine(context: Context, number: int, label: str, minimum: list
   headingDegrees}, zone the short name of a zone the client registers, or this zone's own shortName for a same-zone teleport or a fall
   catcher (set shortName first: a client cannot load a zone it never registered), x, y, z in the zone file's axes (as /loc prints them, y, x, z of the server's), headingDegrees 0 = +Y,
   clockwise; each coordinate and the heading may be "keep" (the player's own). Zone lines sit in gaps of the boundary walls, tint
-  views with guides green in every shading, draw green in plans and sections, and export as ATP_ regions; the server's rows are not written yet. A line placed
-  with a number already in use replaces that line; adjust a box with transformObjects, remove it with deleteObjects."""
+  views with guides green in every shading, draw green in plans and sections, and export as ATP_ regions; a game export writes each one's
+  zone_points row (number x 10, at the box's center, leading to its target). A line placed with a number already in use replaces that
+  line; adjust a box with transformObjects, remove it with deleteObjects."""
   if not isinstance(target, dict) or not isinstance(target.get("zone"), str) or not eqgFiles.zoneNamePattern.match(target["zone"]):
     raise ToolError(f"target zone is a zone short name, {eqgFiles.zoneNameRule}, got {target.get('zone') if isinstance(target, dict) else target!r}")
   await requireRegisteredZone(context, target["zone"], "A zone line's target")
@@ -2936,6 +2987,8 @@ async def getEntries(context: Context):
 
 problemViewCount = 8
 lanePlanLayers = ["water", "swim", "boundaries"]
+# A whole lane plan spans what the zone ships this many times over, leaving room past its edges for the rings, names, and scale bar.
+lanePlanSpare = 1.2
 problemViewFrame = {"size": [960, 540], "verticalFieldOfViewDegrees": 50.0}
 # A sight to a problem counts as clear when nothing blocks it short of this far before its target.
 problemSightShort = 2.0
@@ -3006,7 +3059,7 @@ async def lanePlanRender(context, center, width, lanePlan, layers, sky, spotHeig
   drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, planPath, center, width, overlays, lanePlan)
   basePath.unlink()
   frame = planDrawing.PlanFrame(center, width, drawn["size"])
-  await anyio.to_thread.run_sync(laneDrawing.legendUnder, planPath, lanePlan.legend(frame) + laneDrawing.planLayerLegend(overlays, frame))
+  await anyio.to_thread.run_sync(laneDrawing.legendUnder, planPath, lanePlan.legend(frame, laneDrawing.planLayerLegend(overlays, frame)))
   return planPath, base, drawn
 
 
@@ -3024,10 +3077,12 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   (caves, stacked floors): walk green, swim blue, slide orange, squeeze (only a smaller player fits) pink, taken by a zone line yellow,
   traps (one way in, no way back) hatched orange, walkable floor never reached (open space joins it to the lane) cross-hatched dark,
   alone or over a level reached under it, columns reached at a level under a higher one dotted (pink where only a smaller player fits
-  under it), leak edges (a fall onto nothing, or any move under the underworld) magenta, edges where a zone line catches a fall green,
-  zone lines filled when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X
-  when unreached), water and swim boxes, boundaries red, region outlines in their access colors, and the problems ringed and numbered,
-  with a legend band under the plan naming what it shows (plan.frameSize is the plan's own size in pixels). Picture 2 (problemViews, when there are
+  under it), ledges (reached floors side by side more than a step apart: a platform's or roof's edge) dark, leak edges (a fall onto
+  nothing, or any move under the underworld) magenta, edges where a zone line catches a fall green, zone lines hatched green and named
+  when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X when unreached),
+  water and swim boxes, boundaries red, region outlines in their access colors under them, and the problems ringed (round the seed or
+  plot mark they lie on) and numbered over their rings, with a legend band under the plan naming what it shows (plan.frameSize is the
+  plan's own size in pixels; the whole zone is framed with a fifth of its size to spare). Picture 2 (problemViews, when there are
   problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
   its problem (ringed in the middle of the view) from a clear sight framing it, the eye raised no more than it must be and turned from
   the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives the constants used (value and source),
@@ -3052,9 +3107,9 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   zone = await callBridge(context, "getZoneProperties", {})
   sky = await zoneSky(zone)
   lanePlan = laneDrawing.LanePlan(analysis, description, level, True)
-  planWidth = width if width is not None else (bounds["maximum"][1] - bounds["minimum"][1]) * 1.05
+  planWidth = width if width is not None else (bounds["maximum"][1] - bounds["minimum"][1]) * lanePlanSpare
   planPath, base, drawn = await lanePlanRender(context, center, planWidth, lanePlan, lanePlanLayers, sky)
-  across = (bounds["maximum"][0] - bounds["minimum"][0]) * 1.05
+  across = (bounds["maximum"][0] - bounds["minimum"][0]) * lanePlanSpare
   if width is None and across > planWidth * base["height"] / base["width"]:
     planPath.unlink()
     planWidth = across * base["width"] / base["height"]

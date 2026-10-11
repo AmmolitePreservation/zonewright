@@ -14,7 +14,9 @@ plotColor = (150, 90, 20)
 waterColor = (40, 120, 220)
 liquidColors = {"water": waterColor, "waterfall": waterColor, "lava": (230, 90, 20)}
 swimColors = {"water": (0, 150, 190), "lava": (200, 30, 170)}
+waterAlpha = 110
 boundaryColor = (215, 30, 25)
+boundaryAreaAlpha = 70
 zoneLineColor = (20, 150, 40)
 boundaryLineWidth = 4
 swimLabelSize = 11
@@ -258,7 +260,7 @@ def drawSpots(board, marks):
 def drawWater(draw, frame, bodies):
   """Each body's water as players see it (row runs and edge loops, as planOverlays gives them), filled in its liquid's color."""
   for body in bodies:
-    fill = (*liquidColors[body["liquid"]], 110)
+    fill = (*liquidColors[body["liquid"]], waterAlpha)
     for x0, y0, x1, y1 in body["runs"]:
       draw.polygon([frame.pixel(point) for point in ((x0, y0), (x1, y0), (x1, y1), (x0, y1))], fill=fill)
     for loop in body["loops"]:
@@ -312,7 +314,7 @@ def drawBoundaries(draw, frame, boundaries):
   """Boundaries in plan: lids and floors filled faintly red, walls as red lines along their foot."""
   for boundary in boundaries:
     for area in boundary["areas"]:
-      draw.polygon([frame.pixel(point) for point in area], fill=(*boundaryColor, 70))
+      draw.polygon([frame.pixel(point) for point in area], fill=(*boundaryColor, boundaryAreaAlpha))
     for start, end in boundary["lines"]:
       draw.line([frame.pixel(start), frame.pixel(end)], fill=(*boundaryColor, 255), width=boundaryLineWidth)
 

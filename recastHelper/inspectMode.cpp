@@ -225,11 +225,11 @@ private:
   const std::vector<int>& componentOf;
 };
 
-std::string probeJSON(const char* result, int pathPolygons, dtStatus status, int goalComponent) {
+std::string probeJSON(const char* result, int pathPolygons, dtStatus status, int goalComponent, const float* goalAt) {
   return std::string("{\"result\": \"") + result + "\", \"pathPolygons\": " + std::to_string(pathPolygons) +
     ", \"outOfNodes\": " + ((status & DT_OUT_OF_NODES) ? "true" : "false") +
     ", \"pathBufferFull\": " + ((status & DT_BUFFER_TOO_SMALL) ? "true" : "false") +
-    ", \"goalComponent\": " + std::to_string(goalComponent) + "}";
+    ", \"goalComponent\": " + std::to_string(goalComponent) + ", \"goalAt\": " + (goalAt ? jsonVector(goalAt) : std::string("null")) + "}";
 }
 
 }
@@ -416,22 +416,23 @@ void runInspect(const std::string& inputPath, const std::string& reportPath) {
     float goalNearest[3];
     query->findNearestPoly(goalPoint, input.pathHalfExtents, &filter, &goal, goalNearest);
     const int goalComponent = goal ? componentOf[static_cast<size_t>(globalIndex(loaded, goal))] : notInComponent;
+    const float* goalAt = goal ? goalNearest : nullptr;
     if (!input.hasSafePoint) {
-      probes.push_back(probeJSON("noSafePoint", 0, 0, goalComponent));
+      probes.push_back(probeJSON("noSafePoint", 0, 0, goalComponent, goalAt));
       continue;
     }
     if (!start) {
-      probes.push_back(probeJSON("noStartPolygon", 0, 0, goalComponent));
+      probes.push_back(probeJSON("noStartPolygon", 0, 0, goalComponent, goalAt));
       continue;
     }
     if (!goal) {
-      probes.push_back(probeJSON("noGoalPolygon", 0, 0, goalComponent));
+      probes.push_back(probeJSON("noGoalPolygon", 0, 0, goalComponent, goalAt));
       continue;
     }
     int pathCount = 0;
     const dtStatus status = query->findPath(start, goal, input.safePoint, goalPoint, &filter, path.data(), &pathCount, static_cast<int>(path.size()));
     const char* result = dtStatusFailed(status) || pathCount == 0 ? "failed" : (path[static_cast<size_t>(pathCount - 1)] == goal ? "complete" : "partial");
-    probes.push_back(probeJSON(result, pathCount, status, goalComponent));
+    probes.push_back(probeJSON(result, pathCount, status, goalComponent, goalAt));
   }
   dtFreeNavMeshQuery(query);
 

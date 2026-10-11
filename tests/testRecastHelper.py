@@ -177,7 +177,11 @@ def testInspectFindsIslandsSnapRiskAndProbes(recastToolingRoot):
   above = floor(20, 50, 20, 50, 50)
   navFile, report = serverNav.navFromCollision(soup(main, apart, above), [], recastToolingRoot, noProgress)
   assert report["builtTiles"] == 1
-  targets = [{"name": "far floor", "point": (220, 20, 0)}, {"name": "same floor", "point": (80, 80, 0)}, {"name": "nowhere", "point": (500, 500, 0)}]
+  # "high up" stands on a floor the collision lacks, 20 over the main floor, as on a pillar's top too small to hold nav.
+  targets = [
+    {"name": name, "point": point, "onFloor": True}
+    for name, point in (("far floor", (220, 20, 0)), ("same floor", (80, 80, 0)), ("nowhere", (500, 500, 0)), ("high up", (70, 30, 20)))
+  ]
 
   inspection = serverNav.inspectNav(navFile, (50, 50, 0), targets, recastToolingRoot, noProgress)
   # Each floor's nav lies 3 cells in from its edges (the ledge filter's cell and the 2-cell agent radius) and one cell height above it.
@@ -189,13 +193,22 @@ def testInspectFindsIslandsSnapRiskAndProbes(recastToolingRoot):
   ]
   assert (inspection["polygons"], main["polygons"], inspection["excludedPolygons"]) == (35, 17, 0)
   assert [(probe["name"], probe["result"], probe["reached"], probe["goalComponent"]) for probe in inspection["probes"]] == [
-    ("far floor", "partial", False, 1), ("same floor", "complete", True, 0), ("nowhere", "noGoalPolygon", False, -1),
+    ("far floor", "partial", False, 1), ("same floor", "complete", True, 0), ("nowhere", "noGoalPolygon", False, -1), ("high up", "complete", False, 0),
+  ]
+  # The goal the server takes for each: on the nav right under a point on it, and for one high over the floor, the floor's nav under it,
+  # where NPCs path to and never onto the point.
+  assert [(probe["goalAt"], probe["goalOffset"]) for probe in inspection["probes"]] == [
+    ([220.0, 20.0, 0.4], {"across": 0.0, "up": 0.4}), ([80.0, 80.0, 0.4], {"across": 0.0, "up": 0.4}), (None, None), ([70.0, 30.0, 0.4], {"across": 0.0, "up": -19.6}),
   ]
   assert inspection["findings"] == [
     "NPCs cannot path from the safe point to far floor within Peridot's 1,024 search nodes: it lies on island 1, apart from the main piece",
     "NPCs cannot path from the safe point to nowhere within Peridot's 1,024 search nodes: no polygon the server's ground filter allows lies"
     " within (10.0, 200.0, 10.0) of it",
+    "NPCs path from the safe point to [70.0, 30.0, 0.4], never onto high up: the server takes the polygon its ground filter allows nearest it"
+    " within (10.0, 200.0, 10.0) as the goal, 0 across and 19.6 under it, past the NPC's radius and a cell (2.11) or its climb (6.55)",
   ]
+  with pytest.raises(ValueError, match="each probe target is {name, point, onFloor}"):
+    serverNav.inspectNav(navFile, (50, 50, 0), [{"name": "same floor", "point": (80, 80, 0)}], recastToolingRoot, noProgress)
   components = [polygon["component"] for tile in inspection["tiles"] for polygon in tile["polygons"]]
   assert [components.count(number) for number in (0, 1, 2)] == [17, 9, 9]
 
@@ -223,11 +236,11 @@ def testInspectFindsIslandsSnapRiskAndProbes(recastToolingRoot):
   assert withoutSafePoint["mainPiece"] == main | {"standIn": True, "safePolygon": None}
   assert withoutSafePoint["islands"] == inspection["islands"]
   assert [(probe["name"], probe["result"], probe["reached"], probe["goalComponent"]) for probe in withoutSafePoint["probes"]] == [
-    ("far floor", "noSafePoint", False, 1), ("same floor", "noSafePoint", False, 0), ("nowhere", "noSafePoint", False, -1),
+    ("far floor", "noSafePoint", False, 1), ("same floor", "noSafePoint", False, 0), ("nowhere", "noSafePoint", False, -1), ("high up", "noSafePoint", False, 0),
   ]
   assert withoutSafePoint["findings"] == [
     "No safe point: islands are counted against the largest component, which stands in for the main piece",
-    "NPC paths were not probed, as there is no safe point to start from: to far floor, same floor, nowhere",
+    "NPC paths were not probed, as there is no safe point to start from: to far floor, same floor, nowhere, high up",
   ]
 
 

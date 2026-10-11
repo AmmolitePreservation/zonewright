@@ -1,12 +1,13 @@
 """Checks before a zone export, writing nothing and changing nothing. Failures stop an export: what no zone file can hold (among it a
 kit that cannot be found), and for a game export what it must have decided (blockout, swimming, the zone row's values, zone line
 targets, the player space's regions, their access, and entries on their footing, structures laid on ground or a kit that changed
-since, containment). Findings are for an artist to look at: texture coverage
-(the base material showing where no surfacing layer covers a face, ground borders without a transition strip, stretched or collapsed
-texture coordinates, faces wound against the rest of their surface), the zone's slot among the client's registrations (an id it does
-not register, a short name it does), and for a test export what a game export would still refuse.
-Each names the object, material, image, and face count, with where the faces lie. The report also gives each structure's models and
-triangles and the triangles of every placement. The coverage view draws the same face statuses. Runs under Blender's Python."""
+since); the export pipeline (exportPipeline) judges containment, islands, ground, and rows on what it builds. Findings are for an
+artist to look at: texture coverage (the base material showing where no surfacing layer covers a face, ground borders without a
+transition strip, stretched or collapsed texture coordinates, faces wound against the rest of their surface), the zone's slot among
+the client's registrations (an id it does not register, a short name it does), and for a test export what a game export would still
+refuse. Each names the object, material, image, and face count, with where the faces lie. The report also gives each structure's
+models and triangles and the triangles of every placement. The coverage view draws the same face statuses. Runs under Blender's
+Python."""
 import os
 
 import bpy
@@ -29,6 +30,7 @@ import bridgeSurfacing
 import bridgeSwim
 import bridgeViews
 import bridgeWater
+import serverRows
 from bridgeState import state
 from buildTolerances import transitionGroundNormalZ
 
@@ -42,10 +44,6 @@ stretchDigits = 3
 zeroTextureArea = 1e-12
 degenerateArea = 1e-9
 locationsShown = 8
-gameRowKeys = ("shortName", "zoneId", "longName", "timeType", "entryGate", "serverTemplate")
-gameViewKeys = ("fogOn", "minClip", "maxClip", "sky")
-gameFogKeys = ("fogStart", "fogEnd", "fogDensity")
-gamePlayerKeys = ("safePoint", "underworld")
 textureNodeNames = (bridgeSurfacing.diffuseNodeName, bridgeSurfacing.normalNodeName, bridgeSurfacing.environmentNodeName, bridgeSurfacing.secondDiffuseNodeName)
 # Coverage statuses, most pressing first: a face draws in the first that holds for it.
 coverageColors = {
@@ -705,7 +703,7 @@ def checkZoneExport(purpose, exportName, client):
       }
       for decision in objectDecisions if decision["staleCaves"] or decision["staleDefinedPasses"]
     ]
-    failures += gaps + [{"failure": "containment not checked", "message": "A game export must prove players cannot leave the play area except through zone lines; that needs reach mapping, which is not built yet, so no game export can be made"}]
+    failures += gaps
   else:
     findings += gaps
   return {
@@ -724,11 +722,11 @@ def zoneRowGaps(exportName, client):
   short name to id) other than this one."""
   zone = bridgeCommands.readZoneProperties(bpy.context.scene)
   gaps = []
-  missing = [key for key in gameViewKeys if key not in zone] + ([key for key in gameFogKeys if key not in zone] if zone.get("fogOn") else [])
+  missing = serverRows.missingViewKeys(zone)
   if missing:
     stating = "; sky \"none\" states that the zone draws none" if "sky" in missing else ""
     gaps.append({"gap": "view values missing", "missing": missing, "message": f"A game export writes the zone row's view values; set {missing} with setZoneProperties{stating}"})
-  missing = [key for key in gamePlayerKeys if key not in zone]
+  missing = [key for key in serverRows.rowArrivalKeys if key not in zone]
   if missing:
     gaps.append({"gap": "safe point or underworld missing", "missing": missing, "message": f"A game export writes where players arrive and how far they may fall; set {missing} with setZoneProperties"})
   if "safePoint" in zone:
@@ -737,7 +735,7 @@ def zoneRowGaps(exportName, client):
     surfaces = bridgeExport.collisionSurfaces(bridgeExport.collisionTriangles())
     if surfaces is None or surfaces.footingBelow(mathutils.Vector((x, y, z + 1)), z + 1 - floor) is None:
       gaps.append({"gap": "safe point over no ground", "at": [x, y, z], "message": f"No ground the zone ships lies under the safe point {[x, y, z]} above {floor}; players arriving there would fall"})
-  missing = [key for key in gameRowKeys if key not in zone]
+  missing = [key for key in serverRows.rowIdentityKeys if key not in zone]
   if missing:
     gaps.append({"gap": "zone row values missing", "missing": missing, "message": f"A game export writes the zone's server row; set {missing} with setZoneProperties"})
   if "shortName" in zone and exportName != zone["shortName"]:

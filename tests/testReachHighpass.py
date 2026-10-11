@@ -63,20 +63,21 @@ def testHighpassHoldsZoneLinesAreReachedFromItsSafePoint(recastToolingRoot, tmp_
     assert float(rises.max()) == top["rise"] and top["rise"] > stepHeight, name
 
   water = serverMapFiles.readWater(waterBytes)
-  targets = [{"name": f"the zone line of .wtr record {index}", "point": record["position"]} for index, record in enumerate(water) if record["type"] == 3]
+  targets = [{"name": f"the zone line of .wtr record {index}", "point": record["position"], "onFloor": False} for index, record in enumerate(water) if record["type"] == 3]
   inspection = serverNav.inspectNav(referenceBytes("nav/highpasshold.nav"), highpassSafePoint, targets, recastToolingRoot, noProgress)
   drawn = laneDrawing.drawLaneBesideNav(
     tmp_path / "highpassLaneBesideNav.png", serverMapFiles.mapCollision(mapBytes), laneDrawing.LanePlan(analysis, description, None, True), inspection,
     ("Players' lane from Peridot's safe point (its .map and .wtr)", "Peridot's highpasshold.nav: the NPC main piece and its islands"),
   )
   # Peridot's collision is closed all round, so no fall reaches nothing; what the lane finds are pockets entered by sliding or dropping
-  # that no move leaves, each ringed and named in the legend with the lane's marks and the plan's axes. The legend names only what the
-  # plan shows: no leak edge, no zone line left unreached, and no plot entrances or regions, which server files do not hold.
+  # that no move leaves, each ringed and named in the legend with the marks the plan shows (no leak or catch edge, no plot, no region
+  # from server files, every zone line reached) and the plan's axes.
   traps = len(analysis["problems"])
   assert [problem["kind"] for problem in analysis["problems"]] == ["trap"] * traps
   marks = [
     "walk", "swim (a floor in a swim box)", "slide (too steep to stand)", "squeeze (only a smaller player)", "taken by a zone line", "trap (no way back)",
-    "walkable, never reached", "reached under a higher level", "only a smaller player under it", "zone line reached", "seed: where players arrive",
+    "walkable, never reached", "reached under a higher level", "only a smaller player under it", f"ledge: floors side by side over a step ({stepHeight:g}) apart",
+    "zone line reached", "seed: where players arrive",
   ]
   assert drawn["legends"] == [
     ["relief: the highest reached floor, else the highest floor", "no floor at all"] + marks + [f"1-{traps} trap", "plan: +X (north) up, +Y left"],

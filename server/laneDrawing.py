@@ -1,11 +1,12 @@
 """The player's lane in plan: where players reach, by label (walk green, swim blue, slide orange, squeeze pink, taken by a zone line
 yellow, traps hatched orange), walkable floor they never reach (open space joins it to the lane) cross-hatched dark, alone or over a
 level reached under it, columns reached at a level under a higher one dotted (black where the design player fits there, pink where only
-a smaller one does), leak edges (onto nothing or under the underworld) magenta, the edges where a zone line catches a fall green, zone
-lines filled green when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X when
-unreached), region outlines in their access colors, and the problems ringed black and numbered, each number by its ring or led to it by
-a line; with a legend band below naming what the drawing shows. LanePlan lays it over planDrawing.drawPlan's plan; drawLaneBesideNav
-draws a lane from server files over the floors it reaches beside the server's NPC nav."""
+a smaller one does), ledges (reached floors side by side more than a step apart) dark, leak edges (onto nothing or under the
+underworld) magenta, the edges where a zone line catches a fall green, zone lines hatched green when reached and dashed when not, seeds
+as white arrows (hollow when isolated), plot entrances as ticks (a red X when unreached), region outlines in their access colors, and
+the problems ringed black (round the mark they lie on) and numbered over their rings or led to them by a line; with a legend band below
+naming what the drawing shows. LanePlan lays it over planDrawing.drawPlan's plan; drawLaneBesideNav draws a lane from server files over
+the floors it reaches beside the server's NPC nav."""
 import math
 
 import numpy
@@ -33,9 +34,16 @@ hatchAlpha = 215
 hatchSpacing = 8
 trapColor = (240, 120, 0)
 unreachedColor = (30, 30, 30)
+# Floor never reached is tinted under its cross-hatch, so the grid's lines crossing it read as dimmed, never as dash-dot outlines.
+unreachedFillAlpha = 70
 layeredColor = (25, 25, 25)
 squeezeLayeredColor = labelColors[playerReach.squeezeLabel]
-layeredSpacing = 6
+layeredSpacing = 8
+layeredDot = 2
+ledgeColor = (45, 35, 25)
+ledgeAlpha = 230
+zoneLineHatchSpacing = 6
+zoneLineFillAlpha = 60
 voidColor = (215, 0, 215)
 catchColor = planDrawing.zoneLineColor
 edgeWidth = 4
@@ -50,6 +58,10 @@ plotMark = 7
 problemColor = (15, 15, 15)
 problemHalo = (255, 255, 255)
 problemRing = 9
+ringRadii = {"disconnectedEntry": seedLength + 4, "unreachedPlot": 2 * plotMark}
+nameGap = 5
+# The band along the drawing's top edge that planDrawing.labelGrid writes the grid's coordinates in.
+axisBand = 22
 problemNumberSize = 17
 # A problem's number set further than this from its ring is led back to it by a line.
 leaderReach = 2 * problemRing
@@ -90,10 +102,11 @@ separationTextSize = 13
 
 
 class LanePlan:
-  """A lane drawn over a plan: fill (the labels, hatches, and dots as one layer), strokes (void and catch edges, zone lines, seeds, plot
-  entrances, region outlines, problem rings), claim (the marks labels keep clear of), labels (problem numbers, seed and region names),
-  and its legend of what the drawing showed. level {bottom, top} keeps only nodes whose height lies in it. Drawn as a layer of another
-  plan (complete false), the problems and the regions, which that plan draws its own way, are left out."""
+  """A lane drawn over a plan: fill (the labels, hatches, dots, ledges, and, for a whole lane plan, the region outlines as one layer, so
+  the plan's boundaries draw over the outlines), strokes (void and catch edges, zone lines, seeds, plot entrances, problem rings), claim
+  (the marks labels keep clear of), labels (problem numbers, zone line, seed and region names), and its legend of what the drawing
+  showed. level {bottom, top} keeps only nodes whose height lies in it. Drawn as a layer of another plan (complete false), the problems,
+  the regions, and the zone lines' names, which that plan draws its own way, are left out."""
 
   def __init__(self, analysis, description, level, complete):
     nodes = analysis["nodes"]
@@ -104,6 +117,7 @@ class LanePlan:
     inBand = numpy.ones(lane.nodeCount, dtype=bool) if level is None else (nodes.height >= level["bottom"]) & (nodes.height <= level["top"])
     self.label = numpy.zeros(lane.columns, dtype=numpy.uint8)
     self.flags = numpy.zeros(lane.columns, dtype=numpy.uint8)
+    self.top = numpy.full(lane.columns, numpy.nan, dtype=numpy.float32)
     layered = numpy.zeros(lane.columns, dtype=bool)
     squeezeLayered = numpy.zeros(lane.columns, dtype=bool)
     # Each column's highest reached floor, in cells and one up, 0 where nothing is reached.
@@ -119,9 +133,11 @@ class LanePlan:
       if len(reached):
         columns = flat[reached]
         top = numpy.append(columns[1:] != columns[:-1], True)
-        self.label[columns[top]] = nodes.label[part][reached[top]]
-        self.flags[columns[top]] = numpy.where(nodes.trap[part][reached[top]], trapFlag, 0).astype(numpy.uint8)
-        reachedTop[columns[top]] = nodes.low[part][reached[top]].astype(numpy.uint32) + 1
+        tops = reached[top]
+        self.label[columns[top]] = nodes.label[part][tops]
+        self.flags[columns[top]] = numpy.where(nodes.trap[part][tops], trapFlag, 0).astype(numpy.uint8)
+        self.top[columns[top]] = numpy.where(nodes.wet[part][tops], numpy.nan, nodes.height[part][tops])
+        reachedTop[columns[top]] = nodes.low[part][tops].astype(numpy.uint32) + 1
         dry = reached[~nodes.wet[part][reached]]
         floors = flat[dry]
         if len(floors):
@@ -149,6 +165,7 @@ class LanePlan:
     del reachedTop
     self.label = self.label.reshape(lane.columnsZ, lane.columnsX)
     self.flags = self.flags.reshape(lane.columnsZ, lane.columnsX)
+    self.top = self.top.reshape(lane.columnsZ, lane.columnsX)
     self.fromColumns = (nodes.x[lane.events[:, 1]].astype(numpy.int64), nodes.z[lane.events[:, 1]].astype(numpy.int64)) if len(lane.events) else None
 
   def sample(self, frame, size):
@@ -165,24 +182,50 @@ class LanePlan:
     inside = insideZ[:, None] & insideX[None, :]
     return inside, numpy.clip(columnZ, 0, lane.columnsZ - 1)[:, None], numpy.clip(columnX, 0, lane.columnsX - 1)[None, :]
 
-  def fill(self, frame, size):
+  def pixels(self, frame, size):
+    """Each pixel's label and flags, and whether it lies on a ledge: where the dry floors two pixels side by side reach differ by more
+    than the step (playerScale.stepHeight), the edge of a platform, roof, or pit the plan's fills alone would not show."""
     inside, rows, columns = self.sample(frame, size)
     label = numpy.where(inside, self.label[rows, columns], 0)
     flags = numpy.where(inside, self.flags[rows, columns], 0)
+    top = numpy.where(inside, self.top[rows, columns], numpy.nan)
+    ledge = numpy.zeros(label.shape, dtype=bool)
+    across = numpy.abs(top[:, 1:] - top[:, :-1]) > playerScale.stepHeight
+    down = numpy.abs(top[1:, :] - top[:-1, :]) > playerScale.stepHeight
+    ledge[:, 1:] |= across
+    ledge[:, :-1] |= across
+    ledge[1:, :] |= down
+    ledge[:-1, :] |= down
+    return label, flags, ledge
+
+  def fill(self, frame, size):
+    label, flags, ledge = self.pixels(frame, size)
     self.shown |= {("label", int(value)) for value in numpy.unique(label) if value}
     self.shown |= {("flag", flag) for flag in (trapFlag, layeredFlag, unreachedFlag, squeezeLayeredFlag) if ((flags & flag) != 0).any()}
+    if ledge.any():
+      self.shown.add("ledge")
     pixels = numpy.zeros((size[1], size[0], 4), dtype=numpy.uint8)
     for value, color in labelColors.items():
       pixels[label == value] = (*color, fillAlpha)
     down, across = numpy.indices((size[1], size[0]))
     trapHatch = ((across + down) % hatchSpacing < 2) & ((flags & trapFlag) != 0)
     pixels[trapHatch] = (*trapColor, hatchAlpha)
+    unreached = (flags & unreachedFlag) != 0
+    pixels[unreached] = (*unreachedColor, unreachedFillAlpha)
     crossing = ((across - down) % hatchSpacing == 0) | ((across + down) % hatchSpacing == 0)
-    pixels[crossing & ((flags & unreachedFlag) != 0)] = (*unreachedColor, hatchAlpha)
-    dots = (across % layeredSpacing == 0) & (down % layeredSpacing == 0)
+    pixels[crossing & unreached] = (*unreachedColor, hatchAlpha)
+    dots = (across % layeredSpacing < layeredDot) & (down % layeredSpacing < layeredDot)
     pixels[dots & ((flags & layeredFlag) != 0)] = (*layeredColor, 255)
     pixels[dots & ((flags & squeezeLayeredFlag) != 0)] = (*squeezeLayeredColor, 255)
-    return Image.fromarray(pixels, "RGBA")
+    pixels[ledge] = (*ledgeColor, ledgeAlpha)
+    image = Image.fromarray(pixels, "RGBA")
+    draw = ImageDraw.Draw(image)
+    for region in self.regions:
+      points = [frame.pixel(point) for point in region["outline"]]
+      planDrawing.dashedLine(draw, points + points[:1], (*regionColors[region["access"]], 255), 3)
+      if planDrawing.polygonArea(planDrawing.clippedToFrame(points, frame.size)) > 0:
+        self.shown.add(("region", region["access"]))
+    return image
 
   def surface(self):
     """Each column's surface, (columnsZ, columnsX): the height of its highest reached node, else of its highest node, NaN where it has
@@ -229,32 +272,44 @@ class LanePlan:
     xs, ys = [x for x, _ in corners], [y for _, y in corners]
     return max(xs) >= 0 and min(xs) < frame.size[0] and max(ys) >= 0 and min(ys) < frame.size[1]
 
-  def strokes(self, draw, frame):
+  def edges(self):
+    """The leak and catch edges in plan: (start, end, absorbed) per event whose fall leaves its column."""
     lane = self.lane
-    for region in self.regions:
-      points = [frame.pixel(point) for point in region["outline"]]
-      planDrawing.dashedLine(draw, points + points[:1], (*regionColors[region["access"]], 255), 3)
-      if planDrawing.polygonArea(planDrawing.clippedToFrame(points, frame.size)) > 0:
-        self.shown.add(("region", region["access"]))
+    found = []
     if self.fromColumns is not None:
       for (fromX, fromZ), event in zip(zip(*self.fromColumns), lane.events):
         x, z = lane.columnPlaces(numpy.array([event[2]], dtype=numpy.int64))
         if (int(fromX), int(fromZ)) == (int(x[0]), int(z[0])):
           continue
-        start, end = (frame.pixel(point) for point in edgeBetween(lane, (int(fromX), int(fromZ)), (int(x[0]), int(z[0]))))
-        catches = event[0] == playerReach.absorbedEvent
-        draw.line([start, end], fill=(*(catchColor if catches else voidColor), 255), width=edgeWidth)
-        if self.boxInFrame(frame, [start, end]):
-          self.shown.add("catch" if catches else "void")
+        start, end = edgeBetween(lane, (int(fromX), int(fromZ)), (int(x[0]), int(z[0])))
+        found.append((start, end, event[0] == playerReach.absorbedEvent))
+    return found
+
+  def zoneLineBoxes(self, frame):
+    """Each zone line's box in the drawing's pixels (left, top, right, bottom), with its line and whether it is reached."""
+    boxes = []
     for line, reported in zip(self.description["zoneLines"], self.analysis["zoneLines"]):
-      low, high = line["low"], line["high"]
-      corners = [frame.pixel(point) for point in ((low[0], low[1]), (high[0], low[1]), (high[0], high[1]), (low[0], high[1]))]
-      if reported["reached"]:
-        draw.polygon(corners, fill=(*zoneLineColor, 150), outline=(*zoneLineColor, 255), width=3)
+      (x0, y0), (x1, y1) = frame.pixel(line["high"][:2]), frame.pixel(line["low"][:2])
+      boxes.append(((min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)), line, reported["reached"]))
+    return boxes
+
+  def strokes(self, draw, frame):
+    for start, end, absorbed in self.edges():
+      ends = [frame.pixel(start), frame.pixel(end)]
+      draw.line(ends, fill=(*(catchColor if absorbed else voidColor), 255), width=edgeWidth)
+      if self.boxInFrame(frame, ends):
+        self.shown.add("catch" if absorbed else "void")
+    for box, _, reached in self.zoneLineBoxes(frame):
+      left, top, right, bottom = box
+      corners = [(left, top), (right, top), (right, bottom), (left, bottom)]
+      if reached:
+        draw.rectangle(box, fill=(*zoneLineColor, zoneLineFillAlpha))
+        hatchBox(draw, box, (*zoneLineColor, 255), zoneLineHatchSpacing)
+        draw.rectangle(box, outline=(*zoneLineColor, 255), width=3)
       else:
         planDrawing.dashedLine(draw, corners + corners[:1], (*zoneLineColor, 255), 3)
       if self.boxInFrame(frame, corners):
-        self.shown.add("zoneLineReached" if reported["reached"] else "zoneLineUnreached")
+        self.shown.add("zoneLineReached" if reached else "zoneLineUnreached")
     for plot in self.analysis["plotEntrances"]:
       x, y = frame.pixel(plot["at"])
       if plot["reached"]:
@@ -271,7 +326,7 @@ class LanePlan:
         self.shown.add("isolatedSeed" if seed["isolated"] else "seed")
     if self.complete:
       for problem in self.problemsIn(frame):
-        drawRing(draw, frame.pixel(problem["center"]), problemRing)
+        drawRing(draw, frame.pixel(problem["center"]), ringRadius(problem))
 
   def problemsIn(self, frame):
     return [problem for problem in self.analysis["problems"] if self.inFrame(frame, problem["center"])]
@@ -280,7 +335,8 @@ class LanePlan:
     """Keep labels clear of the lane's marks where they can be: every problem ring, seed, and plot mark."""
     for problem in self.problemsIn(frame) if self.complete else []:
       x, y = frame.pixel(problem["center"])
-      board.avoid([x - problemRing - 2, y - problemRing - 2, x + problemRing + 2, y + problemRing + 2])
+      radius = ringRadius(problem)
+      board.avoid([x - radius - 2, y - radius - 2, x + radius + 2, y + radius + 2])
     for entry in self.analysis["entries"]:
       x, y = frame.pixel(entry["at"])
       board.avoid([x - seedLength, y - seedLength, x + seedLength, y + seedLength])
@@ -289,40 +345,57 @@ class LanePlan:
       board.avoid([x - plotMark - 2, y - plotMark - 2, x + plotMark + 2, y + plotMark + 2])
 
   def labels(self, board, frame):
-    """Name what the lane marks: each problem's number set by its ring (led back to it by a line when it lands far off), each seed's
-    name beside it, and each region's name just above its outline where enough of it shows to hold its name."""
-    for problem in self.problemsIn(frame) if self.complete else []:
+    """Name what the lane marks: for a whole lane plan each zone line in its box, which later labels keep clear of, and each problem's
+    number just over its ring (led back to it by a line when it lands far off); then each seed's name beside it, clear of any ring round
+    it, and each region's name just over the middle of its outline's top, or just under it where that lies in the grid's labels."""
+    problems = self.problemsIn(frame) if self.complete else []
+    if self.complete:
+      boxes = [(box, line) for box, line, _ in self.zoneLineBoxes(frame) if box[2] > 0 and box[3] > 0 and box[0] < frame.size[0] and box[1] < frame.size[1]]
+      for box, line in boxes:
+        board.place(((box[0] + box[2]) / 2, (box[1] + box[3]) / 2), line["name"], zoneLineColor, 13)
+      for box, _ in boxes:
+        board.avoid(list(box))
+    for problem in problems:
       x, y = frame.pixel(problem["center"])
-      wanted = (x + problemRing + 6, y - problemRing - 6)
+      radius = ringRadius(problem)
+      wanted = (x, y - radius - 3)
       text = str(problem["number"])
-      spot = board.clearSpot(wanted, text, problemNumberSize, "lb")
+      spot = board.clearSpot(wanted, text, problemNumberSize, "mb")
       spot = wanted if spot is None else spot
-      board.write(spot, text, problemColor, problemNumberSize, "lb")
+      board.write(spot, text, problemColor, problemNumberSize, "mb")
       if math.dist(spot, wanted) > leaderReach:
-        box = board.textBox(spot, text, problemNumberSize, "lb")
+        box = board.textBox(spot, text, problemNumberSize, "mb")
         nearest = (min(max(x, box[0]), box[2]), min(max(y, box[1]), box[3]))
         reach = math.dist((x, y), nearest)
-        if reach > problemRing:
-          board.draw.line([(x + (nearest[0] - x) * problemRing / reach, y + (nearest[1] - y) * problemRing / reach), nearest], fill=(*problemColor, 255), width=2)
+        if reach > radius:
+          board.draw.line([(x + (nearest[0] - x) * radius / reach, y + (nearest[1] - y) * radius / reach), nearest], fill=(*problemColor, 255), width=2)
     for entry in self.analysis["entries"]:
-      x, y = frame.pixel(entry["at"])
-      board.place((x + seedLength, y), "S" if entry["kind"] == "safePoint" else entry["name"], seedOutline, 13, "lm")
+      ringed = [ringRadius(problem) for problem in problems if problem["kind"] == "disconnectedEntry" and problem.get("entry") == entry["name"]]
+      nameBeside(board, frame.pixel(entry["at"]), max([seedLength] + ringed), "S" if entry["kind"] == "safePoint" else entry["name"], seedOutline, 13)
     for region in self.regions:
       shown = planDrawing.clippedToFrame([frame.pixel(point) for point in region["outline"]], frame.size)
       if planDrawing.showsName(board, shown, region["name"], 13):
-        highest = min(shown, key=lambda point: point[1])
-        board.place((highest[0], max(highest[1] - 4, 18)), region["name"], regionColors[region["access"]], 13, "mb")
+        highest = min(y for _, y in shown)
+        along = [x for x, y in shown if y <= highest + 1]
+        middle = (min(along) + max(along)) / 2
+        above = board.textBox((middle, highest - 4), region["name"], 13, "mb")
+        if above[1] >= axisBand:
+          board.place((middle, highest - 4), region["name"], regionColors[region["access"]], 13, "mb")
+        else:
+          board.place((middle, highest + 4), region["name"], regionColors[region["access"]], 13, "ma")
 
-  def legend(self, frame):
+  def legend(self, frame, base=()):
     """The drawing's key, each entry (kind of mark, color, words): the labels and marks the lane drew in the frame (fill and strokes
-    record them), and, for a whole lane plan, each kind of problem in the frame with its numbers; then which way the plan's axes run."""
+    record them), each fill as it shows over the relief, and, for a whole lane plan, each kind of problem in the frame with its numbers;
+    then base, the entries of the plan's own layers under the lane (planLayerLegend), and which way the plan's axes run."""
     keyed = [
-      *[(("label", label), ("fill", labelColors[label], labelWords[label])) for label in labelColors],
+      *[(("label", label), ("fill", overRelief(labelColors[label], fillAlpha), labelWords[label])) for label in labelColors],
       (("flag", trapFlag), ("hatch", trapColor, "trap (no way back)")), (("flag", unreachedFlag), ("crossHatch", unreachedColor, "walkable, never reached")),
       (("flag", layeredFlag), ("dots", layeredColor, "reached under a higher level")),
       (("flag", squeezeLayeredFlag), ("dots", squeezeLayeredColor, "only a smaller player under it")),
+      ("ledge", ("ledge", ledgeColor, f"ledge: floors side by side over a step ({playerScale.stepHeight:g}) apart")),
       ("void", ("line", voidColor, "leak edge (onto nothing or under the underworld)")), ("catch", ("line", catchColor, "a zone line catches the fall")),
-      ("zoneLineReached", ("box", zoneLineColor, "zone line reached")), ("zoneLineUnreached", ("dashedBox", zoneLineColor, "zone line not reached")),
+      ("zoneLineReached", ("hatchedBox", zoneLineColor, "zone line reached")), ("zoneLineUnreached", ("dashedBox", zoneLineColor, "zone line not reached")),
       ("seed", ("arrow", seedOutline, "seed: where players arrive")), ("isolatedSeed", ("hollowArrow", seedOutline, "isolated seed")),
       ("plotReached", ("plus", plotColor, "plot entrance reached")), ("plotUnreached", ("cross", unreachedPlotColor, "plot entrance not reached")),
       *[(("region", access), ("dashed", regionColors[access], f"{access or 'undecided'} region")) for access in ("play", "view", "none", None)],
@@ -333,7 +406,7 @@ class LanePlan:
       for problem in self.problemsIn(frame):
         byKind.setdefault(problem["kind"], []).append(problem["number"])
       items += [("ring", problemColor, f"{numberRuns(numbers)} {kind}") for kind, numbers in byKind.items()]
-    return items + [("text", legendTextColor, "plan: +X (north) up, +Y left")]
+    return items + list(base) + [("text", legendTextColor, "plan: +X (north) up, +Y left")]
 
 
 class RoutePlan(LanePlan):
@@ -402,12 +475,12 @@ class RoutePlan(LanePlan):
     for box, text in self.rings(frame):
       board.draw.text(((box[0] + box[2]) / 2, (box[1] + box[3]) / 2), text, fill=(*ribbonCasing, 255), font=planDrawing.fontOf(decisiveNumberSize), anchor="mm")
 
-  def legend(self, frame):
+  def legend(self, frame, base=()):
     return [("ribbon", labelColors[playerReach.walkLabel], "the route, in its labels' colors")] + (
       [("dashed", teleportColor, "carried by a zone line")] if "teleport" in self.shown else []
     ) + ([("numbered", ribbonCasing, "a decisive move, numbered (a run of them shares a ring)")] if self.decisive else []) + [
       ("target", targetColor, "the traced point"),
-    ] + super().legend(frame)
+    ] + super().legend(frame, base)
 
 
 class SectionLane:
@@ -545,7 +618,8 @@ def sectionLayerLegend(cuts):
 
 
 def planLayerLegend(overlays, frame):
-  """A plan's own layers the frame shows, as legend entries: water, swim volumes, and boundaries."""
+  """A plan's own layers the frame shows under a lane, as legend entries, each fill as it shows over the relief: water and swim volumes
+  by liquid, boundaries' walls, and their lids and floors."""
   def shows(points):
     pixels = [frame.pixel(point) for point in points]
     xs, ys = [x for x, _ in pixels], [y for _, y in pixels]
@@ -553,11 +627,13 @@ def planLayerLegend(overlays, frame):
 
   items = []
   liquids = sorted({body["liquid"] for body in overlays["water"] if shows([point for x0, y0, x1, y1 in body["runs"] for point in ((x0, y0), (x1, y1))] + [point for loop in body["loops"] for point in loop])})
-  items += [("fill", planDrawing.liquidColors[liquid], f"{liquid} surface") for liquid in liquids]
+  items += [("fill", overRelief(planDrawing.liquidColors[liquid], planDrawing.waterAlpha), f"{liquid} surface") for liquid in liquids]
   boxes = sorted({box["liquid"] for box in overlays["swim"] if shows(box["corners"])})
   items += [("dashedBox", planDrawing.swimColors[liquid], f"{liquid} swim volume") for liquid in boxes]
-  if any(shows([point for line in boundary["lines"] for point in line] + [point for area in boundary["areas"] for point in area]) for boundary in overlays["boundaries"]):
-    items.append(("line", planDrawing.boundaryColor, "boundary"))
+  if any(shows([point for line in boundary["lines"] for point in line]) for boundary in overlays["boundaries"]):
+    items.append(("line", planDrawing.boundaryColor, "boundary wall"))
+  if any(shows([point for area in boundary["areas"] for point in area]) for boundary in overlays["boundaries"]):
+    items.append(("fill", overRelief(planDrawing.boundaryColor, planDrawing.boundaryAreaAlpha), "boundary lid or floor"))
   return items
 
 
@@ -620,6 +696,40 @@ def drawSeed(draw, at, headingDegrees, isolated):
   draw.polygon(arrow, fill=None if isolated else (*seedFill, 255), outline=(*seedOutline, 255), width=2)
 
 
+reliefMiddle = tuple((low + high) / 2 for low, high in zip(reliefLow, reliefHigh))
+
+
+def overRelief(color, alpha):
+  """A color laid at alpha over the relief's middle grey, as a fill shows on the plan."""
+  return tuple(round(channel * alpha / 255 + middle * (1 - alpha / 255)) for channel, middle in zip(color, reliefMiddle))
+
+
+def ringRadius(problem):
+  """A problem's ring: wide enough to go round the mark it lies on (a seed's arrow, a plot entrance's cross)."""
+  return ringRadii.get(problem["kind"], problemRing)
+
+
+def hatchBox(draw, box, color, spacing):
+  """Diagonal lines spacing apart across a box (left, top, right, bottom) in pixels."""
+  left, top, right, bottom = box
+  for offset in range(math.floor(left - bottom), math.ceil(right - top) + 1, spacing):
+    first, last = max(top, left - offset), min(bottom, right - offset)
+    if last > first:
+      draw.line([(first + offset, first), (last + offset, last)], fill=color, width=1)
+
+
+def nameBeside(board, at, reach, text, color, size):
+  """Write a mark's name reach pixels from it, right, left, under, or over it, the first clear of the labels and avoided boxes; right of
+  it, moved the least it can, where none is."""
+  x, y = at
+  spots = (((x + reach + nameGap, y), "lm"), ((x - reach - nameGap, y), "rm"), ((x, y + reach + nameGap), "ma"), ((x, y - reach - nameGap), "mb"))
+  for spot, anchor in spots:
+    if board.isClear(board.textBox(spot, text, size, anchor)):
+      board.write(spot, text, color, size, anchor)
+      return
+  board.place(spots[0][0], text, color, size, "lm")
+
+
 def drawLegendItem(draw, left, top, item):
   """One legend entry at (left, top): its mark in a swatch, then its words."""
   kind, color, text = item
@@ -628,7 +738,7 @@ def drawLegendItem(draw, left, top, item):
   if kind == "fill":
     draw.rectangle([left, top, right, bottom], fill=(*color, 255), outline=serverMapDrawing.darker(color))
   elif kind in ("hatch", "crossHatch"):
-    draw.rectangle([left, top, right, bottom], outline=(170, 170, 170))
+    draw.rectangle([left, top, right, bottom], fill=overRelief(color, unreachedFillAlpha) if kind == "crossHatch" else None, outline=(170, 170, 170))
     for offset in range(-legendSwatch + 3, legendSwatch, 6):
       start, end = max(offset, 0), min(offset + legendSwatch, legendSwatch)
       draw.line([(left + start, bottom - (start - offset)), (left + end, bottom - (end - offset))], fill=color, width=2 if kind == "hatch" else 1)
@@ -641,10 +751,16 @@ def drawLegendItem(draw, left, top, item):
         draw.rectangle([left + dx, top + dy, left + dx + 1, top + dy + 1], fill=color)
   elif kind == "line":
     draw.line([(left, middle), (right, middle)], fill=color, width=edgeWidth)
+  elif kind == "ledge":
+    draw.line([(left, middle), (right, middle)], fill=color, width=2)
   elif kind == "dashed":
     planDrawing.dashedLine(draw, [(left, middle), (right, middle)], color, 3)
   elif kind == "box":
     draw.rectangle([left + 2, top + 2, right - 2, bottom - 2], fill=tuple(round(channel * 0.6 + 255 * 0.4) for channel in color), outline=color, width=3)
+  elif kind == "hatchedBox":
+    draw.rectangle([left + 2, top + 2, right - 2, bottom - 2], fill=overRelief(color, zoneLineFillAlpha))
+    hatchBox(draw, (left + 2, top + 2, right - 2, bottom - 2), color, zoneLineHatchSpacing)
+    draw.rectangle([left + 2, top + 2, right - 2, bottom - 2], outline=color, width=3)
   elif kind == "dashedBox":
     corners = [(left + 2, top + 2), (right - 2, top + 2), (right - 2, bottom - 2), (left + 2, bottom - 2)]
     for start, end in zip(corners, corners[1:] + corners[:1]):

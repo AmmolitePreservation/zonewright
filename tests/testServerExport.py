@@ -18,6 +18,7 @@ import eqAxes
 import eqgFiles
 import exportPipeline
 import planDrawing
+import playerReach
 import recastHelper
 import serverMapDrawing
 import serverMapFiles
@@ -36,6 +37,7 @@ northLine = {"minimum": [236, -20, -5], "maximum": [244, 20, 30]}
 # Two daises, one model placed twice, unturned: 16 across, so their tops hold NPC nav, and 8 high, over the NPC's climb.
 daises = {"dais": [-100.5, 30.25], "dais.001": [79.5, -29.75]}
 daisHalfWidth, daisHeight = 8, 8
+cellSize = playerReach.reachGrid["cellSize"]
 
 
 def noProgress(done, of, message):
@@ -109,12 +111,17 @@ def testCheckExportGameBuildsTheServerFilesInScratch(stageBlenderServer, tmp_pat
 
   checked = stageBlenderServer.session(steps)
   folder = checkFolderOf(stageBlenderServer)
-  assert [failure["failure"] for failure in checked["failures"]] == ["containment not checked"]
+  # The field is walled along one long side only: players walk off its other edges, and round the wall's ends off that one, a leak all
+  # round it, one column out from the ground's.
+  assert [failure["failure"] for failure in checked["failures"]] == ["voidEdge"]
+  rim = checked["failures"][0]["extent"]
+  assert (rim["minimum"][:2], rim["maximum"][:2]) == ([-256 - 1.5 * cellSize, -96 - 1.5 * cellSize], [256 + 1.5 * cellSize, 96 + 1.5 * cellSize])
   assert checked["checkFolder"] == str(folder) and not archivePath.exists()
   paths = {kind: folder / "server" / "maps" / kind / f"servertest.{extension}" for kind, extension in (("base", "map"), ("water", "wtr"), ("nav", "nav"))}
   assert checked["serverFiles"]["files"] == {"map": str(paths["base"]), "water": str(paths["water"]), "nav": str(paths["nav"])}
   assert sorted(path.relative_to(folder).as_posix() for path in folder.rglob("*") if path.is_file()) == [
-    "server/maps/base/servertest.map", "server/maps/nav/servertest.nav", "server/maps/water/servertest.wtr", "servertest.eqg", "servertest_export.json",
+    "server/maps/base/servertest.map", "server/maps/nav/servertest.nav", "server/maps/water/servertest.wtr", "server/sql/servertest.sql", "servertest.eqg",
+    "servertest_export.json",
   ]
 
   # The server's collision is the archive's solid triangles, the bush (marked passable) left out, the boundary wall in, to the last bit.
@@ -151,8 +158,10 @@ def testCheckExportGameBuildsTheServerFilesInScratch(stageBlenderServer, tmp_pat
   )
   assert placed == [("dais", 0.2), ("dais", daisHeight + 0.2), ("dais.001", 0.2), ("dais.001", daisHeight + 0.2)]
   assert [(probe["name"], probe["reached"]) for probe in summary["probes"]] == [("ATP_1_north", True)]
+  # Players climb neither dais, so they reach none of the islands.
   islands = [finding for finding in checked["findings"] if finding["finding"] == "NPC islands"]
-  assert [(finding["islands"], finding["atSnapRisk"]) for finding in islands] == [(4, 4)]
+  assert [(finding["islands"], finding["atSnapRisk"], finding["playersReach"]) for finding in islands] == [(4, 4, 0)]
+  assert [island["playersReach"] for island in summary["largestIslands"]] == [False] * 4
 
   # The server's view from the check folder's files alone.
   zone = eqgFiles.parseZone(archive.read("servertest.zon"), "servertest.zon")
@@ -214,13 +223,14 @@ def testCheckExportGameSaysWhyServerFilesWereNotBuilt(stageBlenderServer, tmp_pa
     "No safe point: islands are counted against the largest component, which stands in for the main piece",
     "NPC paths were not probed, as there is no safe point to start from: to ATP_1_north",
   ]
-  assert [failure["failure"] for failure in hard["failures"]] == ["no texture coordinates", "safe point or underworld missing", "containment not checked"]
+  assert [failure["failure"] for failure in hard["failures"]] == ["no texture coordinates", "safe point or underworld missing"]
+  assert hard["containment"] == "not checked: server files not built"
   assert hard["serverFiles"] == {"built": False, "message": "server files not built: the checks found an unsaved file or what no zone file can hold: ['no texture coordinates (bare)']"}
   assert hardLeftNoCheck
   # A vertex at or below z -15000, whose triangles map_edit drops quietly, is a nav the helper refuses: a failure saying why, and the
   # .map and .wtr written without a .nav.
-  assert [failure["failure"] for failure in deep["failures"]] == ["safe point or underworld missing", "containment not checked", "nav not built"]
-  refused = deep["failures"][-1]["message"]
+  assert [failure["failure"] for failure in deep["failures"]] == ["safe point or underworld missing", "nav not built", "containment not checked"]
+  refused = deep["failures"][1]["message"]
   assert refused.startswith("The server's nav mesh cannot be built: recastHelper nav: collidable triangle ") and "at or below z -15000" in refused, refused
   folder = checkFolderOf(stageBlenderServer)
   maps = folder / "server" / "maps"
@@ -309,6 +319,7 @@ def testATestExportRemovesTheZonesServerFiles(stageBlenderServer, tmp_path):
 
   exported = stageBlenderServer.session(steps)
   ours = [exportFolder / "server" / "maps" / kind / f"servertest.{extension}" for kind, extension in (("base", "map"), ("water", "wtr"), ("nav", "nav"))]
+  ours.append(exportFolder / "server" / "sql" / "servertest.sql")
   assert exported["serverFilesRemoved"] == [str(path) for path in ours]
   assert not any(path.exists() for path in ours) and all(path.read_bytes() == data for path, data in others.items())
   manifest = json.loads((exportFolder / "servertest_export.json").read_text(encoding="ascii"))
@@ -470,11 +481,15 @@ def testTheManifestListsEveryFileWithItsHash(stageBlenderServer, tmp_path):
   manifest = json.loads((folder / "servertest_export.json").read_text(encoding="ascii"))
   listed = {path.relative_to(folder).as_posix(): recordOf(path) for path in folder.rglob("*") if path.is_file() and path.name != "servertest_export.json"}
   assert sorted(listed) == [
-    "server/maps/base/servertest.map", "server/maps/nav/servertest.nav", "server/maps/water/servertest.wtr", "servertest.eqg", "servertest_EnvironmentEmitters.txt",
+    "server/maps/base/servertest.map", "server/maps/nav/servertest.nav", "server/maps/water/servertest.wtr", "server/sql/servertest.sql", "servertest.eqg",
+    "servertest_EnvironmentEmitters.txt",
   ]
   assert manifest["files"] == listed
   assert (manifest["purpose"], manifest["shortName"], manifest["blend"]) == ("game", "servertest", str(tmp_path / "servertest.blend"))
   assert (manifest["failures"], manifest["findings"]) == (len(checked["failures"]), len(checked["findings"]))
+  assert manifest["zone"] == {"shortName": "servertest", "zoneId": 901, "longName": "The servertest test", "serverTemplate": "qeynos2"}
+  assert manifest["zonePoints"] == {"written": [10], "deleted": []}
+  assert manifest["lane"] == {key: checked["containment"][key] for key in ("laneKey", "reachGrid", "constants", "reachedArea")}
   assert manifest["serverNavSettings"] == serverNav.serverNavSettings
   assert manifest["recastHelper"] == {"commit": pinnedRecast["commit"], "fingerprint": recastHelper.helperFingerprint(pinnedRecast, recastHelper.toolchain()[1])}
   summary = checked["serverFiles"]["nav"]
