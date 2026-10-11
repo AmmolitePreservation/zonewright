@@ -13,8 +13,10 @@ import buildTolerances
 import laneDrawing
 import planDrawing
 import playerReach
+from playerScale import playerHeight, stepHeight
 from testCaves import caveCanyon, hall
-from testReach import cellHeight, cellSize, reachCourse
+from testModelsAndDressing import freshScene
+from testReach import cellHeight, cellSize, cube, heightMargin, reachCourse
 from testWater import environment
 
 
@@ -184,6 +186,51 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   assert greenShare(pixelsAround(sketch, sketchReport, [20, -10])) > 0.9
   assert greenShare(pixelsAround(bare, plainReport, [20, -10])) == 0
   assert colorShare(pixelsAround(sketch, sketchReport, [125, 103]), laneDrawing.unreachedColor) > 0.1
+
+
+def composited(under, color, alpha):
+  """Pixels with a color laid over them at alpha, as a plan composites a layer."""
+  return under * (1 - alpha / 255) + numpy.array(color) * alpha / 255
+
+
+def testUnreachedFloorIsDimmedAloneAndShowsTheLevelReachedUnderIt(stageBlenderServer, tmp_path):
+  # A canopy hung a player's height and a margin over the walked ground, and a block rising more than the step: the tops of both are
+  # walkable floor never reached, the canopy's over a level reached under it.
+  canopyBottom = playerHeight + 2 * heightMargin
+  canopy, block = ([10, 10, canopyBottom], [30, 30, canopyBottom + 1]), ([10, -30, 0], [30, -10, stepHeight + 2 * heightMargin])
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [96, 96], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("setZoneProperties", environment | {"safePoint": [0, -30, 0, 0]})
+    await cube(session, "canopy", *canopy)
+    await cube(session, "block", *block)
+    sketch = {"center": [15, 0], "width": 80, "layers": []}
+    return await session.expectImage("renderSketch", sketch | {"layers": ["lane"]}), await session.expectImage("renderSketch", sketch)
+
+  (lanedImage, lanedReport), (plainImage, plainReport) = stageBlenderServer.session(steps)
+  assert lanedReport["frameSize"] == plainReport["frameSize"]
+  (tmp_path / "unreachedTint.png").write_bytes(lanedImage)
+  laned, plain = (numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB")).astype(float) for image in (lanedImage, plainImage))
+
+  def window(point):
+    """The pixels round where a zone point falls, halfway between the grid's lines, and which of them the never reached hatch crosses."""
+    x, y = (round(value) for value in planFrame(lanedReport).pixel(point))
+    down, across = numpy.mgrid[y - 12:y + 13, x - 12:x + 13]
+    crossing = ((across - down) % laneDrawing.hatchSpacing == 0) | ((across + down) % laneDrawing.hatchSpacing == 0)
+    return (slice(y - 12, y + 13), slice(x - 12, x + 13)), crossing
+
+  # Both tops are cross-hatched. Over the walked ground under the canopy the walk fill shows between the hatch's lines, untouched by the
+  # dimming laid between them over the block's top, where no level is reached under the floor never reached.
+  between = {
+    "canopy": ([25, 15], laneDrawing.labelColors[playerReach.walkLabel], laneDrawing.fillAlpha),
+    "block": ([25, -15], laneDrawing.unreachedColor, laneDrawing.unreachedFillAlpha),
+  }
+  for name, (point, color, alpha) in between.items():
+    place, crossing = window(point)
+    hatch = composited(plain[place], laneDrawing.unreachedColor, laneDrawing.hatchAlpha)
+    assert numpy.abs(laned[place][crossing] - hatch[crossing]).max() <= 2, name
+    assert numpy.abs(laned[place][~crossing] - composited(plain[place], color, alpha)[~crossing]).max() <= 2, name
 
 
 def testLaneWalksACaveUnderItsVaultAndShowsThroughItsPlanFloor(stageBlenderServer, tmp_path):
