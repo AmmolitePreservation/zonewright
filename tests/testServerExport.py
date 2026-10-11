@@ -472,7 +472,7 @@ def testTheManifestListsEveryFileWithItsHash(stageBlenderServer, tmp_path):
   manifestPath = exportFolder / "servertest_export.json"
   assert exported["manifest"] == str(manifestPath)
   assert json.loads(manifestPath.read_text(encoding="ascii")) == {
-    "purpose": "test", "shortName": "servertest", "blend": str(tmp_path / "servertest.blend"),
+    "purpose": "test", "writtenBy": "exportZone", "shortName": "servertest", "blend": str(tmp_path / "servertest.blend"),
     "files": {name: recordOf(exportFolder / name) for name in ("servertest.eqg", "servertest_EnvironmentEmitters.txt")},
     "failures": 0, "findings": len(exported["findings"]),
   }
@@ -485,7 +485,7 @@ def testTheManifestListsEveryFileWithItsHash(stageBlenderServer, tmp_path):
     "servertest_EnvironmentEmitters.txt",
   ]
   assert manifest["files"] == listed
-  assert (manifest["purpose"], manifest["shortName"], manifest["blend"]) == ("game", "servertest", str(tmp_path / "servertest.blend"))
+  assert (manifest["purpose"], manifest["writtenBy"], manifest["shortName"], manifest["blend"]) == ("game", "checkExport", "servertest", str(tmp_path / "servertest.blend"))
   assert (manifest["failures"], manifest["findings"]) == (len(checked["failures"]), len(checked["findings"]))
   assert manifest["zone"] == {"shortName": "servertest", "zoneId": 901, "longName": "The servertest test", "serverTemplate": "qeynos2"}
   assert manifest["zonePoints"] == {"written": [10], "deleted": []}

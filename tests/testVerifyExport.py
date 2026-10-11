@@ -354,6 +354,10 @@ def testVerifyExportRefusesWhatItCannotJudge(stageBlenderServer, exportedZone, t
   bare = tmp_path / "bare"
   bare.mkdir()
   shutil.copy(archive, bare / f"{short}.eqg")
+  failing = copiedExport(exportedZone, tmp_path)
+  manifestPath = failing / f"{short}_export.json"
+  manifestPath.write_text(json.dumps(json.loads(manifestPath.read_text(encoding="ascii")) | {"failures": 3}), encoding="ascii")
+  (tmp_path / "checked").mkdir()
 
   async def steps(session):
     refusals = {
@@ -364,14 +368,22 @@ def testVerifyExportRefusesWhatItCannotJudge(stageBlenderServer, exportedZone, t
     await session.expectSuccess("openFile", {"path": str(exportedZone.folder / "reference.blend")})
     refusals["otherFile"] = await session.expectError("verifyExport", {"path": str(archive)})
     await session.expectSuccess("openFile", {"path": str(exportedZone.blend)})
+    refusals["failures"] = await session.expectError("verifyExport", {"path": str(failing / f"{short}.eqg")})
+    checked = await session.expectSuccess("checkExport", {"path": str(tmp_path / "checked" / f"{short}.eqg"), "purpose": "game"})
+    refusals["check"] = await session.expectError("verifyExport", {"path": str(Path(checked["checkFolder"]) / f"{short}.eqg")})
     await session.expectSuccess("transformObjects", {"names": ["crate"], "translate": [0, 0, 1]})
     refusals["unsaved"] = await session.expectError("verifyExport", {"path": str(archive)})
-    return refusals
+    return refusals, checked
 
-  refusals = stageBlenderServer.session(steps)
+  refusals, checked = stageBlenderServer.session(steps)
   assert f"'{short}.eqg' is not an absolute path to an exported <short>.eqg" in refusals["relative"]
   assert f"No manifest {short}_export.json lies beside '{bare / f'{short}.eqg'}'" in refusals["noManifest"]
   assert "is a 'test' export's manifest; verifyExport reads back a game export" in refusals["testExport"]
+  assert f"{manifestPath} records 3 failures; exportZone writes nothing while a check fails, so these are no export's files" in refusals["failures"]
+  # A game check of the zone as exported passes and builds every file a game export writes; its folder is still no export.
+  assert checked["failures"] == [] and checked["serverFiles"]["built"] is True
+  checkManifest = Path(checked["checkFolder"]) / f"{short}_export.json"
+  assert f"{checkManifest} is checkExport's manifest of a game check: a check run is not an export" in refusals["check"]
   assert f"{short}.eqg was exported from '{exportedZone.blend}', but the open file is '{exportedZone.folder / 'reference.blend'}'" in refusals["otherFile"]
   assert "The open file has unsaved changes; verifyExport judges an export against the scene as saved" in refusals["unsaved"]
 
@@ -379,6 +391,7 @@ def testVerifyExportRefusesWhatItCannotJudge(stageBlenderServer, exportedZone, t
 def testVerifyExportNeedsTheRecastHelper(stageServer, tmp_path):
   server = stageServer({"blender": pinnedBlender, "extensions": {}})
   (tmp_path / f"{short}.eqg").write_bytes(b"an archive")
-  (tmp_path / f"{short}_export.json").write_text(json.dumps({"purpose": "game", "shortName": short, "blend": str(tmp_path / "zone.blend"), "files": {}}), encoding="ascii")
+  manifest = {"purpose": "game", "writtenBy": "exportZone", "shortName": short, "blend": str(tmp_path / "zone.blend"), "files": {}, "failures": 0}
+  (tmp_path / f"{short}_export.json").write_text(json.dumps(manifest), encoding="ascii")
   refusal = server.callToolExpectingError("verifyExport", {"path": str(tmp_path / f"{short}.eqg")})
   assert "The Recast helper is missing" in refusal and "run syncTooling to build it" in refusal, refusal

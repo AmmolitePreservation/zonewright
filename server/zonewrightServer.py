@@ -1442,9 +1442,9 @@ async def buildExport(context, zone, purpose):
   return built, status["filePath"]
 
 
-async def writeExport(folder, built, blendPath):
+async def writeExport(folder, built, blendPath, writtenBy):
   try:
-    return await anyio.to_thread.run_sync(exportPipeline.writeExport, folder, built, blendPath)
+    return await anyio.to_thread.run_sync(exportPipeline.writeExport, folder, built, blendPath, writtenBy)
   except OSError as error:
     raise ToolError("\n".join([f"{type(error).__name__}: {error}", *getattr(error, "__notes__", [])])) from error
 
@@ -1466,7 +1466,8 @@ def clearCheckFolder(zone):
   " folder, the zone's short name in lowercase letters and digits, at most 31 of them). A game check also builds what a game export"
   " writes, once the checks find nothing no zone file can hold and the file is saved: the archive, its side files, the manifest, the"
   " server's map files (.map, .wtr, and .nav, built by the Recast helper, which syncTooling builds), and the zone's server rows (SQL),"
-  " into the tooling root's exports\\<zone>\\check folder, replacing the last check's; `serverFiles` gives where they went, the NPC nav's"
+  " into the tooling root's exports\\<zone>\\check folder, replacing the last check's (its manifest says checkExport wrote it, so"
+  " verifyExport refuses it: a check is no export); `serverFiles` gives where they went, the NPC nav's"
   " inspection (its main piece around the safe point, islands with whether players reach each, the largest listed, and paths probed from"
   " the safe point to each zone line, stored entry, and plot entrance within Peridot's 1,024 search nodes), and the rows (the zone_points"
   " numbers written and deleted, the ways in to add on the server), or says \"server files not built\" and names the failures why;"
@@ -1484,7 +1485,7 @@ async def checkExport(context: Context, path: str, purpose: str):
   built, blendPath = await buildExport(context, zone, purpose)
   folder = await anyio.to_thread.run_sync(clearCheckFolder, zone)
   if built["archive"] is not None:
-    await writeExport(folder, built, blendPath)
+    await writeExport(folder, built, blendPath, "checkExport")
   return {"path": str(archivePath), "zone": zone} | exportReport(built["report"]) | {"checkFolder": str(folder), "serverFiles": exportPipeline.serverFilesReport(built, folder)}
 
 
@@ -1493,7 +1494,8 @@ async def checkExport(context: Context, path: str, purpose: str):
   " letters and digits (at most 31), outside the EverQuest client folder however the path spells it (an export writes and removes files"
   " beside its archive and under its server folder, and none of them may lie in the client folder, a linked server folder included), after"
   " the checks for its purpose (checkExport): any failure refuses the export and lists them all, and nothing is written. Beside the"
-  " archive goes <zone>_export.json, the manifest: the purpose, the short name, the .blend, every file written with its size and SHA-256,"
+  " archive goes <zone>_export.json, the manifest: the purpose, that exportZone wrote it, the short name, the .blend, every file written"
+  " with its size and SHA-256,"
   " and the failure and finding counts. A game export also writes the server's map files built from the archive's bytes under"
   " server\\maps, laid out as the server's maps folder (base\\<zone>.map, water\\<zone>.wtr, nav\\<zone>.nav), and the zone's rows as SQL"
   " the owner applies with the mariadb client under server\\sql (<zone>.sql: the zone row upserted and a zone_points row per zone line,"
@@ -1541,7 +1543,7 @@ async def exportZone(context: Context, path: str, purpose: str):
     )
   folder = archivePath.parent
   recorded = await anyio.to_thread.run_sync(callReportingFailures, exportPipeline.recordExport, toolingRoot, built) if purpose == "game" else None
-  written = await writeExport(folder, built, blendPath)
+  written = await writeExport(folder, built, blendPath, "exportZone")
   sides = exportPipeline.sideFilePaths(folder, zone)
   housing = built["housing"]
   hasPlots = built["sides"]["housing"] is not None
@@ -1606,8 +1608,9 @@ async def renderPoses(context, poses, folder, prefix, exportedOnly, sky, figureM
 @guardedTool(description=(
   "Read a game export back from its folder and check it against the open, saved scene and against itself, writing nothing beside it."
   " `path` is the export's absolute <short>.eqg, its game manifest (<short>_export.json) beside it. Refused: unsaved changes, a path"
-  " that is not an absolute <short>.eqg with a game export's manifest beside it, a manifest whose .blend is not the open file, and the"
-  " Recast helper missing or stale (syncTooling builds it). Ten checks, each {check, passed, details}, every one run whatever the others"
+  " that is not an absolute <short>.eqg with a game export's manifest beside it, a manifest checkExport wrote (a check is no export) or"
+  " recording failures (exportZone writes nothing while a check fails), a manifest whose .blend is not the open file, and the Recast"
+  " helper missing or stale (syncTooling builds it). Ten checks, each {check, passed, details}, every one run whatever the others"
   " find, and every failure listed in its details with where it lies: 1 manifest, every file the manifest lists in place with its size"
   " and SHA-256, every file a game export writes listed (the archive, .map, .wtr, .nav, and rows), nothing of the zone's beside it"
   " unlisted, and the server files named by the lowercase short name; 2 current, the archive the saved scene makes now, built in"

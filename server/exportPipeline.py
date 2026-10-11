@@ -490,14 +490,15 @@ def fileRecord(data):
   return {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
 
-def manifestRecord(folder, built, files, blendPath):
-  """What the manifest records: the purpose, the zone's short name, the .blend, every file written (path relative to the folder) with
-  its size and SHA-256, the failure and finding counts, and for a game export the zone's identity and template (for its later client
-  registration), the zone_points numbers written and deleted, the nav settings, the helper, the nav's islands (each with whether players
-  reach it) and probes, and the lane: its key, grid, constants with their sources, and reached area."""
+def manifestRecord(folder, built, files, blendPath, writtenBy):
+  """What the manifest records: the purpose, the tool that wrote it (writtenBy: exportZone, or checkExport for a check's files, which are
+  no export), the zone's short name, the .blend, every file written (path relative to the folder) with its size and SHA-256, the failure
+  and finding counts, and for a game export the zone's identity and template (for its later client registration), the zone_points
+  numbers written and deleted, the nav settings, the helper, the nav's islands (each with whether players reach it) and probes, and the
+  lane: its key, grid, constants with their sources, and reached area."""
   report = built["report"]
   record = {
-    "purpose": report["purpose"], "shortName": built["summary"]["zone"], "blend": blendPath,
+    "purpose": report["purpose"], "writtenBy": writtenBy, "shortName": built["summary"]["zone"], "blend": blendPath,
     "files": {path.relative_to(folder).as_posix(): fileRecord(data) for path, data in files.items()},
     "failures": len(report["failures"]), "findings": len(report["findings"]),
   }
@@ -518,10 +519,10 @@ def manifestRecord(folder, built, files, blendPath):
   return record
 
 
-def writeExport(folder, built, blendPath):
-  """Every file of a built export into folder through replaceExportFiles: the archive, its side files, the manifest, and this zone's
-  server files (a game export's as built, its rows among them, none for a test export). Returns the manifest's path and record, and the
-  server files a test export removed."""
+def writeExport(folder, built, blendPath, writtenBy):
+  """Every file of a built export into folder through replaceExportFiles: the archive, its side files, the manifest (naming writtenBy,
+  the tool writing it), and this zone's server files (a game export's as built, its rows among them, none for a test export). Returns
+  the manifest's path and record, and the server files a test export removed."""
   zone = built["summary"]["zone"]
   archivePath = folder / f"{zone}.eqg"
   serverFiles = dict(built["server"]["files"]) if built["server"] is not None else {}
@@ -532,7 +533,7 @@ def writeExport(folder, built, blendPath):
   contents |= {path: serverFiles.get(kind) for kind, path in serverFilePaths(folder, zone).items()}
   removed = [str(path) for path in serverFilePaths(folder, zone).values() if contents[path] is None and path.is_file()]
   written = {archivePath: built["archive"]} | {path: data for path, data in contents.items() if data is not None}
-  record = manifestRecord(folder, built, written, blendPath)
+  record = manifestRecord(folder, built, written, blendPath, writtenBy)
   contents[manifestPath(folder, zone)] = json.dumps(record, indent=1).encode("ascii")
   replaceExportFiles(archivePath, built["archive"], contents)
   return {"path": str(manifestPath(folder, zone)), "record": record, "removedServerFiles": removed}

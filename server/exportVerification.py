@@ -66,8 +66,9 @@ def sha256(data):
 
 
 def exportedGame(path):
-  """The game export at path: (archive path, short name, manifest), refusing a path that is not an absolute <short>.eqg with a game
-  export's manifest beside it."""
+  """The game export at path: (archive path, short name, manifest), refusing a path that is not an absolute <short>.eqg with the
+  manifest exportZone wrote for a game export beside it: never a check's (checkExport's files are no export), nor one recording
+  failures, which exportZone never writes."""
   archivePath = Path(path)
   if not archivePath.is_absolute() or archivePath.suffix != ".eqg" or not archivePath.is_file():
     raise ToolError(f"'{path}' is not an absolute path to an exported <short>.eqg")
@@ -85,6 +86,13 @@ def exportedGame(path):
     raise ToolError(f"{manifestPath} is no export's manifest: it holds no files and .blend")
   if manifest.get("purpose") != "game":
     raise ToolError(f"{manifestPath} is a {manifest.get('purpose')!r} export's manifest; verifyExport reads back a game export, whose server files it checks")
+  if manifest.get("writtenBy") == "checkExport":
+    raise ToolError(f"{manifestPath} is checkExport's manifest of a game check: a check run is not an export; verify the files exportZone writes")
+  if manifest.get("writtenBy") != "exportZone":
+    raise ToolError(f"{manifestPath} does not say exportZone wrote it (writtenBy {manifest.get('writtenBy')!r}): verifyExport reads back what exportZone writes")
+  failures = manifest.get("failures")
+  if isinstance(failures, bool) or not isinstance(failures, int) or failures != 0:
+    raise ToolError(f"{manifestPath} records {failures!r} failures; exportZone writes nothing while a check fails, so these are no export's files")
   if manifest.get("shortName") != short:
     raise ToolError(f"{manifestPath} is the manifest of '{manifest.get('shortName')}', not of {archivePath.name}")
   return archivePath, short, manifest

@@ -195,7 +195,7 @@ def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
   assert manifest["zonePoints"] == {"written": [10], "deleted": []}
   assert manifest["lane"] == {key: lane[key] for key in ("laneKey", "reachGrid", "constants", "reachedArea")}
   assert manifest["lane"]["constants"]["stepHeight"]["value"] == stepHeight
-  assert (manifest["failures"], manifest["findings"]) == (0, len(exported["findings"]))
+  assert (manifest["writtenBy"], manifest["failures"], manifest["findings"]) == ("exportZone", 0, len(exported["findings"]))
   # The check of the moved line deletes the recorded row 10 and writes 20, in its own folder, and the record stays as the first export
   # left it.
   checkRows = serverRows.readRows((stageBlenderServer.toolingRoot / "exports" / short / "check" / "server" / "sql" / "contained.sql").read_text(encoding="ascii"))
