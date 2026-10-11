@@ -2120,12 +2120,12 @@ class Ledger:
     if self.baselinePath.is_file():
       raise LedgerError("baseline.yaml exists already")
     self.requireBinaryLog()
-    dumps = [name for name in self.server.run(f"ls -1t {hostPaths['dumps']}").split()
+    dumps = [name for name in self.server.run(f"sudo -n ls -1t {hostPaths['dumps']}").split()
       if re.match(r"^peq-[\w.-]+\.sql\.gz$", name)]
     if not dumps:
       raise LedgerError(f"no peq-*.sql.gz in {hostPaths['dumps']}: run seed with the copy script first")
     dumpPath = f"{hostPaths['dumps']}/{dumps[0]}"
-    dumpTime = datetime.datetime.fromtimestamp(int(self.server.run(f"stat -c %Y {dumpPath}").strip()), datetime.UTC)
+    dumpTime = datetime.datetime.fromtimestamp(int(self.server.run(f"sudo -n stat -c %Y {dumpPath}").strip()), datetime.UTC)
     versionRows = self.server.sql("SELECT version, bots_version, custom_version FROM db_version;\n")
     if len(versionRows) != 1:
       raise LedgerError(f"db_version gave {versionRows!r}; the baseline needs one db_version row")
@@ -2134,7 +2134,7 @@ class Ledger:
     deployed = {name: self.server.run(f"sudo -n git -c safe.directory='*' -C {hostPaths[name]} rev-parse HEAD").strip()
       for name in ("akkStack", "code", "quests", "maps")}
     baseline = {
-      "dump": {"path": dumpPath, "sha256": self.server.run(f"sha256sum {dumpPath}").split()[0],
+      "dump": {"path": dumpPath, "sha256": self.server.run(f"sudo -n sha256sum {dumpPath}").split()[0],
         "time": dumpTime.strftime("%Y-%m-%dT%H:%M:%SZ")},
       "dbVersion": {"version": int(versionRows[0][0]), "botsVersion": int(versionRows[0][1]),
         "customVersion": int(versionRows[0][2])},
