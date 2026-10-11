@@ -115,10 +115,9 @@ separationTextSize = 13
 class LanePlan:
   """A lane drawn over a plan: fill (the labels, hatches, dots, ledges, and, for a whole lane plan, the region outlines as one layer, so
   the plan's boundaries draw over the outlines), strokes (swim boxes, void and catch edges, zone lines, seeds, plot entrances, problem
-  rings), claim
-  (the marks labels keep clear of), labels (problem numbers, zone line, seed and region names), and its legend of what the drawing
-  showed. level {bottom, top} keeps only nodes whose height lies in it. Drawn as a layer of another plan (complete false), the problems,
-  the regions, and the zone lines' names, which that plan draws its own way, are left out."""
+  rings), claim (the marks labels keep clear of), labels (problem numbers, zone line, seed and region names), and its legend of what the
+  drawing showed. level {bottom, top} keeps only nodes whose height lies in it. Drawn as a layer of another plan (complete false), the
+  problems, the regions, and the zone lines' names, which that plan draws its own way, are left out."""
 
   def __init__(self, analysis, description, level, complete):
     nodes = analysis["nodes"]
