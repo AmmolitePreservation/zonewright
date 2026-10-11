@@ -429,9 +429,9 @@ def testLaneFindingsAndLeaksPastMapReachsListAreStated(stageBlenderServer, tmp_p
   assert kept[-1]["more"]["count"] == len(keepOuts) - listed
   assert kept[-1]["message"] == f"{len(keepOuts) - listed} more noneRegion problems than mapReach lists (the largest {listed} of each kind)"
   findings = {finding["finding"]: finding for finding in checked["findings"]}
-  # The zone line overlaps the pool's boxes, one finding for each.
+  # The zone line overlaps both of the pool's boxes, one finding for each.
   overlaps = [(finding["zoneLine"], finding["swimBox"]) for finding in checked["findings"] if finding["finding"] == "zone line in a swim box"]
-  assert overlaps and {line for line, _ in overlaps} == {"ATP_2_pool"} and all(box.startswith("AWT_pool") for _, box in overlaps), overlaps
+  assert overlaps == [("ATP_2_pool", "AWT_pool01"), ("ATP_2_pool", "AWT_pool02")], overlaps
   assert findings["no zoneIn entries"]["message"].startswith("No zoneIn entry says where a neighbour's zone line lands players")
   # Only a player shorter than playerHeight passes under the ramp, between its foot and the platform.
   squeeze = findings["squeeze reach"]
