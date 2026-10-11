@@ -1,0 +1,25 @@
+title: S:\Research\EverQuest\housingclient is a copy of the owner's client folder C:\Games\EverQuest - Peridot (9,840 files, 8.399 GB; logs, screenshots and the owner's per-character files left out)
+why: Claude's spare RoF2 client for claudeperidot, so Claude never runs or edits the owner's install (owner's answer 9). The copy read the owner's folder and never wrote to it.
+kind: client
+scope:
+  - S:\Research\EverQuest\housingclient
+disposition: fixture
+significance: minor
+ownerClearance: cleared
+activation: none
+production: none
+commits: []
+steps:
+  - |-
+    robocopy 'C:\Games\EverQuest - Peridot' 'S:\Research\EverQuest\housingclient' /E /XD Screenshots Logs userdata backup /XF eqlsPlayerData.ini notes.txt log.txt _probe_base.txt UIErrors.txt *_Peridot.ini *_characters.ini /NDL /NFL /NP /R:1 /W:1
+    if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
+undo:
+  - |-
+    $path = 'S:\Research\EverQuest\housingclient'
+    if ((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$path is a reparse point, not the copy" }
+    Remove-Item -LiteralPath $path -Recurse -Force
+checks:
+  - path: S:\Research\EverQuest\housingclient
+    exists: directory
+  - path: S:\Research\EverQuest\housingclient\eqgame.exe
+    exists: file

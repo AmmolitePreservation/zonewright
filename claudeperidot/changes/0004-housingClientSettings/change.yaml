@@ -1,0 +1,56 @@
+title: housingclient's eqclient.ini runs windowed ([Defaults]Maximized=0), silent ([Defaults]Sound=FALSE) and at full frame rate in the background ([Options]MaxBGFPS=80, equal to MaxFPS)
+why: The spare runs beside the owner's client on the same monitor without stealing focus or sound (owner's answer 11), and its screenshots come from the back buffer while it is in the background. The owner's values are Maximized=1, Sound=TRUE and MaxBGFPS=30. The client rewrites eqclient.ini when it exits, so the check reads the three keys rather than the file's hash.
+kind: client
+scope:
+  - S:\Research\EverQuest\housingclient\eqclient.ini
+disposition: fixture
+significance: minor
+ownerClearance: cleared
+activation: none
+production: none
+commits: []
+steps:
+  - |-
+    $path = 'S:\Research\EverQuest\housingclient\eqclient.ini'
+    $settings = @(@('Defaults', 'Maximized', '0'), @('Defaults', 'Sound', 'FALSE'), @('Options', 'MaxBGFPS', '80'))
+    $encoding = [Text.Encoding]::GetEncoding(28591)
+    $lines = [IO.File]::ReadAllText($path, $encoding) -split "`r`n"
+    foreach ($setting in $settings) {
+      $section = ''
+      $found = $false
+      for ($index = 0; $index -lt $lines.Count; $index++) {
+        if ($lines[$index] -match '^\[(.+)\]$') { $section = $Matches[1] }
+        elseif ($section -eq $setting[0] -and $lines[$index] -match ('^' + $setting[1] + '=')) { $lines[$index] = $setting[1] + '=' + $setting[2]; $found = $true }
+      }
+      if (-not $found) { throw ('[' + $setting[0] + ']' + $setting[1] + ' is not in ' + $path) }
+    }
+    [IO.File]::WriteAllText($path, ($lines -join "`r`n"), $encoding)
+undo:
+  - |-
+    $path = 'S:\Research\EverQuest\housingclient\eqclient.ini'
+    $settings = @(@('Defaults', 'Maximized', '1'), @('Defaults', 'Sound', 'TRUE'), @('Options', 'MaxBGFPS', '30'))
+    $encoding = [Text.Encoding]::GetEncoding(28591)
+    $lines = [IO.File]::ReadAllText($path, $encoding) -split "`r`n"
+    foreach ($setting in $settings) {
+      $section = ''
+      $found = $false
+      for ($index = 0; $index -lt $lines.Count; $index++) {
+        if ($lines[$index] -match '^\[(.+)\]$') { $section = $Matches[1] }
+        elseif ($section -eq $setting[0] -and $lines[$index] -match ('^' + $setting[1] + '=')) { $lines[$index] = $setting[1] + '=' + $setting[2]; $found = $true }
+      }
+      if (-not $found) { throw ('[' + $setting[0] + ']' + $setting[1] + ' is not in ' + $path) }
+    }
+    [IO.File]::WriteAllText($path, ($lines -join "`r`n"), $encoding)
+checks:
+  - path: S:\Research\EverQuest\housingclient\eqclient.ini
+    section: Defaults
+    key: Maximized
+    value: "0"
+  - path: S:\Research\EverQuest\housingclient\eqclient.ini
+    section: Defaults
+    key: Sound
+    value: "FALSE"
+  - path: S:\Research\EverQuest\housingclient\eqclient.ini
+    section: Options
+    key: MaxBGFPS
+    value: "80"
