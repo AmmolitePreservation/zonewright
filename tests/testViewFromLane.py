@@ -323,8 +323,9 @@ def testTheTourIsReusedForAnUnchangedLane(stageBlenderServer, tmp_path):
 
 def testTourEyesStandWherePlayersStand(stageBlenderServer, tmp_path):
   """The corridor's far end changed in turn: deep water, the same under a lid, water players swim in but too shallow for a swimmer's
-  eye, water too shallow to swim in, a lintel only a smaller player passes under, and a block higher than a player's reach over the eye,
-  climbed by a ramp and dropped off; walled higher than the block, so no one climbs out."""
+  eye, water too shallow to swim in, a lintel only a smaller player passes under, and a block whose top rises over the eye of a player
+  standing beyond it by less than a player's height, climbed by a ramp and dropped off; walled higher than the block, so no one climbs
+  out."""
   wadingTop = (minimumSwimDepth + eyeHeight - swimEyeAboveSurface) / 2
   async def steps(session):
     await corridor(session, tmp_path, 20)
@@ -348,8 +349,8 @@ def testTourEyesStandWherePlayersStand(stageBlenderServer, tmp_path):
     await cube(session, "lintel", [70, -10, 3], [110, 10, 12])
     await lead("squeeze")
     await session.expectSuccess("deleteObjects", {"names": ["lintel"]})
-    await cube(session, "block", [60, -10, 0], [70, 10, 14])
-    rise, degrees = 14.0, 35.0
+    rise, degrees = eyeHeight + playerHeight / 2, 35.0
+    await cube(session, "block", [60, -10, 0], [70, 10, rise])
     run = rise / math.tan(math.radians(degrees))
     await session.expectSuccess("createPrimitive", {
       "kind": "plane", "name": "ramp", "size": [rise / math.sin(math.radians(degrees)), 20, 0], "location": [60 - run / 2, 0, rise / 2],
@@ -375,7 +376,8 @@ def testTourEyesStandWherePlayersStand(stageBlenderServer, tmp_path):
   assert shallow["standing"][2] == pytest.approx(0.0, abs=0.01) and shallow["eye"][2] == pytest.approx(eyeHeight, abs=0.01)
   # Under the lintel only a smaller player fits: no eye stands there.
   assert leads["squeeze"]["label"] == "walk" and leads["squeeze"]["standing"][0] < 70
-  # The block's top, reached by the ramp, lies more than playerHeight over the eye beyond it: the run back down the corridor ends at it.
+  # The block's top, reached by the ramp, lies over the eye beyond it, though less than playerHeight over it: its face stands at the
+  # eye's height, so the run back down the corridor ends at it.
   beyond = leads["rise"]
   assert beyond["standing"][0] > 70 and beyond["headingDegrees"] == 270 and beyond["run"] <= beyond["standing"][0] - 70 + 1
 

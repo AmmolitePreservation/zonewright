@@ -372,7 +372,8 @@ def spread(points, nearest, count):
 
 def headingRuns(lowest, lane, eye, far, headingsDegrees):
   """How far reached ground runs ahead of an eye along each heading, up to far: to the last column before one no one reaches or whose
-  lowest reached floor rises more than playerHeight over the eye."""
+  lowest reached floor rises over the eye, where solid ground stands at the eye's height and hides what lies past it, though players
+  reach its top."""
   step = lane.cellSize / 2
   steps = numpy.arange(1, int(far / step) + 1) * step
   headings = numpy.radians(numpy.asarray(headingsDegrees, dtype=numpy.float64))
@@ -382,7 +383,7 @@ def headingRuns(lowest, lane, eye, far, headingsDegrees):
   columnZ = numpy.floor((x - lane.origin[2]) / lane.cellSize).astype(numpy.int64)
   inside = (columnX >= 0) & (columnX < lane.columnsX) & (columnZ >= 0) & (columnZ < lane.columnsZ)
   floor = lowest[numpy.clip(columnZ, 0, lane.columnsZ - 1), numpy.clip(columnX, 0, lane.columnsX - 1)]
-  blocked = ~(inside & (floor <= eye[2] + playerScale.playerHeight))
+  blocked = ~(inside & (floor <= eye[2]))
   first = numpy.where(blocked.any(axis=1), blocked.argmax(axis=1), len(steps))
   return numpy.where(first > 0, steps[numpy.maximum(first, 1) - 1], 0.0)
 

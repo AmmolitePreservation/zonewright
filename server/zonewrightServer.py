@@ -2666,9 +2666,9 @@ async def viewFromLane(context: Context, target: str | list[float] | None = None
   per 16-unit block (the member with the most open floor round it), spread away from where players arrive and from the world's end
   (each the candidate farthest from the safe point, the stored entries, reached floor beside columns where the zone ships nothing, and
   the eyes before it), leaving out a candidate beside a roomier one, each facing the one of 16 headings whose view holds the most
-  reached ground (the mean run across the view's width, its middle counting most; a run ends at a column no one reaches or whose floor
-  rises more than playerHeight over the eye); the tour is kept beside the
-  lane and reused while the lane, the far sight, and its rules hold, so later tours show the same views. With a target (a region's or
+  reached ground (the mean run across the view's width, its middle counting most; a run ends at a column no one reaches or whose lowest
+  reached floor rises over the eye, solid ground at the eye's height hiding what lies past it); the tour is kept beside the lane and
+  reused while the lane, the far sight, and its rules hold, so later tours show the same views. With a target (a region's or
   an object's name, or a point [x, y] or [x, y, z] on the lane's floor), up to `count` eyes (at most 6, and 6 unless given) that see it,
   the best of each bearing sector it is seen from (standing beyond its radius from its middle before within it, then seeing the most
   of it inside its view, then standing nearest 2.5 of its radii from its middle, where the view holds it whole), spread round it, each looking at the middle of what it sees of it; what players see of it is tried from up
