@@ -46,6 +46,8 @@ temporalPatterns = {
   "year": re.compile(r"^\d{4}$"),
 }
 defaultSQLMode = "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+serverVersion = "10.5.4-MariaDB-1:10.5.4+maria~focal-log"
+binaryLogFile = "mysql-bin.000002"
 
 
 def single(value):
@@ -813,7 +815,7 @@ class FakeMariaDB:
     if statement == "SELECT version, bots_version, custom_version FROM db_version":
       return ["\t".join(self.dbVersion)]
     if statement == "SHOW MASTER STATUS":
-      return [f"binlog.000002\t{self.nextPosition}\t\t"] if self.binaryLogOn else []
+      return [f"{binaryLogFile}\t{self.nextPosition}\t\t"] if self.binaryLogOn else []
     if statement == "SELECT @@log_bin, @@binlog_format, @@binlog_annotate_row_events":
       return ["\t".join(self.serverSettings)]
     return None
@@ -838,13 +840,15 @@ class FakeMariaDB:
       self.tables = before
       raise
     if re.match(r"^(ALTER|CREATE|DROP|RENAME|TRUNCATE)\b", bare, re.IGNORECASE):
-      self.writeLog(session.domain, [("query", statement)])
+      self.writeLog(session.domain, [("query", loggedQuery(statement))])
       return
-    events = [("annotate", statement)] + rowEvents(before, self.tables)
+    rows = rowEvents(before, self.tables)
+    if not rows:
+      return
     if session.snapshot is None:
-      self.writeLog(session.domain, events)
+      self.writeLog(session.domain, [("annotate", statement)] + rows)
     else:
-      session.pending.extend(events)
+      session.pending.extend([("annotate", statement)] + rows)
 
   def writeGenerated(self, statement, session):
     delete = re.match(r"^DELETE FROM `(\w+)` WHERE \((.*)\)$", statement, re.DOTALL)
@@ -879,17 +883,25 @@ class FakeMariaDB:
     before = copy.deepcopy(self.tables)
     mutation(self)
     if re.match(r"^(ALTER|CREATE|DROP)\b", statement, re.IGNORECASE):
-      self.writeLog(domain, [("query", statement)])
-    else:
-      self.writeLog(domain, [("annotate", statement)] + rowEvents(before, self.tables))
+      self.writeLog(domain, [("query", loggedQuery(statement))])
+      return
+    rows = rowEvents(before, self.tables)
+    if rows:
+      self.writeLog(domain, [("annotate", statement)] + rows)
 
   def renderBinaryLog(self, startPosition):
+    """mysqlbinlog's output from startPosition to the end, as MariaDB 10.5.4's prints it: the rotation to the file and its
+    format description, then each transaction, printing a session variable only when it changes."""
     lines = ["/*!50530 SET @@SESSION.PSEUDO_SLAVE_MODE=1*/;", "/*!40019 SET @@session.max_insert_delayed_threads=0*/;",
-      "/*!50003 SET @OLD_COMPLETION_TYPE=@@COMPLETION_TYPE,COMPLETION_TYPE=0*/;", "DELIMITER /*!*/;"]
+      "/*!50003 SET @OLD_COMPLETION_TYPE=@@COMPLETION_TYPE,COMPLETION_TYPE=0*/;", "DELIMITER /*!*/;",
+      f"# at {startPosition}", f"#691231 18:00:00 server id 1  end_log_pos 0 \tRotate to {binaryLogFile}  pos: {startPosition}",
+      f"# at {startPosition}", f"#261011 08:00:00 server id 1  end_log_pos 0 CRC32 0x0000abcd \tStart: binlog v 4, server v "
+      f"{serverVersion} created 261011 08:00:00"]
+    printed = {}
     for transaction in self.log:
       if transaction.start < startPosition:
         continue
-      lines += renderTransaction(transaction)
+      lines += renderTransaction(transaction, printed)
     lines += ["DELIMITER ;", "# End of log file", "ROLLBACK /* added by mysqlbinlog */;",
       "/*!50003 SET COMPLETION_TYPE=@OLD_COMPLETION_TYPE*/;", "/*!50530 SET @@SESSION.PSEUDO_SLAVE_MODE=0*/;"]
     return "\n".join(lines) + "\n"
@@ -968,9 +980,9 @@ def splitTopLevel(text, separator):
   return parts
 
 
-clientCommandTakesArgument = {"?": True, "clear": False, "connect": True, "delimiter": True, "edit": False, "ego": False, "exit": False,
-  "go": False, "help": True, "nopager": False, "notee": False, "pager": True, "print": False, "prompt": True, "quit": False,
-  "rehash": False, "source": True, "status": False, "system": True, "tee": True, "use": True, "charset": True,
+clientCommandTakesArgument = {"?": True, "clear": False, "connect": True, "delimiter": True, "edit": False, "ego": False,
+  "exit": False, "go": False, "help": True, "nopager": False, "notee": False, "pager": True, "print": False, "prompt": True,
+  "quit": False, "rehash": False, "source": True, "status": False, "system": True, "tee": True, "use": True, "charset": True,
   "warnings": False, "nowarning": False}
 
 
@@ -1116,7 +1128,10 @@ def removeComments(statement):
       quote = character
     elif statement.startswith("/*", index) and not statement.startswith(("/*!", "/*M!"), index):
       index = statement.index("*/", index + 2) + 2
-      result.append(" ")
+      while index < len(statement) and statement[index].isspace():
+        index += 1
+      if result and not result[-1].isspace():
+        result.append(" ")
       continue
     elif character == "#" or statement.startswith("--", index) and statement[index + 2:index + 3] in ("", " ", "\t", "\n",
         "\r"):
@@ -1143,45 +1158,95 @@ def rowEvents(before, after):
   return events
 
 
-def renderTransaction(transaction):
+def keptComment(statement, characters):
+  """The comment MariaDB keeps when it rebuilds a DROP TABLE for the binary log (its comment_length): a block comment that
+  starts right after the first characters non-space characters of the statement as received, or empty."""
+  index = 0
+  while index < len(statement):
+    if not statement[index].isspace():
+      if characters == 0:
+        break
+      characters -= 1
+    index += 1
+  end = statement.find("*/", index + 2)
+  if not statement.startswith("/*", index) or statement.startswith("/*!", index) or end == -1:
+    return ""
+  return statement[index:end + 2]
+
+
+def loggedQuery(statement):
+  """A DDL statement as MariaDB 10.5.4 writes it to the binary log: a DROP TABLE rebuilt by the server from its table names,
+  keeping only a comment right after DROP TABLE [IF EXISTS]; any other statement as received."""
+  drop = re.match(r"^DROP\s+TABLE\s+(IF\s+EXISTS\s+)?(.*)$", removeComments(statement), re.IGNORECASE | re.DOTALL)
+  if not drop:
+    return statement
+  comment = keptComment(statement, 17 if drop.group(1) else 9)
+  names = ",".join(f"`{name.strip().strip('`')}`" for name in drop.group(2).split(","))
+  return (f"DROP TABLE {'IF EXISTS ' if drop.group(1) else ''}{comment + ' ' if comment else ''}{names} "
+    "/* generated by server */")
+
+
+firstQueryPreamble = ["use `peq`/*!*/;", "SET TIMESTAMP=1791626760/*!*/;", "SET @@session.pseudo_thread_id=12/*!*/;",
+  "SET @@session.foreign_key_checks=1, @@session.sql_auto_is_null=0, @@session.unique_checks=1, @@session.autocommit=1, "
+  "@@session.check_constraint_checks=1, @@session.sql_if_exists=0/*!*/;", "SET @@session.sql_mode=1411907584/*!*/;",
+  "SET @@session.auto_increment_increment=1, @@session.auto_increment_offset=1/*!*/;", "/*!\\C utf8mb4 *//*!*/;",
+  "SET @@session.character_set_client=45,@@session.collation_connection=45,@@session.collation_server=45/*!*/;",
+  "SET @@session.lc_time_names=0/*!*/;", "SET @@session.collation_database=DEFAULT/*!*/;"]
+
+
+def renderTransaction(transaction, printed):
+  """A transaction as mysqlbinlog 10.5.4 prints it, given the session state it printed before (updated): its GTID event
+  with the variables that changed, then BEGIN, each statement's Annotate_rows printed with its first table map (cut short by
+  one character for each newline the statement holds, as 10.5.4's mysqlbinlog cuts it), its rows, and Xid; or a DDL
+  statement's Query event."""
   stamp = "261011 10:00:00"
   position = transaction.start
-  lines = [f"# at {position}"]
-  isQuery = transaction.events and transaction.events[0][0] == "query"
-  lines.append(f"#{stamp} server id 1  end_log_pos {position + 42} CRC32 0x0000abcd \tGTID {transaction.domain}-1-"
-    f"{transaction.sequence} {'ddl' if isQuery else 'trans'}")
-  if transaction.domain:
+  isQuery = transaction.events[0][0] == "query"
+  lines = [f"# at {position}", f"#{stamp} server id 1  end_log_pos {position + 42} CRC32 0x0000abcd \tGTID "
+    f"{transaction.domain}-1-{transaction.sequence} {'ddl' if isQuery else 'trans'}"]
+  if not printed:
+    lines.append("/*!100101 SET @@session.skip_parallel_replication=0*//*!*/;")
+  if printed.get("domain") != transaction.domain:
     lines.append(f"/*!100001 SET @@session.gtid_domain_id={transaction.domain}*//*!*/;")
+  if not printed:
+    lines.append("/*!100001 SET @@session.server_id=1*//*!*/;")
+  printed["domain"] = transaction.domain
   lines.append(f"/*!100001 SET @@session.gtid_seq_no={transaction.sequence}*//*!*/;")
   if not isQuery:
-    lines += ["START TRANSACTION", "/*!*/;"]
+    lines += ["BEGIN", "/*!*/;"]
   position += 42
   tableNumber = 30
+  annotate = None
   for event in transaction.events:
     if event[0] == "query":
-      lines += [f"# at {position}", f"#{stamp} server id 1  end_log_pos {position + 90} CRC32 0x0000abcd \tQuery\tthread_id=12\t"
-        "exec_time=0\terror_code=0\txid=0", "use `peq`/*!*/;", "SET TIMESTAMP=1791626760/*!*/;",
-        "SET @@session.pseudo_thread_id=12/*!*/;", "/*!\\C utf8mb4 *//*!*/;"]
-      lines += event[1].split("\n")
-      lines.append("/*!*/;")
+      lines += [f"# at {position}", f"#{stamp} server id 1  end_log_pos {position + 90} CRC32 0x0000abcd \tQuery\t"
+        "thread_id=12\texec_time=0\terror_code=0"]
+      lines += ["SET TIMESTAMP=1791626760/*!*/;"] if printed.get("query") else firstQueryPreamble
+      printed["query"] = True
+      lines += event[1].split("\n") + ["/*!*/;"]
       position += 90
     elif event[0] == "annotate":
-      lines += [f"# at {position}", f"#{stamp} server id 1  end_log_pos {position + 60} CRC32 0x0000abcd \tAnnotate_rows:"]
-      lines += [f"#Q> {line}" for line in event[1].split("\n")]
+      lines.append(f"# at {position}")
+      annotate = (position + 60, event[1][:len(event[1]) - event[1].count("\n")])
       position += 60
     else:
       _, name, operation, count = event
       tableNumber += 1
+      lines.append(f"# at {position}")
+      if annotate:
+        lines.append(f"#{stamp} server id 1  end_log_pos {annotate[0]} CRC32 0x0000abcd \tAnnotate_rows:")
+        lines += [f"#Q> {line}" for line in annotate[1].split("\n")]
+        annotate = None
       eventName = {"INSERT": "Write_rows", "UPDATE": "Update_rows", "DELETE": "Delete_rows"}[operation]
-      lines.append(f"#{stamp} server id 1  end_log_pos {position + 40} CRC32 0x0000abcd \tTable_map: `peq`.`{name}` mapped to "
-        f"number {tableNumber}")
-      lines += [f"# at {position + 40}", f"#{stamp} server id 1  end_log_pos {position + 80} CRC32 0x0000abcd \t{eventName}: "
-        f"table id {tableNumber} flags: STMT_END_F"]
+      statementName = {"INSERT": "INSERT INTO", "UPDATE": "UPDATE", "DELETE": "DELETE FROM"}[operation]
+      lines += [f"#{stamp} server id 1  end_log_pos {position + 40} CRC32 0x0000abcd \tTable_map: `peq`.`{name}` mapped to "
+        f"number {tableNumber}", f"# at {position + 40}", f"#{stamp} server id 1  end_log_pos {position + 80} CRC32 "
+        f"0x0000abcd \t{eventName}: table id {tableNumber} flags: STMT_END_F"]
       for _ in range(count):
-        statementName = {"INSERT": "INSERT INTO", "UPDATE": "UPDATE", "DELETE": "DELETE FROM"}[operation]
         lines.append(f"### {statementName} `peq`.`{name}`")
         lines += ["### WHERE", "###   @1=1"] if operation != "INSERT" else []
         lines += ["### SET", "###   @1=1"] if operation != "DELETE" else []
+      lines.append(f"# Number of rows: {count}")
       position += 80
   if not isQuery:
     lines += [f"# at {position}", f"#{stamp} server id 1  end_log_pos {position + 31} CRC32 0x0000abcd \tXid = 120",

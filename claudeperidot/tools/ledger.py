@@ -132,6 +132,9 @@ numberPatterns = {
   "float": re.compile(r"^-?\d+(\.\d+)?(e[+-]?\d+)?$", re.IGNORECASE),
 }
 rowTransactionKeywords = {"INSERT", "UPDATE", "DELETE", "REPLACE"}
+dropTablePattern = re.compile(r"DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?", re.IGNORECASE)
+rebuiltSchemaObjects = frozenset("VIEW TRIGGER PROCEDURE FUNCTION EVENT".split())
+schemaObjectWords = rebuiltSchemaObjects | frozenset("TABLE INDEX DATABASE SCHEMA SEQUENCE SERVER USER ROLE".split())
 intents = ("applying", "reverting")
 log = logging.getLogger("ledger")
 
@@ -670,8 +673,32 @@ def ledgerTag(change, action):
   return f"/* ledger {change.number} {action} */ "
 
 
+def tagged(statement, tag):
+  """statement with tag where MariaDB 10.5 keeps it in the binary log: first, except in a DROP TABLE, which the server
+  rebuilds for the log keeping only a comment right after DROP TABLE [IF EXISTS]."""
+  drop = dropTablePattern.match(statement)
+  return statement[:drop.end()] + tag + statement[drop.end():] if drop else tag + statement
+
+
 def taggedStatements(change, action, statements):
-  return "".join(f"{ledgerTag(change, action)}{statement};\n" for statement in statements)
+  return "".join(f"{tagged(statement, ledgerTag(change, action))};\n" for statement in statements)
+
+
+def untaggedLogReason(statement):
+  """Why MariaDB 10.5 writes statement to the binary log without the ledger's tag, so drift could not tell the ledger made
+  it, or None: it rebuilds views, triggers, routines and events with their definer and CREATE TABLE ... SELECT as a CREATE
+  TABLE of its own, and keeps a DROP TABLE's tag only in its plain form."""
+  words = [word.upper() for kind, text in sqlPieces(statement) if kind == "code" for word in re.findall(r"[A-Za-z_]+", text)]
+  if words[:1] == ["DROP"] and words[1:2] in (["TABLES"], ["TEMPORARY"]):
+    return "MariaDB keeps the tag of a DROP TABLE only when it is written DROP TABLE [IF EXISTS] name"
+  if words[:1] not in (["CREATE"], ["ALTER"]):
+    return None
+  kind = next((word for word in words[1:] if word in schemaObjectWords), None)
+  if kind in rebuiltSchemaObjects:
+    return f"MariaDB writes {words[0]} {kind} to the binary log rebuilt with its definer and without the tag"
+  if words[0] == "CREATE" and kind == "TABLE" and "SELECT" in words:
+    return "MariaDB writes CREATE TABLE ... SELECT to the binary log as a CREATE TABLE of its own, without the tag"
+  return None
 
 
 def revertScript(tables):
@@ -978,16 +1005,17 @@ gtidPattern = re.compile(r"\sGTID (\d+)-(\d+)-(\d+)\b")
 queryEventPattern = re.compile(r"\sQuery\s+thread_id=")
 annotateEventPattern = re.compile(r"\sAnnotate_rows:")
 rowEventPattern = re.compile(r"^### (INSERT INTO|UPDATE|DELETE FROM) `([^`]+)`\.`([^`]+)`$")
-tagPattern = re.compile(r"^\s*/\* ledger (\d{4}) (apply|revert) \*/\s*")
+tagPattern = re.compile(r"^(\s*|DROP TABLE (?:IF EXISTS )?)/\* ledger (\d{4}) (apply|revert) \*/\s*")
 versionedCommentPattern = re.compile(r"/\*M?!\d{5,6} ?(.*?)\*/", re.DOTALL)
 clientCommandCommentPattern = re.compile(r"/\*!\\C [^*]*\*/")
 ignoredQueryStatements = re.compile(r"^(SET\b|use\b|BEGIN\b|COMMIT\b|START TRANSACTION\b|ROLLBACK\b|XA\b)", re.IGNORECASE)
 
 
 def splitTag(text):
-  """The change number a statement's ledger tag names (or None) and the statement without the tag."""
+  """The change number a statement's ledger tag names (or None) and the statement without the tag: the tag leads it, or
+  follows DROP TABLE [IF EXISTS] in a DROP TABLE the server rebuilt."""
   match = tagPattern.match(text or "")
-  return (match.group(1), text[match.end():]) if match else (None, text)
+  return (match.group(2), match.group(1).lstrip() + text[match.end():]) if match else (None, text)
 
 
 class BinaryLogParser:
@@ -1262,7 +1290,17 @@ class Ledger:
           f"DELETE and REPLACE; it also has: {outside[0][:120]}")
     elif len(statements) != change.steps:
       raise LedgerError(f"{change.identifier} has schemaSteps {change.steps} but apply.sql holds {len(statements)} statements")
+    else:
+      self.requireTaggedInLog(change, "apply.sql", statements)
     return statements
+
+  @staticmethod
+  def requireTaggedInLog(change, name, statements):
+    for statement in statements:
+      reason = untaggedLogReason(statement)
+      if reason:
+        raise LedgerError(f"{change.identifier}/{name}: {reason}, so drift could not tell the ledger made it: "
+          f"{statement[:120]}")
 
   def checkStatement(self, change):
     statements = splitStatements(self.readFile(change, "check.sql"))
@@ -1281,6 +1319,8 @@ class Ledger:
     if change.form == "schema" and len(statements) != change.steps:
       raise LedgerError(f"{change.identifier}/revert.sql must hold {change.steps} statements, the inverse of each apply step in "
         f"reverse order; it holds {len(statements)}")
+    if change.form == "schema":
+      self.requireTaggedInLog(change, "revert.sql", statements)
     return statements
 
   def readFile(self, change, name):

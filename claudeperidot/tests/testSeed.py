@@ -77,7 +77,7 @@ def test_theBaselineRecordsTheDumpVersionsBinaryLogCommitsAndWatchedTableChecksu
     "dump": {"path": "/opt/eqemu/baseline/peq-20261012-0300.sql.gz", "sha256": hashlib.sha256(b"newest dump").hexdigest(),
       "time": datetime.datetime.fromtimestamp(1791774000, datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")},
     "dbVersion": {"version": 9325, "botsVersion": 0, "customVersion": 0},
-    "binaryLog": {"file": "binlog.000002", "position": fake.nextPosition},
+    "binaryLog": {"file": "mysql-bin.000002", "position": fake.nextPosition},
     "deployed": commits,
     "tableChecksums": {"login_api_tokens": fake.tableChecksum("login_api_tokens"), "rule_values": fake.tableChecksum(
       "rule_values")},

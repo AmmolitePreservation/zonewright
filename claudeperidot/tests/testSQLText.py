@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 import ledger
@@ -55,6 +57,40 @@ def test_aRowChangeHoldsOnlyRowStatementsAndASchemaChangeOneStatementPerStep(rep
     harness.ledger.applyStatements(schema)
   with pytest.raises(ledger.LedgerError, match="revert.sql must hold 2 statements"):
     harness.ledger.revertStatements(schema)
+
+
+@pytest.mark.parametrize("statement, problem", [
+  ("CREATE VIEW v AS SELECT 1", "MariaDB writes CREATE VIEW to the binary log rebuilt with its definer"),
+  ("CREATE OR REPLACE ALGORITHM=MERGE VIEW v AS SELECT 1", "MariaDB writes CREATE VIEW"),
+  ("ALTER VIEW v AS SELECT 2", "MariaDB writes ALTER VIEW"),
+  ("CREATE DEFINER=`root`@`localhost` TRIGGER t BEFORE INSERT ON items FOR EACH ROW SET NEW.a = 1", "MariaDB writes CREATE "
+    "TRIGGER"),
+  ("CREATE PROCEDURE p() SELECT 1", "MariaDB writes CREATE PROCEDURE"),
+  ("CREATE FUNCTION f() RETURNS INT DETERMINISTIC RETURN 1", "MariaDB writes CREATE FUNCTION"),
+  ("CREATE EVENT e ON SCHEDULE EVERY 1 DAY DO DELETE FROM items", "MariaDB writes CREATE EVENT"),
+  ("CREATE TABLE copy AS SELECT * FROM items", "MariaDB writes CREATE TABLE ... SELECT to the binary log as a CREATE TABLE"),
+  ("CREATE TABLE copy (id INT PRIMARY KEY) SELECT id FROM items", "MariaDB writes CREATE TABLE ... SELECT"),
+  ("DROP TABLES items", "MariaDB keeps the tag of a DROP TABLE only when it is written DROP TABLE [IF EXISTS] name"),
+  ("DROP TEMPORARY TABLE items", "MariaDB keeps the tag of a DROP TABLE only when"),
+])
+def test_aSchemaStepMariaDBWritesToTheBinaryLogWithoutItsTagIsRefused(repository, statement, problem):
+  harness = makeHarness(repository)
+  change = ledger.loadChange(writeChange(repository, "0001-schema", rowChangeFields(scope=[{"table": "items"}], schemaSteps=1),
+    {"apply.sql": f"{statement};\n", "revert.sql": f"{statement};\n"}))
+  for name, read in (("apply.sql", harness.ledger.applyStatements), ("revert.sql", harness.ledger.revertStatements)):
+    with pytest.raises(ledger.LedgerError, match=re.escape(f"0001-schema/{name}: {problem}")) as raised:
+      read(change)
+    assert str(raised.value).endswith(f", so drift could not tell the ledger made it: {statement}")
+
+
+def test_schemaStepsMariaDBWritesToTheBinaryLogWithTheirTagAreAccepted(repository):
+  harness = makeHarness(repository)
+  statements = ["ALTER TABLE items ADD COLUMN `view` INT", "ALTER TABLE items ADD COLUMN trigger_count INT",
+    "CREATE TABLE extra (id INT) COMMENT 'select'", "CREATE UNIQUE INDEX byName ON items (name)", "DROP TABLE IF EXISTS extra",
+    "CREATE TABLE copy LIKE items", "DROP VIEW v", "RENAME TABLE copy TO copied"]
+  change = ledger.loadChange(writeChange(repository, "0001-schema", rowChangeFields(scope=[{"table": "items"}],
+    schemaSteps=len(statements)), {"apply.sql": "".join(f"{statement};\n" for statement in statements)}))
+  assert harness.ledger.applyStatements(change) == statements
 
 
 @pytest.mark.parametrize("check", ["SELECT 1 AS applied; SELECT 2 AS applied;", "UPDATE t SET a = 1;", ""])
