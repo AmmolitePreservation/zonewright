@@ -6,6 +6,7 @@ their difference, largest differences first."""
 import hashlib
 import io
 import json
+import os
 import struct
 import zlib
 from pathlib import Path
@@ -108,9 +109,27 @@ def exportedFiles(folder, short):
   return {kind: readFile(path) for kind, path in paths.items()}
 
 
+def spelledOnDisk(folder, relative):
+  """relative (a path under folder, posix) as the folders spell it (os.scandir), part by part, or None where a part is missing: Windows
+  finds a file whatever the case of its name, where the server on Linux opens only the exact name."""
+  current, spelled = folder, []
+  for part in relative.split("/"):
+    try:
+      names = [entry.name for entry in os.scandir(current)]
+    except (FileNotFoundError, NotADirectoryError):
+      return None
+    found = part if part in names else next((name for name in names if name.lower() == part.lower()), None)
+    if found is None:
+      return None
+    spelled.append(found)
+    current = current / found
+  return "/".join(spelled)
+
+
 def manifestCheck(folder, short, manifest):
-  """Check 1: every file the manifest lists lies in place with its size and SHA-256, every file a game export always writes is listed,
-  nothing of this zone's lies beside it unlisted, and every server file is named by the lowercase short name."""
+  """Check 1: every file the manifest lists lies in place with its size and SHA-256, every server file under its exact name (as the
+  server on Linux opens it), every file a game export always writes is listed, nothing of this zone's lies beside it unlisted, and every
+  server file is named by the lowercase short name."""
   writes = {path.relative_to(folder).as_posix(): path for path in exportPipeline.exportFilePaths(folder, short) if path != exportPipeline.manifestPath(folder, short)}
   serverPaths = exportPipeline.serverFilePaths(folder, short)
   required = [f"{short}.eqg"] + [serverPaths[kind].relative_to(folder).as_posix() for kind in ("map", "water", "nav", "rows")]
@@ -122,6 +141,10 @@ def manifestCheck(folder, short, manifest):
       continue
     if not isinstance(record, dict) or set(record) != {"bytes", "sha256"}:
       failures.append({"file": name, "message": f"The manifest's record of {name} is not {{bytes, sha256}}: {record!r}"})
+      continue
+    spelled = spelledOnDisk(folder, name)
+    if name.startswith("server/") and spelled is not None and spelled != name:
+      failures.append({"file": name, "message": f"{name} lies as {spelled}: the server on Linux opens files by their exact names and would find no {name}"})
       continue
     data = readFile(writes[name])
     if data is None:

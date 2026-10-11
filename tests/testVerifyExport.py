@@ -365,6 +365,27 @@ def testVerifyExportCatchesAMissingNav(stageBlenderServer, exportedZone, tmp_pat
   assert len(pictures) == 2
 
 
+def testVerifyExportCatchesServerFilesNamedInAnotherCase(stageBlenderServer, exportedZone, tmp_path):
+  copy = copiedExport(exportedZone, tmp_path)
+  maps = copy / "server" / "maps"
+  (maps / "base" / f"{short}.map").rename(maps / "base" / "Verified.map")
+  (maps / "nav").rename(maps / "Nav")
+  pictures, result = verifyCopy(stageBlenderServer, exportedZone, copy)
+  # Windows finds both under their manifest names, so every other check reads them; the server on Linux would find neither.
+  assert result["failedChecks"] == ["manifest"]
+  assert byCheck(result)["manifest"]["details"]["failures"] == [
+    {
+      "file": "server/maps/base/verified.map",
+      "message": "server/maps/base/verified.map lies as server/maps/base/Verified.map: the server on Linux opens files by their exact names and would find no server/maps/base/verified.map",
+    },
+    {
+      "file": "server/maps/nav/verified.nav",
+      "message": "server/maps/nav/verified.nav lies as server/maps/Nav/verified.nav: the server on Linux opens files by their exact names and would find no server/maps/nav/verified.nav",
+    },
+  ]
+  assert len(pictures) == 2
+
+
 def swappedSafeAxes(text):
   """<short>.sql with the zone row's safe_x and safe_y swapped in its insert and its update."""
   lines = text.split("\n")
