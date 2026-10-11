@@ -107,6 +107,18 @@ def test_applyIsWholeOrNothingWhenTheCheckFails(repository):
   assert "- [ ] 1. Set the expansion [0001]" in (repository / "plan.md").read_text()
 
 
+def test_aRevertAfterAnApplyThatRolledBackIsRefusedNotFinished(repository):
+  harness = rowHarness(repository)
+  harness.fake.checks[expansionCheck] = lambda fake: 0
+  harness.ledger.stage("0001")
+  with pytest.raises(ledger.LedgerError, match="ledger: 0001 check is not 1 after apply"):
+    harness.ledger.apply("0001")
+  with pytest.raises(ledger.LedgerError, match="revert needs 0001-expansionTest applied; it is not applied"):
+    harness.ledger.revert("0001")
+  assert committedJSON(repository, f"{changeFolder}/intent.json") == {"intent": "applying"}
+  assert lastMessage(repository) == "Applying 0001-expansionTest: Expansion:CurrentExpansion is 19 in ruleset 1"
+
+
 def test_applyRefusesRowsChangedSinceStage(repository):
   harness = rowHarness(repository)
   harness.ledger.stage("0001")
