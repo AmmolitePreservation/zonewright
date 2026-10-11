@@ -13,7 +13,7 @@ from ledgerDoubles import FakeColumn, FakeMariaDB, FakeTable, makeHarness, rowCh
 
 payloadColumns = [FakeColumn("id", "int"), FakeColumn("payload", "blob"), FakeColumn("label", "varchar", "utf8mb4"),
   FakeColumn("note", "text", "latin1"), FakeColumn("ratio", "float"), FakeColumn("precise", "double"),
-  FakeColumn("amount", "decimal", scale=2), FakeColumn("created", "datetime"),
+  FakeColumn("amount", "decimal", scale=2), FakeColumn("created", "datetime", fractionalDigits=6),
   FakeColumn("flags", "set", "latin1", ("a", "b", "c")), FakeColumn("mood", "enum", "latin1", ("calm", "angry", "sad")),
   FakeColumn("mask", "bit", width=12), FakeColumn("big", "bigint"), FakeColumn("path", "varchar", "latin1")]
 
@@ -31,15 +31,15 @@ def payloadFake():
   fake = FakeMariaDB()
   fake.tables["payloads"] = FakeTable(payloadColumns, ("id",), [
     payloadRow(1, b"\x00'\\\xff;--", "naive \u2603 caf\u00e9".encode("utf-8"), b"caf\xe9", single(0.123456789),
-      0.30000000000000004, Decimal("-12.50"), "2026-10-11 09:30:17", b"a,b", b"angry", 0b101000000101, -9223372036854775808,
-      b"C:\\Games\\EverQuest"),
+      0.30000000000000004, Decimal("-12.50"), "2026-10-11 09:30:17.000000", b"a,b", b"angry", 0b101000000101,
+      -9223372036854775808, b"C:\\Games\\EverQuest"),
     payloadRow(2, b"", "".encode("utf-8"), None, single(-1.5e-7), 1e-300, Decimal("0.00"), "2026-10-11 09:30:00.250000", b"",
       b"calm", 0, 0, b"plain"),
     payloadRow(3, None, b"NULL", b"O'Brien; DROP TABLE x; --", None, None, None, None, None, None, None, None, None),
-    payloadRow(4, b"plain", b"tab\there", b"line\nbreak", single(3e38), -0.0, Decimal("1.00"), "2000-01-01 00:00:59", b"c",
+    payloadRow(4, b"plain", b"tab\there", b"line\nbreak", single(3e38), -0.0, Decimal("1.00"), "2000-01-01 00:00:59.000000", b"c",
       b"sad", 4095, 18446744073709551615, b"back\\slash"),
-    payloadRow(5, b"x", b"y", b"z", -0.0, 123456789.12345679, Decimal("99.99"), "1999-12-31 23:59:59", b"a,c", b"calm", 1, 7,
-      b"\\"),
+    payloadRow(5, b"x", b"y", b"z", -0.0, 123456789.12345679, Decimal("99.99"), "1999-12-31 23:59:59.999999", b"a,c", b"calm",
+      1, 7, b"\\"),
   ])
   fake.predicates["id < 10"] = lambda row: row["id"] < 10
   return fake
@@ -61,7 +61,7 @@ def test_theLedgerWritesTheSimplestExactLiteralForEachValue(repository):
   revert = ledger.revertScript(savedScope(repository, payloadFake()))
   assert "DELETE FROM `payloads` WHERE (id < 10);" in revert
   assert ("(1, X'00275CFF3B2D2D', _utf8mb4 X'6E6169766520E2988320636166C3A9', _latin1 X'636166E9', 0.12345679104328156e0, "
-    "0.30000000000000004e0, -12.50, '2026-10-11 09:30:17', 'a,b', 'angry', 2565, -9223372036854775808, "
+    "0.30000000000000004e0, -12.50, '2026-10-11 09:30:17.000000', 'a,b', 'angry', 2565, -9223372036854775808, "
     "_latin1 X'433A5C47616D65735C457665725175657374')") in revert
   assert "(3, NULL, 'NULL', 'O''Brien; DROP TABLE x; --', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)" in revert
 
@@ -96,7 +96,7 @@ def test_revertPutsBackExactlyTheSavedRowsAfterAnApply(repository, change):
   ("mood", [b"calm", b"angry", b"sad"]),
   ("flags", [b"a,b", b"", b"c"]),
   ("mask", [0, 5, 4095]),
-  ("created", ["2026-10-11 09:30:17", "2026-10-11 09:30:00.250000"]),
+  ("created", ["2026-10-11 09:30:17.000000", "2026-10-11 09:30:00.250000", "1999-12-31 23:59:59.999999"]),
   ("path", [b"C:\\Games", b"\\", b"\\n is not a newline"]),
 ])
 def test_everyValueOfAKindComesBackExactly(repository, column, values):

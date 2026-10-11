@@ -10,6 +10,7 @@ binary log in mysqlbinlog's form from what each transaction changed. Tests give 
 runs and its checks as Python."""
 import copy
 import hashlib
+import math
 import os
 import re
 import struct
@@ -51,6 +52,15 @@ def single(value):
   return struct.unpack("<f", struct.pack("<f", value))[0]
 
 
+def temporalText(column, text):
+  """A date or time as MariaDB stores it in column: a DATETIME, TIMESTAMP or TIME keeps exactly its fractional digits, the
+  rest of a fraction cut off and a short one padded with zeros."""
+  if column.dataType not in ("datetime", "timestamp", "time"):
+    return text
+  whole, _, fraction = text.partition(".")
+  return whole + ("." + (fraction + "0" * 6)[:column.fractionalDigits] if column.fractionalDigits else "")
+
+
 @dataclass
 class FakeColumn:
   name: str
@@ -61,6 +71,7 @@ class FakeColumn:
   scale: int = 0
   autoIncrement: bool = False
   generated: str = ""
+  fractionalDigits: int = 0
 
   @property
   def extra(self):
@@ -129,20 +140,32 @@ class Temporal:
   text: str
 
 
+def formatReal(value, digits):
+  """A real number as MariaDB 10.5's my_gcvt prints it from dtoa's digits: positional unless the decimal point falls more
+  than 14 places before the first digit or more than 15 after it on a whole number, then N.NNNeX."""
+  sign = "-" if math.copysign(1.0, value) < 0 else ""
+  if value == 0:
+    return sign + "0"
+  shape = digits.as_tuple()
+  text = "".join(map(str, shape.digits))
+  point = len(text) + shape.exponent
+  if point >= -14 and (point <= 15 or len(text) > point):
+    if point <= 0:
+      return sign + "0." + "0" * -point + text
+    if point < len(text):
+      return sign + text[:point] + "." + text[point:]
+    return sign + text + "0" * (point - len(text))
+  return sign + text[0] + ("." + text[1:] if len(text) > 1 else "") + f"e{point - 1}"
+
+
 def formatDouble(value):
   """A DOUBLE as MariaDB prints it: the fewest digits that read back as the same double."""
-  if value == int(value) and abs(value) < 1e15:
-    return ("-" if str(value).startswith("-") else "") + str(abs(int(value)))
-  text = repr(value)
-  mantissa, _, exponent = text.partition("e")
-  return mantissa + (f"e{int(exponent)}" if exponent else "")
+  return formatReal(value, Decimal(repr(abs(value))).normalize())
 
 
 def formatSingle(value):
-  """A FLOAT as MariaDB prints it: 6 significant digits."""
-  text = f"{value:.6g}"
-  mantissa, _, exponent = text.partition("e")
-  return mantissa + (f"e{int(exponent)}" if exponent else "")
+  """A FLOAT as MariaDB prints it: at most 6 significant digits."""
+  return formatReal(value, Decimal(format(abs(value), ".5e")).normalize())
 
 
 def stringBytes(value):
@@ -200,9 +223,16 @@ def roundedInteger(value):
 
 
 def hexOf(value):
+  """HEX of a string is its bytes; of a number, the 64-bit two's complement of it rounded half away from zero, a real
+  outside the 64-bit range all ones, as MariaDB's HEX gives them."""
   if isinstance(value, (Text, Member, Temporal)):
     return stringBytes(value).hex().upper()
-  return format(roundedInteger(number(value)) & 0xFFFFFFFFFFFFFFFF, "X")
+  value = number(value)
+  if isinstance(value, float):
+    whole = -1 if value <= -2.0 ** 63 or value >= 2.0 ** 64 else int(value + 0.5 if value > 0 else value - 0.5)
+  else:
+    whole = roundedInteger(value)
+  return format(whole & 0xFFFFFFFFFFFFFFFF, "X")
 
 
 tokenPattern = re.compile(r"""\s*(?:
@@ -614,6 +644,9 @@ class FakeMariaDB:
     if column.dataType == "bit":
       return Bit(value, column.width)
     if column.dataType in temporalPatterns:
+      if temporalText(column, value) != value:
+        raise AssertionError(f"{column.name} holds {value!r}, which MariaDB never stores in a {column.dataType} with "
+          f"{column.fractionalDigits} fractional digits")
       return Temporal(value)
     raise AssertionError(f"the stand-in has no type {column.dataType}")
 
@@ -1161,7 +1194,8 @@ def storedValue(table, column, token, session):
       raise FakeSQLError(1366, "22007", f"Incorrect integer value for column '{column.name}'")
     return roundedInteger(literalNumber(payload))
   if column.dataType == "decimal":
-    return Decimal(payload).quantize(Decimal(1).scaleb(-column.scale), ROUND_HALF_UP)
+    value = Decimal(payload).quantize(Decimal(1).scaleb(-column.scale), ROUND_HALF_UP)
+    return value.copy_abs() if value.is_zero() else value
   if column.dataType in ("float", "double"):
     value = literalDouble(payload) if kind == "number" else float(payload.decode("ascii"))
     return single(value) if column.dataType == "float" else value
@@ -1175,7 +1209,7 @@ def storedValue(table, column, token, session):
     text = payload.decode("ascii")
     if not temporalPatterns[column.dataType].match(text):
       raise FakeSQLError(1292, "22007", f"Incorrect {column.dataType} value: '{text}' for column '{column.name}'")
-    return text
+    return temporalText(column, text)
   try:
     data = convert(payload, charset, column.charset)
   except UnicodeError as error:
