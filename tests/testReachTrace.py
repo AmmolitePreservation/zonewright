@@ -90,6 +90,12 @@ async def traceCourse(session, folder):
   await session.expectImage("placeEntry", {"name": "gate", "at": gate, "headingDegrees": 180, "kind": "landing"})
 
 
+def standsBesideNearest(trace):
+  """Whether a trace view's scale figure stands on its nearest place's floor, within half a column of its middle."""
+  figure, nearest = trace["view"]["figure"], trace["nearest"]["at"]
+  return math.dist(figure[:2], nearest[:2]) < cellSize / 2 and abs(figure[2] - nearest[2]) <= cellHeight
+
+
 def near(point, expected, tolerance=math.sqrt(2) * playerReach.reachGrid["cellSize"]):
   return math.dist(point[:2], expected[:2]) <= tolerance
 
@@ -229,7 +235,7 @@ def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
   assert not underCanopy(canopyTrace["nearest"]["at"]) and near(canopyTrace["nearest"]["at"], [canopy[1][0] + 1, 65])
   assert [stop["kind"] for stop in canopyTrace["separations"]] == ["rise"] and abs(canopyTrace["separations"][0]["height"] - canopyTop) <= cellHeight
   canopyView = canopyTrace["view"]["view"]
-  assert not underCanopy(canopyView["standAt"]) and canopyView["standAt"][0] > canopyTrace["nearest"]["at"][0] and canopyView["figureAt"] == canopyTrace["nearest"]["at"]
+  assert not underCanopy(canopyView["standAt"]) and canopyView["standAt"][0] > canopyTrace["nearest"]["at"][0] and standsBesideNearest(canopyTrace)
   # From the pit's water the far bank stands higher over the box's top than players climb out.
   water = results["water"]
   assert water["nearest"]["label"] == "swim" and near(water["nearest"]["at"], [0, pit[1] - 1])
@@ -246,7 +252,7 @@ def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
   # from the corridor's far wall, the scale figure at the cliff's foot.
   assert near(water["view"]["view"]["standAt"], [0, pit[1] - 1 - 12]) and abs(water["view"]["view"]["headingDegrees"]) < 1e-6
   assert near(cliff["view"]["view"]["standAt"], [-corridorHalf + 1, 80]) and abs(cliff["view"]["view"]["headingDegrees"] - 90) < 1e-6
-  assert cliff["view"]["view"]["figureAt"] == cliff["nearest"]["at"]
+  assert standsBesideNearest(cliff)
   assert any(entry.startswith("doors: taken as open") for entry in cliff["notModeled"])
   # From the gate alone, players swim the trench back and climb out, but the riser block's far face rises more than a step; its section
   # draws the gate's lane, in which the block's top is walkable floor never reached.
@@ -559,6 +565,8 @@ def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
   assert [(stop["kind"], stop["face"]) for stop in highBank["separations"]] == [("rise", "bankHigh")], highBank["separations"]
   standAt, nearest = highBank["view"]["view"]["standAt"], highBank["nearest"]["at"]
   assert abs(standAt[2] - nearest[2]) <= cellHeight and 30 <= standAt[1] < nearest[1], (standAt, nearest)
+  # The nearest place's column middle lies on the low bank's north edge (y 38); the scale figure stands on the bank's top beside it.
+  assert standsBesideNearest(highBank) and highBank["view"]["figure"][1] < nearest[1], (highBank["view"]["figure"], nearest)
   # Across the ford (its box from x -130, 8 along the line, to -90; the shelf to -110, 28 along) the shelf's floor is walked under water
   # too shallow to swim in, shown by its bar alone as the plan shows it; the deep water beside it is swum, its band and floor swim blue.
   cut = json.loads(Path(ford["laneState"]["laneCut"]).read_text())

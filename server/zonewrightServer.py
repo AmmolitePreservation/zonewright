@@ -3416,9 +3416,10 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   dashed line to where a run ends) named with its measure, the name led back to it where it is set off; picture 2, an eye-level view
   from the reached floor up to 12 back from the nearest node, away from the point, as far as the lane joins it without a drop of more
   than the step, facing the point and pitched to the middle of the span between the nearest node's floor and it, the swim boxes tinted
-  and the scale figure standing on the nearest node (a player's height or more off). Every result gives the constants, what is not modelled (doors taken as open among
-  them: the client collides with a closed door), the limits, and whether the lane was computed or reused. Refused: `to` not [x, y] or
-  [x, y, z], or outside what the zone ships; an unknown fromEntry; no reached place beside the point; and mapReach's refusals."""
+  and the scale figure standing on the nearest node's floor (a player's height or more off; view.figure gives where she stands). Every
+  result gives the constants, what is not modelled (doors taken as open among them: the client collides with a closed door), the limits,
+  and whether the lane was computed or reused. Refused: `to` not [x, y] or [x, y, z], or outside what the zone ships; an unknown
+  fromEntry; no reached place beside the point; and mapReach's refusals."""
   if len(to) not in (2, 3) or not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in to):
     raise ToolError(f"to is [x, y] or [x, y, z], got {to}")
   lane, description, status, seconds = await sceneLaneOnly(context, fromEntry)
@@ -3505,13 +3506,17 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   view = facingView(backPoint, aimPoint, backWet)
   standsFigure = not backWet and math.dist(backPoint[:2], nearPoint[:2]) >= playerScale.playerHeight
   if standsFigure:
-    view["figureAt"] = playerReach.roundedPoint(nearPoint, 3)
+    # A column's middle can lie on a block's edge (faces on whole units run through column middles), where the figure's footing falls
+    # past the edge; a quarter column toward the eye stands her on the column's floor.
+    toward = math.dist(backPoint[:2], nearPoint[:2])
+    shift = playerReach.reachGrid["cellSize"] / 4 / toward
+    view["figureAt"] = playerReach.roundedPoint([nearPoint[0] + (backPoint[0] - nearPoint[0]) * shift, nearPoint[1] + (backPoint[1] - nearPoint[1]) * shift, nearPoint[2]], 3)
   viewPath = newRenderPath()
   rendered = await callBridge(context, "renderView", {
     "view": view, "outputPath": str(viewPath), "figureModel": await zoneFigureModel(zone) if standsFigure else None, "shading": "client", "bandHeight": 50.0,
     "guides": True, "sky": sky, "swimVolumes": True, "labels": None, "emitters": await previewEmitterAssets(),
   })
-  result["view"] = {"view": view, "outputPath": str(viewPath), "eye": rendered["eye"]}
+  result["view"] = {"view": view, "outputPath": str(viewPath), "eye": rendered["eye"]} | ({"figure": rendered["figure"]} if standsFigure else {})
   return [Image(data=sectionPath.read_bytes(), format="png"), Image(data=viewPath.read_bytes(), format="png"), result]
 
 
