@@ -1,0 +1,62 @@
+title: housingclient's UI_Claudewright_claudeperidot.ini holds [ViewPortWindowed] X=440 Y=0 W=2560 H=1417, the owner's 3D viewport, so Claude's character renders the scene as the owner's characters do
+why: >-
+  Calibration shots compare the spare's frames with the owner's own-client screenshots, which render the scene in a
+  2560 by 1417 viewport centred in the 3440 by 1417 window (the owner's UI_<character>_Peridot.ini files all hold
+  [ViewPortWindowed] X=440 Y=0 W=2560 H=1417 XScale=0 YScale=0 WScale=0 HScale=0, and the dumps' [camera] rows say
+  renderWidth 2560, renderHeight 1417). Claude's character had no such section, so it rendered the full 3440 width
+  with a wider view. The viewport is per character, in the character's UI file, not in eqclient.ini; the spare's
+  eqclient.ini already matches the owner's graphics keys except Maximized and MaxBGFPS, which 0004 set on purpose.
+  The client reads the section when the character enters the world and writes it back when it saves the UI file,
+  so the checks read the keys. Apply and undo run with the spare closed.
+kind: client
+scope:
+  - S:\Research\EverQuest\housingclient\UI_Claudewright_claudeperidot.ini
+disposition: fixture
+significance: minor
+ownerClearance: pending
+activation: the character's next entry into the world
+production: none
+commits: []
+steps:
+  - |-
+    $path = 'S:\Research\EverQuest\housingclient\UI_Claudewright_claudeperidot.ini'
+    $encoding = [Text.Encoding]::GetEncoding(28591)
+    $text = [IO.File]::ReadAllText($path, $encoding)
+    if (-not $text.EndsWith("`r`n")) { throw "$path does not end with CRLF, as the client writes it" }
+    if ($text -match '(?m)^\[ViewPortWindowed\]\r?$') { throw "$path already holds a [ViewPortWindowed] section" }
+    $section = "[ViewPortWindowed]`r`nX=440`r`nY=0`r`nW=2560`r`nH=1417`r`nXScale=0`r`nYScale=0`r`nWScale=0`r`nHScale=0`r`n"
+    [IO.File]::WriteAllText($path, $text + $section, $encoding)
+undo:
+  - |-
+    $path = 'S:\Research\EverQuest\housingclient\UI_Claudewright_claudeperidot.ini'
+    $encoding = [Text.Encoding]::GetEncoding(28591)
+    $text = [IO.File]::ReadAllText($path, $encoding)
+    $newline = "`r`n"
+    $suffix = ''
+    if ($text.EndsWith($newline)) { $text = $text.Substring(0, $text.Length - $newline.Length); $suffix = $newline }
+    $lines = $text -split [regex]::Escape($newline)
+    $start = [Array]::IndexOf($lines, '[ViewPortWindowed]')
+    if ($start -lt 0) { throw "$path has no [ViewPortWindowed] section" }
+    $end = $start + 1
+    while ($end -lt $lines.Count -and -not $lines[$end].StartsWith('[')) { $end++ }
+    $kept = @()
+    if ($start -gt 0) { $kept += $lines[0..($start - 1)] }
+    if ($end -lt $lines.Count) { $kept += $lines[$end..($lines.Count - 1)] }
+    [IO.File]::WriteAllText($path, ($kept -join $newline) + $suffix, $encoding)
+checks:
+  - path: S:\Research\EverQuest\housingclient\UI_Claudewright_claudeperidot.ini
+    section: ViewPortWindowed
+    key: X
+    value: "440"
+  - path: S:\Research\EverQuest\housingclient\UI_Claudewright_claudeperidot.ini
+    section: ViewPortWindowed
+    key: Y
+    value: "0"
+  - path: S:\Research\EverQuest\housingclient\UI_Claudewright_claudeperidot.ini
+    section: ViewPortWindowed
+    key: W
+    value: "2560"
+  - path: S:\Research\EverQuest\housingclient\UI_Claudewright_claudeperidot.ini
+    section: ViewPortWindowed
+    key: H
+    value: "1417"
