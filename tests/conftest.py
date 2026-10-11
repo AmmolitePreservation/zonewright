@@ -1,3 +1,4 @@
+import ast
 import base64
 import contextlib
 import functools
@@ -43,7 +44,8 @@ recastHelperBuild = recastHelperSources | {"toolingManifest.json"} | {f"server/{
 serverReferenceFiles = {"tests/serverReference.py", "tests/serverReference.json"}
 # The slow tiers, in groups by the files their tests depend on: the code they check and every server module it imports (but the
 # plumbing every test runs: the Blender process, the bridge's protocol and command table, the tooling status, and the bridge's modules
-# a group does not check), the references they compare against, and the Recast helper's build where they run it. A run of the whole
+# a group does not check), the references they compare against, and the Recast helper's build where they run it; and, found as the
+# suite is collected (heavyTestFiles), the test modules holding the group's tests and the test helpers they import. A run of the whole
 # suite takes a group only when one of its files changed since the branch left the last pushed claude, or is uncommitted; -m clientData
 # or -m install runs a whole tier, and naming a test file runs it.
 heavyGroups = {
@@ -55,7 +57,7 @@ heavyGroups = {
   "clientFiles": clientZoneFiles,
   "calibration": clientZoneFiles | {"server/eqCalibration.py"},
   "serverMaps": {f"server/{name}.py" for name in (
-    "serverMapFiles", "serverMapDrawing", "eqAxes", "eqgFiles", "eqgWriter", "eqArchive", "playerReach", "laneDrawing", "planDrawing", "playerScale",
+    "serverMapFiles", "serverMapDrawing", "eqAxes", "eqgFiles", "eqArchive", "playerReach", "laneDrawing", "planDrawing", "playerScale",
     "buildTolerances", "checkpoints", "serverNav",
   )} | recastHelperBuild | serverReferenceFiles,
   "serverNav": {f"server/{name}.py" for name in ("serverNav", "serverMapFiles", "eqAxes", "eqgFiles", "eqArchive", "serverMapDrawing", "planDrawing")}
@@ -392,6 +394,37 @@ def heavyGroupOf(item):
   return marker.args[0]
 
 
+@functools.cache
+def testHelpersImported(modulePath):
+  """The test helpers a test module imports (modules in tests/), but conftest, the plumbing every test runs."""
+  helpers = []
+  for node in ast.walk(ast.parse(modulePath.read_text(encoding="utf-8"))):
+    names = [alias.name for alias in node.names] if isinstance(node, ast.Import) else [node.module] if isinstance(node, ast.ImportFrom) and node.level == 0 else []
+    helpers += [repositoryRoot / "tests" / f"{name}.py" for name in names if name != "conftest" and (repositoryRoot / "tests" / f"{name}.py").is_file()]
+  return helpers
+
+
+@functools.cache
+def testFilesOf(modulePath):
+  """A test module and the test helpers it imports, and those they import in turn, as repository paths."""
+  found, waiting = set(), [modulePath]
+  while waiting:
+    module = waiting.pop()
+    if module.relative_to(repositoryRoot).as_posix() not in found:
+      found.add(module.relative_to(repositoryRoot).as_posix())
+      waiting += testHelpersImported(module)
+  return frozenset(found)
+
+
+def heavyTestFiles(items, groups):
+  """Each heavy group's files with the test modules holding its tests and the test helpers they import (testFilesOf)."""
+  files = {group: set(named) for group, named in heavyGroups.items()}
+  for item in items:
+    if groups[item.nodeid] is not None:
+      files[groups[item.nodeid]] |= testFilesOf(Path(item.path))
+  return files
+
+
 def pytest_addoption(parser):
   parser.addoption("--everyTier", action="store_true", help="run the client data and install tiers whatever changed")
 
@@ -403,12 +436,13 @@ def pytest_collection_modifyitems(config, items):
     return
   base = gitOutput("merge-base", "HEAD", "origin/claude").strip()
   changed = set(gitOutput("diff", "--name-only", base).splitlines()) | set(gitOutput("ls-files", "--others", "--exclude-standard").splitlines())
+  groupFiles = heavyTestFiles(items, groups)
   config.heavyGroupReport = []
-  for group, files in heavyGroups.items():
+  for group, files in groupFiles.items():
     touched = sorted(changed & files)
     count = sum(1 for value in groups.values() if value == group)
     config.heavyGroupReport.append(f"{group} ({count} tests): " + (f"run, its code changed: {', '.join(touched)}" if touched else f"left out, its code is as at {base[:8]} (origin/claude)"))
-  leftOut = {group for group, files in heavyGroups.items() if not changed & files}
+  leftOut = {group for group, files in groupFiles.items() if not changed & files}
   deselected = [item for item in items if groups[item.nodeid] in leftOut]
   if deselected:
     config.hook.pytest_deselected(items=deselected)
