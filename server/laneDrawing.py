@@ -6,8 +6,8 @@ under water standing clear of it dotted (black where the design player fits ther
 the underworld) magenta, the edges where a zone line catches a fall green, zone lines hatched green when reached and dashed when not,
 swim boxes dashed over the fill, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X when unreached), region
 outlines in their access colors, and the problems ringed black (round the mark they lie on) and numbered over their rings or led to
-them by a line; with a legend band below naming what the drawing shows. LanePlan lays it over planDrawing.drawPlan's plan; drawLaneBesideNav draws a lane from server files over
-the floors it reaches beside the server's NPC nav."""
+them by a line; with a legend band below naming what the drawing shows. LanePlan lays it over planDrawing.drawPlan's plan;
+drawLaneBesideNav draws a lane from server files over the floors it reaches beside the server's NPC nav."""
 import math
 
 import numpy
@@ -357,6 +357,10 @@ class LanePlan:
     if self.complete:
       for problem in self.problemsIn(frame):
         drawRing(draw, frame.pixel(problem["center"]), ringRadius(problem))
+
+  def seedPoints(self):
+    """The plan points of the seeds the lane names."""
+    return [entry["at"][:2] for entry in self.analysis["entries"]]
 
   def problemsIn(self, frame):
     return [problem for problem in self.analysis["problems"] if self.inFrame(frame, problem["center"])]

@@ -37,6 +37,8 @@ entranceMarkLength = 11
 entranceMarkWidth = 14
 entryColor = (15, 15, 15)
 entryMarkLength = 18
+# An entry stands on a lane's seed when its plan point lies this near the seed's.
+seedMatch = 0.01
 entryMarkWidth = 16
 # None is a region made before access was decided.
 accessColors = {"view": (235, 160, 0), "none": (210, 30, 30), None: (130, 130, 130)}
@@ -541,9 +543,10 @@ def drawPlan(basePath, outputPath, center, width, overlays, lane=None):
   regions' access fills, the caves' pale floors, the lane's fill (lane, a laneDrawing.LanePlan, when given) over them, boundaries, zone
   lines, the regions' outlines, the caves' runs, then every sheet's area fills, footprint fills and path widths each composited in turn,
   then every line and mark (the entries' arrows, then the lane's marks last), then the labels, clear of the lane's marks: swim volumes'
-  names inside them first, then the lane's, the sketch's, the entries', the plots', the boundaries' (each whose spot lies in the
-  drawing), the zone lines', the regions' (each where enough of it shows to hold its name), and the caves' (their floor heights and
-  names), each set beside the ground's spot heights where it can be, and the spot heights giving way to them where it cannot."""
+  names inside them first, then the lane's, the sketch's, the entries' (but those the lane names as its seeds), the plots', the
+  boundaries' (each whose spot lies in the drawing), the zone lines', the regions' (each where enough of it shows to hold its name), and
+  the caves' (their floor heights and names), each set beside the ground's spot heights where it can be, and the spot heights giving way
+  to them where it cannot."""
   with Image.open(basePath) as base:
     size = (round(base.width * planScale), round(base.height * planScale))
     image = base.convert("RGB").resize(size, Image.Resampling.BICUBIC).convert("RGBA")
@@ -606,7 +609,10 @@ def drawPlan(basePath, outputPath, center, width, overlays, lane=None):
       for shape, color in shapes:
         if shape["kind"] == kind:
           labelShape(board, frame, shape, color)
+    named = lane.seedPoints() if lane is not None else []
     for entry in overlays["entries"]:
+      if any(math.dist(entry["at"], point) <= seedMatch for point in named):
+        continue
       x, y = frame.pixel(entry["at"])
       board.place((x + entryMarkLength + 4, y), entry["label"], entryColor, 13, "lm")
     for plot in overlays["plots"]:
