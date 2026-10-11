@@ -1014,6 +1014,9 @@ rowEventPattern = re.compile(r"^### (INSERT INTO|UPDATE|DELETE FROM) `([^`]+)`\.
 tagPattern = re.compile(r"^(\s*|DROP TABLE (?:IF EXISTS )?)/\* ledger (\d{4}) (apply|revert) \*/\s*")
 versionedCommentPattern = re.compile(r"/\*M?!\d{5,6} ?(.*?)\*/", re.DOTALL)
 clientCommandCommentPattern = re.compile(r"/\*!\\C [^*]*\*/")
+# mysqlbinlog names a statement's session database, not the one it writes, and prints no use line when a session has none,
+# so a statement that names peq counts as peq's whatever database it ran in.
+databaseQualifierPattern = re.compile(rf"(?<![\w$`.])(?:`{databaseName}`|{databaseName})\s*\.")
 ignoredQueryStatements = re.compile(r"^(SET\b|use\b|BEGIN\b|COMMIT\b|START TRANSACTION\b|ROLLBACK\b|XA\b)", re.IGNORECASE)
 
 
@@ -1123,7 +1126,7 @@ class DriftAccount:
       elif isWatched(table):
         parts.append(f"{operation} {table} x{count}")
     parts += [redactValues(" ".join(text.split()))[:200] for _, text, database in transaction.statements
-      if database in (None, databaseName)]
+      if database in (None, databaseName) or databaseQualifierPattern.search(text)]
     if parts:
       self.problems.append("unaccounted write: " + self.describe(transaction, parts))
 

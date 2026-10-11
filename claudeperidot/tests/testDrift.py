@@ -258,6 +258,16 @@ def test_writesInAnotherDatabaseAreNotThePeqDatabasesDrift():
   assert account([transaction]).problems == []
 
 
+def test_aStatementNamingPeqIsPeqsDriftWhateverDatabaseItRanIn():
+  transaction = ledger.BinaryLogTransaction("0-1-41", 0, "261011 12:05:00", "9950", {}, [
+    (None, "ALTER TABLE peq.items DROP INDEX byName", "mysql"),
+    (None, "ALTER TABLE `peq` . `spawn2` ADD INDEX byZone (zone)", "ledgerTest"),
+    (None, "ALTER TABLE ledgerTest.peqCopy ADD COLUMN a INT", "mysql"),
+    (None, "CREATE TABLE notpeq.items (id INT)", "mysql")])
+  assert account([transaction]).problems == ["unaccounted write: 261011 12:05:00 GTID 0-1-41 at 9950: ALTER TABLE peq.items "
+    "DROP INDEX byName; ALTER TABLE `peq` . `spawn2` ADD INDEX byZone (zone)"]
+
+
 def writeBaseline(repository, fake, position):
   """A baseline at position holding the checksum of every table of fake drift watches."""
   tables = [table for table in fake.tables if ledger.isWatched(table)]
