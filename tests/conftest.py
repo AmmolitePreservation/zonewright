@@ -35,23 +35,34 @@ readerFiles = {f"server/{name}.py" for name in (
   "eqTerrainTextures", "eqTextures", "eqWorldFile", "eqZones", "eqgFiles", "eqgSkeletons", "eqgTerrain", "loadTimeLight", "viewerLight", "zoneGeometry", "zoneSources",
   "bridgeModels", "emitterAssets", "emitterParticles", "bridgeEmitterDrawing", "eqClientZones", "serverRows",
 )}
-# The slow tiers, in groups by the code their tests check. A run of the whole suite takes a group only when that code changed since the
-# branch left the last pushed claude, or is uncommitted; -m clientData or -m install runs a whole tier, and naming a test file runs it.
+# What the readers import, and the client's light the imported zones are drawn in.
+clientZoneFiles = readerFiles | {f"server/{name}.py" for name in ("bridgeClientLight", "eqAxes", "eqSky", "skyDrawing", "playerScale", "machineProfile", "toolingManifest")}
+recastHelperSources = {f"recastHelper/{name}" for name in ("CMakeLists.txt", "main.cpp", "helperIO.h", "helperIO.cpp", "navMode.cpp", "inspectMode.cpp", "reachMode.cpp")}
+# The Recast helper as the tests have it built: its sources, the Recast pin, and the sync that builds it.
+recastHelperBuild = recastHelperSources | {"toolingManifest.json"} | {f"server/{name}.py" for name in ("recastHelper", "toolingSync", "toolingManifest", "machineProfile")}
+serverReferenceFiles = {"tests/serverReference.py", "tests/serverReference.json"}
+# The slow tiers, in groups by the files their tests depend on: the code they check and every server module it imports (but the
+# plumbing every test runs: the Blender process, the bridge's protocol and command table, the tooling status, and the bridge's modules
+# a group does not check), the references they compare against, and the Recast helper's build where they run it. A run of the whole
+# suite takes a group only when one of its files changed since the branch left the last pushed claude, or is uncommitted; -m clientData
+# or -m install runs a whole tier, and naming a test file runs it.
 heavyGroups = {
-  "survey": {f"server/{name}.py" for name in ("assetSurvey", "assetCatalog", "assetVocabulary", "assetSheets", "zoneSurvey", "surveyFields", "zoneInterpretation")}
-    | {(zoneSurveySkill / "SKILL.md").as_posix()},
-  "clientFiles": readerFiles,
-  "calibration": {"server/eqCalibration.py", "server/bridgeClientLight.py"},
-  "serverMaps": {f"server/{name}.py" for name in ("serverMapFiles", "serverMapDrawing", "eqAxes", "eqgFiles", "eqArchive", "playerReach")}
-    | {"tests/serverReference.py", "tests/serverReference.json", "recastHelper/reachMode.cpp"},
-  "serverNav": {f"server/{name}.py" for name in (
-    "serverNav", "recastHelper", "serverMapFiles", "eqAxes", "eqgFiles", "eqArchive", "serverMapDrawing", "planDrawing", "machineProfile", "toolingManifest", "toolingSync",
-  )} | {"toolingManifest.json", "tests/serverReference.py", "tests/serverReference.json"} | {f"recastHelper/{name}" for name in (
-    "CMakeLists.txt", "main.cpp", "helperIO.h", "helperIO.cpp", "navMode.cpp", "inspectMode.cpp",
-  )},
+  "survey": {f"server/{name}.py" for name in (
+    "assetSurvey", "assetCatalog", "assetVocabulary", "assetSheets", "zoneSurvey", "surveyFields", "zoneInterpretation", "eqAnimations", "eqArchive",
+    "eqCubeMaps", "eqEmitters", "eqLinks", "eqLooks", "eqModels", "eqRaces", "eqSkeletons", "eqTerrainTextures", "eqTextures", "eqWorldFile", "eqZones",
+    "eqgFiles", "eqgSkeletons", "eqgTerrain", "loadTimeLight", "zoneGeometry", "zoneSources", "playerScale", "machineProfile", "toolingManifest",
+  )} | {(zoneSurveySkill / "SKILL.md").as_posix()},
+  "clientFiles": clientZoneFiles,
+  "calibration": clientZoneFiles | {"server/eqCalibration.py"},
+  "serverMaps": {f"server/{name}.py" for name in (
+    "serverMapFiles", "serverMapDrawing", "eqAxes", "eqgFiles", "eqgWriter", "eqArchive", "playerReach", "laneDrawing", "planDrawing", "playerScale",
+    "buildTolerances", "checkpoints", "serverNav",
+  )} | recastHelperBuild | serverReferenceFiles,
+  "serverNav": {f"server/{name}.py" for name in ("serverNav", "serverMapFiles", "eqAxes", "eqgFiles", "eqArchive", "serverMapDrawing", "planDrawing")}
+    | recastHelperBuild | serverReferenceFiles,
   "install": {f"server/{name}.py" for name in (
     "toolingSync", "toolingManifest", "toolingStatus", "extensionCatalog", "machineProfile", "machineBenchmark", "blenderProcess",
-  )} | {"toolingManifest.json", "server/recastHelper.py", "recastHelper/CMakeLists.txt"},
+  )} | recastHelperBuild,
 }
 
 
