@@ -639,12 +639,13 @@ def groundCheck(mapData, rowsData, entries, clientRoot, clientZones, short):
 
 
 def containmentCheck(mapData, waterData, entries, regions, underworld, manifest, toolingRoot, reportProgress):
-  """Check 9: the lane the server files give (playerReach.laneFromServerFiles), seeded where the scene's entries stand, judged with its
-  regions and plot entrances, holds no leak a game export refuses; its reached area beside the manifest's."""
+  """Check 9: the lane the server files give (playerReach.laneFromServerFiles), seeded where the scene's entries stand (getEntries'; a
+  placed entry isolated as placeEntry stored it, the safe point never, as the scene's lane takes them), judged with its regions and plot
+  entrances, holds no leak a game export refuses; its reached area beside the manifest's."""
   if mapData is None or waterData is None:
     return checked("containment", [{"message": "The export lacks its .map or .wtr, so no lane is had from them"}])
   seeds = [
-    {"name": entry["name"], "point": entry["at"], "kind": entry["kind"], "isolated": entry.get("isolated", False), "headingDegrees": entry["headingDegrees"]}
+    {"name": entry["name"], "point": entry["at"], "kind": entry["kind"], "isolated": entry["kind"] != "safePoint" and entry["isolated"], "headingDegrees": entry["headingDegrees"]}
     for entry in entries if entry["kind"] in playerReach.seedKinds
   ]
   plots = [{"name": entry["name"], "point": entry["at"]} for entry in entries if entry["kind"] == "plotEntrance"]

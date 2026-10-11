@@ -426,6 +426,30 @@ def testVolumeFailuresFindNavPolygonsOutsideTheirBoxes(stageBlenderServer, expor
   assert [(failure["tile"], failure["polygon"], failure["area"]) for failure in exportVerification.volumeFailures(inspection, unlined)] == disabled
 
 
+def testContainmentOnTheFilesTakesEachEntrysIsolation(stageBlenderServer, exportedZone):
+  files = exportVerification.exportedFiles(exportedZone.export, short)
+  manifest = json.loads((exportedZone.export / f"{short}_export.json").read_text(encoding="ascii"))
+
+  async def steps(session):
+    await session.expectSuccess("openFile", {"path": str(exportedZone.blend)})
+    return (await session.expectSuccess("getEntries", {}))["entries"], (await session.expectSuccess("getRegions", {}))["regions"]
+
+  entries, regions = stageBlenderServer.session(steps)
+  # A landing on the crate's top, which players drop from and never climb to.
+  onCrate = {"name": "onCrate", "kind": "landing", "at": [34.0, -26.0, 8.0], "headingDegrees": 0.0, "source": "placeEntry", "fromZone": None, "fromNumber": None}
+
+  def judged(landing):
+    return exportVerification.containmentCheck(
+      files["map"], files["water"], entries + [landing], regions, -50, manifest, stageBlenderServer.toolingRoot, lambda *arguments: None,
+    )
+
+  assert judged(onCrate | {"isolated": True})["passed"] is True
+  joined = judged(onCrate | {"isolated": False})["details"]["failures"]
+  assert [(failure["failure"], failure["entry"]) for failure in joined] == [("disconnectedEntry", "onCrate")]
+  with pytest.raises(KeyError, match="isolated"):
+    judged(onCrate)
+
+
 def swappedSafeAxes(text):
   """<short>.sql with the zone row's safe_x and safe_y swapped in its insert and its update."""
   lines = text.split("\n")

@@ -1569,13 +1569,16 @@ async def sceneArchive(context, short, client):
 
 
 async def verifiedTour(context, zone):
-  """The scene's lane tour (laneTour), its lane through currentLane as every lane's consumer takes it: (tour, "computed" or "reused")."""
+  """The scene's lane tour (laneTour's), its lane through currentLane as every lane's consumer takes it, its nodes made only when no tour
+  is kept: (tour, "computed" or "reused")."""
   lane, description, _, _ = await sceneLaneOnly(context)
   far = laneViews.farSight(zone)
   kept, _ = laneViews.keptTour(lane, far)
-  nodes = None if kept is not None else await anyio.to_thread.run_sync(playerReach.Nodes, lane)
-  tour, _, status = await laneTour(context, lane, nodes, description, far)
-  return tour, status
+  if kept is not None:
+    return kept, "reused"
+  nodes = await anyio.to_thread.run_sync(playerReach.Nodes, lane)
+  tour, _ = await chosenTour(context, nodes, description, far)
+  return tour, "computed"
 
 
 def rowsSafePoint(rowsData, short):
@@ -2861,10 +2864,15 @@ async def laneTour(context, lane, nodes, description, far):
   kept, tourPath = laneViews.keptTour(lane, far)
   if kept is not None:
     return kept, tourPath, "reused"
+  tour, tourPath = await chosenTour(context, nodes, description, far)
+  return tour, tourPath, "computed"
+
+
+async def chosenTour(context, nodes, description, far):
+  """A tour chosen on the lane's nodes and kept beside the lane: (tour, its path)."""
   picks = await anyio.to_thread.run_sync(laneViews.tourPicks, nodes, description)
   chosen, spacing, placed = await groundedTour(context, picks)
-  kept, tourPath = await anyio.to_thread.run_sync(laneViews.finishTour, nodes, description, far, picks, chosen, spacing, placed)
-  return kept, tourPath, "computed"
+  return await anyio.to_thread.run_sync(laneViews.finishTour, nodes, description, far, picks, chosen, spacing, placed)
 
 
 async def fittedLanePlan(context, framing, lanePlan, sky):
