@@ -1,0 +1,32 @@
+title: Account 86 (the spare's login account, made by its first login) has the character Claudewright, a level 1 human male wizard standing at the Plane of Knowledge's safe point, bound there
+why: >-
+  Claude's spare client needs a character on claudeperidot with Pariator's race and gender (human, male, read from the
+  owner's MQPeridotEmu zone dump peridotEmuZone_arena_0_20261005-013347.txt: race 1, class 12, gender 0), so its eye
+  height matches the owner's calibration shots. It cannot be made at character select through the link: MQClaudeLink
+  loads from the character's own MacroQuest config, which runs only once a character enters the world, and loading it
+  at character select would take a change to the owner's shared CharSelect.cfg or MacroQuest.ini. So the ledger writes
+  the rows EQEmu's character creation writes (world/client.cpp OPCharCreate, common/database.cpp SaveCharacterCreate):
+  character_data with the creation defaults (level 1, 75 in every stat with 30 points unspent, 1000 hit points, hunger
+  and thirst 6000, deity 396 agnostic, the Plane of Knowledge (202) at its zone safe point -285, -148, -159), the five
+  bind points there, the start skills EQEmu gives everyone (swimming 100, sense heading 200; the class's level-1
+  caps are left out, which a GM never needs) and the human's common tongue at 100. No starting items. Account 86 is
+  the world account row the spare's first login made (play, ls_id local, lsaccount_id 85); the account's name stays in
+  Credential Manager. Wizard has no config Wizard.cfg in the owner's MacroQuest folder, so no class cfg runs for it.
+  The scope lists character_data last so revert removes the child rows first, while their predicate still finds the
+  character. Once the character plays, EQEmu rewrites these rows, and revert refuses until they are put right by hand.
+kind: db
+scope:
+  - table: character_bind
+    where: id IN (SELECT id FROM character_data WHERE name = 'Claudewright')
+  - table: character_skills
+    where: id IN (SELECT id FROM character_data WHERE name = 'Claudewright')
+  - table: character_languages
+    where: id IN (SELECT id FROM character_data WHERE name = 'Claudewright')
+  - table: character_data
+    where: name = 'Claudewright'
+disposition: fixture
+significance: minor
+ownerClearance: pending
+activation: the character appears at the next character select
+production: none
+commits: []
