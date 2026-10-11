@@ -1,16 +1,16 @@
 from pathlib import Path
 
 import ledger
-from ledgerDoubles import (FakeMariaDB, clientChangeFields, git, makeHarness, planText, rowChangeFields, schemaChangeFields,
-  writeChange)
+from ledgerDoubles import (FakeMariaDB, FakeSQLError, clientChangeFields, expansionValue, git, makeHarness, planText,
+  rowChangeFields, rowFiles, ruleFake, schemaChangeFields, setRule, writeChange)
 
 realLedger = Path(ledger.__file__).resolve().parent.parent
 
 
-def statusHarness(repository, tmp_path, planSteps, inProgress=None):
+def statusHarness(repository, tmp_path, planSteps, inProgress=None, fake=None):
   """0001 (exploration) checks 1, 0002 (production, significant, pending) checks 0, 0003 (schema, 3 steps) checks 2,
   0004 (client fixture) has its file."""
-  fake = FakeMariaDB()
+  fake = fake or FakeMariaDB()
   for value in range(3):
     fake.checks[f"SELECT {value} AS applied"] = lambda fake, value=value: value
   harness = makeHarness(repository, fake)
@@ -46,9 +46,33 @@ def test_statusDerivesEachStateFromItsCheckInOneQuery(repository, tmp_path):
     "  drift: run drift; it must be clean",
   ]
   assert len(harness.fake.sqlScripts) == 1
-  assert all(f"SELECT '{number}', applied FROM (SELECT {value} AS applied) AS ledgerCheck;" in harness.fake.sqlScripts[0]
-    for number, value in (("0001", 1), ("0002", 0), ("0003", 2)))
   assert harness.fake.writeScripts == []
+
+
+def test_aCheckThatFailsOrGivesNullMarksOnlyItsOwnChange(repository, tmp_path):
+  fake = FakeMariaDB()
+
+  def missingTable(fake):
+    raise FakeSQLError(1146, "42S02", "Table 'peq.nothere' doesn't exist")
+
+  fake.checks["SELECT applied FROM nothere"] = missingTable
+  fake.checks["SELECT NULL AS applied"] = lambda fake: None
+  harness = statusHarness(repository, tmp_path, ["- [x] 1. The first [0001]"], fake=fake)
+  writeChange(repository, "0005-brokenCheck", rowChangeFields(), {"check.sql": "SELECT applied FROM nothere;"})
+  writeChange(repository, "0006-nullCheck", rowChangeFields(), {"check.sql": "SELECT NULL AS applied;"})
+  writeChange(repository, "0007-twoStatements", rowChangeFields(), {"check.sql": "SELECT 1 AS applied; SELECT 0 AS applied;"})
+  harness.commitAll()
+  lines = harness.ledger.status()
+  assert lines[3:10] == [
+    "0001-applied        db      exploration  applied; not staged",
+    "0002-notApplied     db      production   not applied; not staged",
+    "0003-partSchema     db      exploration  partly applied (2 of 3); not staged",
+    "0004-clientFile     client  fixture      applied",
+    "0005-brokenCheck    db      exploration  check failed; ERROR 1146 (42S02): Table '?' doesn't exist",
+    "0006-nullCheck      db      exploration  check failed; check.sql gave NULL, not a whole number",
+    "0007-twoStatements  db      exploration  check failed; 0007-twoStatements/check.sql must be one SELECT giving one row "
+    "with a column named applied",
+  ]
 
 
 def test_statusFlagsAnApplyThatStoppedBeforeItsCommitAndATickWithoutItsChange(repository, tmp_path):
@@ -56,8 +80,8 @@ def test_statusFlagsAnApplyThatStoppedBeforeItsCommitAndATickWithoutItsChange(re
     "- [x] 3. The client file [0004]", "- [ ] 4. Unknown [0009]"])
   lines = harness.ledger.status()
   assert lines[3:6] == [
-    "plan.md: step 1's changes are applied but it is not ticked: an apply stopped before its commit; check the change and "
-    "record it",
+    "plan.md: step 1's changes are applied but it is not ticked: an apply stopped before its commit; run apply again to "
+    "finish it",
     "plan.md: step 2 is ticked but not all of its changes are applied",
     "plan.md: step 4 names 0009, which is not in the ledger",
   ]
@@ -67,6 +91,21 @@ def test_statusFlagsAnInProgressSectionThatIsNotTheFirstUntickedStep(repository,
   harness = statusHarness(repository, tmp_path, ["- [x] 1. The first [0001]", "- [ ] 2. The second"], inProgress="7. Other")
   assert harness.ledger.status()[3] == ("plan.md: the In progress section does not name the first unticked step, 2. The "
     "second")
+
+
+def test_statusShowsRowsChangedSinceApply(repository):
+  harness = makeHarness(repository, ruleFake())
+  writeChange(repository, "0001-expansionTest", rowChangeFields(), rowFiles())
+  (repository / "plan.md").write_text(planText(["- [ ] 1. Set the expansion [0001]"]), encoding="utf-8")
+  harness.commitAll()
+  harness.ledger.stage("0001")
+  harness.ledger.apply("0001")
+  assert harness.ledger.status()[3] == "0001-expansionTest  db      exploration  applied"
+  setRule(harness.fake, 2, b"Expansion:CurrentExpansion", b"8")
+  assert harness.ledger.status()[3] == "0001-expansionTest  db      exploration  applied"
+  setRule(harness.fake, 1, b"Test:New", b"edited by a GM")
+  assert expansionValue(harness.fake) == b"19"
+  assert harness.ledger.status()[3] == "0001-expansionTest  db      exploration  applied; rows changed since apply"
 
 
 def test_statusWritesNothing(repository, tmp_path):
@@ -108,12 +147,12 @@ def test_rewritePlanTicksStepsWhoseChangesAreAllAppliedAndNamesTheFirstTwoUntick
   assert ledger.planSection(finished, "Next") == "None."
 
 
-def test_theRepositoryPlanNamesItsFirstTwoUntickedStepsAndOnlyChangesInTheLedger():
+def test_theRepositoryPlanNamesItsFirstTwoUntickedStepsAndEveryChangeTheLedgerApplies():
   text = (realLedger / "plan.md").read_text(encoding="utf-8")
   steps = ledger.readPlanSteps(text)
   unticked = [step for step in steps if not step.ticked]
   assert ledger.planSection(text, "In progress") == unticked[0].describe()
   assert ledger.planSection(text, "Next") == unticked[1].describe()
   named = {number for step in steps for number in step.changes}
-  assert named == {change.number for change in ledger.loadChanges(realLedger)}
+  assert named == {change.number for change in ledger.loadChanges(realLedger) if change.kind != "lab"}
   assert ledger.rewritePlan(text, {number: True for number in named}, named) == text

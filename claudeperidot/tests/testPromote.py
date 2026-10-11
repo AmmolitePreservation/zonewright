@@ -3,9 +3,8 @@ import datetime
 import pytest
 
 import ledger
-from ledgerDoubles import (changedInCommit, expansionUpdate, expansionValue, gitHead, itemsFake, makeHarness, planText,
-  questFields, rowChangeFields, rowFiles, ruleFake, rowsOf, schemaChangeFields, schemaFiles, setRule, testDelete, testInsert,
-  writeChange)
+from ledgerDoubles import (FakeTable, changedInCommit, cleared, expansionValue, gitHead, itemsFake, makeHarness, planText,
+  questFields, rowChangeFields, rowFiles, ruleFake, rowsOf, schemaChangeFields, schemaFiles, setRule, writeChange)
 
 
 def promoteHarness(repository, fields, fake=None, files=None, extra=None):
@@ -18,13 +17,23 @@ def promoteHarness(repository, fields, fake=None, files=None, extra=None):
   return harness
 
 
-productionRows = rowChangeFields(disposition="production", production="contentSQL", ownerClearance="cleared")
+productionRows = rowChangeFields(disposition="production", production="contentSQL", ownerClearance=cleared)
 
 
 def test_promoteRefusesAChangeThatIsNotProduction(repository):
   harness = promoteHarness(repository, rowChangeFields())
   with pytest.raises(ledger.LedgerError, match="0001-forPeridot is exploration; only a production change is promoted"):
     harness.ledger.promote("0001")
+
+
+def test_promoteRefusesAProductionChangeTheOwnerHasNotCleared(repository):
+  harness = promoteHarness(repository, rowChangeFields(disposition="production", production="contentSQL"))
+  harness.ledger.stage("0001")
+  harness.ledger.apply("0001")
+  with pytest.raises(ledger.LedgerError, match="0001-forPeridot waits for the owner's clearance: ownerClearance names no "
+      "message of the owner's"):
+    harness.ledger.promote("0001")
+  assert not (repository / "changes/0001-forPeridot/peridot").exists()
 
 
 def test_promoteWaitsWhileASignificantProductionChangeAwaitsTheOwner(repository):
@@ -39,6 +48,7 @@ def test_promoteWaitsWhileASignificantProductionChangeAwaitsTheOwner(repository)
 
 def test_promoteRefusesAChangeThatIsNotApplied(repository):
   harness = promoteHarness(repository, productionRows)
+  harness.ledger.stage("0001")
   with pytest.raises(ledger.LedgerError, match="promote needs 0001-forPeridot applied; it is not applied"):
     harness.ledger.promote("0001")
 
@@ -50,24 +60,41 @@ def test_aRowChangeBecomesContentSQLThatOnlyRunsOnTheRowsItWasMadeAgainst(reposi
   assert harness.ledger.promote("0001") == ["promoted 0001-forPeridot: changes/0001-forPeridot/peridot"]
   assert changedInCommit(repository) == {"claudeperidot/changes/0001-forPeridot/peridot/content.sql",
     "claudeperidot/changes/0001-forPeridot/peridot/check.sql"}
-  assert harness.events[-1] == ("push", gitHead(repository))
+  assert harness.remoteHead() == gitHead(repository)
   content = (repository / "changes/0001-forPeridot/peridot/content.sql").read_text()
-  assert "START TRANSACTION;\nDELIMITER //\nBEGIN NOT ATOMIC\n" in content
-  assert f"{expansionUpdate};\n{testInsert};\n{testDelete};\n" in content
-  assert content.endswith("COMMIT;\n")
+  assert "Run it with the mysql command-line client (mysql peq < content.sql), whose DELIMITER command its guards use" in content
   peridot = ruleFake()
-  peridot.runScript(content)
+  ledger.Server(peridot).sql(content)
   assert expansionValue(peridot) == b"19"
+  assert len(peridot.log) == 1
   edited = ruleFake()
   setRule(edited, 1, b"Test:Gone", b"changed on Peridot since the copy")
   before = rowsOf(edited, "rule_values")
-  with pytest.raises(Exception, match="0001: Peridot rows differ from those the change was made against"):
-    edited.runScript(content)
+  with pytest.raises(ledger.LedgerError, match="0001: Peridot rows differ from those the change was made against"):
+    ledger.Server(edited).sql(content)
   assert rowsOf(edited, "rule_values") == before
+  assert edited.log == []
+
+
+def test_aRowChangeOnATableHoldingSecretsIsNeverPromoted(repository, host):
+  fake = ruleFake()
+  fake.host = host
+  fake.tables["login_server_admins"] = FakeTable([("id", "int"), ("account_password", "varchar", "latin1")], ("id",),
+    [{"id": 1, "account_password": b"hash"}])
+  fake.predicates["id = 1"] = lambda row: row["id"] == 1
+  fake.checks["SELECT 1 AS applied"] = lambda fake: 1
+  fake.checks["SELECT 0 AS applied"] = lambda fake: 0
+  harness = promoteHarness(repository, rowChangeFields(disposition="production", production="contentSQL",
+    ownerClearance=cleared, scope=[{"table": "login_server_admins", "where": "id = 1"}]), fake=fake,
+    files={"apply.sql": "DELETE FROM login_server_admins WHERE id = 1;\n", "check.sql": "SELECT 0 AS applied;\n"})
+  harness.ledger.stage("0001")
+  with pytest.raises(ledger.LedgerError, match="login_server_admins is a player, state, login or bot table, so promote never "
+      "writes it"):
+    harness.ledger.promote("0001")
 
 
 def test_aSchemaChangeBecomesTheNextCustomMigration(repository):
-  fields = schemaChangeFields(disposition="production", production="customMigration", ownerClearance="cleared")
+  fields = schemaChangeFields(disposition="production", production="customMigration", ownerClearance=cleared)
   harness = promoteHarness(repository, fields, fake=itemsFake(), files=schemaFiles())
   harness.ledger.stage("0001")
   harness.ledger.apply("0001")
@@ -89,15 +116,12 @@ def test_aSchemaChangeBecomesTheNextCustomMigration(repository):
     "\t},\n")
 
 
-def test_aQuestChangeBecomesACherryPickOfItsCommits(repository):
-  fields = questFields(disposition="production", production="questCommit", ownerClearance="cleared")
-  harness = promoteHarness(repository, fields, files={})
-  harness.fake.shell = [(r"git cat-file", lambda command: "2222  global/spells/17779.lua\n"),
-    (r"sha256sum --", lambda command: "2222  global/spells/17779.lua\n")]
-  (repository / "changes/0001-forPeridot/saved.json").write_text('{"before": {"global/spells/17779.lua": null}, "after": '
-    '{"global/spells/17779.lua": "2222"}}', encoding="utf-8")
-  harness.ledger.promote("0001")
-  assert (repository / "changes/0001-forPeridot/peridot/cherryPick.sh").read_bytes() == (b"#!/bin/sh\nset -e\n"
-    b"cd /opt/eqemu/akk-stack/server/quests\ngit cherry-pick aaaa111 bbbb222\n")
-  assert changedInCommit(repository) == {"claudeperidot/changes/0001-forPeridot/peridot/cherryPick.sh",
-    "claudeperidot/changes/0001-forPeridot/saved.json"}
+def test_aQuestChangeBecomesACherryPickOfItsCommits(repository, host):
+  from testRepositoryChanges import questSetup
+  setup = questSetup(repository, host, questFields(disposition="production", production="questCommit", ownerClearance=cleared))
+  setup.harness.ledger.stage("0001")
+  setup.harness.ledger.apply("0001")
+  setup.harness.ledger.promote("0001")
+  commits = " ".join(setup.commits)
+  assert (repository / "changes/0001-questFix/peridot/cherryPick.sh").read_bytes() == (b"#!/bin/sh\nset -e\n"
+    b"cd /opt/eqemu/akk-stack/server/quests\ngit cherry-pick " + commits.encode("ascii") + b"\n")

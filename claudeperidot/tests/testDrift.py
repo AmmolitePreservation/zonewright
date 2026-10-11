@@ -4,10 +4,12 @@ import pytest
 import yaml
 
 import ledger
-from ledgerDoubles import FakeTable, makeHarness, planText, rowChangeFields, rowFiles, ruleFake, writeChange
+from ledgerDoubles import (FakeTable, committedFiles, expansionCheck, expansionUpdate, git, itemsFake, makeHarness, planText,
+  rowChangeFields, rowFiles, ruleFake, schemaChangeFields, setRule, writeChange)
 
-# mysqlbinlog --base64-output=decode-rows --verbose output in MariaDB 10.5's form: a ledger write (GTID domain 7), a GM
-# session's writes to a player table and a content table, a DDL statement, and a write to a state table.
+# mysqlbinlog --base64-output=decode-rows --verbose output in MariaDB 10.5's form: a ledger write (GTID domain 7) tagged with
+# its change, a GM session's writes to a player table and a content table, a DDL statement, a write to a state table, world's
+# eqtime save, and a view created inside versioned comments.
 binaryLogSample = """/*!50530 SET @@SESSION.PSEUDO_SLAVE_MODE=1*/;
 /*!40019 SET @@session.max_insert_delayed_threads=0*/;
 /*!50003 SET @OLD_COMPLETION_TYPE=@@COMPLETION_TYPE,COMPLETION_TYPE=0*/;
@@ -21,7 +23,8 @@ START TRANSACTION
 /*!*/;
 # at 4363
 #261011 10:01:00 server id 1  end_log_pos 4480 CRC32 0x1b2c3d4e 	Annotate_rows:
-#Q> UPDATE rule_values SET rule_value = '19' WHERE ruleset_id = 1 AND rule_name = 'Expansion:CurrentExpansion'
+#Q> /* ledger 0001 apply */ UPDATE rule_values SET rule_value = '19'
+#Q> WHERE ruleset_id = 1 AND rule_name = 'Expansion:CurrentExpansion'
 #261011 10:01:00 server id 1  end_log_pos 4545 CRC32 0x5f6e7d8c 	Table_map: `peq`.`rule_values` mapped to number 31
 # at 4545
 #261011 10:01:00 server id 1  end_log_pos 4660 CRC32 0x0a1b2c3d 	Update_rows: table id 31 flags: STMT_END_F
@@ -79,6 +82,7 @@ COMMIT/*!*/;
 use `peq`/*!*/;
 SET TIMESTAMP=1791626760/*!*/;
 SET @@session.pseudo_thread_id=12/*!*/;
+/*!\\C utf8mb4 *//*!*/;
 ALTER TABLE items
   ADD COLUMN claude_note INT
 /*!*/;
@@ -97,6 +101,32 @@ START TRANSACTION
 # at 5480
 #261011 10:07:00 server id 1  end_log_pos 5511 CRC32 0x1a2b3c4d 	Xid = 140
 COMMIT/*!*/;
+# at 5511
+#261011 10:10:00 server id 1  end_log_pos 5553 CRC32 0x00000001 	GTID 0-1-19 trans
+/*!100001 SET @@session.gtid_seq_no=19*//*!*/;
+START TRANSACTION
+/*!*/;
+# at 5553
+#261011 10:10:00 server id 1  end_log_pos 5597 CRC32 0x00000002 	Table_map: `peq`.`eqtime` mapped to number 70
+# at 5597
+#261011 10:10:00 server id 1  end_log_pos 5657 CRC32 0x00000003 	Update_rows: table id 70 flags: STMT_END_F
+### UPDATE `peq`.`eqtime`
+### WHERE
+###   @1=10
+### SET
+###   @1=11
+# at 5657
+#261011 10:10:00 server id 1  end_log_pos 5688 CRC32 0x00000004 	Xid = 200
+COMMIT/*!*/;
+# at 5688
+#261011 10:11:00 server id 1  end_log_pos 5730 CRC32 0x00000005 	GTID 0-1-20 ddl
+/*!100001 SET @@session.gtid_seq_no=20*//*!*/;
+# at 5730
+#261011 10:11:00 server id 1  end_log_pos 5900 CRC32 0x00000006 	Query	thread_id=12	exec_time=0	error_code=0	xid=0
+use `peq`/*!*/;
+SET TIMESTAMP=1791626760/*!*/;
+/*!50001 CREATE ALGORITHM=UNDEFINED */ /*!50013 DEFINER=`root`@`%` SQL SECURITY DEFINER */ /*!50001 VIEW `v_spawns` AS select 'secret' AS `x` */
+/*!*/;
 DELIMITER ;
 # End of log file
 ROLLBACK /* added by mysqlbinlog */;
@@ -105,84 +135,301 @@ ROLLBACK /* added by mysqlbinlog */;
 """
 
 
-def test_theBinaryLogIsReadIntoTransactionsWithTheirWritesAndStatements():
+def test_theBinaryLogIsReadIntoTransactionsWithTheirWritesTagsAndStatements():
   transactions = ledger.parseBinaryLog(binaryLogSample)
   assert [(transaction.gtid, transaction.domain, transaction.time, transaction.position) for transaction in transactions] == [
     ("7-1-15", 7, "261011 10:01:00", "4321"), ("0-1-16", 0, "261011 10:05:12", "4691"),
-    ("0-1-17", 0, "261011 10:06:00", "5171"), ("0-1-18", 0, "261011 10:07:00", "5330")]
+    ("0-1-17", 0, "261011 10:06:00", "5171"), ("0-1-18", 0, "261011 10:07:00", "5330"),
+    ("0-1-19", 0, "261011 10:10:00", "5511"), ("0-1-20", 0, "261011 10:11:00", "5688")]
   assert [transaction.writes for transaction in transactions] == [
-    {("peq", "rule_values", "UPDATE"): 1},
-    {("peq", "character_data", "UPDATE"): 1, ("peq", "spawn2", "INSERT"): 2},
+    {("peq", "rule_values", "UPDATE", "0001"): 1},
+    {("peq", "character_data", "UPDATE", None): 1, ("peq", "spawn2", "INSERT", None): 2},
     {},
-    {("peq", "respawn_times", "DELETE"): 1}]
-  assert [transaction.statements for transaction in transactions] == [[], [], ["ALTER TABLE items\n  ADD COLUMN claude_note INT"],
-    []]
+    {("peq", "respawn_times", "DELETE", None): 1},
+    {("peq", "eqtime", "UPDATE", None): 1},
+    {}]
+  assert [transaction.statements for transaction in transactions] == [[], [], [(None, "ALTER TABLE items\n  ADD COLUMN "
+    "claude_note INT", "peq")], [], [], [(None, "CREATE ALGORITHM=UNDEFINED  DEFINER=`root`@`%` SQL SECURITY DEFINER  VIEW "
+    "`v_spawns` AS select 'secret' AS `x`", "peq")]]
 
 
-def test_onlyWritesNoChangeAccountsForToWatchedTablesAreUnaccounted():
-  unaccounted = ledger.unaccountedTransactions(ledger.parseBinaryLog(binaryLogSample))
-  assert [ledger.describeTransaction(transaction) for transaction in unaccounted] == [
-    "261011 10:05:12 GTID 0-1-16 at 4691: INSERT spawn2 x2",
-    "261011 10:06:00 GTID 0-1-17 at 5171: ALTER TABLE items ADD COLUMN claude_note INT"]
+def test_theParserTakesItsInputALineAtATime():
+  lines = []
+  for transaction in ledger.parseBinaryLog(binaryLogSample):
+    lines.append(transaction.gtid)
+  fed = []
+  parser = ledger.BinaryLogParser(lambda transaction: fed.append(transaction.gtid))
+  for line in binaryLogSample.splitlines():
+    parser.feed(line)
+    if line.startswith("#261011 10:07:00") and "GTID" in line:
+      assert fed == ["7-1-15", "0-1-16", "0-1-17"]
+  parser.finish()
+  assert fed == lines
 
 
-def driftHarness(repository, baselineChecksums, binaryLog):
+class ChunkedConnection:
+  """An SSH connection whose command output arrives in pieces that split lines anywhere."""
+
+  def __init__(self, output, chunk):
+    self.output = output
+    self.chunk = chunk
+
+  def streamCommand(self, command, writeOutput, standardInput=b"", timeoutSeconds=60):
+    for start in range(0, len(self.output), self.chunk):
+      writeOutput(self.output[start:start + self.chunk])
+    return 0, b""
+
+
+@pytest.mark.parametrize("chunk", [1, 5, 4096])
+def test_aStreamedCommandHandsOverWholeLinesWhereverItsOutputSplits(chunk):
+  lines = []
+  ledger.Server(ChunkedConnection("first\nsecond caf\u00e9\r\n\nlast".encode("utf-8"), chunk)).stream("cat", lines.append)
+  assert lines == ["first", "second caf\u00e9", "", "last"]
+
+
+def account(transactions, changes=()):
+  drift = ledger.DriftAccount(list(changes))
+  for transaction in transactions:
+    drift.add(transaction)
+  return drift
+
+
+def test_onlyWritesNoChangeAccountsForToWatchedTablesAreUnaccountedAndRuntimeWritesAreApart(repository):
+  writeChange(repository, "0001-expansionTest", rowChangeFields(), rowFiles())
+  drift = account(ledger.parseBinaryLog(binaryLogSample), ledger.loadChanges(repository))
+  assert drift.problems == [
+    "unaccounted write: 261011 10:05:12 GTID 0-1-16 at 4691: INSERT spawn2 x2",
+    "unaccounted write: 261011 10:06:00 GTID 0-1-17 at 5171: ALTER TABLE items ADD COLUMN claude_note INT",
+    "unaccounted write: 261011 10:11:00 GTID 0-1-20 at 5688: CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY "
+    "DEFINER VIEW `v_spawns` AS select '?' AS `x`"]
+  assert drift.runtimeLines() == ["runtime (the servers' own writes, not drift): UPDATE eqtime x1"]
+
+
+def test_aLedgerWriteOutsideItsChangesScopeOrWithoutATagIsReported(repository):
+  writeChange(repository, "0001-expansionTest", rowChangeFields(), rowFiles())
+  writeChange(repository, "0002-itemsColumns", schemaChangeFields(), {})
+  changes = ledger.loadChanges(repository)
+  transaction = ledger.BinaryLogTransaction("7-1-30", 7, "261011 11:00:00", "9000", {
+    ("peq", "rule_values", "UPDATE", "0001"): 1, ("peq", "variables", "UPDATE", "0001"): 1, ("peq", "rule_values", "INSERT",
+    None): 1, ("peq", "rule_values", "DELETE", "0009"): 1}, [("0002", "ALTER TABLE items ADD COLUMN a INT", "peq"),
+    ("0001", "ALTER TABLE rule_values ADD COLUMN x INT", "peq"), (None, "DROP TABLE spawn2", "peq"),
+    ("0002", "ALTER TABLE scratch ADD COLUMN a INT", "ledgerTest")])
+  assert account([transaction], changes).problems == ["ledger write outside its change's scope: 261011 11:00:00 GTID 7-1-30 "
+    "at 9000: DELETE peq.rule_values x1 by 0009, which is not a db change in the ledger; INSERT peq.rule_values x1 with no "
+    "ledger tag; UPDATE peq.variables x1 by 0001, whose scope is rule_values; ALTER TABLE rule_values ADD COLUMN x INT by "
+    "0001, which is not a schema change in the ledger; DROP TABLE spawn2 with no ledger tag; ALTER TABLE scratch ADD COLUMN a "
+    "INT in ledgerTest by 0002, which is not a schema change in the ledger"]
+
+
+def test_writesInAnotherDatabaseAreNotThePeqDatabasesDrift():
+  transaction = ledger.BinaryLogTransaction("0-1-40", 0, "261011 12:00:00", "9900", {("ledgerTest", "payloads", "INSERT",
+    None): 2, ("mysql", "user", "UPDATE", None): 1}, [(None, "CREATE TABLE payloads (id INT)", "ledgerTest"),
+    (None, "DROP DATABASE ledgerTest", "mysql")])
+  assert account([transaction]).problems == []
+
+
+def writeBaseline(repository, fake, position):
+  """A baseline at position holding the checksum of every table of fake drift watches."""
+  tables = [table for table in fake.tables if ledger.isWatched(table)]
+  baseline = {"dump": {"path": "/opt/eqemu/baseline/peq-1.sql.gz", "sha256": "0" * 64, "time": "2026-10-12T00:00:00Z"},
+    "dbVersion": {"version": 9325, "botsVersion": 0, "customVersion": 0}, "binaryLog": {"file": "binlog.000002",
+    "position": position}, "deployed": {"akkStack": "13f442d"}, "tableChecksums": {table: fake.tableChecksum(table)
+    for table in tables}}
+  (repository / "baseline.yaml").write_text(yaml.safe_dump(baseline), encoding="utf-8")
+
+
+def driftFake():
   fake = ruleFake()
-  fake.tables["items"] = FakeTable([("id", "int", "")], ("id",), [{"id": b"1"}])
-  fake.tables["character_data"] = FakeTable([("id", "int", "")], ("id",), [{"id": b"1"}])
-  fake.binaryLog = binaryLog
+  fake.tables["scratch"] = FakeTable([("id", "int")], ("id",), [{"id": 1}])
+  fake.tables["items"] = FakeTable([("id", "int")], ("id",), [{"id": 1}])
+  fake.tables["character_data"] = FakeTable([("id", "int"), ("zone_id", "int")], ("id",), [{"id": 1, "zone_id": 1}])
+  fake.tables["eqtime"] = FakeTable([("id", "int"), ("minute", "int")], ("id",), [{"id": 1, "minute": 10}])
+  fake.tables["gm_ips"] = FakeTable([("ip_address", "varchar", "latin1")], ("ip_address",), [])
+  return fake
+
+
+def driftHarness(repository, fake=None):
+  fake = fake or driftFake()
   harness = makeHarness(repository, fake)
   writeChange(repository, "0001-expansionTest", rowChangeFields(), rowFiles())
   (repository / "plan.md").write_text(planText(["- [ ] 1. Set the expansion [0001]"]), encoding="utf-8")
   harness.commitAll()
-  harness.ledger.stage("0001")
-  harness.ledger.apply("0001")
-  baseline = {"dump": {"path": "/opt/eqemu/baseline/peq-1.sql.gz", "sha256": "0" * 64, "time": "2026-10-12T00:00:00Z"},
-    "dbVersion": {"version": 9325, "botsVersion": 0, "customVersion": 0}, "binaryLog": {"file": "binlog.000002",
-    "position": 4321}, "deployed": {"akkStack": "13f442d"}, "tableChecksums": baselineChecksums(fake)}
-  (repository / "baseline.yaml").write_text(yaml.safe_dump(baseline), encoding="utf-8")
+  writeBaseline(repository, fake, fake.nextPosition)
+  harness.commitAll("baseline")
   return harness
 
 
-def test_driftIsCleanWhenTheTablesMatchTheBaselinePlusAppliedChangesAndOnlyTheLedgerWrote(repository):
-  ledgerOnly = binaryLogSample.split("# at 4691")[0] + "COMMIT/*!*/;\n"
-  harness = driftHarness(repository, lambda fake: {"items": fake.tableChecksum("items"), "rule_values": 1, "character_data": 5},
-    ledgerOnly)
-  assert harness.ledger.drift() == ["drift: clean"]
-  binaryLogCommand = next(command for command, _ in harness.fake.calls if "mysqlbinlog" in command)
-  assert binaryLogCommand.endswith("--start-position=4321 --to-last-log binlog.000002'")
+def test_driftIsCleanWhenOnlyTheLedgerAndTheServersRuntimeWrote(repository):
+  harness = driftHarness(repository)
+  harness.ledger.stage("0001")
+  harness.ledger.apply("0001")
+  harness.fake.externalWrite("UPDATE eqtime SET minute = 11", lambda fake: fake.tables["eqtime"].rows[0].update(minute=11))
+  harness.fake.externalWrite("UPDATE character_data SET zone_id = 202 WHERE id = 1",
+    lambda fake: fake.tables["character_data"].rows[0].update(zone_id=202))
+  assert harness.ledger.drift() == ["drift: clean", "runtime (the servers' own writes, not drift): UPDATE eqtime x1"]
 
 
 def test_driftListsTableDifferencesAndUnaccountedWrites(repository):
-  harness = driftHarness(repository, lambda fake: {"items": 99, "rule_values": 1, "gone": 5}, binaryLogSample)
-  harness.fake.tables["created"] = FakeTable([("id", "int", "")], ("id",), [])
+  harness = driftHarness(repository)
+  harness.fake.tables["created"] = FakeTable([("id", "int")], ("id",), [])
+  harness.fake.externalWrite("INSERT INTO items (id) VALUES (2)", lambda fake: fake.tables["items"].insert({"id": 2}))
+  harness.fake.externalWrite("INSERT INTO gm_ips VALUES ('10.0.0.9')", lambda fake: fake.tables["gm_ips"].insert(
+    {"ip_address": b"10.0.0.9"}))
+  del harness.fake.tables["scratch"]
+  baseline = yaml.safe_load((repository / "baseline.yaml").read_text())
   assert harness.ledger.drift() == [
     "created: new since the baseline, and no change accounts for it",
-    "gone: in the baseline but gone now",
-    f"items: checksum {harness.fake.tableChecksum('items')}, expected 99 from the baseline",
-    "unaccounted write: 261011 10:05:12 GTID 0-1-16 at 4691: INSERT spawn2 x2",
-    "unaccounted write: 261011 10:06:00 GTID 0-1-17 at 5171: ALTER TABLE items ADD COLUMN claude_note INT"]
+    f"gm_ips: checksum {harness.fake.tableChecksum('gm_ips')}, expected {baseline['tableChecksums']['gm_ips']} from the "
+    "baseline",
+    f"items: checksum {harness.fake.tableChecksum('items')}, expected {baseline['tableChecksums']['items']} from the baseline",
+    "scratch: expected from the baseline but gone now",
+    "unaccounted write: 261011 10:00:00 GTID 0-1-15 at 4321: INSERT items x1",
+    "unaccounted write: 261011 10:00:00 GTID 0-1-16 at 4721: INSERT gm_ips x1"]
 
 
-def test_aTableAnAppliedChangeTouchedIsExpectedAtItsAppliedChecksum(repository):
-  harness = driftHarness(repository, lambda fake: {"items": fake.tableChecksum("items"), "rule_values": 1}, "")
-  applied = json.loads((repository / "changes/0001-expansionTest/applied.json").read_text())
-  harness.fake.tables["rule_values"].rows[0]["notes"] = b"edited by the PEQ editor"
-  assert harness.ledger.drift() == [f"rule_values: checksum {harness.fake.tableChecksum('rule_values')}, expected "
-    f"{applied['tableChecksums']['rule_values']} from 0001-expansionTest"]
+def test_aTableTheLedgerWroteIsExpectedAtItsChecksumAfterThatWrite(repository):
+  harness = driftHarness(repository)
+  harness.ledger.stage("0001")
+  harness.ledger.apply("0001")
+  expected = json.loads((repository / "tableChecksums.json").read_text())["rule_values"]["checksum"]
+  harness.fake.tables["rule_values"].rows[3]["notes"] = b"edited by the PEQ editor outside the binary log"
+  assert harness.ledger.drift() == [f"rule_values: checksum {harness.fake.tableChecksum('rule_values')}, expected {expected} "
+    "from apply 0001-expansionTest"]
 
 
-def test_driftNamesAnAppliedChangeWithoutItsAppliedRecord(repository):
-  harness = driftHarness(repository, lambda fake: {"items": fake.tableChecksum("items"), "rule_values": 1}, "")
-  (repository / "changes/0001-expansionTest/applied.json").unlink()
-  assert harness.ledger.drift()[0] == ("0001-expansionTest is applied but has no applied.json: its apply stopped before the "
-    "commit, or it ran outside the ledger")
+def test_aFixtureOnAPlayTableLeavesDriftClean(repository, host):
+  fake = driftFake()
+  fake.host = host
+  fake.tables["account"] = FakeTable([("id", "int"), ("status", "int")], ("id",), [{"id": 1, "status": 0}])
+  fake.predicates["id = 1"] = lambda row: row["id"] == 1
+  gm = "UPDATE account SET status = 255 WHERE id = 1"
+  fake.mutations[gm] = lambda fake: fake.tables["account"].rows[0].update(status=255)
+  check = "SELECT status = 255 AS applied FROM account WHERE id = 1"
+  fake.checks[check] = lambda fake: int(fake.tables["account"].rows[0]["status"] == 255)
+  harness = makeHarness(repository, fake)
+  writeChange(repository, "0001-gmAccount", rowChangeFields(scope=[{"table": "account", "where": "id = 1"}],
+    disposition="fixture"), {"apply.sql": gm + ";\n", "check.sql": check + ";\n"})
+  (repository / "plan.md").write_text(planText(["- [ ] 13. GM fixture [0001]"]), encoding="utf-8")
+  harness.commitAll()
+  writeBaseline(repository, fake, fake.nextPosition)
+  harness.commitAll("baseline")
+  harness.ledger.stage("0001")
+  harness.ledger.apply("0001")
+  assert harness.ledger.drift() == ["drift: clean"]
 
 
-def test_driftNeedsABaseline(repository):
-  harness = makeHarness(repository)
+def test_theExpectedChecksumFollowsTheLedgersWritesInTheOrderTheyRan(repository):
+  fake = driftFake()
+  second = "UPDATE rule_values SET rule_value = '8' WHERE ruleset_id = 2"
+  fake.mutations[second] = lambda fake: setRule(fake, 2, b"Expansion:CurrentExpansion", b"8")
+  secondCheck = "SELECT 'ruleset2' AS applied"
+  fake.checks[secondCheck] = lambda fake: int(any(row["rule_value"] == b"8" for row in fake.tables["rule_values"].rows
+    if row["ruleset_id"] == 2))
+  harness = makeHarness(repository, fake)
+  writeChange(repository, "0001-expansionTest", rowChangeFields(), {"apply.sql": expansionUpdate + ";\n",
+    "check.sql": expansionCheck + ";\n"})
+  writeChange(repository, "0002-rulesetTwo", rowChangeFields(scope=[{"table": "rule_values", "where": "ruleset_id = 2"}]),
+    {"apply.sql": second + ";\n", "check.sql": secondCheck + ";\n"})
+  (repository / "plan.md").write_text(planText(["- [ ] 1. One [0001]", "- [ ] 2. Two [0002]"]), encoding="utf-8")
+  harness.commitAll()
+  writeBaseline(repository, fake, fake.nextPosition)
+  harness.commitAll("baseline")
+  for number in ("0002", "0001"):
+    harness.ledger.stage(number)
+    harness.ledger.apply(number)
+  assert harness.ledger.drift() == ["drift: clean"]
+  harness.ledger.revert("0001")
+  assert harness.ledger.drift() == ["drift: clean"]
+
+
+def test_aWriteApplyMadeToATableOutsideItsScopeIsReported(repository):
+  fake = driftFake()
+  fake.tables["variables"] = FakeTable([("varname", "varchar", "latin1"), ("value", "text", "latin1")], ("varname",),
+    [{"varname": b"motd", "value": b"hello"}])
+  other = "UPDATE variables SET value = 'changed' WHERE varname = 'motd'"
+  fake.mutations[other] = lambda fake: fake.tables["variables"].rows[0].update(value=b"changed")
+  harness = makeHarness(repository, fake)
+  writeChange(repository, "0001-expansionTest", rowChangeFields(), {"apply.sql": f"{expansionUpdate};\n{other};\n",
+    "check.sql": expansionCheck + ";\n"})
+  (repository / "plan.md").write_text(planText(["- [ ] 1. Set the expansion [0001]"]), encoding="utf-8")
+  harness.commitAll()
+  writeBaseline(repository, fake, fake.nextPosition)
+  harness.commitAll("baseline")
+  harness.ledger.stage("0001")
+  harness.ledger.apply("0001")
+  report = harness.ledger.drift()
+  baseline = yaml.safe_load((repository / "baseline.yaml").read_text())
+  assert report[0] == (f"variables: checksum {fake.tableChecksum('variables')}, expected "
+    f"{baseline['tableChecksums']['variables']} from the baseline")
+  assert report[1] == ("ledger write outside its change's scope: 261011 10:00:00 GTID 7-1-15 at 4321: UPDATE peq.variables x1 "
+    "by 0001, whose scope is rule_values")
+
+
+def test_aSchemaChangeThatDropsATableLeavesDriftClean(repository):
+  fake = itemsFake()
+  fake.tables["scratch"] = FakeTable([("id", "int")], ("id",), [{"id": 1}])
+  fake.createStatements["scratch"] = "CREATE TABLE `scratch` (\n  `id` int(11) NOT NULL\n) ENGINE=InnoDB"
+  drop = "DROP TABLE scratch"
+  fake.mutations[drop] = lambda fake: fake.tables.pop("scratch")
+  check = "SELECT COUNT(*) = 0 AS applied FROM information_schema.TABLES WHERE TABLE_NAME = 'scratch'"
+  fake.checks[check] = lambda fake: int("scratch" not in fake.tables)
+  harness = makeHarness(repository, fake)
+  writeChange(repository, "0001-dropScratch", schemaChangeFields(scope=[{"table": "scratch"}], schemaSteps=1), {
+    "apply.sql": drop + ";\n", "revert.sql": "CREATE TABLE scratch (id INT NOT NULL PRIMARY KEY);\n", "check.sql": check + ";\n"})
+  (repository / "plan.md").write_text(planText(["- [ ] 1. Drop it [0001]"]), encoding="utf-8")
+  harness.commitAll()
+  writeBaseline(repository, fake, fake.nextPosition)
+  harness.commitAll("baseline")
+  harness.ledger.stage("0001")
+  harness.ledger.apply("0001")
+  assert harness.ledger.drift() == ["drift: clean"]
+
+
+def test_driftNamesAChangeLeftMidwayOrRunOutsideTheLedger(repository):
+  harness = driftHarness(repository)
+  harness.fake.checks[expansionCheck] = lambda fake: 1
+  assert harness.ledger.drift()[0] == ("0001-expansionTest is applied; not staged but has no applied.json: it ran outside the "
+    "ledger")
+  (repository / "changes/0001-expansionTest/intent.json").write_text('{"intent": "applying"}\n', encoding="utf-8")
+  assert harness.ledger.drift()[0] == ("0001-expansionTest has an interrupted apply (intent.json): run apply 0001 again to "
+    "finish it")
+
+
+def test_driftNeedsABaselineAndARowFormatBinaryLog(repository):
+  harness = driftHarness(repository)
+  harness.fake.serverSettings = ["1", "MIXED", "1"]
+  with pytest.raises(ledger.LedgerError, match=r"needs log_bin 1, binlog_format ROW and binlog_annotate_row_events 1; the "
+      r"server has \[\['1', 'MIXED', '1'\]\]"):
+    harness.ledger.drift()
+  (repository / "baseline.yaml").unlink()
   with pytest.raises(ledger.LedgerError, match="there is no baseline.yaml yet: seed claudeperidot first"):
     harness.ledger.drift()
+
+
+def test_advanceMovesTheBaselineToTheLogsEndAfterACleanDrift(repository):
+  harness = driftHarness(repository)
+  harness.ledger.stage("0001")
+  harness.ledger.apply("0001")
+  harness.fake.externalWrite("UPDATE eqtime SET minute = 11", lambda fake: fake.tables["eqtime"].rows[0].update(minute=11))
+  lines = harness.ledger.advance()
+  assert lines == ["drift: clean", "runtime (the servers' own writes, not drift): UPDATE eqtime x1",
+    f"baseline advanced to binlog.000002:{harness.fake.nextPosition}"]
+  baseline = yaml.safe_load((repository / "baseline.yaml").read_text())
+  assert baseline["binaryLog"] == {"file": "binlog.000002", "position": harness.fake.nextPosition}
+  assert baseline["tableChecksums"] == {table: harness.fake.tableChecksum(table) for table in ("gm_ips", "items", "scratch",
+    "rule_values")}
+  assert "claudeperidot/tableChecksums.json" not in committedFiles(repository)
+  assert git(repository, "status", "--porcelain") == ""
+  assert harness.ledger.drift() == ["drift: clean"]
+
+
+def test_advanceRefusesWhileDriftIsNotClean(repository):
+  harness = driftHarness(repository)
+  harness.fake.externalWrite("INSERT INTO items (id) VALUES (2)", lambda fake: fake.tables["items"].insert({"id": 2}))
+  before = (repository / "baseline.yaml").read_text()
+  with pytest.raises(ledger.LedgerError, match="advance moves the baseline only after a clean drift"):
+    harness.ledger.advance()
+  assert (repository / "baseline.yaml").read_text() == before
 
 
 def test_aBinaryLogPositionThatIsNotAFileAndOffsetIsRefused():

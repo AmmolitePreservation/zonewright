@@ -33,6 +33,8 @@ def test_firstKeywordSkipsLeadingComments():
 
 @pytest.mark.parametrize("text, problem", [
   ("DELIMITER //\nSELECT 1//", "DELIMITER is not supported"),
+  ("CREATE /*!50001 ALGORITHM=UNDEFINED */ VIEW v AS SELECT 1;", "MariaDB runs a versioned comment as code"),
+  ("SELECT 1 /*M!100500 , 2 */ AS applied;", "MariaDB runs a versioned comment as code"),
   ("SELECT 'never closed", "an SQL quoted string or name is never closed"),
   ("SELECT 1 /* never closed", "an SQL comment is never closed"),
 ])

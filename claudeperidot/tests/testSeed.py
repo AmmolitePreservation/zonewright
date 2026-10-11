@@ -1,11 +1,14 @@
+import datetime
+import hashlib
 import logging
+import os
 import sys
 
 import pytest
 import yaml
 
 import ledger
-from ledgerDoubles import FakeTable, changedInCommit, gitHead, makeHarness, ruleFake
+from ledgerDoubles import FakeTable, changedInCommit, git, gitHead, makeHarness, ruleFake
 
 
 def test_seedRunsTheCopyScriptAndFailsLoudWithIt(repository, tmp_path):
@@ -36,42 +39,62 @@ def test_seedRefusesOnceThereIsABaseline(repository, tmp_path):
     harness.ledger.seedBaseline()
 
 
-def seededFake():
+def seededHost(host):
+  """The host's dumps (the newest is peq-20261012-0300.sql.gz) and the four checkouts the baseline records."""
+  dumps = host.path("/opt/eqemu/baseline")
+  dumps.mkdir(parents=True)
+  for name, stamp, content in (("peq-20261011-0300.sql.gz", 1791687600, b"older"), ("peq-20261012-0300.sql.gz", 1791774000,
+      b"newest dump"), ("notes.txt", 1791860400, b"not a dump")):
+    (dumps / name).write_bytes(content)
+    os.utime(dumps / name, (stamp, stamp))
+  commits = {}
+  for name, path in (("akkStack", "/opt/eqemu/akk-stack"), ("code", "/opt/eqemu/akk-stack/code"),
+      ("quests", "/opt/eqemu/akk-stack/server/quests"), ("maps", "/opt/eqemu/akk-stack/server/maps")):
+    folder = host.path(path)
+    folder.mkdir(parents=True, exist_ok=True)
+    git(folder, "init", "-q")
+    git(folder, "-c", "user.name=Host", "-c", "user.email=host@test.invalid", "commit", "-q", "--allow-empty", "-m", name)
+    commits[name] = gitHead(folder)
+  return commits
+
+
+def seededFake(host):
   fake = ruleFake()
-  fake.tables["character_data"] = FakeTable([("id", "int", "")], ("id",), [{"id": b"1"}])
-  commits = {"akk-stack": "13f442d" + "0" * 33, "akk-stack/code": "ae4bd2833c0e6ff00b97e26789fc806341180260",
-    "akk-stack/server/quests": "c327bed" + "1" * 33, "akk-stack/server/maps": "fbd3b19128" + "2" * 30}
-  fake.shell = [
-    (r"^ls -1t /opt/eqemu/baseline$", lambda command: "peq-20261012-0300.sql.gz\nnotes.txt\npeq-20261011-0300.sql.gz\n"),
-    (r"^stat -c %Y /opt/eqemu/baseline/peq-20261012-0300\.sql\.gz$", lambda command: "1791774000\n"),
-    (r"^sha256sum /opt/eqemu/baseline/peq-20261012-0300\.sql\.gz$", lambda command: "ab" * 32 + "  /opt/eqemu/baseline/x\n"),
-  ]
-  for suffix, commit in commits.items():
-    fake.shell.append((rf"-C /opt/eqemu/{suffix} rev-parse HEAD$", lambda command, commit=commit: commit + "\n"))
-  return fake, commits
+  fake.host = host
+  fake.tables["character_data"] = FakeTable([("id", "int")], ("id",), [{"id": 1}])
+  fake.tables["eqtime"] = FakeTable([("id", "int")], ("id",), [{"id": 1}])
+  fake.tables["login_api_tokens"] = FakeTable([("id", "int"), ("token", "varchar", "latin1")], ("id",), [{"id": 1,
+    "token": b"live token"}])
+  return fake
 
 
-def test_theBaselineRecordsTheDumpVersionsBinaryLogCommitsAndWatchedTableChecksums(repository):
-  fake, commits = seededFake()
+def test_theBaselineRecordsTheDumpVersionsBinaryLogCommitsAndWatchedTableChecksums(repository, host):
+  commits = seededHost(host)
+  fake = seededFake(host)
   harness = makeHarness(repository, fake)
-  assert harness.ledger.seedBaseline() == ["baseline written: 1 table checksums; now take the Proxmox baseline snapshot"]
+  assert harness.ledger.seedBaseline() == ["baseline written: 2 table checksums; now take the Proxmox baseline snapshot"]
   assert yaml.safe_load((repository / "baseline.yaml").read_text()) == {
-    "dump": {"path": "/opt/eqemu/baseline/peq-20261012-0300.sql.gz", "sha256": "ab" * 32, "time": "2026-10-12T03:00:00Z"},
+    "dump": {"path": "/opt/eqemu/baseline/peq-20261012-0300.sql.gz", "sha256": hashlib.sha256(b"newest dump").hexdigest(),
+      "time": datetime.datetime.fromtimestamp(1791774000, datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")},
     "dbVersion": {"version": 9325, "botsVersion": 0, "customVersion": 0},
-    "binaryLog": {"file": "binlog.000002", "position": 4321},
-    "deployed": {"akkStack": commits["akk-stack"], "code": commits["akk-stack/code"], "quests": commits["akk-stack/server/quests"],
-      "maps": commits["akk-stack/server/maps"]},
-    "tableChecksums": {"rule_values": fake.tableChecksum("rule_values")},
+    "binaryLog": {"file": "binlog.000002", "position": fake.nextPosition},
+    "deployed": commits,
+    "tableChecksums": {"login_api_tokens": fake.tableChecksum("login_api_tokens"), "rule_values": fake.tableChecksum(
+      "rule_values")},
   }
   assert changedInCommit(repository) == {"claudeperidot/baseline.yaml"}
-  assert harness.events[-1] == ("push", gitHead(repository))
+  assert harness.remoteHead() == gitHead(repository)
 
 
-def test_theBaselineNeedsTheBinaryLogOn(repository):
-  fake, _ = seededFake()
-  fake.masterStatus = []
+@pytest.mark.parametrize("settings, binaryLogOn", [(["1", "MIXED", "1"], True), (["1", "ROW", "0"], True),
+  (["0", "ROW", "1"], True), (["1", "ROW", "1"], False)])
+def test_theBaselineNeedsARowFormatBinaryLogWithAnnotatedRows(repository, host, settings, binaryLogOn):
+  seededHost(host)
+  fake = seededFake(host)
+  fake.serverSettings = settings
+  fake.binaryLogOn = binaryLogOn
   harness = makeHarness(repository, fake)
-  with pytest.raises(ledger.LedgerError, match="the baseline needs one db_version row and the binary log on"):
+  with pytest.raises(ledger.LedgerError, match="binlog_format ROW|the binary log must be on"):
     harness.ledger.seedBaseline()
   assert not (repository / "baseline.yaml").exists()
 
@@ -94,3 +117,14 @@ def test_theCommandLineReportsALedgerErrorAndExitsNonZero(tmp_path, monkeypatch,
   assert capsys.readouterr().err.startswith("ledger: no change 9999 in ")
   assert (tmp_path / "claudeperidot" / "logs" / "ledger.log").read_text(encoding="utf-8").strip().endswith(
     "ERROR ledger apply failed: no change 9999 in " + str(ledger.ledgerFolder / "changes"))
+
+
+def test_theLedgerPushesOnlyAWorkingBranch(tmp_path):
+  from ledgerDoubles import makeRepository, remoteHead
+  remote = makeRepository(tmp_path / "onMain", branch="main")
+  with pytest.raises(ledger.LedgerError, match="the ledger pushes only a working branch such as claude, and HEAD is main"):
+    ledger.pushBranch(tmp_path / "onMain")
+  assert remoteHead(remote, "main") is None
+  remote = makeRepository(tmp_path / "onClaude")
+  ledger.pushBranch(tmp_path / "onClaude")
+  assert remoteHead(remote) == gitHead(tmp_path / "onClaude")

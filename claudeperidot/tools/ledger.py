@@ -9,6 +9,7 @@ import logging
 import logging.handlers
 import os
 import re
+import sqlite3
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -28,10 +29,12 @@ hostPaths = {
   "quests": "/opt/eqemu/akk-stack/server/quests",
   "maps": "/opt/eqemu/akk-stack/server/maps",
   "dumps": "/opt/eqemu/baseline",
+  "ledger": "/opt/eqemu/ledger",
 }
 peridotQuestsPath = "/opt/eqemu/akk-stack/server/quests"
 
-# EQEmu's player, state, login and bot groups (common/database_schema.h at ae4bd2833): play writes them constantly.
+# EQEmu's player, state, login and bot groups (common/database_schema.h at ae4bd2833): play writes them constantly, and they
+# hold accounts, logins and personal data.
 playTables = frozenset("""
   account account_ip account_flags account_rewards adventure_details adventure_stats buyer buyer_buy_lines buyer_trade_items
   char_recipe_list character_activities character_alt_currency character_alternate_abilities character_auras
@@ -59,6 +62,16 @@ playTables = frozenset("""
   bot_pet_inventories bot_pets bot_settings bot_spell_casting_chances bot_spell_settings bot_spells_entries bot_stances
   bot_timers
 """.split())
+# The low-churn security and configuration tables EQEmu files under state or login: only an admin writes them (ae4bd2833's
+# boot writes to player_event_log_settings and login_server_admins add only what is missing), so drift watches them.
+securityTables = frozenset("""
+  login_api_tokens login_server_admins login_server_list_types discord_webhooks server_scheduled_events
+  player_event_log_settings gm_ips banned_ips ip_exemptions
+""".split())
+# Server tables the servers write on their own at ae4bd2833: world saves eqtime every 10 minutes, zones save spawn_events and
+# spawn_condition_values as events fire, ucs saves chatchannels as channels are made. Their other boot writes (rules, commands,
+# log categories, db_version, variables) add only what is missing, so those tables stay watched.
+runtimeTables = frozenset("eqtime spawn_events spawn_condition_values chatchannels".split())
 contentTables = frozenset("""
   aa_ability aa_rank_effects aa_rank_prereqs aa_ranks adventure_template adventure_template_entry
   adventure_template_entry_flavor alternate_currency auras base_data blocked_spells books char_create_combinations
@@ -71,6 +84,7 @@ contentTables = frozenset("""
   task_activities tasks tasksets tradeskill_recipe tradeskill_recipe_entries traps tribute_levels tributes
   veteran_reward_templates zone zone_points
 """.split())
+sensitiveWordPattern = re.compile(r"^\w*(password|passwd|token|secret|webhook|key)s?$")
 
 changeFolderPattern = re.compile(r"^(\d{4})-([a-z][A-Za-z0-9]*)$")
 templateFolderName = "template"
@@ -78,25 +92,31 @@ commonFields = ("title", "why", "kind", "scope", "disposition", "significance", 
   "commits")
 kindFields = {
   "db": (set(), {"schemaSteps"}),
-  "quest": ({"repository"}, set()),
-  "config": ({"repository"}, set()),
+  "quest": ({"repository", "source"}, set()),
+  "config": ({"repository", "source"}, {"rendered", "render"}),
   "client": ({"steps", "undo", "checks"}, set()),
+  "lab": ({"steps", "undo", "checks"}, set()),
 }
 choices = {
   "disposition": ("fixture", "exploration", "production"),
   "significance": ("minor", "significant"),
-  "ownerClearance": ("pending", "cleared"),
 }
 productionForms = {"rows": ("contentSQL",), "schema": ("customMigration",), "quest": ("questCommit",),
-  "config": ("runbook", "provisioner"), "client": ()}
+  "config": ("runbook", "provisioner"), "client": (), "lab": ()}
+labTools = ("facet run", "sonicwall")
 tableNamePattern = re.compile(r"^[A-Za-z0-9_]+$")
 commitPattern = re.compile(r"^[0-9a-f]{7,40}$")
 hostFilePattern = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_./-]*$")
 hostFolderPattern = re.compile(r"^/[A-Za-z0-9_./-]+$")
+hostCommandPattern = re.compile(r"^/[A-Za-z0-9_./-]+( [A-Za-z0-9_./=-]+)*$")
+keyNamePattern = re.compile(r"^[A-Za-z0-9_.-]+$")
 clientPathPattern = re.compile(r"^([A-Za-z]:\\|~\\)")
+credentialTargetPattern = re.compile(r"^[A-Za-z0-9_.:@/-]+$")
 hashPattern = re.compile(r"^[0-9a-f]{64}$")
 encodedValuePattern = re.compile(r"^(N|V(?:[0-9A-F]{2})*)$")
 stepPattern = re.compile(r"^- \[( |x)\] (\d+)\. (.+?)(?: \[(\d{4}(?:, \d{4})*)\])?$")
+mysqlErrorPattern = re.compile(r"^ERROR (\d+) \(([0-9A-Z]+)\)(?: at line (\d+))?: (.*)$")
+quotedValuePattern = re.compile(r"'(?:[^'\\]|\\.|'')*'")
 
 integerTypes = {"tinyint", "smallint", "mediumint", "int", "bigint"}
 decimalTypes = {"decimal"}
@@ -112,6 +132,7 @@ numberPatterns = {
   "float": re.compile(r"^-?\d+(\.\d+)?(e[+-]?\d+)?$", re.IGNORECASE),
 }
 rowTransactionKeywords = {"INSERT", "UPDATE", "DELETE", "REPLACE"}
+intents = ("applying", "reverting")
 log = logging.getLogger("ledger")
 
 
@@ -147,6 +168,24 @@ def isOneLine(value):
   return isinstance(value, str) and bool(value.strip()) and "\n" not in value
 
 
+def isWatched(table):
+  return table not in runtimeTables and (table not in playTables or table in securityTables)
+
+
+def columnWords(name):
+  return [word.lower() for word in re.findall(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+", name)]
+
+
+def sensitiveReason(table, columnNames):
+  """Why a table's rows are secrets or personal data, or None."""
+  if table in playTables:
+    return f"{table} is a player, state, login or bot table"
+  for name in columnNames:
+    if any(sensitiveWordPattern.match(word) for word in columnWords(name)):
+      return f"{table}.{name} is named like a secret"
+  return None
+
+
 def changeForm(fields):
   if fields.get("kind") == "db":
     return "schema" if "schemaSteps" in fields else "rows"
@@ -154,6 +193,10 @@ def changeForm(fields):
 
 
 def clientCheckProblem(check):
+  if isinstance(check, dict) and set(check) == {"credential"}:
+    if isOneLine(check["credential"]) and credentialTargetPattern.match(check["credential"]):
+      return None
+    return f"a credential check names a Credential Manager target: {check!r}"
   if not isinstance(check, dict) or not isOneLine(check.get("path")) or not clientPathPattern.match(check["path"]):
     return f"a check needs a path that is absolute or starts with ~\\: {check!r}"
   keys = set(check)
@@ -167,8 +210,40 @@ def clientCheckProblem(check):
   if keys == {"path", "section", "key", "value"} and all(isinstance(check[name], str) and check[name] != ""
       for name in ("section", "key")) and isinstance(check["value"], str):
     return None
+  if keys == {"path", "server", "character"} and all(isOneLine(check[name]) for name in ("server", "character")):
+    return None
   return (f"check {check!r} is not one of: exists file or directory; exists junction with a target; a lowercase sha256; "
-    "an ini section, key and value")
+    "an ini section, key and value; a credential; a login.db server and character")
+
+
+def labActionProblem(action, name):
+  required = {"via", "host", "run"} | ({"expect"} if name == "checks" else set())
+  if not isinstance(action, dict) or set(action) != required or action["via"] not in labTools \
+      or not all(isinstance(action[key], str) and action[key].strip() for key in required):
+    return (f"each of a lab change's {name} is {{via: facet run or sonicwall, host, run}}"
+      + (" with expect" if name == "checks" else "") + f": {action!r}")
+  return None
+
+
+def renderedProblems(fields):
+  rendered, render = fields.get("rendered"), fields.get("render")
+  if rendered is None and render is None:
+    return []
+  if rendered is None or render is None:
+    return ["rendered and render go together: the files rendered from templates, and the host command that renders them"]
+  problems = []
+  if not isOneLine(render) or not hostCommandPattern.match(render):
+    problems.append("render must be one host command: an absolute path and plain arguments")
+  if not isinstance(rendered, list) or not rendered:
+    return problems + ["rendered must be a non-empty list"]
+  for entry in rendered:
+    if not isinstance(entry, dict) or set(entry) != {"template", "file", "filledKeys"} \
+        or entry["template"] not in fields.get("scope", []) or not isinstance(entry["file"], str) \
+        or not hostFolderPattern.match(entry["file"]) or not isinstance(entry["filledKeys"], list) or not entry["filledKeys"] \
+        or not all(isinstance(key, str) and keyNamePattern.match(key) for key in entry["filledKeys"]):
+      problems.append(f"a rendered entry is a scope template, the live file's absolute host path and the names of the keys the "
+        f"host fills: {entry!r}")
+  return problems
 
 
 def scopeProblems(fields, form):
@@ -188,9 +263,21 @@ def scopeProblems(fields, form):
     elif form in ("quest", "config"):
       if not isinstance(entry, str) or not hostFilePattern.match(entry) or ".." in entry.split("/"):
         problems.append(f"a {form} scope entry is a file path inside the repository: {entry!r}")
+    elif form == "lab":
+      if not isOneLine(entry):
+        problems.append(f"a lab scope entry names one thing the change touches: {entry!r}")
     elif not isinstance(entry, str) or not clientPathPattern.match(entry):
       problems.append(f"a client scope entry is a path that is absolute or starts with ~\\: {entry!r}")
   return problems
+
+
+def clearanceProblem(clearance):
+  if clearance == "pending":
+    return None
+  if isinstance(clearance, dict) and set(clearance) == {"ownerMessage"} and isOneLine(clearance["ownerMessage"]):
+    return None
+  return ("ownerClearance is pending, or {ownerMessage: the owner's message that cleared it, quoted with its date}; Claude never "
+    "clears a change on its own judgment")
 
 
 def validateChangeFields(fields):
@@ -220,28 +307,35 @@ def validateChangeFields(fields):
   for name, allowedValues in choices.items():
     if name in fields and fields[name] not in allowedValues:
       problems.append(f"{name} must be one of {', '.join(allowedValues)}, not {fields[name]!r}")
+  if "ownerClearance" in fields and clearanceProblem(fields["ownerClearance"]):
+    problems.append(clearanceProblem(fields["ownerClearance"]))
   if kind not in kindFields or problems:
     return problems
   form = changeForm(fields)
   if fields["disposition"] in ("fixture", "exploration") and fields["production"] != "none":
     problems.append(f"{fields['disposition']} changes never reach Peridot: production must be none")
   if fields["disposition"] == "production":
-    if form == "client":
-      problems.append("a client change stays on the workstation and cannot be production")
+    if form in ("client", "lab"):
+      problems.append(f"a {form} change stays where it was made and cannot be production")
     elif fields["production"] not in productionForms[form]:
       problems.append(f"a production {'row' if form == 'rows' else form} change reaches Peridot as "
         f"{' or '.join(productionForms[form])}")
   commits = fields["commits"]
   if not isinstance(commits, list) or not all(isinstance(commit, str) and commitPattern.match(commit) for commit in commits):
     problems.append("commits must be a list of lowercase commit SHAs")
-  elif kind in ("db", "client") and commits:
+  elif kind in ("db", "client", "lab") and commits:
     problems.append(f"a {kind} change has no commits")
   elif kind in ("quest", "config") and not commits:
     problems.append(f"a {kind} change names its commits, oldest first")
   if form == "schema" and (type(fields["schemaSteps"]) is not int or fields["schemaSteps"] < 1):
     problems.append("schemaSteps must be a whole number of steps, at least 1")
-  if kind in ("quest", "config") and not (isinstance(fields["repository"], str) and hostFolderPattern.match(fields["repository"])):
-    problems.append("repository must be the checkout's absolute path on the host")
+  if kind in ("quest", "config"):
+    if not (isinstance(fields["repository"], str) and hostFolderPattern.match(fields["repository"])):
+      problems.append("repository must be the checkout's absolute path on the host")
+    if not (isOneLine(fields["source"]) and clientPathPattern.match(fields["source"])):
+      problems.append("source must be the workstation clone the commits are made in, absolute or starting with ~\\")
+  if kind == "config":
+    problems.extend(renderedProblems(fields))
   if kind == "client":
     for name in ("steps", "undo"):
       if not isinstance(fields[name], list) or not fields[name] or not all(isinstance(step, str) and step.strip()
@@ -251,6 +345,12 @@ def validateChangeFields(fields):
       problems.append("checks must be a non-empty list")
     else:
       problems.extend(problem for problem in map(clientCheckProblem, fields["checks"]) if problem)
+  if kind == "lab":
+    for name in ("steps", "undo", "checks"):
+      if not isinstance(fields[name], list) or not fields[name]:
+        problems.append(f"{name} must be a non-empty list")
+      else:
+        problems.extend(problem for problem in (labActionProblem(action, name) for action in fields[name]) if problem)
   problems.extend(scopeProblems(fields, form))
   return problems
 
@@ -288,6 +388,14 @@ class Change:
   def tables(self):
     return [entry["table"] for entry in self.fields["scope"]]
 
+  @property
+  def isCleared(self):
+    return self.fields["ownerClearance"] != "pending"
+
+  @property
+  def hostFolder(self):
+    return f"{hostPaths['ledger']}/{self.identifier}"
+
 
 def loadChange(folder):
   if not changeFolderPattern.match(folder.name):
@@ -317,7 +425,8 @@ def loadChanges(folder):
 
 
 def sqlPieces(text):
-  """(kind, text) pieces of SQL in order: code, quoted, comment, or separator (a semicolon)."""
+  """(kind, text) pieces of SQL in order: code, quoted, comment, versioned (a /*! or /*M! comment, which MariaDB runs), or
+  separator (a semicolon)."""
   index = 0
   length = len(text)
   codeStart = 0
@@ -345,7 +454,7 @@ def sqlPieces(text):
       end = text.find("\n", index)
       end = length if end == -1 else end
     elif text.startswith("/*", index):
-      kind = "comment"
+      kind = "versioned" if text.startswith(("/*!", "/*M!"), index) else "comment"
       end = text.find("*/", index + 2)
       if end == -1:
         raise LedgerError("an SQL comment is never closed")
@@ -369,7 +478,7 @@ def firstKeyword(statement):
     if kind == "code" and text.strip():
       match = re.match(r"\s*([A-Za-z]+)", text)
       return match.group(1).upper() if match else ""
-    if kind == "quoted":
+    if kind in ("quoted", "versioned"):
       return ""
   return ""
 
@@ -379,6 +488,8 @@ def splitStatements(text):
   statements = []
   current = []
   for kind, piece in sqlPieces(text):
+    if kind == "versioned":
+      raise LedgerError(f"MariaDB runs a versioned comment as code; write its content plainly instead of {piece[:40]}")
     if kind == "separator":
       statements.append("".join(current).strip())
       current = []
@@ -396,6 +507,10 @@ def quoteIdentifier(name):
   return "`" + name.replace("`", "``") + "`"
 
 
+def redactValues(text):
+  return quotedValuePattern.sub("'?'", text)
+
+
 @dataclass(frozen=True)
 class Column:
   name: str
@@ -411,7 +526,8 @@ def columnFromRecord(record):
 
 
 def fetchExpression(column):
-  """An expression giving the column's value as N for NULL or V and the hex of its bytes (text and binary) or text form."""
+  """An expression giving the column's value as N for NULL or V and the hex of its bytes (text and binary) or of a text form
+  that converts back exactly: floats as doubles, which MariaDB prints with every digit they need."""
   name = quoteIdentifier(column.name)
   if column.dataType in binaryTypes or column.dataType in textTypes - {"enum", "set"}:
     inner = f"HEX({name})"
@@ -419,7 +535,9 @@ def fetchExpression(column):
     inner = f"HEX(CONCAT({name}))"
   elif column.dataType in bitTypes:
     inner = f"HEX(CAST({name} + 0 AS CHAR))"
-  elif column.dataType in integerTypes | decimalTypes | floatTypes | temporalTypes:
+  elif column.dataType in floatTypes:
+    inner = f"HEX(CAST({name} * 1e0 AS CHAR))"
+  elif column.dataType in integerTypes | decimalTypes | temporalTypes:
     inner = f"HEX(CAST({name} AS CHAR))"
   else:
     raise LedgerError(f"column {column.name} has type {column.dataType}, which the ledger cannot save exactly")
@@ -442,7 +560,7 @@ def literal(column, encoded):
   try:
     text = data.decode("ascii")
   except UnicodeDecodeError as error:
-    raise LedgerError(f"column {column.name} ({column.dataType}) holds non-ASCII text {data!r}") from error
+    raise LedgerError(f"column {column.name} ({column.dataType}) holds non-ASCII text") from error
   if column.dataType in integerTypes | bitTypes:
     pattern = numberPatterns["integer"]
   elif column.dataType in decimalTypes:
@@ -451,12 +569,14 @@ def literal(column, encoded):
     pattern = numberPatterns["float"]
   elif column.dataType in temporalTypes:
     if not all(character not in "'\\" and " " <= character <= "~" for character in text):
-      raise LedgerError(f"column {column.name} ({column.dataType}) holds {text!r}, not a date or time")
+      raise LedgerError(f"column {column.name} ({column.dataType}) holds a value that is not a date or time")
     return f"'{text}'"
   else:
     raise LedgerError(f"column {column.name} has type {column.dataType}, which the ledger cannot save exactly")
   if not pattern.match(text):
-    raise LedgerError(f"column {column.name} ({column.dataType}) holds {text!r}, not a number")
+    raise LedgerError(f"column {column.name} ({column.dataType}) holds a value that is not a number")
+  if column.dataType in floatTypes and "e" not in text.lower():
+    return text + "e0"
   return text
 
 
@@ -465,23 +585,50 @@ def rowText(row):
 
 
 def tableDigest(rows):
-  """What SHA2(GROUP_CONCAT(row ORDER BY BINARY row SEPARATOR '|'), 256) gives on the server: NULL for no rows."""
+  """What SHA2(GROUP_CONCAT(row ORDER BY BINARY row SEPARATOR '|'), 256) gives on the server: None (NULL) for no rows."""
   if not rows:
     return None
   return hashlib.sha256("|".join(sorted(rowText(row) for row in rows)).encode("ascii")).hexdigest()
 
 
 def scopeChecksum(tables):
-  lines = [f"{table['table']}\t{','.join(column['name'] for column in table['columns'])}\t{tableDigest(table['rows']) or 'NULL'}"
+  """One checksum of a scope's tables, column names and row digests."""
+  lines = [f"{table['table']}\t{','.join(column['name'] for column in table['columns'])}\t{table['digest'] or 'NULL'}"
     for table in tables]
   return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
 
 
+def describeScope(tables):
+  """The scope's tables with their row digests and counts in place of their rows."""
+  return [{"table": table["table"], "where": table["where"], "columns": table["columns"], "digest": tableDigest(table["rows"]),
+    "rowCount": len(table["rows"])} for table in tables]
+
+
+def rowExpression(columns):
+  return "CONCAT_WS(',', " + ", ".join(fetchExpression(column) for column in columns) + ")"
+
+
+def scopeDigestQuery(table, where, columns):
+  return (f"(SELECT SHA2(GROUP_CONCAT(ledgerRow ORDER BY BINARY ledgerRow SEPARATOR '|'), 256) FROM (SELECT "
+    f"{rowExpression(columns)} AS ledgerRow FROM {quoteIdentifier(table)} WHERE ({where})) AS ledgerRows)")
+
+
+def outsideDigestQuery(table, wheres, columns):
+  """The count and the sums of the four 64-bit quarters of each row's SHA-256, over the rows no where matches: an exact
+  digest of a whole table that needs no more memory than a few numbers."""
+  quarters = ", ".join(f"SUM(CAST(CONV(SUBSTRING(ledgerRowHash, {start}, 16), 16, 10) AS UNSIGNED))" for start in (1, 17, 33, 49))
+  outside = "(" + " OR ".join(f"({where})" for where in wheres) + ") IS NOT TRUE"
+  return (f"(SELECT CONCAT_WS(':', COUNT(*), {quarters}) FROM (SELECT SHA2({rowExpression(columns)}, 256) AS ledgerRowHash "
+    f"FROM {quoteIdentifier(table)} WHERE {outside}) AS ledgerRows)")
+
+
+def entryDigestQuery(table):
+  return scopeDigestQuery(table["table"], table["where"], [columnFromRecord(column) for column in table["columns"]])
+
+
 def digestCondition(table, where, columns, digest):
-  rowExpression = "CONCAT_WS(',', " + ", ".join(fetchExpression(column) for column in columns) + ")"
   expected = "NULL" if digest is None else f"'{digest}'"
-  return (f"(SELECT SHA2(GROUP_CONCAT(ledgerRow ORDER BY BINARY ledgerRow SEPARATOR '|'), 256) FROM (SELECT {rowExpression} "
-    f"AS ledgerRow FROM {quoteIdentifier(table)} WHERE ({where})) AS ledgerRows) <=> {expected}")
+  return f"{scopeDigestQuery(table, where, columns)} <=> {expected}"
 
 
 def guardBlock(condition, message):
@@ -492,13 +639,39 @@ def guardBlock(condition, message):
     "  END IF;\nEND//\nDELIMITER ;\n")
 
 
-def rowsGuards(tables, digests, message):
+def scopeGuards(tables, digests, message):
   return "".join(guardBlock(digestCondition(table["table"], table["where"], [columnFromRecord(column) for column in
     table["columns"]], digest), message) for table, digest in zip(tables, digests))
 
 
+def scopeTables(tables):
+  """Each distinct table of a scope with every where that names it and its columns."""
+  grouped = {}
+  for table in tables:
+    grouped.setdefault(table["table"], ([], [columnFromRecord(column) for column in table["columns"]]))[0].append(table["where"])
+  return [(name, wheres, columns) for name, (wheres, columns) in grouped.items()]
+
+
+def outsideCapture(tables):
+  return "".join(f"SET @ledgerOutside{index} = {outsideDigestQuery(name, wheres, columns)};\n"
+    for index, (name, wheres, columns) in enumerate(scopeTables(tables)))
+
+
+def outsideGuards(tables, message):
+  return "".join(guardBlock(f"{outsideDigestQuery(name, wheres, columns)} <=> @ledgerOutside{index}", message)
+    for index, (name, wheres, columns) in enumerate(scopeTables(tables)))
+
+
 def checkQuery(checkStatement):
   return f"SELECT applied FROM ({checkStatement}) AS ledgerCheck"
+
+
+def ledgerTag(change, action):
+  return f"/* ledger {change.number} {action} */ "
+
+
+def taggedStatements(change, action, statements):
+  return "".join(f"{ledgerTag(change, action)}{statement};\n" for statement in statements)
 
 
 def revertScript(tables):
@@ -523,8 +696,9 @@ def containerShell(command):
   return f"sudo -n docker exec -i {mariadbContainer} sh -c '{command}'"
 
 
-mysqlCommand = containerShell('export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"; exec mysql --user=root --batch --skip-column-names '
-  f'--default-character-set=utf8mb4 {databaseName}')
+def mysqlCommand(database, force=False):
+  return containerShell('export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"; exec mysql --user=root --batch --skip-column-names --comments '
+    + ("--force " if force else "") + f"--default-character-set=utf8mb4 {database}")
 
 
 def binaryLogCommand(logFile, position):
@@ -538,34 +712,91 @@ def asRepositoryOwner(repository, command):
   return f"sudo -n -u \"$(stat -c %U {repository})\" sh -c 'cd {repository} && {command}'"
 
 
+readPreamble = ["SET NAMES utf8mb4", "SET time_zone = '+00:00'", "SET SESSION group_concat_max_len = 4294967295"]
+writePreamble = ["SET SESSION sql_mode = CONCAT_WS(',', NULLIF(@@sql_mode, ''), 'NO_AUTO_VALUE_ON_ZERO')",
+  "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE"]
+
+
 class Server:
   """claudeperidot, reached over an SSH connection whose execute(command, standardInput, timeoutSeconds) returns
-  (exitCode, stdoutBytes, stderrBytes)."""
+  (exitCode, stdoutBytes, stderrBytes) and whose streamCommand(command, writeOutput, standardInput, timeoutSeconds) hands
+  stdout to writeOutput as it arrives and returns (exitCode, stderrBytes)."""
 
-  def __init__(self, connection):
+  def __init__(self, connection, database=databaseName, domain=ledgerGTIDDomain):
     self.connection = connection
+    self.database = database
+    self.domain = domain
 
-  def run(self, command, standardInput="", timeoutSeconds=120):
+  def run(self, command, standardInput="", timeoutSeconds=120, sensitive=False):
     exitCode, output, errors = self.connection.execute(command, standardInput.encode("utf-8"), timeoutSeconds)
     if exitCode != 0:
-      raise LedgerError(f"{hostName}: {command[:100]} exited {exitCode}: {errors.decode('utf-8', 'replace').strip()[-2000:]}")
+      message = errors.decode("utf-8", "replace").strip()[-2000:]
+      raise LedgerError(f"{hostName}: {command[:100]} exited {exitCode}: {redactValues(message) if sensitive else message}")
     return output.decode("utf-8")
 
-  def sql(self, script, writes=False, timeoutSeconds=120):
-    preamble = ["SET NAMES utf8mb4", "SET time_zone = '+00:00'", "SET SESSION group_concat_max_len = 4294967295"]
-    if writes:
-      preamble.append(f"SET SESSION gtid_domain_id = {ledgerGTIDDomain}")
-    output = self.run(mysqlCommand, "".join(f"{statement};\n" for statement in preamble) + script, timeoutSeconds)
+  def stream(self, command, consumeLine, timeoutSeconds=600):
+    """Runs command and hands each line of its output to consumeLine as it arrives, never holding the whole output."""
+    pending = bytearray()
+
+    def receive(chunk):
+      pending.extend(chunk)
+      while (end := pending.find(b"\n")) != -1:
+        consumeLine(bytes(pending[:end]).decode("utf-8", "replace").rstrip("\r"))
+        del pending[:end + 1]
+
+    exitCode, errors = self.connection.streamCommand(command, receive, b"", timeoutSeconds)
+    if exitCode != 0:
+      raise LedgerError(f"{hostName}: {command[:100]} exited {exitCode}: {errors.decode('utf-8', 'replace').strip()[-2000:]}")
+    if pending:
+      consumeLine(bytes(pending).decode("utf-8", "replace").rstrip("\r"))
+
+  def preamble(self, writes):
+    return readPreamble + ([f"SET SESSION gtid_domain_id = {self.domain}"] + writePreamble if writes else [])
+
+  def sql(self, script, writes=False, timeoutSeconds=120, sensitive=False):
+    text = "".join(f"{statement};\n" for statement in self.preamble(writes)) + script
+    output = self.run(mysqlCommand(self.database), text, timeoutSeconds, sensitive)
     return [line.split("\t") for line in output.splitlines()]
+
+  def sqlByStatement(self, statements):
+    """Runs statements with the client's --force, so one failing statement leaves the others running; returns the rows and
+    each failed statement's redacted error by its index."""
+    preamble = "".join(f"{statement};\n" for statement in self.preamble(False))
+    starts = []
+    line = preamble.count("\n") + 1
+    for statement in statements:
+      starts.append(line)
+      line += statement.count("\n") + 1
+    script = preamble + "".join(f"{statement};\n" for statement in statements)
+    exitCode, output, errors = self.connection.execute(mysqlCommand(self.database, force=True), script.encode("utf-8"), 120)
+    failures = {}
+    for errorLine in errors.decode("utf-8", "replace").splitlines():
+      match = mysqlErrorPattern.match(errorLine)
+      if not match or match.group(3) is None or int(match.group(3)) < starts[0]:
+        raise LedgerError(f"{hostName}: the checks failed: {redactValues(errorLine)[-2000:]}")
+      index = max(index for index, start in enumerate(starts) if start <= int(match.group(3)))
+      failures[index] = redactValues(f"ERROR {match.group(1)} ({match.group(2)}): {match.group(4)}")
+    if exitCode != 0 and not failures:
+      raise LedgerError(f"{hostName}: the checks exited {exitCode} without naming a failed statement")
+    return [line.split("\t") for line in output.decode("utf-8").splitlines()], failures
+
+  def writeHostFile(self, path, text):
+    folder = path.rsplit("/", 1)[0]
+    self.run(f"sudo -n sh -c 'umask 077 && mkdir -p {folder} && cat > {path}'", text)
+
+  def readHostFile(self, path):
+    return self.run(f"sudo -n cat {path}", sensitive=True)
 
 
 def runPowerShell(script):
+  """Runs a PowerShell 5.1 script handed over on standard input, so nothing it holds reaches a command line."""
   # Errors are written to the console directly: PowerShell serializes its own error stream as CLIXML when it is redirected.
   wrapped = ("$ErrorActionPreference = 'Stop'\n$ProgressPreference = 'SilentlyContinue'\ntry {\n" + script + "\n} catch {\n"
     "  [Console]::Error.WriteLine(($_ | Out-String).Trim())\n  exit 1\n}\n")
-  encoded = base64.b64encode(wrapped.encode("utf-16-le")).decode("ascii")
-  result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand",
-    encoded], capture_output=True, text=True)
+  bootstrap = ("$ErrorActionPreference = 'Stop'; Invoke-Expression ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String("
+    "[Console]::In.ReadToEnd())))")
+  result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command",
+    bootstrap], input=base64.b64encode(wrapped.encode("utf-8")).decode("ascii"), capture_output=True, text=True)
   if result.returncode != 0:
     raise LedgerError(f"a PowerShell step failed (exit {result.returncode}): {(result.stderr or result.stdout).strip()[-2000:]}")
   return result.stdout
@@ -597,16 +828,55 @@ def iniValue(path, section, key):
   return None
 
 
+def credentialExists(target):
+  """Whether Credential Manager holds a generic credential named target; the password is never read."""
+  import ctypes
+  from ctypes import wintypes
+  advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+  advapi32.CredReadW.argtypes = (wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.POINTER(ctypes.c_void_p))
+  advapi32.CredReadW.restype = wintypes.BOOL
+  advapi32.CredFree.argtypes = (ctypes.c_void_p,)
+  credential = ctypes.c_void_p()
+  if advapi32.CredReadW(target, 1, 0, ctypes.byref(credential)):
+    advapi32.CredFree(credential)
+    return True
+  error = ctypes.get_last_error()
+  if error == 1168:
+    return False
+  raise LedgerError(f"reading Credential Manager for {target} failed with Windows error {error}")
+
+
+def loginPersonaExists(path, server, character):
+  """Whether MacroQuest's login.db at path holds a persona row for character on server; only the key columns are read."""
+  if not path.is_file():
+    return False
+  try:
+    connection = sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True)
+    try:
+      row = connection.execute("SELECT EXISTS (SELECT 1 FROM personas JOIN characters ON personas.character_id = characters.id "
+        "WHERE characters.server = lower(?) AND characters.character = lower(?))", (server, character)).fetchone()
+    finally:
+      connection.close()
+  except sqlite3.Error as error:
+    raise LedgerError(f"{path} cannot be read as MacroQuest's login.db: {error}") from error
+  return row[0] == 1
+
+
 def clientCheckPasses(check):
+  if "credential" in check:
+    return credentialExists(check["credential"])
   path = Path(expandClientPath(check["path"]))
   if check.get("exists") == "file":
     return path.is_file() and not path.is_junction()
   if check.get("exists") == "directory":
     return path.is_dir() and not path.is_junction()
   if check.get("exists") == "junction":
-    return path.is_junction() and normalizedWindowsPath(os.readlink(path)) == normalizedWindowsPath(expandClientPath(check["target"]))
+    return path.is_junction() and normalizedWindowsPath(os.readlink(path)) == normalizedWindowsPath(
+      expandClientPath(check["target"]))
   if "sha256" in check:
     return path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == check["sha256"]
+  if "server" in check:
+    return loginPersonaExists(path, check["server"], check["character"])
   return iniValue(path, check["section"], check["key"]) == check["value"]
 
 
@@ -624,13 +894,14 @@ class ChangeState:
 
   @property
   def label(self):
-    text = {"applied": "applied", "notApplied": "not applied", "partlyApplied": f"partly applied ({self.done} of {self.total})"}
+    text = {"applied": "applied", "notApplied": "not applied", "partlyApplied": f"partly applied ({self.done} of {self.total})",
+      "checkFailed": "check failed", "recorded": "recorded"}
     return text[self.state] + (f"; {self.note}" if self.note else "")
 
 
 def stateFromCount(change, done, total, note=""):
   if not 0 <= done <= total:
-    raise LedgerError(f"{change.identifier}'s check reports {done} of {total}")
+    return ChangeState(change, "checkFailed", 0, total, f"it reports {done} of {total}")
   state = "applied" if done == total else "notApplied" if done == 0 else "partlyApplied"
   return ChangeState(change, state, done, total, note)
 
@@ -705,79 +976,168 @@ class BinaryLogTransaction:
 eventHeaderPattern = re.compile(r"^#(\d{6}\s+\d{1,2}:\d{2}:\d{2})\s+server id \d+\s+end_log_pos \d+\b(.*)$")
 gtidPattern = re.compile(r"\sGTID (\d+)-(\d+)-(\d+)\b")
 queryEventPattern = re.compile(r"\sQuery\s+thread_id=")
+annotateEventPattern = re.compile(r"\sAnnotate_rows:")
 rowEventPattern = re.compile(r"^### (INSERT INTO|UPDATE|DELETE FROM) `([^`]+)`\.`([^`]+)`$")
-ignoredQueryStatements = re.compile(r"^(SET\b|use\b|BEGIN\b|COMMIT\b|START TRANSACTION\b|ROLLBACK\b|XA\b|/\*!)", re.IGNORECASE)
+tagPattern = re.compile(r"^\s*/\* ledger (\d{4}) (apply|revert) \*/\s*")
+versionedCommentPattern = re.compile(r"/\*M?!\d{5,6} ?(.*?)\*/", re.DOTALL)
+clientCommandCommentPattern = re.compile(r"/\*!\\C [^*]*\*/")
+ignoredQueryStatements = re.compile(r"^(SET\b|use\b|BEGIN\b|COMMIT\b|START TRANSACTION\b|ROLLBACK\b|XA\b)", re.IGNORECASE)
 
 
-def parseBinaryLog(text):
-  """The transactions in mysqlbinlog --base64-output=decode-rows --verbose output, with their row writes per table and
-  their statements (DDL and anything else written as a statement)."""
-  transactions = []
-  position = ""
-  inQuery = False
-  queryLines = []
-  for line in text.splitlines():
+def splitTag(text):
+  """The change number a statement's ledger tag names (or None) and the statement without the tag."""
+  match = tagPattern.match(text or "")
+  return (match.group(1), text[match.end():]) if match else (None, text)
+
+
+class BinaryLogParser:
+  """Reads mysqlbinlog --base64-output=decode-rows --verbose output line by line and hands each transaction, with its row
+  writes per table and the ledger tag of the statement that made them, and its statements with their tags and the database
+  each ran in, to onTransaction."""
+
+  def __init__(self, onTransaction):
+    self.onTransaction = onTransaction
+    self.current = None
+    self.position = ""
+    self.inQuery = False
+    self.inAnnotate = False
+    self.annotate = None
+    self.queryLines = []
+    self.database = None
+
+  def feed(self, line):
     if line.startswith("# at "):
-      position = line[5:].strip()
-      inQuery = False
-      queryLines = []
-      continue
+      self.position = line[5:].strip()
+      self.inQuery = self.inAnnotate = False
+      self.queryLines = []
+      return
     header = eventHeaderPattern.match(line)
     if header:
       gtid = gtidPattern.search(header.group(2))
       if gtid:
-        transactions.append(BinaryLogTransaction(f"{gtid.group(1)}-{gtid.group(2)}-{gtid.group(3)}", int(gtid.group(1)),
-          header.group(1), position))
-      inQuery = bool(queryEventPattern.search(header.group(2)))
-      queryLines = []
-      continue
+        self.finish()
+        self.current = BinaryLogTransaction(f"{gtid.group(1)}-{gtid.group(2)}-{gtid.group(3)}", int(gtid.group(1)),
+          header.group(1), self.position)
+        self.annotate = None
+      self.inQuery = bool(queryEventPattern.search(header.group(2)))
+      self.inAnnotate = bool(annotateEventPattern.search(header.group(2)))
+      if self.inAnnotate:
+        self.annotate = None
+      self.queryLines = []
+      return
+    if self.inAnnotate and line.startswith("#Q> "):
+      if self.annotate is None:
+        self.annotate = line[4:]
+      return
     rowEvent = rowEventPattern.match(line)
-    if rowEvent and transactions:
-      key = (rowEvent.group(2), rowEvent.group(3), rowEvent.group(1).split()[0])
-      transactions[-1].writes[key] = transactions[-1].writes.get(key, 0) + 1
-      continue
-    if inQuery and transactions and not line.startswith("#"):
+    if rowEvent and self.current:
+      key = (rowEvent.group(2), rowEvent.group(3), rowEvent.group(1).split()[0], splitTag(self.annotate)[0])
+      self.current.writes[key] = self.current.writes.get(key, 0) + 1
+      return
+    if self.inQuery and self.current and not line.startswith("#"):
       if line.endswith("/*!*/;"):
-        statement = "\n".join(queryLines + [line[:-len("/*!*/;")]]).strip()
-        queryLines = []
-        if statement and not ignoredQueryStatements.match(statement):
-          transactions[-1].statements.append(statement)
+        statement = "\n".join(self.queryLines + [line[:-len("/*!*/;")]])
+        self.queryLines = []
+        statement = versionedCommentPattern.sub(lambda match: match.group(1), clientCommandCommentPattern.sub(" ", statement))
+        tag, text = splitTag(statement.strip())
+        text = text.strip()
+        use = re.match(r"^use `([^`]+)`$", text)
+        if use:
+          self.database = use.group(1)
+        elif text and not ignoredQueryStatements.match(text):
+          self.current.statements.append((tag, text, self.database))
       else:
-        queryLines.append(line)
+        self.queryLines.append(line)
+
+  def finish(self):
+    if self.current is not None:
+      self.onTransaction(self.current)
+      self.current = None
+
+
+def parseBinaryLog(text):
+  transactions = []
+  parser = BinaryLogParser(transactions.append)
+  for line in text.splitlines():
+    parser.feed(line)
+  parser.finish()
   return transactions
 
 
-def unaccountedTransactions(transactions):
-  """The transactions no ledger change made that write tables drift watches, each with only those writes."""
-  unaccounted = []
-  for transaction in transactions:
+class DriftAccount:
+  """Sorts binary-log transactions into what the ledger wrote within its changes' scopes, the runtime tables' writes, and
+  everything else drift reports."""
+
+  def __init__(self, changes):
+    self.changes = {change.number: change for change in changes}
+    self.problems = []
+    self.runtime = {}
+
+  def describe(self, transaction, parts):
+    return f"{transaction.time} GTID {transaction.gtid} at {transaction.position}: " + "; ".join(parts)
+
+  def add(self, transaction):
     if transaction.domain == ledgerGTIDDomain:
-      continue
-    writes = {key: count for key, count in transaction.writes.items() if key[0] == databaseName and key[1] not in playTables}
-    if writes or transaction.statements:
-      unaccounted.append(BinaryLogTransaction(transaction.gtid, transaction.domain, transaction.time, transaction.position, writes,
-        transaction.statements))
-  return unaccounted
+      self.addLedger(transaction)
+      return
+    parts = []
+    for (database, table, operation, _), count in sorted(transaction.writes.items(), key=lambda item: item[0][:3]):
+      if database != databaseName:
+        continue
+      if table in runtimeTables:
+        self.runtime[(table, operation)] = self.runtime.get((table, operation), 0) + count
+      elif isWatched(table):
+        parts.append(f"{operation} {table} x{count}")
+    parts += [redactValues(" ".join(text.split()))[:200] for _, text, database in transaction.statements
+      if database in (None, databaseName)]
+    if parts:
+      self.problems.append("unaccounted write: " + self.describe(transaction, parts))
 
+  def addLedger(self, transaction):
+    parts = []
+    for (database, table, operation, tag), count in sorted(transaction.writes.items(), key=lambda item: (item[0][:3],
+        item[0][3] or "")):
+      change = self.changes.get(tag)
+      if change is None or change.kind != "db":
+        whose = f"by {tag}, which is not a db change in the ledger" if tag else "with no ledger tag"
+      elif database != databaseName or table not in change.tables:
+        whose = f"by {tag}, whose scope is {', '.join(sorted(set(change.tables)))}"
+      else:
+        continue
+      parts.append(f"{operation} {database}.{table} x{count} {whose}")
+    for tag, text, database in transaction.statements:
+      change = self.changes.get(tag)
+      if change is None or change.form != "schema" or database not in (None, databaseName):
+        parts.append(redactValues(" ".join(text.split()))[:200] + (f" in {database}" if database not in (None, databaseName)
+          else "") + (f" by {tag}, which is not a schema change in the ledger" if tag else " with no ledger tag"))
+    if parts:
+      self.problems.append("ledger write outside its change's scope: " + self.describe(transaction, parts))
 
-def describeTransaction(transaction):
-  parts = [f"{operation} {table} x{count}" for (_, table, operation), count in sorted(transaction.writes.items())]
-  parts += [" ".join(statement.split())[:200] for statement in transaction.statements]
-  return f"{transaction.time} GTID {transaction.gtid} at {transaction.position}: " + "; ".join(parts)
+  def runtimeLines(self):
+    return [f"runtime (the servers' own writes, not drift): {operation} {table} x{count}"
+      for (table, operation), count in sorted(self.runtime.items())]
 
 
 def git(folder, *arguments):
   result = subprocess.run(["git", "-C", str(folder), *arguments], capture_output=True, text=True, encoding="utf-8")
   if result.returncode != 0:
-    raise LedgerError(f"git {' '.join(arguments)} failed: {result.stderr.strip()}")
+    raise LedgerError(f"git {' '.join(arguments)} in {folder} failed: {result.stderr.strip()}")
   return result.stdout
+
+
+def gitAnswers(folder, *arguments):
+  """True or False for a git command that answers by exiting 0 or 1."""
+  result = subprocess.run(["git", "-C", str(folder), *arguments], capture_output=True, text=True, encoding="utf-8")
+  if result.returncode not in (0, 1):
+    raise LedgerError(f"git {' '.join(arguments)} in {folder} failed: {result.stderr.strip()}")
+  return result.returncode == 0
 
 
 def pushBranch(folder):
   branch = git(folder, "rev-parse", "--abbrev-ref", "HEAD").strip()
   if branch in ("HEAD", "main", "master"):
     raise LedgerError(f"the ledger pushes only a working branch such as claude, and HEAD is {branch}")
-  git(folder, "push", "origin", branch)
+  git(folder, "push", "--quiet", "origin", branch)
 
 
 def writeJSON(path, value):
@@ -790,9 +1150,43 @@ def readJSON(path, missing):
   return json.loads(path.read_text(encoding="utf-8"))
 
 
+renderCheckScript = r'''
+import json
+import sys
+
+
+def flatten(value, prefix, keys):
+  if isinstance(value, dict):
+    for name, inner in value.items():
+      flatten(inner, prefix + [str(name)], keys)
+  else:
+    keys[".".join(prefix)] = value
+
+
+def load(path):
+  with open(path, encoding="utf-8") as handle:
+    text = handle.read()
+  if path.endswith(".json"):
+    keys = {}
+    flatten(json.loads(text), [], keys)
+    return keys
+  return dict(line.split("=", 1) for line in text.splitlines() if "=" in line and not line.lstrip().startswith("#"))
+
+
+template = load(sys.argv[1])
+live = load(sys.argv[2])
+for key in sys.argv[3:]:
+  if key not in template or template[key] not in ("", None) or live.get(key) in ("", None):
+    print("unfilled " + key)
+  else:
+    live[key] = template[key]
+print("match" if live == template else "differ")
+'''
+
+
 class Ledger:
   def __init__(self, folder, openServer, push):
-    """openServer() returns the Server; push(folder) publishes the branch's commits."""
+    """openServer() returns the Server; push(folder) publishes the branch of the repository folder is in."""
     self.folder = folder
     self.openServer = openServer
     self.push = push
@@ -812,6 +1206,10 @@ class Ledger:
   def baselinePath(self):
     return self.folder / "baseline.yaml"
 
+  @property
+  def tableChecksumsPath(self):
+    return self.folder / "tableChecksums.json"
+
   def find(self, identifier):
     matches = [change for change in loadChanges(self.folder) if identifier in (change.number, change.identifier)]
     if not matches:
@@ -823,18 +1221,35 @@ class Ledger:
 
   def record(self, paths, message):
     """Commits paths (and only them) and pushes; nothing to commit is not an error, so a re-run converges."""
-    names = [self.relative(path) for path in paths]
-    git(self.folder, "add", "-A", "--", *names)
-    if git(self.folder, "status", "--porcelain", "--", *names).strip():
-      git(self.folder, "commit", "-m", message, "--", *names)
+    names = [self.relative(path) for path in paths if path.exists()
+      or git(self.folder, "ls-files", "--", self.relative(path)).strip()]
+    if names:
+      git(self.folder, "add", "-A", "--", *names)
+    if names and git(self.folder, "status", "--porcelain", "--", *names).strip():
+      git(self.folder, "commit", "-q", "-m", message, "--", *names)
     self.push(self.folder)
     log.info("recorded and pushed: %s", message)
 
   def requireCommitted(self, change):
-    pending = git(self.folder, "status", "--porcelain", "--", self.relative(change.folder), self.relative(self.planPath)).strip()
+    paths = [self.relative(change.folder), self.relative(self.planPath), self.relative(self.tableChecksumsPath)]
+    pending = git(self.folder, "status", "--porcelain", "--", *paths).strip()
     if pending:
-      raise LedgerError(f"{change.identifier} or plan.md has uncommitted edits; stage the change (and commit plan.md) first, so "
-        f"what runs is what the ledger holds:\n{pending}")
+      raise LedgerError(f"{change.identifier}, plan.md or tableChecksums.json has uncommitted edits; stage the change (and "
+        f"commit plan.md) first, so what runs is what the ledger holds:\n{pending}")
+
+  def readIntent(self, change):
+    path = change.folder / "intent.json"
+    if not path.is_file():
+      return None
+    intent = json.loads(path.read_text(encoding="utf-8"))
+    if intent.get("intent") not in intents:
+      raise LedgerError(f"{change.identifier}/intent.json holds {intent!r}, not applying or reverting")
+    return intent
+
+  def writeIntent(self, change, intent, **details):
+    """Commits and pushes the change's intent before anything is written, so an interrupted apply or revert is known."""
+    writeJSON(change.folder / "intent.json", {"intent": intent, **details})
+    self.record([change.folder], f"{intent.capitalize()} {change.identifier}: {change.fields['title']}")
 
   def applyStatements(self, change):
     statements = splitStatements(self.readFile(change, "apply.sql"))
@@ -855,8 +1270,14 @@ class Ledger:
       raise LedgerError(f"{change.identifier}/check.sql must be one SELECT giving one row with a column named applied")
     return statements[0]
 
-  def revertStatements(self, change):
-    statements = splitStatements(self.readFile(change, "revert.sql"))
+  def revertStatements(self, change, saved=None):
+    if change.form == "rows" and saved["sensitive"]:
+      text = self.server.readHostFile(f"{change.hostFolder}/revert.sql")
+      if hashlib.sha256(text.encode("utf-8")).hexdigest() != saved["hostCopy"]["revertSHA256"]:
+        raise LedgerError(f"{change.identifier}: revert.sql on {hostName} is not the one stage wrote")
+    else:
+      text = self.readFile(change, "revert.sql")
+    statements = splitStatements(text)
     if change.form == "schema" and len(statements) != change.steps:
       raise LedgerError(f"{change.identifier}/revert.sql must hold {change.steps} statements, the inverse of each apply step in "
         f"reverse order; it holds {len(statements)}")
@@ -873,24 +1294,45 @@ class Ledger:
 
   def readApplied(self, change):
     return readJSON(change.folder / "applied.json", f"{change.identifier} has no applied.json: it was not applied through the "
-      "ledger, or apply stopped before its commit")
+      "ledger")
+
+  def readTableChecksums(self):
+    return json.loads(self.tableChecksumsPath.read_text(encoding="utf-8")) if self.tableChecksumsPath.is_file() else {}
+
+  def updateTableChecksums(self, checksums, by):
+    """Records each table's checksum (or absent) after a ledger write, the value drift expects until the next one."""
+    recorded = self.readTableChecksums()
+    recorded.update({table: {"checksum": checksum, "by": by} for table, checksum in checksums.items()})
+    writeJSON(self.tableChecksumsPath, dict(sorted(recorded.items())))
 
   def databaseStates(self, changes):
-    if not changes:
-      return {}
-    script = "".join(f"SELECT '{change.number}', applied FROM ({self.checkStatement(change)}) AS ledgerCheck;\n"
-      for change in changes)
-    results = {}
-    for row in self.server.sql(script):
-      if len(row) != 2 or not numberPatterns["integer"].match(row[1]) or row[0] in results:
-        raise LedgerError(f"a check gave {row!r}; each check.sql must give one row with an integer applied")
-      results[row[0]] = int(row[1])
+    """Each db change's state from its check.sql, all in one script; a check that fails or gives no whole number marks
+    only its own change."""
     states = {}
+    runnable = []
     for change in changes:
-      if change.number not in results:
-        raise LedgerError(f"{change.identifier}/check.sql gave no row")
-      note = "" if (change.folder / "saved.json").is_file() else "not staged"
-      states[change.number] = stateFromCount(change, results[change.number], change.steps, note)
+      try:
+        runnable.append((change, self.checkStatement(change)))
+      except LedgerError as error:
+        states[change.number] = ChangeState(change, "checkFailed", 0, change.steps, str(error))
+    if runnable:
+      rows, failures = self.server.sqlByStatement([f"SELECT '{change.number}', applied FROM ({check}) AS ledgerCheck"
+        for change, check in runnable])
+      results = {}
+      for row in rows:
+        if len(row) != 2 or row[0] not in {change.number for change, _ in runnable}:
+          raise LedgerError(f"the checks gave the row {row!r}")
+        results.setdefault(row[0], []).append(row[1])
+      for index, (change, _) in enumerate(runnable):
+        note = "" if (change.folder / "saved.json").is_file() else "not staged"
+        values = results.get(change.number, [])
+        if index in failures:
+          states[change.number] = ChangeState(change, "checkFailed", 0, change.steps, failures[index])
+        elif len(values) != 1 or not numberPatterns["integer"].match(values[0]):
+          problem = "gave no row" if not values else "gave more than one row" if len(values) > 1 else f"gave {values[0]}"
+          states[change.number] = ChangeState(change, "checkFailed", 0, change.steps, f"check.sql {problem}, not a whole number")
+        else:
+          states[change.number] = stateFromCount(change, int(values[0]), change.steps, note)
     return states
 
   def repositoryHashes(self, change, commit=None):
@@ -898,9 +1340,10 @@ class Ledger:
     repository = change.fields["repository"]
     files = " ".join(change.fields["scope"])
     if commit is None:
-      loop = (f'for f in {files}; do if [ -f "$f" ]; then sha256sum -- "$f"; else echo "absent  $f"; fi; done')
+      loop = f'for f in {files}; do if [ -f "$f" ]; then sha256sum -- "$f"; else echo "absent  $f"; fi; done'
     else:
-      loop = (f'for f in {files}; do if git cat-file -e {commit}:"$f" 2>/dev/null; then '
+      loop = (f'git cat-file -e "{commit}^{{commit}}" 2>/dev/null || {{ echo "commit {commit} is not in the checkout" >&2; '
+        f'exit 3; }}; for f in {files}; do if git cat-file -e {commit}:"$f" 2>/dev/null; then '
         f'echo "$(git show {commit}:"$f" | sha256sum | cut -d" " -f1)  $f"; else echo "absent  $f"; fi; done')
     hashes = {}
     for line in self.server.run(asRepositoryOwner(repository, loop)).splitlines():
@@ -910,18 +1353,42 @@ class Ledger:
       raise LedgerError(f"{change.identifier}: the host reported files {sorted(hashes)}, not the scope")
     return hashes
 
+  def fetchHost(self, change, commits=None):
+    """Fetches the host checkout's origin and fails unless every commit is then in it."""
+    commits = commits or change.fields["commits"]
+    script = ("git fetch --quiet origin && for c in " + " ".join(commits) + '; do git cat-file -e "$c^{commit}" 2>/dev/null || '
+      'echo "$c"; done')
+    missing = self.server.run(asRepositoryOwner(change.fields["repository"], script)).split()
+    if missing:
+      raise LedgerError(f"{change.identifier}: {', '.join(missing)} is not in {change.fields['repository']} on {hostName} even "
+        "after fetching its origin: push it from the source repository")
+
+  def renderedProblems(self, change):
+    """The rendered files that do not follow their templates with the host's keys filled in; values are never read back."""
+    problems = []
+    for entry in change.fields.get("rendered", []):
+      template = f"{change.fields['repository']}/{entry['template']}"
+      lines = self.server.run(f"sudo -n python3 - {template} {entry['file']} {' '.join(entry['filledKeys'])}",
+        renderCheckScript).split()
+      if lines[-1:] != ["match"] or len(lines) > 1:
+        unfilled = [line for line in lines if line not in ("match", "differ", "unfilled")]
+        problems.append(f"{entry['file']} " + (f"lacks {', '.join(unfilled)}" if unfilled else "does not follow its template"))
+    return problems
+
   def repositoryState(self, change):
     savedPath = change.folder / "saved.json"
     if not savedPath.is_file():
       return ChangeState(change, "notApplied", 0, len(change.fields["scope"]), "not staged, so its files cannot be judged")
     saved = json.loads(savedPath.read_text(encoding="utf-8"))
     current = self.repositoryHashes(change)
+    rendered = self.renderedProblems(change)
     done = sum(current[path] == saved["after"][path] for path in current)
-    if done == len(current):
+    if done == len(current) and not rendered:
       return ChangeState(change, "applied", done, done)
-    if all(current[path] == saved["before"][path] for path in current):
+    if all(current[path] == saved["before"][path] for path in current) and not rendered:
       return ChangeState(change, "notApplied", 0, len(current))
-    return ChangeState(change, "partlyApplied", done, len(current), "some files are neither as committed nor as staged")
+    return ChangeState(change, "partlyApplied", done, len(current), "; ".join(rendered)
+      or "some files are neither as committed nor as staged")
 
   def clientState(self, change):
     checks = change.fields["checks"]
@@ -934,15 +1401,34 @@ class Ledger:
         states[change.number] = self.repositoryState(change)
       elif change.kind == "client":
         states[change.number] = self.clientState(change)
+      elif change.kind == "lab":
+        states[change.number] = ChangeState(change, "recorded", 0, len(change.fields["checks"]), "its checks run through "
+          + " and ".join(sorted({check["via"] for check in change.fields["checks"]})) + ", by hand")
     return {change.number: states[change.number] for change in changes}
 
   def state(self, change):
     return self.states([change])[change.number]
 
-  def fetchScope(self, change):
-    """The scope's columns and rows, each value encoded as N (NULL) or V and the hex of its bytes or text form."""
-    tables = change.tables
-    names = ", ".join(f"'{table}'" for table in sorted(set(tables)))
+  def requireState(self, change, expected, action, state=None):
+    state = state or self.state(change)
+    if state.state != expected:
+      raise LedgerError(f"{action} needs {change.identifier} {'applied' if expected == 'applied' else 'not applied'}; "
+        f"it is {state.label}")
+    return state
+
+  def scopeColumns(self, change):
+    """Each scope table's stored columns; refuses a view, a table that is missing, or one that is not InnoDB, since a row
+    change is one transaction."""
+    tables = sorted(set(change.tables))
+    names = ", ".join(f"'{table}'" for table in tables)
+    kinds = {row[0]: (row[1], row[2]) for row in self.server.sql("SELECT TABLE_NAME, TABLE_TYPE, ENGINE FROM "
+      f"information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ({names});\n")}
+    for table in tables:
+      if table not in kinds:
+        raise LedgerError(f"{change.identifier}: {table} is not a table in {self.server.database}")
+      if kinds[table] != ("BASE TABLE", "InnoDB"):
+        raise LedgerError(f"{change.identifier}: {table} is a {kinds[table][0]} with engine {kinds[table][1]}; a row change "
+          "runs in one transaction, so its tables must be InnoDB")
     columns = {table: [] for table in tables}
     for row in self.server.sql("SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IFNULL(CHARACTER_SET_NAME, ''), EXTRA FROM "
         f"information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ({names}) "
@@ -951,20 +1437,36 @@ class Ledger:
         raise LedgerError(f"information_schema gave the column row {row!r}")
       if "GENERATED" not in row[4].upper():
         columns[row[0]].append(Column(row[1], row[2].lower(), row[3]))
-    missing = [table for table in tables if not columns[table]]
-    if missing:
-      raise LedgerError(f"{change.identifier}: {', '.join(missing)} is not a table in {databaseName}")
+    return columns
+
+  def fetchScope(self, change):
+    """The scope's columns and rows, each value encoded as N (NULL) or V and the hex of its bytes or text form."""
+    columns = self.scopeColumns(change)
+    tables = change.tables
     script = "".join(f"SELECT '{index}', {', '.join(fetchExpression(column) for column in columns[entry['table']])} FROM "
       f"{quoteIdentifier(entry['table'])} WHERE ({entry['where']});\n" for index, entry in enumerate(change.fields["scope"]))
     rows = {index: [] for index in range(len(tables))}
-    for row in self.server.sql(script):
+    for row in self.server.sql(script, sensitive=True):
       index = int(row[0])
       values = row[1:]
       if len(values) != len(columns[tables[index]]) or not all(encodedValuePattern.match(value) for value in values):
-        raise LedgerError(f"{change.identifier}: a row of {tables[index]} came back as {row!r}")
+        raise LedgerError(f"{change.identifier}: a row of {tables[index]} came back with {len(values)} values, not "
+          f"{len(columns[tables[index]])} encoded ones")
       rows[index].append(values)
     return [{"table": entry["table"], "where": entry["where"], "columns": [column.asRecord() for column in
       columns[entry["table"]]], "rows": sorted(rows[index], key=rowText)} for index, entry in enumerate(change.fields["scope"])]
+
+  def scopeDigests(self, tables, sensitive=False):
+    """Each scope entry's row digest, computed on the server; None for no rows."""
+    script = "".join(f"SELECT '{index}', {entryDigestQuery(table)};\n" for index, table in enumerate(tables))
+    digests = {}
+    for row in self.server.sql(script, sensitive=sensitive):
+      if len(row) != 2 or not (row[1] == "NULL" or hashPattern.match(row[1])):
+        raise LedgerError(f"a scope digest came back as {row!r}")
+      digests[int(row[0])] = None if row[1] == "NULL" else row[1]
+    if set(digests) != set(range(len(tables))):
+      raise LedgerError(f"the scope digests answered for {sorted(digests)}, not {len(tables)} entries")
+    return [digests[index] for index in range(len(tables))]
 
   def tableChecksums(self, tables):
     if not tables:
@@ -1001,6 +1503,19 @@ class Ledger:
       fingerprint.setdefault(table, "absent")
     return fingerprint
 
+  def rowsChangedSinceApply(self, changes):
+    """The numbers of applied row changes whose rows differ from those apply left."""
+    entries = []
+    for change in changes:
+      saved = self.readSaved(change)
+      entries += [(change, index, table, digest) for index, (table, digest) in enumerate(zip(saved["tables"],
+        self.readApplied(change)["digests"]))]
+    if not entries:
+      return set()
+    script = "".join(f"SELECT '{change.number}', '{index}', {entryDigestQuery(table)};\n" for change, index, table, _ in entries)
+    current = {(row[0], int(row[1])): None if row[2] == "NULL" else row[2] for row in self.server.sql(script)}
+    return {change.number for change, index, _, digest in entries if current[(change.number, index)] != digest}
+
   def status(self):
     changes = loadChanges(self.folder)
     states = self.states(changes)
@@ -1022,17 +1537,26 @@ class Ledger:
       allApplied = all(states[number].isApplied for number in step.changes)
       if allApplied and not step.ticked:
         lines.append(f"plan.md: step {step.number}'s changes are applied but it is not ticked: an apply stopped before its "
-          "commit; check the change and record it")
+          "commit; run apply again to finish it")
       elif step.ticked and not allApplied:
         lines.append(f"plan.md: step {step.number} is ticked but not all of its changes are applied")
+    changed = self.rowsChangedSinceApply([change for change in changes if change.form == "rows"
+      and states[change.number].isApplied and (change.folder / "applied.json").is_file()])
     width = max((len(change.identifier) for change in changes), default=0)
-    lines += [f"{change.identifier:<{width}}  {change.kind:<6}  {change.fields['disposition']:<11}  {states[change.number].label}"
-      for change in changes]
+    for change in changes:
+      notes = [states[change.number].label]
+      intent = self.readIntent(change)
+      if intent:
+        verb = intent["intent"][:-3]
+        notes.append(f"an interrupted {verb} (intent.json): run {verb} {change.number} again to finish it")
+      if change.number in changed:
+        notes.append("rows changed since apply")
+      lines.append(f"{change.identifier:<{width}}  {change.kind:<6}  {change.fields['disposition']:<11}  "
+        f"{'; '.join(notes)}")
     fixtures = [change.number for change in changes if change.fields["disposition"] == "fixture"]
     explorations = [change.number for change in changes if change.fields["disposition"] == "exploration"
       and states[change.number].state != "notApplied"]
-    uncleared = [change.number for change in changes if change.fields["disposition"] == "production"
-      and change.fields["ownerClearance"] != "cleared"]
+    uncleared = [change.number for change in changes if change.fields["disposition"] == "production" and not change.isCleared]
     lines += ["", "Closing a session:", f"  fixtures (kept): {', '.join(fixtures) or 'none'}",
       f"  exploration changes still applied: {', '.join(explorations) or 'none'}",
       f"  production changes the owner has not cleared: {', '.join(uncleared) or 'none'}",
@@ -1041,6 +1565,10 @@ class Ledger:
 
   def stage(self, identifier):
     change = self.find(identifier)
+    notes = []
+    if change.kind == "lab":
+      raise LedgerError(f"{change.identifier} is a lab change: its steps run through facet or the sonicwall MCP, and its record "
+        "is its change.yaml")
     if change.kind == "db":
       self.applyStatements(change)
       self.checkStatement(change)
@@ -1050,14 +1578,16 @@ class Ledger:
       if state.state != "notApplied":
         raise LedgerError(f"{change.identifier} is {state.label}; stage saves the rows of a change that has not run")
       if change.form == "rows":
-        tables = self.fetchScope(change)
-        writeJSON(change.folder / "saved.json", {"checksum": scopeChecksum(tables), "tables": tables})
-        (change.folder / "revert.sql").write_text(revertScript(tables), encoding="utf-8")
+        notes = self.stageRows(change)
       else:
         fingerprint = self.schemaFingerprint(change, change.folder / "showCreate")
         writeJSON(change.folder / "saved.json", {"checksum": hashlib.sha256(json.dumps(fingerprint, sort_keys=True).encode(
           "utf-8")).hexdigest(), "tables": fingerprint})
     elif change.kind in ("quest", "config"):
+      source = Path(expandClientPath(change.fields["source"]))
+      self.requireSourceCommits(change, source)
+      self.push(source)
+      self.fetchHost(change)
       before = self.repositoryHashes(change)
       after = self.repositoryHashes(change, change.fields["commits"][-1])
       unchanged = [path for path in before if before[path] == after[path]]
@@ -1066,137 +1596,245 @@ class Ledger:
           "change is applied already or those files are not its scope")
       writeJSON(change.folder / "saved.json", {"before": before, "after": after})
     self.record([change.folder], f"Stage {change.identifier}: {change.fields['title']}")
-    return [f"staged {change.identifier}: committed and pushed before it runs"]
+    return [f"staged {change.identifier}: committed and pushed before it runs"] + notes
+
+  def stageRows(self, change):
+    tables = self.fetchScope(change)
+    reasons = [reason for reason in (sensitiveReason(table["table"], [column["name"] for column in table["columns"]])
+      for table in tables) if reason]
+    described = describeScope(tables)
+    saved = {"sensitive": bool(reasons), "checksum": scopeChecksum(described), "tables": described}
+    revert = revertScript(tables)
+    if reasons:
+      full = json.dumps({"checksum": saved["checksum"], "tables": tables}, indent=2) + "\n"
+      self.server.writeHostFile(f"{change.hostFolder}/saved.json", full)
+      self.server.writeHostFile(f"{change.hostFolder}/revert.sql", revert)
+      saved["hostCopy"] = {"folder": change.hostFolder, "savedSHA256": hashlib.sha256(full.encode("utf-8")).hexdigest(),
+        "revertSHA256": hashlib.sha256(revert.encode("utf-8")).hexdigest(), "because": reasons[0]}
+      (change.folder / "revert.sql").unlink(missing_ok=True)
+      writeJSON(change.folder / "saved.json", saved)
+      return [f"{reasons[0]}: its saved rows and revert.sql stay on {hostName} in {change.hostFolder}; only their digests are "
+        "committed"]
+    for table, full in zip(saved["tables"], tables):
+      table["rows"] = full["rows"]
+    writeJSON(change.folder / "saved.json", saved)
+    (change.folder / "revert.sql").write_text(revert, encoding="utf-8")
+    return []
+
+  def requireHostCopy(self, change, saved):
+    if not saved["sensitive"]:
+      return
+    text = self.server.readHostFile(f"{change.hostFolder}/saved.json")
+    if hashlib.sha256(text.encode("utf-8")).hexdigest() != saved["hostCopy"]["savedSHA256"]:
+      raise LedgerError(f"{change.identifier}: the saved rows on {hostName} are not the ones stage wrote; stage it again")
+
+  def requireSourceCommits(self, change, source):
+    if not (source / ".git").exists():
+      raise LedgerError(f"{change.identifier}: {source} is not a git repository")
+    for commit in change.fields["commits"]:
+      if not gitAnswers(source, "cat-file", "-e", f"{commit}^{{commit}}"):
+        raise LedgerError(f"{change.identifier}: {commit} is not in {source}")
+      if not gitAnswers(source, "merge-base", "--is-ancestor", commit, "HEAD"):
+        raise LedgerError(f"{change.identifier}: {commit} is not on {source}'s checked-out branch")
 
   def apply(self, identifier):
     change = self.find(identifier)
     self.requireCommitted(change)
-    self.push(self.folder)
+    intent = self.readIntent(change)
+    if intent and intent["intent"] == "reverting" and self.state(change).state == "notApplied":
+      raise LedgerError(f"{change.identifier} has an interrupted revert (intent.json): run revert {change.number} again to "
+        "finish it first")
     log.info("applying %s", change.identifier)
     if change.form == "rows":
-      self.applyRows(change)
+      finished = self.applyRows(change, intent)
     elif change.form == "schema":
-      self.applySchema(change)
+      finished = self.applySchema(change, intent)
     elif change.kind in ("quest", "config"):
-      self.requireState(change, "notApplied", "apply")
-      self.server.run(asRepositoryOwner(change.fields["repository"], f"git merge --ff-only {change.fields['commits'][-1]}"))
-      self.requireState(change, "applied", "after its merge, apply")
+      finished = self.applyRepository(change, intent)
+    elif change.kind == "client":
+      finished = self.applyClient(change, intent)
     else:
-      self.requireState(change, "notApplied", "apply")
-      for step in change.fields["steps"]:
-        runPowerShell(step)
-      self.requireState(change, "applied", "after its steps, apply")
+      raise LedgerError(f"{change.identifier} is a lab change: its steps run through facet or the sonicwall MCP")
+    (change.folder / "intent.json").unlink()
     self.updatePlan(change)
-    self.record([change.folder, self.planPath], f"Apply {change.identifier}: {change.fields['title']}")
-    return [f"applied {change.identifier}", f"activation: {change.fields['activation']}"]
+    self.record([change.folder, self.planPath, self.tableChecksumsPath], f"Apply {change.identifier}: {change.fields['title']}")
+    return [f"applied {change.identifier}" + (" (finished the interrupted apply)" if finished else ""),
+      f"activation: {change.fields['activation']}"]
 
-  def requireState(self, change, expected, action):
-    state = self.state(change)
-    if state.state != expected:
-      raise LedgerError(f"{action} needs {change.identifier} {'applied' if expected == 'applied' else 'not applied'}; "
-        f"it is {state.label}")
-    return state
+  @staticmethod
+  def finishing(state, intent, expected):
+    """Whether an interrupted apply (expected applied) or revert (expected notApplied) already got there and only its
+    record is left to write."""
+    operation = "applying" if expected == "applied" else "reverting"
+    return intent is not None and intent["intent"] == operation and state.state == expected
 
-  def applyRows(self, change):
+  def applyRows(self, change, intent):
     saved = self.readSaved(change)
-    self.requireState(change, "notApplied", "apply")
-    if scopeChecksum(self.fetchScope(change)) != saved["checksum"]:
+    state = self.state(change)
+    if self.finishing(state, intent, "applied"):
+      self.recordAppliedRows(change, saved)
+      return True
+    self.requireState(change, "notApplied", "apply", state)
+    self.requireHostCopy(change, saved)
+    staged = [table["digest"] for table in saved["tables"]]
+    if self.scopeDigests(saved["tables"], saved["sensitive"]) != staged:
       raise LedgerError(f"the rows of {change.identifier} changed since stage, so revert.sql would put back stale rows: "
-        f"stage it again")
+        "stage it again")
+    self.writeIntent(change, "applying")
     script = ("START TRANSACTION;\n"
-      + rowsGuards(saved["tables"], [tableDigest(table["rows"]) for table in saved["tables"]], f"ledger: {change.number} rows "
-        "changed since stage")
-      + "".join(f"{statement};\n" for statement in self.applyStatements(change))
+      + scopeGuards(saved["tables"], staged, f"ledger: {change.number} rows changed since stage")
+      + outsideCapture(saved["tables"])
+      + taggedStatements(change, "apply", self.applyStatements(change))
+      + outsideGuards(saved["tables"], f"ledger: {change.number} apply wrote rows outside its scope")
       + guardBlock(f"({checkQuery(self.checkStatement(change))}) = 1", f"ledger: {change.number} check is not 1 after apply")
       + "COMMIT;\n")
-    self.server.sql(script, writes=True, timeoutSeconds=600)
-    after = self.fetchScope(change)
-    writeJSON(change.folder / "applied.json", {"checksum": scopeChecksum(after), "digests": [tableDigest(table["rows"])
-      for table in after], "tableChecksums": self.tableChecksums(sorted(set(change.tables)))})
+    self.server.sql(script, writes=True, timeoutSeconds=600, sensitive=saved["sensitive"])
+    self.recordAppliedRows(change, saved)
+    return False
 
-  def applySchema(self, change):
+  def recordAppliedRows(self, change, saved):
+    digests = self.scopeDigests(saved["tables"], saved["sensitive"])
+    after = [dict(table, digest=digest) for table, digest in zip(saved["tables"], digests)]
+    writeJSON(change.folder / "applied.json", {"checksum": scopeChecksum(after), "digests": digests})
+    self.updateTableChecksums(self.tableChecksums(sorted(set(change.tables))), f"apply {change.identifier}")
+
+  def applySchema(self, change, intent):
     statements = self.applyStatements(change)
+    saved = self.readSaved(change)
     state = self.state(change)
-    if state.isApplied:
-      raise LedgerError(f"{change.identifier} is applied already")
-    if state.done == 0:
-      saved = self.readSaved(change)
-      if self.schemaFingerprint(change) != saved["tables"]:
-        raise LedgerError(f"the tables of {change.identifier} changed since stage: stage it again")
+    if self.finishing(state, intent, "applied"):
+      self.recordAppliedSchema(change, "apply")
+      return True
+    if state.state == "checkFailed":
+      raise LedgerError(f"apply needs {change.identifier}'s check; it is {state.label}")
+    if state.done == 0 and self.schemaFingerprint(change) != saved["tables"]:
+      raise LedgerError(f"the tables of {change.identifier} changed since stage: stage it again")
+    self.writeIntent(change, "applying")
     failure = None
     try:
-      self.server.sql("".join(f"{statement};\n" for statement in statements[state.done:]), writes=True, timeoutSeconds=3600)
+      self.server.sql(taggedStatements(change, "apply", statements[state.done:]), writes=True, timeoutSeconds=3600)
     except LedgerError as error:
       failure = error
     after = self.state(change)
     if failure is not None or not after.isApplied:
       raise LedgerError(f"{change.identifier}: {after.done} of {after.total} steps are done; fix the cause and run apply again "
         "to resume from the next step" + (f" ({failure})" if failure else "")) from failure
+    self.recordAppliedSchema(change, "apply")
+    return False
+
+  def recordAppliedSchema(self, change, action):
     fingerprint = self.schemaFingerprint(change)
-    writeJSON(change.folder / "applied.json", {"checksum": hashlib.sha256(json.dumps(fingerprint, sort_keys=True).encode(
-      "utf-8")).hexdigest(), "tables": fingerprint, "tableChecksums": {table: value["checksum"] for table, value in
-      fingerprint.items() if value != "absent"}})
+    if action == "apply":
+      writeJSON(change.folder / "applied.json", {"checksum": hashlib.sha256(json.dumps(fingerprint, sort_keys=True).encode(
+        "utf-8")).hexdigest(), "tables": fingerprint})
+    self.updateTableChecksums({table: "absent" if value == "absent" else value["checksum"] for table, value in
+      fingerprint.items()}, f"{action} {change.identifier}")
+
+  def applyRepository(self, change, intent):
+    self.readSaved(change)
+    self.fetchHost(change)
+    state = self.repositoryState(change)
+    if self.finishing(state, intent, "applied"):
+      return True
+    self.requireState(change, "notApplied", "apply", state)
+    self.writeIntent(change, "applying")
+    self.server.run(asRepositoryOwner(change.fields["repository"], f"git merge --ff-only --quiet {change.fields['commits'][-1]}"))
+    if "render" in change.fields:
+      self.server.run(f"sudo -n {change.fields['render']}")
+    self.requireState(change, "applied", "after its merge, apply")
+    return False
+
+  def applyClient(self, change, intent):
+    state = self.clientState(change)
+    if self.finishing(state, intent, "applied"):
+      return True
+    self.requireState(change, "notApplied", "apply", state)
+    self.writeIntent(change, "applying")
+    for step in change.fields["steps"]:
+      runPowerShell(step)
+    self.requireState(change, "applied", "after its steps, apply")
+    return False
 
   def revert(self, identifier):
     change = self.find(identifier)
     self.requireCommitted(change)
-    self.push(self.folder)
+    intent = self.readIntent(change)
+    if intent and intent["intent"] == "applying" and self.state(change).isApplied:
+      raise LedgerError(f"{change.identifier} has an interrupted apply (intent.json): run apply {change.number} again to finish "
+        "it first")
     log.info("reverting %s", change.identifier)
+    sourceRevert = None
     if change.form == "rows":
-      self.revertRows(change)
+      finished = self.revertRows(change, intent)
     elif change.form == "schema":
-      self.revertSchema(change)
+      finished = self.revertSchema(change, intent)
     elif change.kind in ("quest", "config"):
-      self.requireState(change, "applied", "revert")
-      commits = " ".join(reversed(change.fields["commits"]))
-      self.server.run(asRepositoryOwner(change.fields["repository"],
-        f"git -c user.name=Claude -c user.email=claude@{hostName} revert --no-edit {commits}"))
-      self.requireState(change, "notApplied", "after git revert, revert")
+      finished, sourceRevert = self.revertRepository(change, intent)
+    elif change.kind == "client":
+      finished = self.revertClient(change, intent)
     else:
-      state = self.state(change)
-      if not state.isApplied:
-        raise LedgerError(f"revert needs every check of {change.identifier} passing, as apply left it; it is {state.label}, so "
-          "what it touched changed since apply: put that right by hand")
-      for step in change.fields["undo"]:
-        runPowerShell(step)
-      self.requireState(change, "notApplied", "after its undo, revert")
+      raise LedgerError(f"{change.identifier} is a lab change: its undo runs through facet or the sonicwall MCP")
     (change.folder / "applied.json").unlink(missing_ok=True)
+    (change.folder / "intent.json").unlink()
     self.updatePlan(change)
-    self.record([change.folder, self.planPath], f"Revert {change.identifier}: {change.fields['title']}")
-    return [f"reverted {change.identifier}", f"activation: {change.fields['activation']}"]
+    self.record([change.folder, self.planPath, self.tableChecksumsPath], f"Revert {change.identifier}: {change.fields['title']}"
+      + (f" (source revert {sourceRevert[:12]})" if sourceRevert else ""))
+    return [f"reverted {change.identifier}" + (" (finished the interrupted revert)" if finished else ""),
+      f"activation: {change.fields['activation']}"]
 
-  def revertRows(self, change):
-    saved = self.readSaved(change)
-    self.requireState(change, "applied", "revert")
-    applied = self.readApplied(change)
-    current = self.fetchScope(change)
-    if scopeChecksum(current) != applied["checksum"]:
-      changed = [table["table"] for table, digest in zip(current, applied["digests"]) if tableDigest(table["rows"]) != digest]
-      raise LedgerError(f"the rows of {change.identifier} changed since apply ({', '.join(changed) or 'columns'}); revert "
-        "refuses to overwrite them")
-    message = f"ledger: {change.number} "
-    script = ("START TRANSACTION;\n"
-      + rowsGuards(saved["tables"], applied["digests"], message + "rows changed since apply")
-      + "".join(f"{statement};\n" for statement in self.revertStatements(change))
-      + rowsGuards(saved["tables"], [tableDigest(table["rows"]) for table in saved["tables"]], message + "revert did not "
-        "restore the saved rows")
-      + guardBlock(f"({checkQuery(self.checkStatement(change))}) = 0", message + "check is not 0 after revert")
-      + "COMMIT;\n")
-    self.server.sql(script, writes=True, timeoutSeconds=600)
-    if scopeChecksum(self.fetchScope(change)) != saved["checksum"]:
+  def requireSavedRows(self, change, saved):
+    if self.scopeDigests(saved["tables"], saved["sensitive"]) != [table["digest"] for table in saved["tables"]]:
       raise LedgerError(f"{change.identifier}: revert committed, but the rows differ from those saved at stage")
 
-  def revertSchema(self, change):
+  def revertRows(self, change, intent):
     saved = self.readSaved(change)
     state = self.state(change)
-    if state.state == "notApplied":
-      raise LedgerError(f"{change.identifier} is not applied")
+    if self.finishing(state, intent, "notApplied"):
+      self.requireSavedRows(change, saved)
+      self.updateTableChecksums(self.tableChecksums(sorted(set(change.tables))), f"revert {change.identifier}")
+      return True
+    self.requireState(change, "applied", "revert", state)
+    applied = self.readApplied(change)
+    current = self.scopeDigests(saved["tables"], saved["sensitive"])
+    if current != applied["digests"]:
+      changed = [table["table"] for table, digest, appliedDigest in zip(saved["tables"], current, applied["digests"])
+        if digest != appliedDigest]
+      raise LedgerError(f"the rows of {change.identifier} changed since apply ({', '.join(changed)}); revert refuses to "
+        "overwrite them")
+    statements = self.revertStatements(change, saved)
+    self.writeIntent(change, "reverting")
+    message = f"ledger: {change.number} "
+    script = ("START TRANSACTION;\n"
+      + scopeGuards(saved["tables"], applied["digests"], message + "rows changed since apply")
+      + outsideCapture(saved["tables"])
+      + taggedStatements(change, "revert", statements)
+      + scopeGuards(saved["tables"], [table["digest"] for table in saved["tables"]], message + "revert did not restore the "
+        "saved rows")
+      + outsideGuards(saved["tables"], message + "revert wrote rows outside its scope")
+      + guardBlock(f"({checkQuery(self.checkStatement(change))}) = 0", message + "check is not 0 after revert")
+      + "COMMIT;\n")
+    self.server.sql(script, writes=True, timeoutSeconds=600, sensitive=saved["sensitive"])
+    self.requireSavedRows(change, saved)
+    self.updateTableChecksums(self.tableChecksums(sorted(set(change.tables))), f"revert {change.identifier}")
+    return False
+
+  def revertSchema(self, change, intent):
+    saved = self.readSaved(change)
+    state = self.state(change)
+    if self.finishing(state, intent, "notApplied"):
+      if self.schemaFingerprint(change) != saved["tables"]:
+        raise LedgerError(f"{change.identifier}: after revert.sql the tables are not as saved at stage")
+      self.recordAppliedSchema(change, "revert")
+      return True
+    if state.state in ("notApplied", "checkFailed"):
+      raise LedgerError(f"revert needs {change.identifier} applied or partly applied; it is {state.label}")
     if state.isApplied and self.schemaFingerprint(change) != self.readApplied(change)["tables"]:
       raise LedgerError(f"the tables of {change.identifier} changed since apply; revert refuses to overwrite them")
     statements = self.revertStatements(change)
+    self.writeIntent(change, "reverting")
     failure = None
     try:
-      self.server.sql("".join(f"{statement};\n" for statement in statements[change.steps - state.done:]), writes=True,
+      self.server.sql(taggedStatements(change, "revert", statements[change.steps - state.done:]), writes=True,
         timeoutSeconds=3600)
     except LedgerError as error:
       failure = error
@@ -1206,6 +1844,48 @@ class Ledger:
         "revert again to undo the rest" + (f" ({failure})" if failure else "")) from failure
     if self.schemaFingerprint(change) != saved["tables"]:
       raise LedgerError(f"{change.identifier}: after revert.sql the tables are not as saved at stage")
+    self.recordAppliedSchema(change, "revert")
+    return False
+
+  def revertRepository(self, change, intent):
+    """Undoes a quest or config change with a revert commit made in the source repository and fast-forwarded on the host, so
+    the host never holds a commit the source lacks."""
+    self.readSaved(change)
+    state = self.repositoryState(change)
+    if self.finishing(state, intent, "notApplied"):
+      return True, intent.get("sourceRevert")
+    self.requireState(change, "applied", "revert", state)
+    source = Path(expandClientPath(change.fields["source"]))
+    sourceRevert = intent.get("sourceRevert") if intent else None
+    if sourceRevert is None:
+      self.requireSourceCommits(change, source)
+      if git(source, "status", "--porcelain").strip():
+        raise LedgerError(f"{change.identifier}: {source} has uncommitted edits; the revert commit is made there")
+      self.writeIntent(change, "reverting")
+      git(source, "revert", "--no-commit", *reversed(change.fields["commits"]))
+      git(source, "commit", "-q", "-m", f"Revert {change.identifier}: {change.fields['title']}")
+      sourceRevert = git(source, "rev-parse", "HEAD").strip()
+      self.writeIntent(change, "reverting", sourceRevert=sourceRevert)
+    self.push(source)
+    self.fetchHost(change, [sourceRevert])
+    self.server.run(asRepositoryOwner(change.fields["repository"], f"git merge --ff-only --quiet {sourceRevert}"))
+    if "render" in change.fields:
+      self.server.run(f"sudo -n {change.fields['render']}")
+    self.requireState(change, "notApplied", "after merging its revert commit, revert")
+    return False, sourceRevert
+
+  def revertClient(self, change, intent):
+    state = self.clientState(change)
+    if self.finishing(state, intent, "notApplied"):
+      return True
+    if not state.isApplied:
+      raise LedgerError(f"revert needs every check of {change.identifier} passing, as apply left it; it is {state.label}, so "
+        "what it touched changed since apply: put that right by hand")
+    self.writeIntent(change, "reverting")
+    for step in change.fields["undo"]:
+      runPowerShell(step)
+    self.requireState(change, "notApplied", "after its undo, revert")
+    return False
 
   def updatePlan(self, change):
     text = self.planPath.read_text(encoding="utf-8")
@@ -1231,65 +1911,118 @@ class Ledger:
     return [row[0] for row in self.server.sql("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() "
       "AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;\n")]
 
-  def drift(self):
+  def requireBinaryLog(self):
+    settings = self.server.sql("SELECT @@log_bin, @@binlog_format, @@binlog_annotate_row_events;\n")
+    if settings != [["1", "ROW", "1"]]:
+      raise LedgerError(f"drift reads the binary log, which needs log_bin 1, binlog_format ROW and binlog_annotate_row_events 1; "
+        f"the server has {settings!r}")
+
+  def masterStatus(self):
+    rows = self.server.sql("SHOW MASTER STATUS;\n")
+    if len(rows) != 1:
+      raise LedgerError(f"SHOW MASTER STATUS gave {rows!r}; the binary log must be on")
+    return {"file": rows[0][0], "position": int(rows[0][1])}
+
+  def driftReport(self, readPosition=False):
+    """drift's lines, plus the binary-log position read between the table checksums and the log, and those checksums."""
     baseline = self.readBaseline()
-    changes = [change for change in loadChanges(self.folder) if change.kind == "db"]
-    states = self.databaseStates(changes)
+    self.requireBinaryLog()
+    changes = loadChanges(self.folder)
+    dbChanges = [change for change in changes if change.kind == "db"]
+    states = self.databaseStates(dbChanges)
     lines = []
-    expected = {table: (value, "the baseline") for table, value in baseline["tableChecksums"].items() if table not in playTables}
-    for change in changes:
-      if states[change.number].state == "notApplied":
+    for change in dbChanges:
+      state = states[change.number]
+      intent = self.readIntent(change)
+      if state.state == "checkFailed":
+        lines.append(f"{change.identifier}: {state.label}")
+      elif intent:
+        verb = intent["intent"][:-3]
+        lines.append(f"{change.identifier} has an interrupted {verb} (intent.json): run {verb} {change.number} again to "
+          "finish it")
+      elif state.state != "notApplied" and not (change.folder / "applied.json").is_file():
+        lines.append(f"{change.identifier} is {state.label} but has no applied.json: it ran outside the ledger")
+    expected = {table: (value, "the baseline") for table, value in baseline["tableChecksums"].items() if isWatched(table)}
+    for table, value in self.readTableChecksums().items():
+      if not isWatched(table):
         continue
-      if not (change.folder / "applied.json").is_file():
-        lines.append(f"{change.identifier} is {states[change.number].label} but has no applied.json: its apply stopped before "
-          "the commit, or it ran outside the ledger")
-        continue
-      for table, value in self.readApplied(change)["tableChecksums"].items():
-        expected[table] = (value, change.identifier)
-    current = self.tableChecksums([table for table in self.baseTables() if table not in playTables])
+      if value["checksum"] == "absent":
+        expected.pop(table, None)
+      else:
+        expected[table] = (value["checksum"], value["by"])
+    current = self.tableChecksums([table for table in self.baseTables() if isWatched(table)])
+    position = self.masterStatus() if readPosition else None
     for table in sorted(set(expected) | set(current)):
       if table not in current:
-        lines.append(f"{table}: in {expected[table][1]} but gone now")
+        lines.append(f"{table}: expected from {expected[table][1]} but gone now")
       elif table not in expected:
         lines.append(f"{table}: new since the baseline, and no change accounts for it")
       elif expected[table][0] != current[table]:
         lines.append(f"{table}: checksum {current[table]}, expected {expected[table][0]} from {expected[table][1]}")
+    account = DriftAccount(changes)
+    parser = BinaryLogParser(account.add)
     binaryLog = baseline["binaryLog"]
-    transactions = parseBinaryLog(self.server.run(binaryLogCommand(binaryLog["file"], binaryLog["position"]),
-      timeoutSeconds=600))
-    lines += [f"unaccounted write: {describeTransaction(transaction)}" for transaction in unaccountedTransactions(transactions)]
-    return lines or ["drift: clean"]
+    self.server.stream(binaryLogCommand(binaryLog["file"], binaryLog["position"]), parser.feed, timeoutSeconds=600)
+    parser.finish()
+    lines += account.problems
+    return (lines or ["drift: clean"]) + account.runtimeLines(), position, current
+
+  def drift(self):
+    return self.driftReport()[0]
+
+  def advance(self):
+    lines, position, current = self.driftReport(readPosition=True)
+    if lines[0] != "drift: clean":
+      raise LedgerError("advance moves the baseline only after a clean drift:\n" + "\n".join(lines))
+    baseline = self.readBaseline()
+    baseline["binaryLog"] = position
+    baseline["tableChecksums"] = current
+    self.baselinePath.write_text(yaml.safe_dump(baseline, sort_keys=False), encoding="utf-8")
+    self.tableChecksumsPath.unlink(missing_ok=True)
+    self.record([self.baselinePath, self.tableChecksumsPath], f"Advance the baseline to binary log {position['file']}:"
+      f"{position['position']} after a clean drift")
+    return lines + [f"baseline advanced to {position['file']}:{position['position']}"]
 
   def promote(self, identifier, manifestVersion=None):
     change = self.find(identifier)
     if change.fields["disposition"] != "production":
       raise LedgerError(f"{change.identifier} is {change.fields['disposition']}; only a production change is promoted")
+    if not change.isCleared:
+      raise LedgerError(f"{change.identifier} waits for the owner's clearance: ownerClearance names no message of the owner's")
     pending = [candidate.identifier for candidate in loadChanges(self.folder) if candidate.fields["disposition"] == "production"
-      and candidate.fields["significance"] == "significant" and candidate.fields["ownerClearance"] == "pending"]
+      and candidate.fields["significance"] == "significant" and not candidate.isCleared]
     if pending:
       raise LedgerError(f"promote waits for the owner to clear the significant changes {', '.join(pending)}")
-    self.requireState(change, "applied", "promote")
     production = change.fields["production"]
+    saved = self.readSaved(change) if production == "contentSQL" else None
+    if saved is not None and saved["sensitive"]:
+      raise LedgerError(f"{change.identifier}: {saved['hostCopy']['because']}, so promote never writes it; carry it to Peridot "
+        "by hand with the owner")
+    self.requireState(change, "applied", "promote")
     if production == "contentSQL":
-      saved = self.readSaved(change)
       check = self.checkStatement(change)
-      header = (f"-- {change.identifier}: {change.fields['title']}\n-- Written by ledger.py promote. Fails and rolls back unless "
-        "Peridot still holds the rows the change was made against, and unless its check gives 1 after it.\n")
-      outputs = {"content.sql": header + "SET NAMES utf8mb4;\nSET time_zone = '+00:00';\n"
-        "SET SESSION group_concat_max_len = 4294967295;\nSTART TRANSACTION;\n"
-        + rowsGuards(saved["tables"], [tableDigest(table["rows"]) for table in saved["tables"]], f"{change.number}: Peridot rows "
-          "differ from those the change was made against")
+      header = (f"-- {change.identifier}: {change.fields['title']}\n-- Written by ledger.py promote. Run it with the mysql "
+        "command-line client (mysql peq < content.sql), whose DELIMITER command its guards use. It fails and rolls back unless\n"
+        "-- Peridot still holds the rows the change was made against, unless it writes only those rows, and unless its check "
+        "gives 1 after it.\n")
+      outputs = {"content.sql": header + "".join(f"{statement};\n" for statement in readPreamble + writePreamble)
+        + "START TRANSACTION;\n"
+        + scopeGuards(saved["tables"], [table["digest"] for table in saved["tables"]], f"{change.number}: Peridot rows differ "
+          "from those the change was made against")
+        + outsideCapture(saved["tables"])
         + "".join(f"{statement};\n" for statement in self.applyStatements(change))
+        + outsideGuards(saved["tables"], f"{change.number}: the content SQL wrote rows outside its scope")
         + guardBlock(f"({checkQuery(check)}) = 1", f"{change.number}: check is not 1 after the content SQL")
         + "COMMIT;\n", "check.sql": checkQuery(check) + ";\n"}
     elif production == "customMigration":
       outputs = {"customMigration.cpp": self.manifestEntry(change, manifestVersion)}
     elif production == "questCommit":
-      outputs = {"cherryPick.sh": f"#!/bin/sh\nset -e\ncd {peridotQuestsPath}\ngit cherry-pick {' '.join(change.fields['commits'])}\n"}
+      outputs = {"cherryPick.sh": f"#!/bin/sh\nset -e\ncd {peridotQuestsPath}\ngit cherry-pick "
+        f"{' '.join(change.fields['commits'])}\n"}
     else:
       outputs = {"edit.md": f"# {change.identifier}: carry into the {production}\n\n{change.fields['title']}\n\n"
-        f"{change.fields['why']}\n\n- Files: {', '.join(change.fields['scope'])}\n- Commits: {', '.join(change.fields['commits'])}"
-        f"\n- Activation: {change.fields['activation']}\n"}
+        f"{change.fields['why']}\n\n- Files: {', '.join(change.fields['scope'])}\n- Commits: "
+        f"{', '.join(change.fields['commits'])}\n- Activation: {change.fields['activation']}\n"}
     outputFolder = change.folder / "peridot"
     outputFolder.mkdir(exist_ok=True)
     for name, text in outputs.items():
@@ -1337,17 +2070,18 @@ class Ledger:
   def seedBaseline(self):
     if self.baselinePath.is_file():
       raise LedgerError("baseline.yaml exists already")
-    dumps = [name for name in self.server.run(f"ls -1t {hostPaths['dumps']}").split() if re.match(r"^peq-[\w.-]+\.sql\.gz$", name)]
+    self.requireBinaryLog()
+    dumps = [name for name in self.server.run(f"ls -1t {hostPaths['dumps']}").split()
+      if re.match(r"^peq-[\w.-]+\.sql\.gz$", name)]
     if not dumps:
       raise LedgerError(f"no peq-*.sql.gz in {hostPaths['dumps']}: run seed with the copy script first")
     dumpPath = f"{hostPaths['dumps']}/{dumps[0]}"
     dumpTime = datetime.datetime.fromtimestamp(int(self.server.run(f"stat -c %Y {dumpPath}").strip()), datetime.UTC)
     versionRows = self.server.sql("SELECT version, bots_version, custom_version FROM db_version;\n")
-    masterRows = self.server.sql("SHOW MASTER STATUS;\n")
-    if len(versionRows) != 1 or len(masterRows) != 1:
-      raise LedgerError(f"db_version gave {versionRows!r} and SHOW MASTER STATUS gave {masterRows!r}; the baseline needs one "
-        "db_version row and the binary log on")
-    binaryLog = {"file": masterRows[0][0], "position": int(masterRows[0][1])}
+    if len(versionRows) != 1:
+      raise LedgerError(f"db_version gave {versionRows!r}; the baseline needs one db_version row")
+    tableChecksums = self.tableChecksums([table for table in self.baseTables() if isWatched(table)])
+    binaryLog = self.masterStatus()
     deployed = {name: self.server.run(f"sudo -n git -c safe.directory='*' -C {hostPaths[name]} rev-parse HEAD").strip()
       for name in ("akkStack", "code", "quests", "maps")}
     baseline = {
@@ -1357,12 +2091,12 @@ class Ledger:
         "customVersion": int(versionRows[0][2])},
       "binaryLog": binaryLog,
       "deployed": deployed,
-      "tableChecksums": self.tableChecksums([table for table in self.baseTables() if table not in playTables]),
+      "tableChecksums": tableChecksums,
     }
     self.baselinePath.write_text(yaml.safe_dump(baseline, sort_keys=False), encoding="utf-8")
     self.record([self.baselinePath], f"Baseline: dump {baseline['dump']['sha256'][:12]}, db_version {versionRows[0][0]}, "
       f"binary log {binaryLog['file']}:{binaryLog['position']}")
-    return [f"baseline written: {len(baseline['tableChecksums'])} table checksums; now take the Proxmox baseline snapshot"]
+    return [f"baseline written: {len(tableChecksums)} table checksums; now take the Proxmox baseline snapshot"]
 
 
 def openServer():
@@ -1370,7 +2104,8 @@ def openServer():
   from facetClient.sshConnection import SSHConnection
   inventoryPath = os.environ.get("facetInventory")
   if not inventoryPath:
-    raise LedgerError("set facetInventory to facet's inventory (operations hosts\\inventory.yaml), as the facet MCP server has it")
+    raise LedgerError("set facetInventory to facet's inventory (operations hosts\\inventory.yaml), as the facet MCP server "
+      "has it")
   try:
     hosts = loadInventory(inventoryPath)
   except (InventoryError, OSError) as error:
@@ -1399,11 +2134,12 @@ def main(arguments=None):
   commands = parser.add_subparsers(dest="command", required=True)
   commands.add_parser("status", help="every change's state, read live, beside plan.md's step in progress")
   for name, text in (("stage", "save the rows or files a change touches and commit and push it before it runs"),
-      ("apply", "run a staged change, check it, rewrite plan.md, commit and push"),
-      ("revert", "undo an applied change unless what it touched changed since apply")):
+      ("apply", "run a staged change, check it, rewrite plan.md, commit and push; finishes an interrupted apply"),
+      ("revert", "undo an applied change unless what it touched changed since apply; finishes an interrupted revert")):
     commands.add_parser(name, help=text).add_argument("change", help="the change's number or folder name")
-  commands.add_parser("drift", help="table checksums against the baseline plus applied changes, and unaccounted binary-log "
-    "writes")
+  commands.add_parser("drift", help="table checksums against the baseline and the ledger's writes, and unaccounted "
+    "binary-log writes")
+  commands.add_parser("advance", help="after a clean drift, move the baseline to the binary log's end and today's checksums")
   promote = commands.add_parser("promote", help="write a production change's Peridot form")
   promote.add_argument("change")
   promote.add_argument("--manifestVersion", type=int, help="the custom migration version, for a schema change")
@@ -1421,6 +2157,8 @@ def main(arguments=None):
       lines = getattr(ledger, options.command)(options.change)
     elif options.command == "drift":
       lines = ledger.drift()
+    elif options.command == "advance":
+      lines = ledger.advance()
     elif options.command == "promote":
       lines = ledger.promote(options.change, options.manifestVersion)
     else:

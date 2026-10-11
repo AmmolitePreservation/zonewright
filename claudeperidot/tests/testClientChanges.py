@@ -1,11 +1,15 @@
+import ctypes
 import hashlib
+import sqlite3
 import subprocess
+import uuid
+from ctypes import wintypes
 from pathlib import Path
 
 import pytest
 
 import ledger
-from ledgerDoubles import changedInCommit, clientChangeFields, git, gitHead, makeHarness, planText, writeChange
+from ledgerDoubles import changedInCommit, clientChangeFields, committedFiles, git, gitHead, makeHarness, planText, writeChange
 
 
 def junction(link, target):
@@ -64,9 +68,81 @@ def test_anIniCheckReadsTheKeyInItsSectionOnly(tmp_path):
   assert not ledger.clientCheckPasses({"path": str(tmp_path / "none.ini"), "section": "A", "key": "B", "value": ""})
 
 
+class Credential(ctypes.Structure):
+  _fields_ = [("Flags", wintypes.DWORD), ("Type", wintypes.DWORD), ("TargetName", wintypes.LPWSTR),
+    ("Comment", wintypes.LPWSTR), ("LastWritten", wintypes.FILETIME), ("CredentialBlobSize", wintypes.DWORD),
+    ("CredentialBlob", ctypes.POINTER(ctypes.c_ubyte)), ("Persist", wintypes.DWORD), ("AttributeCount", wintypes.DWORD),
+    ("Attributes", ctypes.c_void_p), ("TargetAlias", wintypes.LPWSTR), ("UserName", wintypes.LPWSTR)]
+
+
+@pytest.fixture
+def throwawayCredential():
+  """A generic credential for this test session only, deleted afterwards; its password is a placeholder."""
+  advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+  target = f"claudeperidotLedgerTest/{uuid.uuid4().hex}"
+  blob = (ctypes.c_ubyte * 4)(*b"none")
+  credential = Credential(Type=1, TargetName=target, CredentialBlobSize=4, CredentialBlob=blob, Persist=1,
+    UserName="ledgerTest")
+  if not advapi32.CredWriteW(ctypes.byref(credential), 0):
+    raise OSError(ctypes.get_last_error(), "CredWriteW failed")
+  yield target
+  if not advapi32.CredDeleteW(target, 1, 0):
+    raise OSError(ctypes.get_last_error(), "CredDeleteW failed")
+
+
+def test_aCredentialCheckPassesOnlyWhileTheEntryExists(throwawayCredential):
+  assert ledger.clientCheckPasses({"credential": throwawayCredential})
+  assert not ledger.clientCheckPasses({"credential": throwawayCredential + "Missing"})
+
+
+def loginDatabase(path, rows):
+  connection = sqlite3.connect(path)
+  connection.executescript("CREATE TABLE accounts (id integer primary key, account text not null, password text not null);"
+    "CREATE TABLE characters (id integer primary key, character text not null, server text not null, account_id integer "
+    "not null, unique (character, server));"
+    "CREATE TABLE personas (id integer primary key, character_id integer not null, class text not null, level integer not "
+    "null, last_seen text, unique (character_id, class));")
+  connection.execute("INSERT INTO accounts (id, account, password) VALUES (1, 'claudeAccount', 'sealed')")
+  for index, (character, server, hasPersona) in enumerate(rows, start=1):
+    connection.execute("INSERT INTO characters (id, character, server, account_id) VALUES (?, ?, ?, 1)", (index, character,
+      server))
+    if hasPersona:
+      connection.execute("INSERT INTO personas (character_id, class, level) VALUES (?, 'WAR', 1)", (index,))
+  connection.commit()
+  connection.close()
+
+
+def test_aLoginDBCheckPassesForAPersonaRowOfThatCharacterOnThatServer(tmp_path):
+  path = tmp_path / "login.db"
+  loginDatabase(path, [("claudette", "claudeperidot", True), ("pariator", "peridot", True),
+    ("nopersona", "claudeperidot", False)])
+
+  def passes(server, character):
+    return ledger.clientCheckPasses({"path": str(path), "server": server, "character": character})
+
+  assert passes("claudeperidot", "Claudette")
+  assert not passes("peridot", "Claudette")
+  assert not passes("claudeperidot", "Pariator")
+  assert not passes("claudeperidot", "Nopersona")
+  assert not ledger.clientCheckPasses({"path": str(tmp_path / "absent.db"), "server": "a", "character": "b"})
+  (tmp_path / "notADatabase.db").write_text("plain text", encoding="utf-8")
+  with pytest.raises(ledger.LedgerError, match="cannot be read as MacroQuest's login.db"):
+    ledger.clientCheckPasses({"path": str(tmp_path / "notADatabase.db"), "server": "a", "character": "b"})
+
+
 def test_aPathUnderTheProfileIsExpanded():
   assert ledger.expandClientPath("~\\LocalProjects\\x") == str(Path.home()) + "\\LocalProjects\\x"
   assert ledger.expandClientPath("S:\\Research") == "S:\\Research"
+
+
+def test_aStepsScriptNeverReachesACommandLine(tmp_path):
+  seen = tmp_path / "commandLine.txt"
+  ledger.runPowerShell(f"$marker = 'stepSecret' + '{uuid.uuid4().hex}'\n"
+    f"[IO.File]::WriteAllText('{seen}', [Environment]::CommandLine + \"`n\" + $marker)")
+  commandLine, marker = seen.read_text(encoding="utf-8").rsplit("\n", 1)
+  assert marker.startswith("stepSecret")
+  assert marker not in commandLine
+  assert "stepSecret" not in commandLine
 
 
 def clientHarness(repository, tmp_path, steps=None):
@@ -87,14 +163,51 @@ def test_aClientChangeRunsItsStepsAndUndoInPowerShellAndRecordsEach(repository, 
   harness.ledger.stage("0001")
   assert harness.ledger.apply("0001") == ["applied 0001-writeNote", "activation: none"]
   assert note.read_bytes() == b"hello"
-  assert changedInCommit(repository) == {"claudeperidot/plan.md"}
+  assert changedInCommit(repository) == {"claudeperidot/plan.md", "claudeperidot/changes/0001-writeNote/intent.json"}
   assert "- [x] 1. Write the note [0001]" in (repository / "plan.md").read_text()
-  assert harness.events[-1] == ("push", gitHead(repository))
+  assert harness.remoteHead() == gitHead(repository)
   assert harness.connections == []
   harness.ledger.revert("0001")
   assert not note.exists()
   assert "- [ ] 1. Write the note [0001]" in (repository / "plan.md").read_text()
   assert git(repository, "log", "-1", "--format=%s").strip() == "Revert 0001-writeNote: A test file exists"
+
+
+def test_theIntentReachesTheRemoteBeforeAStepRuns(repository, tmp_path):
+  harness, note = clientHarness(repository, tmp_path)
+  seen = tmp_path / "remoteAtStep.txt"
+  remote = harness.remote
+  steps = [f"git -C '{remote}' show claude:claudeperidot/changes/0001-writeNote/intent.json | Set-Content -LiteralPath '{seen}'",
+    f"[IO.File]::WriteAllText('{note}', 'hello')"]
+  (repository / "changes/0001-writeNote/change.yaml").unlink()
+  (repository / "changes/0001-writeNote").rmdir()
+  digest = hashlib.sha256(b"hello").hexdigest()
+  writeChange(repository, "0001-writeNote", clientChangeFields(scope=[str(note)], steps=steps,
+    undo=[f"Remove-Item -LiteralPath '{note}'"], checks=[{"path": str(note), "sha256": digest}]))
+  harness.commitAll("steps that look at the remote")
+  harness.ledger.apply("0001")
+  assert '"intent": "applying"' in seen.read_text(encoding="utf-8")
+
+
+def test_aClientApplyInterruptedAfterItsStepsIsFinishedByApplyAgain(repository, tmp_path):
+  harness, note = clientHarness(repository, tmp_path)
+  realRecord = harness.ledger.record
+  calls = []
+
+  def record(paths, message):
+    calls.append(message)
+    if message.startswith("Apply "):
+      raise ledger.LedgerError("the session ended before the record")
+    realRecord(paths, message)
+
+  harness.ledger.record = record
+  with pytest.raises(ledger.LedgerError, match="the session ended before the record"):
+    harness.ledger.apply("0001")
+  harness.ledger.record = realRecord
+  git(repository, "checkout", "--", ".")
+  assert note.read_bytes() == b"hello"
+  assert harness.ledger.apply("0001")[0] == "applied 0001-writeNote (finished the interrupted apply)"
+  assert "claudeperidot/changes/0001-writeNote/intent.json" not in committedFiles(repository)
 
 
 def test_revertRefusesAClientChangeWhoseFilesChangedSinceApply(repository, tmp_path):
@@ -107,12 +220,11 @@ def test_revertRefusesAClientChangeWhoseFilesChangedSinceApply(repository, tmp_p
   assert note.read_bytes() == b"edited by hand"
 
 
-def test_aFailingStepFailsApplyAndRecordsNothing(repository, tmp_path):
+def test_aFailingStepFailsApplyAndLeavesTheIntentRecorded(repository, tmp_path):
   harness, note = clientHarness(repository, tmp_path, steps=["throw 'the step cannot run'"])
-  head = gitHead(repository)
-  with pytest.raises(ledger.LedgerError, match=r"^a PowerShell step failed \(exit 1\): the step cannot run\r?\nAt line:4 "):
+  with pytest.raises(ledger.LedgerError, match=r"^a PowerShell step failed \(exit 1\): the step cannot run"):
     harness.ledger.apply("0001")
-  assert gitHead(repository) == head
+  assert git(repository, "log", "-1", "--format=%s").strip() == "Applying 0001-writeNote: A test file exists"
   assert not note.exists()
 
 
