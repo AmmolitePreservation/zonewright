@@ -1577,10 +1577,12 @@ async def verifiedTour(context, zone):
 
 
 def rowsSafePoint(rowsData, short):
-  """The safe point the zone row holds, zone axes, or None where the rows do not read."""
+  """The safe point the zone row holds, zone axes, or None where there are no rows or they do not read."""
+  if rowsData is None:
+    return None
   try:
     values = serverRows.readRows(rowsData.decode("ascii"), f"{short}.sql")["zoneUpdate"]["values"]
-  except (AttributeError, UnicodeDecodeError, ValueError):
+  except (UnicodeDecodeError, ValueError):
     return None
   return [values["safe_y"], values["safe_x"], values["safe_z"]]
 

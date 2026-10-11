@@ -180,7 +180,7 @@ def boxFromCorners(minimum, maximum):
 def regionFailures(regions, swimVolumes, zoneLines):
   """The .zon's regions against the scene's swim boxes and then its own zone lines, in order: names, centers, and half extents."""
   expected = [(entry["name"], *boxFromCorners(entry["minimum"], entry["maximum"])) for entry in swimVolumes]
-  expected += [(line["name"], *boxFromCorners(line["minimum"], line["maximum"])) for line in zoneLines if "clientContent" not in line]
+  expected += [(line["name"], *boxFromCorners(line["minimum"], line["maximum"])) for line in zoneLinesOwn(zoneLines)]
   failures = []
   for index in range(max(len(regions), len(expected))):
     if index >= len(regions):
