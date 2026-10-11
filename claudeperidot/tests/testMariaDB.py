@@ -48,7 +48,7 @@ payloadsTable = """CREATE TABLE payloads (
   note TEXT CHARACTER SET latin1 NULL,
   payload BLOB NULL,
   path VARCHAR(64) CHARACTER SET latin1 NULL,
-  doubled BIGINT AS (id * 2) VIRTUAL
+  doubled DECIMAL(11,2) AS (amount * 2) VIRTUAL
 ) ENGINE=InnoDB"""
 payloadRows = """INSERT INTO payloads (id, ratio, precise, amount, created, flags, mood, mask, label, note, payload, path) VALUES
   (0, 0.123456789, 0.30000000000000004e0, -12.50, '2026-10-11 09:30:17.250000', 'a,b', 'angry', b'101000000101',
@@ -77,7 +77,7 @@ def payloads(server):
   return server
 
 
-def testLedger(folder, server):
+def ledgerOver(folder, server):
   return ledger.Ledger(folder, lambda: server, ledger.pushBranch)
 
 
@@ -88,7 +88,7 @@ def payloadChange(repository, server, files=None, where="id < 10"):
   (repository / "plan.md").write_text(planText(["- [ ] 1. The payloads [0001]"]), encoding="utf-8")
   git(repository, "add", "-A")
   git(repository, "commit", "-q", "-m", "the change")
-  return testLedger(repository, server)
+  return ledgerOver(repository, server)
 
 
 def exactRows(server):
