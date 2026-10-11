@@ -59,3 +59,6 @@ sightShort = 2.0
 # A floor is looked at this far over it, so a sight to it is not lost in the floor's own faces: a problem's view target and a region's
 # points in a lane view.
 floorSightLift = 1.0
+# A trace view's scale figure stands beside its line of sight, this share of the way from the frame's middle to its edge at her
+# distance, so what lies along the line past her shows.
+figureAside = 0.5
