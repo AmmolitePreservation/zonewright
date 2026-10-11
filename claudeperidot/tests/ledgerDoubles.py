@@ -492,11 +492,12 @@ class FakeMariaDB:
       r"exec mysql (.*) (\w+)'$", command)
     if client:
       options = client.group(1).split()
-      output, errors = self.runClient(script, Session(client.group(2)), "--force" in options, "--comments" in options)
+      exitCode, output, errors = self.runClient(script, Session(client.group(2)), "--force" in options,
+        "--comments" in options)
       for hook in list(self.afterWrite):
         if "gtid_domain_id" in script:
           hook(self)
-      return (1 if errors else 0), output.encode("utf-8"), "".join(errors).encode("utf-8")
+      return exitCode, output.encode("utf-8", "surrogateescape"), "".join(errors).encode("utf-8")
     binaryLog = re.match(r"^sudo -n docker exec -i akk-stack-mariadb-1 sh -c 'export MYSQL_PWD=\"\$MYSQL_ROOT_PASSWORD\"; exec "
       r"mysqlbinlog --read-from-remote-server --host=localhost --user=root --base64-output=decode-rows --verbose "
       r"--start-position=(\d+) --to-last-log ([\w.-]+)'$", command)
@@ -539,26 +540,30 @@ class FakeMariaDB:
     return self.predicate(stripped, row)
 
   def runClient(self, script, session, force, keepComments):
-    """What the mysql client prints for script, and its errors: statements split at the delimiter, DELIMITER honoured,
-    comments removed unless kept, and the first error ending the run unless force."""
+    """The mysql client's exit code for script, what it prints and its errors: each query run as the client sends it, and
+    the first error ending the run with exit code 1 unless force, under which the run goes on and exits 0."""
     output = []
     errors = []
+    exitCode = 0
     try:
-      for line, statement in clientStatements(script):
-        if not keepComments:
-          statement = removeComments(statement)
+      for line, statement in clientStatements(script, keepComments):
         try:
           output.extend(self.runStatement(statement, session))
         except FakeSQLError as error:
           errors.append(f"ERROR {error.code} ({error.state}) at line {line}: {error.message}\n")
           if not force:
+            exitCode = 1
             break
     finally:
       if session.snapshot is not None:
         self.tables = session.snapshot
-    return "".join(line + "\n" for line in output), errors
+    return exitCode, "".join(line + "\n" for line in output), errors
 
-  def runStatement(self, statement, session):
+  def runStatement(self, received, session):
+    """Runs a query as the server received it; its comments matter only to the binary log."""
+    statement = removeComments(received)
+    if not statement:
+      return []
     upper = statement.upper()
     if upper.startswith("SET "):
       self.runSet(statement, session)
@@ -578,7 +583,7 @@ class FakeMariaDB:
       return []
     if upper.startswith(("SELECT", "CHECKSUM", "SHOW")):
       return self.select(statement, session)
-    self.write(statement, session)
+    self.write(received.strip(), statement, session)
     return []
 
   def runSet(self, statement, session):
@@ -743,7 +748,7 @@ class FakeMariaDB:
   def subquery(self, node, session):
     _, selected, inner, alias, tableName, where = node
     if tableName not in self.tables:
-      raise FakeSQLError(1146, "42S02", f"Table 'peq.{tableName}' doesn't exist")
+      raise FakeSQLError(1146, "42S02", f"Table '{session.database}.{tableName}' doesn't exist")
     table = self.tables[tableName]
     derived = []
     for row in table.rows:
@@ -752,7 +757,7 @@ class FakeMariaDB:
     return self.evaluate(selected, session, None, derived)
 
   def select(self, statement, session):
-    special = self.selectSpecial(statement)
+    special = self.selectSpecial(statement, session)
     if special is not None:
       return special
     numbered = re.match(r"^SELECT '(\d{4})', applied FROM \((.*)\) AS ledgerCheck$", statement, re.DOTALL)
@@ -772,12 +777,12 @@ class FakeMariaDB:
     parser.take("WHERE")
     where = statement[parser.peek()[2]:]
     if name not in self.tables:
-      raise FakeSQLError(1146, "42S02", f"Table 'peq.{name}' doesn't exist")
+      raise FakeSQLError(1146, "42S02", f"Table '{session.database}.{name}' doesn't exist")
     table = self.tables[name]
     return ["\t".join(batchField(self.evaluate(node, session, (table, row, {}))) for node in nodes)
       for row in table.rows if self.predicate(where, row) is True]
 
-  def selectSpecial(self, statement):
+  def selectSpecial(self, statement, session):
     columns = re.match(r"^SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IFNULL\(CHARACTER_SET_NAME, ''\), EXTRA FROM "
       r"information_schema\.COLUMNS WHERE TABLE_SCHEMA = DATABASE\(\) AND TABLE_NAME IN \((.*)\) ORDER BY TABLE_NAME, "
       r"ORDINAL_POSITION$", statement)
@@ -799,7 +804,7 @@ class FakeMariaDB:
       return sorted(name for name, table in self.tables.items() if table.tableType == "BASE TABLE")
     checksum = re.match(r"^CHECKSUM TABLE (.*) EXTENDED$", statement)
     if checksum:
-      return [f"peq.{name}\t{self.tableChecksum(name) if name in self.tables else 'NULL'}"
+      return [f"{session.database}.{name}\t{self.tableChecksum(name) if name in self.tables else 'NULL'}"
         for name in re.findall(r"`(\w+)`", checksum.group(1))]
     create = re.match(r"^SHOW CREATE TABLE `(\w+)`$", statement)
     if create:
@@ -821,9 +826,8 @@ class FakeMariaDB:
       total += zlib.crc32(repr([row[column] for column in names]).encode("utf-8"))
     return total & 0xFFFFFFFF
 
-  def write(self, statement, session):
-    tag = re.match(r"^\s*/\*.*?\*/\s*", statement, re.DOTALL)
-    bare = statement[tag.end():] if tag else statement
+  def write(self, statement, bare, session):
+    """Runs a write: bare is the statement without its comments, and statement as received is what the binary log keeps."""
     before = copy.deepcopy(self.tables)
     try:
       if bare in self.mutations:
@@ -852,7 +856,7 @@ class FakeMariaDB:
     if insert:
       table = self.tables[insert.group(1)]
       names = [name.strip().strip("`") for name in insert.group(2).split(",")]
-      for tokens in parseValueRows(insert.group(3)):
+      for tokens in parseValueRows(statement, insert.start(3)):
         if len(tokens) != len(names):
           raise FakeSQLError(1136, "21S01", "Column count doesn't match value count at row 1")
         row = {column.name: None for column in table.columns}
@@ -906,9 +910,15 @@ def comparable(value):
 
 
 def batchField(value):
+  """A value as the mysql client prints it in batch mode: text in the connection's utf8mb4 and binary as its bytes (carried
+  in surrogate escapes), with NUL, tab, newline and backslash escaped."""
   if value is None:
     return "NULL"
-  return stringBytes(value).decode("utf-8", "replace").replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n")
+  data = stringBytes(value)
+  if isinstance(value, (Text, Member)) and value.charset != "binary":
+    data = convert(data, value.charset, "utf8mb4")
+  data = data.replace(b"\\", b"\\\\").replace(b"\0", b"\\0").replace(b"\t", b"\\t").replace(b"\n", b"\\n")
+  return data.decode("utf-8", "surrogateescape")
 
 
 def stripOne(text):
@@ -958,81 +968,135 @@ def splitTopLevel(text, separator):
   return parts
 
 
-def clientStatements(script):
-  """(line, statement) for each statement the mysql client would send: split at the delimiter outside quotes and comments,
-  with DELIMITER lines changing it."""
+clientCommandTakesArgument = {"?": True, "clear": False, "connect": True, "delimiter": True, "edit": False, "ego": False, "exit": False,
+  "go": False, "help": True, "nopager": False, "notee": False, "pager": True, "print": False, "prompt": True, "quit": False,
+  "rehash": False, "source": True, "status": False, "system": True, "tee": True, "use": True, "charset": True,
+  "warnings": False, "nowarning": False}
+
+
+def clientCommand(text, delimiter):
+  """The mysql client command text is, as its name and argument, or None when text is SQL (the client's find_command)."""
+  text = text.lstrip()
+  if delimiter in text and text[:9].lower() != "delimiter":
+    return None
+  word, argument = re.match(r"([^ \t]*)[ \t]*(.*)$", text, re.DOTALL).groups()
+  takesArgument = clientCommandTakesArgument.get(word.lower())
+  if takesArgument is None or argument and not takesArgument:
+    return None
+  return word.lower(), argument
+
+
+def clientStatements(script, keepComments):
+  """(line, query) for each query MariaDB 10.5's mysql client sends for script in batch mode, as its read_and_execute and
+  add_line read it: a query ends at the delimiter outside quotes and comments, and a DELIMITER line changes it. With
+  --comments (keepComments) the client keeps comments and the whitespace after a delimiter, sends a comment that starts a
+  line's query as a query of its own, and lets a line of spaces start a query; without, it drops them. An error names the
+  line the client's buffer last started filling on, so a query that follows another on the same line, or a block comment
+  after a delimiter, names that earlier line. A last query without a delimiter is sent at the end."""
   delimiter = ";"
-  statements = []
-  current = []
-  startLine = None
-  quote = None
-  inBlockComment = False
-  for lineNumber, line in enumerate(script.split("\n"), start=1):
-    if not "".join(current).strip() and not quote and not inBlockComment:
-      current = []
-      startLine = None
-      stripped = line.strip()
-      if stripped.upper().startswith("DELIMITER "):
-        delimiter = stripped.split()[1]
+  queries = []
+  buffer = ""
+  inString = None
+  inComment = False
+  startLine = 0
+
+  def send(text):
+    text = text.rstrip()
+    if not text:
+      return
+    if clientCommand(text, delimiter):
+      raise AssertionError(f"the stand-in does not emulate the client command {text!r}")
+    queries.append((startLine, text))
+
+  lines = script.split("\n")
+  if lines[-1] == "":
+    lines.pop()
+  for number, line in enumerate(lines, start=1):
+    if not buffer:
+      startLine = number
+    if not buffer and not inString and not inComment:
+      command = clientCommand(line, delimiter)
+      if command:
+        name, argument = command
+        if name != "delimiter" or not argument or argument[0] in "'\"`":
+          raise AssertionError(f"the stand-in does not emulate the client command {line!r}")
+        delimiter = argument.split()[0]
         continue
-      if not stripped or stripped.startswith("-- ") or stripped == "--":
-        continue
-    if startLine is None:
-      startLine = lineNumber
+    if not line and not buffer:
+      continue
+    out = ""
     index = 0
-    text = line + "\n"
-    while index < len(text):
-      if inBlockComment:
-        end = text.find("*/", index)
-        if end == -1:
-          current.append(text[index:])
-          index = len(text)
-          continue
-        current.append(text[index:end + 2])
-        index = end + 2
-        inBlockComment = False
-        continue
-      if quote:
-        if text[index] == "\\" and quote != "`":
-          current.append(text[index:index + 2])
-          index += 2
-          continue
-        if text[index] == quote:
-          quote = None
-        current.append(text[index])
+    needSpace = False
+    inVersioned = False
+    while index < len(line):
+      character = line[index]
+      if not keepComments and character.isspace() and not out and not buffer:
         index += 1
-        continue
-      if text.startswith("/*", index):
-        inBlockComment = True
-        current.append("/*")
+      elif not inComment and character == "\\" and inString != "`":
+        if index + 1 == len(line):
+          break
+        if not inString and line[index + 1] != "N":
+          raise AssertionError("the stand-in does not emulate the client command \\" + line[index + 1])
+        out += line[index:index + 2]
         index += 2
-        continue
-      if text.startswith("-- ", index) or text[index] == "#":
-        current.append(text[index:])
-        index = len(text)
-        continue
-      if text[index] in "'\"`":
-        quote = text[index]
-        current.append(text[index])
-        index += 1
-        continue
-      if text.startswith(delimiter, index):
-        statement = "".join(current).strip()
-        if statement:
-          statements.append((startLine, statement))
-        current = []
-        startLine = None
+      elif not inComment and not inString and line.startswith(delimiter, index):
         index += len(delimiter)
-        continue
-      current.append(text[index])
-      index += 1
-  if "".join(current).strip():
-    raise AssertionError(f"an unterminated statement: {''.join(current)!r}")
-  return statements
+        while keepComments and index < len(line) and line[index].isspace():
+          out += line[index]
+          index += 1
+        rest = line[index:]
+        if keepComments and (rest.startswith("#") or rest.startswith("--") and rest[2:3].isspace()):
+          out += rest
+          index = len(line)
+        send(buffer + out)
+        buffer = out = ""
+      elif not inComment and not inString and (character == "#" or line.startswith("--", index) and (
+          index + 2 == len(line) or line[index + 2].isspace() or not buffer and not out)):
+        if not keepComments:
+          buffer += out
+        elif buffer or out:
+          buffer += out + line[index:]
+        else:
+          send(line[index:])
+        out = ""
+        break
+      elif not inString and line.startswith("/*", index) and not line.startswith(("/*!", "/*M!"), index):
+        buffer += out + ("/*" if keepComments else "")
+        out = ""
+        index += 2
+        inComment = True
+      elif inComment and not inVersioned and line.startswith("*/", index):
+        buffer += out + ("*/" if keepComments else "")
+        out = ""
+        index += 2
+        inComment = False
+        needSpace = True
+      else:
+        if not inString and line.startswith("/*!", index):
+          inVersioned = True
+        elif not inString and inVersioned and line.startswith("*/", index):
+          inVersioned = False
+        if inString and character == inString:
+          inString = None
+        elif not inComment and not inString and character in "'\"`":
+          inString = character
+        if not inComment or keepComments:
+          if needSpace and not character.isspace():
+            out += " "
+          needSpace = False
+          out += character
+        index += 1
+    if out or buffer:
+      if not out.lower().startswith("delimiter") or inString or inComment:
+        out += "\n"
+      if not inComment or keepComments:
+        buffer += out
+  send(buffer)
+  return queries
 
 
 def removeComments(statement):
-  """The statement as the mysql client sends it without --comments: plain comments gone, versioned ones kept."""
+  """The statement as the server reads it: each plain comment (block, -- or #) is whitespace; a versioned one is kept."""
   result = []
   index = 0
   quote = None
@@ -1051,7 +1115,14 @@ def removeComments(statement):
     if character in "'\"`":
       quote = character
     elif statement.startswith("/*", index) and not statement.startswith(("/*!", "/*M!"), index):
-      index = statement.index("*/", index) + 2
+      index = statement.index("*/", index + 2) + 2
+      result.append(" ")
+      continue
+    elif character == "#" or statement.startswith("--", index) and statement[index + 2:index + 3] in ("", " ", "\t", "\n",
+        "\r"):
+      end = statement.find("\n", index)
+      index = len(statement) if end == -1 else end
+      result.append(" ")
       continue
     result.append(character)
     index += 1
@@ -1122,20 +1193,27 @@ literalPattern = re.compile(r"\s*(?:(NULL)|('(?:[^'\\]|\\.|'')*')|_(\w+) X'([0-9
   r"(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?))\s*")
 
 
-def parseValueRows(text):
-  """The rows of an INSERT's VALUES list as (kind, payload, charset) tokens."""
+def syntaxError(statement, position):
+  """MariaDB's error for a statement it cannot read at position: the rest of it from there, cut to 80 characters, and the
+  line of the statement that is on."""
+  return FakeSQLError(1064, "42000", "You have an error in your SQL syntax; check the manual that corresponds to your MariaDB "
+    f"server version for the right syntax to use near '{statement[position:position + 80]}' at line "
+    f"{statement.count(chr(10), 0, position) + 1}")
+
+
+def parseValueRows(text, position):
+  """The rows of the VALUES list that starts at position in the INSERT text as (kind, payload, charset) tokens."""
   rows = []
-  position = 0
   while True:
     opening = re.compile(r"\s*\(").match(text, position)
     if not opening:
-      raise FakeSQLError(1064, "42000", f"You have an error in your SQL syntax near '{text[position:position + 40]}'")
+      raise syntaxError(text, position)
     position = opening.end()
     values = []
     while True:
       match = literalPattern.match(text, position)
       if not match:
-        raise FakeSQLError(1064, "42000", f"You have an error in your SQL syntax near '{text[position:position + 40]}'")
+        raise syntaxError(text, position)
       if match.group(1):
         values.append(("null", None, None))
       elif match.group(2) is not None:
@@ -1151,16 +1229,16 @@ def parseValueRows(text):
         position += 1
         continue
       if not text.startswith(")", position):
-        raise FakeSQLError(1064, "42000", f"You have an error in your SQL syntax near '{text[position:position + 40]}'")
+        raise syntaxError(text, position)
       position += 1
       break
     rows.append(values)
-    rest = text[position:].strip()
-    if not rest:
+    following = re.compile(r"\s*").match(text, position).end()
+    if following == len(text):
       return rows
-    if not rest.startswith(","):
-      raise FakeSQLError(1064, "42000", f"You have an error in your SQL syntax near '{rest[:40]}'")
-    position = text.index(",", position) + 1
+    if not text.startswith(",", following):
+      raise syntaxError(text, following)
+    position = following + 1
 
 
 def literalNumber(text):
