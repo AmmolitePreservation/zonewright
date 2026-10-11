@@ -6,11 +6,11 @@ claudeperidot is Claude's own EQEmu server: a faithful copy of Peridot on a LAN-
 
 ## In progress
 
-10. Measure the spare's first and second zone load on the HDD before relying on it; at first launch confirm Logs\dbg.txt reads Total Virtual: 4095, and watch 30 or more zone loads
+14. The rest of the claudelink commands and its MCP tools, with claudelink managing the frame limiter (owner's answer 14); the first calibration shot
 
 ## Next
 
-13. First launch through claudelink, without activating the window: injection, focus never stolen, MQ2EQBC behaviour, affinity and CPU; the account, made by the first login (play); a character with Pariator's race and gender, written by the ledger because the link loads only once a character is in the world; GM fixture: that account's status 255 (a row change on account, whose saved rows stay on claudeperidot); MQ2AutoLogin's login.db rows as a client change checked by the persona row, which play writes [0014, 0015, 0016]
+15. Retire the EQBCS route for Claude's work once a claudelink shot matches one of the owner's screenshots
 
 ## Steps
 
@@ -26,10 +26,10 @@ Each step is ticked when it is done. A step that names ledger changes in bracket
 - [x] 7. Seeded: Peridot's two untracked quest files committed on the quests checkout's local claude branch (39f68e9); Peridot's whole peq streamed (peq-20261011T180850Z.sql.gz, 35.7 MB, live secrets included as the owner chose) and loaded: 273 tables, 5 views, db_version 9325/0/0; world booted once (no migrations, 1,001 rules, expansion 4) and stopped; the Proxmox snapshot baseline taken with the server stopped; `ledger.py seed --baseline` recorded 151 watched tables at mysql-bin.000007:121167
 - [x] 8. Expansion fixture: Expansion:CurrentExpansion 19 (Rain of Fear, owner's answer 1) in ruleset 1 default, set with world and zones stopped, then started; its revert puts back Peridot's 4 [0011]
 - [x] 9. Spare client S:\Research\EverQuest\housingclient: the copy, eqhost.txt, the large-address flag and eqclient.ini (owner's answers 9 to 11) [0001, 0002, 0003, 0004]
-- [ ] 10. Measure the spare's first and second zone load on the HDD before relying on it; at first launch confirm Logs\dbg.txt reads Total Virtual: 4095, and watch 30 or more zone loads
+- [x] 10. Measure the spare's first and second zone load on the HDD before relying on it; at first launch confirm Logs\dbg.txt reads Total Virtual: 4095, and watch 30 or more zone loads (2026-10-11): from #zone to arrival, highpasshold 5.4 s first and 3.7 s second, commonlands 12.5 s cold and 4.7 s once Windows had its files cached; 36 loads of 12 zones in one session, each 2.3 to 6.1 s, with every dbg.txt memory line at Total Virtual: 4095, Avail Virtual never below 2,572 MB (it settles near 2,600) and the largest free block 2,045 MB throughout
 - [x] 11. MQClaudeLink junctioned into the owner's MacroQuest tree and built into its plugins folder (owner's answers 12 and 13) [0005]
 - [x] 12. Credential claudeperidot/eqLogin (a client change: its step generates the password and stores it with CredWrite, never on a command line; its check is the credential's existence), and Claude's MacroQuest cfg: MQ2EQBC and mq2netbots unloaded and MQClaudeLink loaded, each with noauto [0012, 0013]
-- [ ] 13. First launch through claudelink, without activating the window: injection, focus never stolen, MQ2EQBC behaviour, affinity and CPU; the account, made by the first login (play); a character with Pariator's race and gender, written by the ledger because the link loads only once a character is in the world; GM fixture: that account's status 255 (a row change on account, whose saved rows stay on claudeperidot); MQ2AutoLogin's login.db rows as a client change checked by the persona row, which play writes [0014, 0015, 0016]
+- [x] 13. First launch through claudelink, without activating the window: injection, focus never stolen, MQ2EQBC behaviour, affinity and CPU; the account, made by the first login (play); a character with Pariator's race and gender, written by the ledger because the link loads only once a character is in the world; GM fixture: that account's status 255 (a row change on account, whose saved rows stay on claudeperidot); MQ2AutoLogin's login.db rows as a client change checked by the persona row, which play writes (2026-10-11): MacroQuest injected the spare 1 to 4 s after start; its window opened on DISPLAY2 and the foreground never moved in three sessions; affinity 0xffff, normal priority, about 2% of one core in game in the background; MQ2EQBC and mq2netbots unloaded by the cfg before their game-state handlers (no TCP connection from the spare); account 86 made by the first login; Claudewright, human male wizard; #goto and #zone answered from the link's command [0014, 0015, 0016]
 - [ ] 14. The rest of the claudelink commands and its MCP tools, with claudelink managing the frame limiter (owner's answer 14); the first calibration shot
 - [ ] 15. Retire the EQBCS route for Claude's work once a claudelink shot matches one of the owner's screenshots
 - [ ] 16. Experiments through the ledger; close every session as the README says
