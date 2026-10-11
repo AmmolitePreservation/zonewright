@@ -52,7 +52,7 @@ laneMagic = b"ZWLANE01"
 moveNames = ("unreached", "seed", "walk", "drop", "slide", "enterWater", "swim", "climbOut", "sink", "teleport")
 labelNames = ("unreached", "walk", "swim", "slide", "squeeze", "zoneLine")
 unreachedLabel, walkLabel, swimLabel, slideLabel, squeezeLabel, zoneLineLabel = range(6)
-wetShape, walkableShape, absorbedShape, touchesLineShape, boundaryShape = 1, 2, 4, 8, 16
+wetShape, walkableShape, absorbedShape, touchesLineShape, boundaryShape, shallowShape = 1, 2, 4, 8, 16, 32
 reachedFullState, reachedState, trapState, fromSafeState, toSafeState, openState = 1, 2, 4, 8, 16, 128
 voidEvent, belowUnderworldEvent, absorbedEvent = 1, 2, 3
 seedKinds = ("safePoint", "zoneIn", "landing")
@@ -64,10 +64,6 @@ notModeled = [
   "jumps", "levitation", "the camera",
   "doors: taken as open, though the RoF2 client collides with a door in its closed position, so a closed door can block a way the lane shows",
   "NPCs", "players wider than a point (playerRadius is unmeasured): a gap narrower than a player reads as passable",
-  "swimming depth: in the RoF2 walk the client swam a player only where the water over the floor was deeper than his avatarHeight (3.75"
-  " for the walked human, playerScale.sources) and then floated him 0.10 under the box's top; avatarHeight is not in playerScale, so the"
-  " lane swims in a box at any depth: shallow water's floor is labelled swim, and a swimmer there climbs out onto floor up to the box's"
-  " top + stepHeight where a wading player climbs stepHeight over the floor, which errs toward reach",
 ]
 
 
@@ -76,18 +72,21 @@ def smallestPlayerHeight():
 
 
 def movement():
-  """The movement the lane floods by, from playerScale: the step, the design player's height, the walkable normal z, and the
-  containment headroom (smallestPlayerHeight, or one cell height while it is unmeasured)."""
+  """The movement the lane floods by, from playerScale: the step, the design player's height, the walkable normal z, the depth of water
+  players swim in, and the containment headroom (smallestPlayerHeight, or one cell height while it is unmeasured)."""
   smallest = smallestPlayerHeight()
   return {
     "stepHeight": playerScale.stepHeight, "playerHeight": playerScale.playerHeight, "walkableNormalZ": playerScale.walkableNormalZ,
-    "containmentHeadroom": reachGrid["cellHeight"] if smallest is None else smallest,
+    "minimumSwimDepth": playerScale.minimumSwimDepth, "containmentHeadroom": reachGrid["cellHeight"] if smallest is None else smallest,
   }
 
 
 def constantsReport():
   """Each constant the lane used, with its value and its playerScale source."""
-  used = {name: {"value": getattr(playerScale, name), "source": playerScale.sources[name]} for name in ("playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight")}
+  used = {
+    name: {"value": getattr(playerScale, name), "source": playerScale.sources[name]}
+    for name in ("playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight", "minimumSwimDepth")
+  }
   smallest = smallestPlayerHeight()
   used["smallestPlayerHeight"] = (
     {"value": None, "source": f"absent: containment floods with one cell height ({reachGrid['cellHeight']:g}) of headroom, which only adds reach"}
@@ -106,6 +105,13 @@ def limits(lane, underworld, boundariesKnown):
     f" the design player with playerHeight {playerScale.playerHeight:g}; what only the smaller fits is labelled squeeze",
     f"players enter a swim box whose bottom lies within playerHeight ({playerScale.playerHeight:g}) of the floor, so a box floating higher is"
     " entered only from above: an assumption, as a taller race may reach a box set higher",
+    f"the design player swims only where the water stands deeper than minimumSwimDepth ({playerScale.minimumSwimDepth:g}) over the floor,"
+    " from the top of the boxes touching one over another there, and wades the bed where it is shallower, as the walked human did;"
+    " containment and the traps swim in a box at any depth, since a smaller race may float in shallower water, so what only that reaches"
+    " is labelled squeeze; a column's floor is taken from the bottom of the cell its top lies in, which errs toward swimming by up to"
+    " one cell height",
+    f"a swimmer climbs out onto walkable floor up to the box's top + stepHeight ({playerScale.stepHeight:g}): an assumption erring toward"
+    " reach, as in the RoF2 walk a swimmer floated with his feet about 3.85 under the box's top",
     f"swimming between columns takes {headroom:g} of open overlap, an assumption until the bot measures it",
     "a zone line takes a player whose floor point (the column's center, one cell height over the floor) lies in its box: the client's own"
     " test point is unmeasured, so the lane errs toward reach continuing",
@@ -330,7 +336,7 @@ def sceneDescription(inputPath):
   swimBoxes = []
   for box in scene["swimBoxes"]:
     low, high = zoneBox(box["center"], box["halfExtents"])
-    swimBoxes.append({"name": box["name"], "low": low, "high": high})
+    swimBoxes.append({"name": box["name"], "low": low, "high": high, "liquid": box["liquid"]})
   return triangles, boundary, {
     "swimBoxes": swimBoxes, "zoneLines": zoneLines, "seeds": seeds, "plotEntrances": plots, "regions": scene["regions"],
     "underworld": scene["underworld"], "undecidedBodies": bodies, "notFollowed": scene["notFollowed"], "boundariesKnown": True,
@@ -396,7 +402,7 @@ def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress
     low, high = zoneBox(record["position"], numpy.asarray(record["halfExtents"]) * numpy.asarray(record["scale"]))
     name = f".wtr record {index} ({serverMapFiles.waterRegionTypeNames.get(record['type'], record['type'])})"
     if record["type"] in (1, 2):
-      swimBoxes.append({"name": name, "low": low, "high": high})
+      swimBoxes.append({"name": name, "low": low, "high": high, "liquid": "water" if record["type"] == 1 else "lava"})
     elif record["type"] == 3:
       zoneLines.append({"name": name, "low": low, "high": high, "landing": None, "target": None})
     else:
@@ -423,7 +429,8 @@ def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress
 
 class Nodes:
   """A lane's nodes as arrays: each one's plan cell (x along Recast x, zone y; z along Recast z, zone x), height (a floor node's floor,
-  a wet node's the middle of its water), and label, with the lane's per-node state."""
+  a wet node's the middle of its water), and label, with the lane's per-node state. Labels are the design player's: a floor under water
+  he wades is walked, and that water, which only containment swims in, is squeeze."""
 
   def __init__(self, lane):
     self.lane = lane
@@ -439,6 +446,7 @@ class Nodes:
     self.low, self.high = lane.read("low"), lane.read("high")
     self.box, self.shape, self.state = lane.read("box"), lane.read("shape"), lane.read("state")
     self.wet = (self.shape & wetShape) != 0
+    self.shallow = (self.shape & shallowShape) != 0
     self.walkable = (self.shape & walkableShape) != 0
     self.reached = (self.state & reachedState) != 0
     self.trap = (self.state & trapState) != 0
@@ -448,7 +456,7 @@ class Nodes:
     label = numpy.zeros(lane.nodeCount, dtype=numpy.uint8)
     label[self.reached & ~self.walkable] = slideLabel
     label[self.reached & self.walkable] = walkLabel
-    label[self.reached & (self.wet | (self.box >= 0))] = swimLabel
+    label[self.reached & (self.wet | (self.box >= 0)) & ~self.shallow] = swimLabel
     label[self.reached & ((self.state & reachedFullState) == 0)] = squeezeLabel
     label[self.reached & ((self.shape & absorbedShape) != 0)] = zoneLineLabel
     self.label = label

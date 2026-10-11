@@ -61,3 +61,5 @@ def testPlayerScaleNamesASourceForEveryConstant():
   # A measured limit's source states the value taken from it.
   assert f"(normal z {playerScale.walkableNormalZ:g})" in playerScale.sources["walkableNormalZ"]
   assert f"to {playerScale.stepHeight:.2f}" in playerScale.sources["stepHeight"]
+  assert "(3.74, 4.59]" in playerScale.sources["minimumSwimDepth"] and f"is his avatarHeight, {playerScale.minimumSwimDepth:.2f}," in playerScale.sources["minimumSwimDepth"]
+  assert 3.74 < playerScale.minimumSwimDepth <= 4.59

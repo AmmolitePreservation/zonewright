@@ -104,11 +104,10 @@ def limits(far, targeted):
   stated = [
     "eyes stand on the lane: on reached walkable floor, eyeHeight over the ground at its column's middle (found as standAt finds it,"
     " within seedTolerance of the lane's floor as a seed's footing is of its node, so a column whose middle lies off the floor crossing"
-    " it, at a deck's or an arch's edge, holds none), and on reached water open to the air, swimming at swimEyeAboveSurface over its"
-    " box's top where the water over the floor is deeper than"
-    " eyeHeight - swimEyeAboveSurface, else wading at eyeHeight over the floor, as renderView's standAt views stand a player; the RoF2"
-    " client swims a player only where the water is deeper than his avatarHeight (3.75 for the walked human), which playerScale does not"
-    " hold; floor only a smaller player reaches holds none",
+    " it, at a deck's or an arch's edge, holds none), and on reached water open to the air the design player swims in (deeper than"
+    " minimumSwimDepth over the floor), swimming at swimEyeAboveSurface over its box's top where the water over the floor is deeper than"
+    " eyeHeight - swimEyeAboveSurface, else wading at eyeHeight over the floor, as renderView's standAt views stand a player; water"
+    " shallower than minimumSwimDepth is waded, its floor walked; floor only a smaller player reaches holds none",
     f"eyes look no farther than the far sight, {far:g}: maxClip, or the fog's end when fog is on and nearer",
   ]
   if targeted:

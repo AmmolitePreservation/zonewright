@@ -431,7 +431,9 @@ def testSectionDrawsTheLane(stageBlenderServer, tmp_path):
   (lanedImage, laned), (plainImage, plain), (leakingImage, leaking) = stageBlenderServer.session(steps)
   section = Image.open(io.BytesIO(lanedImage))
   section.save(tmp_path / "courseSection.png")
-  assert "laneState" not in plain and Image.open(io.BytesIO(plainImage)).height == planDrawing.sectionSize[1] and section.height > planDrawing.sectionSize[1]
+  # Both carry a legend band under the section; the lane's adds its own entries to the section's.
+  plainHeight = Image.open(io.BytesIO(plainImage)).height
+  assert "laneState" not in plain and plainHeight > planDrawing.sectionSize[1] and section.height > plainHeight
   cut = json.loads(Path(laned["laneState"]["laneCut"]).read_text())
   assert laned["laneState"]["counts"] == {kind: len(marks) for kind, marks in cut.items()}
 

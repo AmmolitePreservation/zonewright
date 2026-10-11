@@ -2459,14 +2459,14 @@ async def renderSketch(
   named inside itself where its name fits clear of the other labels, else by its number; `unnamedSwimVolumes` lists those in the
   drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled),
   zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problems
-  and regions, over the regions' fills and the caves' pale floors and under the caves' walls: walk green, swim blue, slide orange,
-  squeeze pink, taken by a zone line yellow, traps hatched orange, walkable floor never reached cross-hatched (alone, or over a level
-  reached under it), ledges dark, leak edges magenta, zone lines hatched when reached, seeds as white arrows, with a legend in a band
-  under the plan of what it shows; the result's laneState says whether the lane was computed or reused, the constants it used, what it
-  does not model, and its limits). A cave run's end its cut rounded off closes in a half circle; `caveEndsUnknown` names the caves cut
-  before their records kept which ends were rounded, whose ends are drawn open (cut them again with editCave). Labels are placed clear
-  of one another, and beside the spot heights rather than over them where they can be; an area is named only where it reaches into the
-  drawing. frameSize is the plan's size in pixels, above any legend band."""
+  and regions, over the regions' fills and the caves' pale floors and under the caves' walls: walk green, swim blue, water waded lined
+  blue, slide orange, squeeze pink, taken by a zone line yellow, traps hatched orange, walkable floor never reached cross-hatched (alone,
+  or over a level reached under it), ledges dark, leak edges magenta, zone lines hatched when reached, swim boxes dashed, seeds as white
+  arrows, with a legend in a band under the plan of what it shows; the result's laneState says whether the lane was computed or reused,
+  the constants it used, what it does not model, and its limits). A cave run's end its cut rounded off closes in a half circle;
+  `caveEndsUnknown` names the caves cut before their records kept which ends were rounded, whose ends are drawn open (cut them again
+  with editCave). Labels are placed clear of one another, and beside the spot heights rather than over them where they can be; an area
+  is named only where it reaches into the drawing. frameSize is the plan's size in pixels, above any legend band."""
   if len(center) != 2 or width <= 0:
     raise ToolError(f"center is [x, y] and width positive, got {center} and {width}")
   zone = await callBridge(context, "getZoneProperties", {})
@@ -2659,7 +2659,7 @@ async def fittedLanePlan(context, framing, lanePlan, sky):
 async def viewFromLane(context: Context, target: str | list[float] | None = None, count: int | None = None):
   """See the zone as players see it, from the lane (mapReach): eyes stand where players reach, never where only a smaller player fits,
   on reached walkable floor (eyeHeight over the ground the zone ships at the column's middle, where that ground is the lane's floor as
-  a seed's footing is its node's) or in a swim box's water open to the air
+  a seed's footing is its node's) or in a swim box's water open to the air where the design player swims, deeper than minimumSwimDepth
   (swimming, swimEyeAboveSurface over the box's top, where the water over the floor is deeper than eyeHeight - swimEyeAboveSurface, else
   wading, eyeHeight over the floor, as renderView's standAt views stand a player), and look no farther than the far sight (maxClip, or
   the fog's end when fog is on and nearer). Without a target, a tour: `count` eyes (at most 8, and 8 unless given) from one candidate
@@ -2929,7 +2929,8 @@ async def renderSection(
   (green boxes), and caves (purple): a run going along the line as its floor (solid) and vault (dashed) as designed, its floor strokes
   as bars (level ways green at the floor, pads orange at their tops, rough ground brown dashed at its rise where the line passes over
   it), its landings and the junctions where branches leave it marked; a run crossing the line as a dashed box from its floor to its
-  vault, as long as its width crosses the line; each named just above, with a height grid and the distance along the line. For judging
+  vault, as long as its width crosses the line; each named just above, with a height grid (heightStep, finer than the distance's
+  gridStep where the section is low) and the distance along the line, and a legend band under the section naming what it draws. For judging
   what plans cannot show: a cave's climb, landings, and headroom, one passage over another and the rock between, swim volumes against
   the surface and the bed, a plot's pad against the slope, stacked floors and the stairs between them, an arch's span, a wall's height
   over the ground and a lid's over a path. Refused: no line, or more than one; a path under two points or with two in one place; an
@@ -2939,14 +2940,14 @@ async def renderSection(
   standing just over its height in its label's color (walk green, swim blue for a floor in a swim box, slide orange, squeeze pink,
   taken by a zone line yellow), reached water as a blue band from its bottom to its top across its swim box, walkable floor never
   reached dashed grey, a floor's ends kept to the block's edge where the lane's columns run past it, and leak edges as magenta ticks
-  down from the floor a fall onto nothing or under the underworld starts from, with a legend in a band under the section of what it
-  shows, the section's own layers among them; its laneState gives whether the lane was computed or reused, the constants, what is not
+  down from the floor a fall onto nothing or under the underworld starts from, each named in the legend band with the section's own
+  layers; its laneState gives whether the lane was computed or reused, the constants, what is not
   modelled, and the limits as mapReach does, the counts of each, and laneCut, a file holding them (s along the line, z height,
   label)."""
   outputPath, cuts, drawn, laneState = await drawnSection(context, {"start": start, "end": end, "path": path, "cave": cave, "bottom": bottom, "top": top}, layers)
   summary = {
     "outputPath": str(outputPath), "length": cuts["length"], "bottom": cuts["bottom"], "top": cuts["top"], "bends": cuts["bends"],
-    "gridStep": drawn["gridStep"], "unitsPerPixel": drawn["unitsPerPixel"], "groundSegments": len(cuts["ground"]), "groundAtJoins": cuts["groundAtJoins"],
+    "gridStep": drawn["gridStep"], "heightStep": drawn["heightStep"], "unitsPerPixel": drawn["unitsPerPixel"], "groundSegments": len(cuts["ground"]), "groundAtJoins": cuts["groundAtJoins"],
     "closedSpaces": planDrawing.closedLoops(cuts["ground"]),
     "water": [{"name": entry["name"], "levels": [min(min(z0, z1) for _, z0, _, z1 in entry["segments"]), max(max(z0, z1) for _, z0, _, z1 in entry["segments"])]} for entry in cuts["water"]],
     "swim": cuts["swim"],
@@ -2962,12 +2963,14 @@ async def renderSection(
 
 async def drawnSection(context, line, layers, marks=None, traced=None):
   """A section along line ({start, end, path, cave, bottom, top}) drawn with its layers, the lane's among them when asked for (the open
-  scene's, or traced: a lane already read, as (lane, description, status, seconds, nodes)), with marks on it (laneDrawing.SectionLane):
-  (path, cuts, drawn, laneState or None)."""
+  scene's, or traced: a lane already read, as (lane, description, status, seconds, nodes)), with marks on it (laneDrawing.SectionLane),
+  and a legend band under it naming what it draws: (path, cuts, drawn, laneState or None)."""
   cuts = await callBridge(context, "sectionCuts", line | {"layers": [layer for layer in layers if layer != "lane"]})
   outputPath = newRenderPath()
   if "lane" not in layers:
-    return outputPath, cuts, await anyio.to_thread.run_sync(planDrawing.drawSection, outputPath, cuts), None
+    drawn = await anyio.to_thread.run_sync(planDrawing.drawSection, outputPath, cuts)
+    await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, laneDrawing.sectionLayerLegend(cuts))
+    return outputPath, cuts, drawn, None
   if traced is None:
     lane, description, status, seconds = await sceneLaneOnly(context)
     nodes = await anyio.to_thread.run_sync(playerReach.Nodes, lane)
@@ -2995,14 +2998,17 @@ async def caveProfile(profileCuts):
 
 @guardedTool()
 async def buildSwimVolumes(context: Context, body: str, area: dict | None = None, replaceEdited: bool = False):
-  """Starting swim volumes for a pool or river: boxes over its grid where its surface covers water over the bed, grouped while their
-  tops stay within a unit of the surface, bottoms 4 under the deepest bed below them (stopping a unit over any open space under the
-  bed, a cave below the water). They are named for the .zon regions they become (AWT_ water, ALV_ lava) and kept in "swimVolumes" as
-  boxes to look at and adjust by hand (transformObjects, duplicateObjects, deleteObjects; placeSwimVolume adds one). area ({"circle":
-  ...} or {"polygon": ...}) builds only inside it. A rebuild replaces the body's generated boxes there and refuses over boxes edited or
-  placed by hand unless replaceEdited. The result gives the body's state and findings (surface left uncovered, a top away from the
-  surface, ground rising to the top inside a box, a box mostly without the body's water over it): things to look at, never errors,
-  since a box need not match a surface."""
+  """Starting swim volumes for a pool or river: boxes over its grid where its surface covers water deeper than players swim in
+  (playerScale minimumSwimDepth, at the deepest of a cell's middle and corners: in the RoF2 client a player waded shallower water and
+  swam deeper, so those cells are left out and counted in shallowCells), grouped while their tops stay within a unit of the
+  surface, bottoms 4 under the deepest bed below them (stopping a unit over any open space under the bed, a cave below the water). They
+  are named for the .zon regions they become (AWT_ water, ALV_ lava) and kept in "swimVolumes" as boxes to look at and adjust by hand
+  (transformObjects, duplicateObjects, deleteObjects; placeSwimVolume adds one). area ({"circle": ...} or {"polygon": ...}) builds only
+  inside it. A rebuild replaces the body's generated boxes there and refuses over boxes edited or placed by hand unless replaceEdited;
+  a body with no water deeper than players swim in is refused, changing nothing (mark it not swimmable), and so is an area holding
+  none, named in the refusal. The result gives the body's
+  state and findings (water deep enough to swim in left uncovered, a top away from the surface, ground rising to the top inside a box,
+  a box mostly without the body's water over it): things to look at, never errors, since a box need not match a surface."""
   return await callBridge(context, "buildSwimVolumes", {"body": body, "area": area, "replaceEdited": replaceEdited})
 
 
@@ -3235,28 +3241,32 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   """Where players can go in the zone, as the lane: every place reached from where players arrive (the safe point and the stored zoneIn
   and landing entries, each on the lane's node at its footing) by walking (floors within the step of each other, faces no steeper than
   walkable), dropping off ledges, sliding down steeper faces (only down), entering a swim box whose bottom lies within a player's height
-  of the floor, swimming between touching boxes, sinking, climbing out onto floor up to the step over a box's top, and being carried by
+  of the floor (the design player only where the water over the floor, up to the top of the boxes touching over it, is deeper than
+  playerScale minimumSwimDepth, walking the bed of shallower water; containment, for a smaller race that may float in shallower water,
+  at any depth, what only that reaches being squeeze), swimming between touching boxes, sinking, climbing out onto floor up to the step over a box's top, and being carried by
   a zone line leading back into the zone; a zone line's box takes whoever reaches it, and any move onto floor under the underworld is a
   leak. Computed by the Recast helper over what the zone ships
   (the archive's collision: no reference content, guides, regions, or what players pass through) on a grid of columns (reachGrid), for
   the whole zone at once, and reused while nothing it depends on changed. Picture 1, the lane plan over renderSketch's relief, `width`
   across about `center` (default: everything the zone ships), with only the nodes whose height lies in `level` {bottom, top} when given
-  (caves, stacked floors): walk green, swim blue, slide orange, squeeze (only a smaller player fits) pink, taken by a zone line yellow,
-  traps (one way in, no way back) hatched orange, walkable floor never reached (open space joins it to the lane) cross-hatched dark,
-  alone or over a level reached under it, columns reached at a level under a higher one dotted (pink where only a smaller player fits
-  under it), ledges (reached floors side by side more than a step apart: a platform's or roof's edge) dark, leak edges (a fall onto
-  nothing, or any move under the underworld) magenta, edges where a zone line catches a fall green, zone lines hatched green and named
-  when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X when unreached),
-  water and swim boxes, boundaries red, region outlines in their access colors under them, and the problems ringed (round the seed or
-  plot mark they lie on) and numbered over their rings, with a legend band under the plan naming what it shows (plan.frameSize is the
-  plan's own size in pixels; the whole zone is framed with a fifth of its size to spare). Picture 2 (problemViews, when there are
+  (caves, stacked floors): walk green, swim blue, water the design player wades lined blue over its floor's fill, slide orange, squeeze
+  (only a smaller player fits) pink, taken by a zone line yellow, traps (one way in, no way back) hatched orange, walkable floor never
+  reached (open space joins it to the lane) cross-hatched dark, alone or over a level reached under it, columns reached at a level under
+  a higher one, or under water standing clear of it, dotted (pink where only a smaller player fits under it), ledges (walkable floors
+  reached side by side more than the step apart, where the plan resolves columns: a platform's or roof's edge) dark, leak edges (a fall
+  onto nothing, or any move under the underworld) magenta, edges where a zone line catches a fall green, zone lines hatched green and
+  named when reached and dashed when not, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X when
+  unreached), water, swim boxes dashed over the fill, boundaries red, region outlines in their access colors under them, and the problems
+  ringed (round the seed or plot mark they lie on) and numbered over their rings, with a legend band under the plan naming what it shows
+  and the relief (plan.frameSize is the plan's own size in pixels; the whole zone is framed with a fifth of its size to spare;
+  plan.unnamedSwimVolumes the boxes in it too small for their names). Picture 2 (problemViews, when there are
   problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
   its problem (ringed in the middle of the view) from a clear sight framing it, the eye raised no more than it must be and turned from
   the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives the constants used (value and source),
   what is not modelled and the lane's limits, reachGrid, whether the lane was computed or reused and the seconds, each entry and
   whether it is connected (reached from the safe point and reaching back), the reached area by label, per region its access, reached
   share of its play floor, and unreached play floor (walkable floor open space joins to the lane, never a boundary's top or floor under
-  the underworld), zone lines, plot entrances, and swim boxes reached or not, and the problems, numbered, each with its kind, center,
+  the underworld), zone lines, plot entrances, and swim boxes reached or not (a box players walk through is reached), and the problems, numbered, each with its kind, center,
   extent, area or length, and region: leaks (voidEdge, belowUnderworld, noneRegion, outsideRegions), disconnectedEntry, unreachedPlot,
   trap, viewRegion, unreachedZoneLine, unreachedSwim, unreachedPlayFloor, and undecidedWater (a pool or river without swim boxes whose
   bed is walked); the largest twenty of a kind are listed, the rest counted in moreProblems. Refused:
@@ -3284,7 +3294,7 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   result = playerReach.report(lane, description, analysis, status, seconds)
   result["plan"] = {
     "outputPath": str(planPath), "center": center, "width": round(planWidth, 2), "unitsPerPixel": round(planWidth / drawn["size"][0], 4), "level": level,
-    "frameSize": drawn["size"],
+    "frameSize": drawn["size"], "unnamedSwimVolumes": drawn["unnamedSwimVolumes"],
   }
   images = [Image(data=planPath.read_bytes(), format="png")]
   result["problemSheet"] = None

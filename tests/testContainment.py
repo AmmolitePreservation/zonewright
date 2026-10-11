@@ -20,7 +20,7 @@ import serverMapDrawing
 import serverMapFiles
 import serverNav
 import serverRows
-from playerScale import playerHeight, steepestWalkableDegrees, stepHeight
+from playerScale import minimumSwimDepth, playerHeight, steepestWalkableDegrees, stepHeight
 from testHousing import decision
 from testModelsAndDressing import freshScene
 from testReach import centersWithin, columnsWithin, cube, near, rampAlongY, rectangle, region
@@ -403,6 +403,8 @@ def testLaneFindingsAndLeaksPastMapReachsListAreStated(stageBlenderServer, tmp_p
   short = "findings"
   keepOuts = [(x, y) for x in (-60, -40, -20, 0, 20, 40, 60) for y in (-20, -40, -60)]
   pool = [-50, 12]
+  # Carved deep enough at its middle that players swim there, under a water level 1 down.
+  poolDepth = minimumSwimDepth + 4
 
   async def steps(session):
     await containedZone(session, tmp_path, short, seeds=False)
@@ -411,7 +413,7 @@ def testLaneFindingsAndLeaksPastMapReachsListAreStated(stageBlenderServer, tmp_p
     for index, (x, y) in enumerate(keepOuts):
       await region(session, f"keepOut{index}", rectangle([x - 2, y - 2], [x + 2, y + 2]), "none", bottom=-20, top=40)
     await liquidMaterials(session, tmp_path)
-    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[*pool, -4]], "radius": 12, "strength": 1, "profile": [[0, 0], [1, 4]], "conformRim": False})
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[*pool, -poolDepth]], "radius": 12, "strength": 1, "profile": [[0, 0], [1, poolDepth]], "conformRim": False})
     await session.expectSuccess("floodWater", {"name": "pool", "seed": pool, "level": -1, "material": "water"})
     await session.expectSuccess("buildSwimVolumes", {"body": "pool"})
     await session.expectSuccess("placeZoneLine", {"number": 2, "label": "pool", "minimum": [pool[0] - 4, pool[1] - 4, -6], "maximum": [pool[0] + 4, pool[1] + 4, 2], "target": otherZone})
@@ -427,7 +429,9 @@ def testLaneFindingsAndLeaksPastMapReachsListAreStated(stageBlenderServer, tmp_p
   assert kept[-1]["more"]["count"] == len(keepOuts) - listed
   assert kept[-1]["message"] == f"{len(keepOuts) - listed} more noneRegion problems than mapReach lists (the largest {listed} of each kind)"
   findings = {finding["finding"]: finding for finding in checked["findings"]}
-  assert (findings["zone line in a swim box"]["zoneLine"], findings["zone line in a swim box"]["swimBox"]) == ("ATP_2_pool", "AWT_pool01")
+  # The zone line overlaps the pool's boxes, one finding for each.
+  overlaps = [(finding["zoneLine"], finding["swimBox"]) for finding in checked["findings"] if finding["finding"] == "zone line in a swim box"]
+  assert overlaps and {line for line, _ in overlaps} == {"ATP_2_pool"} and all(box.startswith("AWT_pool") for _, box in overlaps), overlaps
   assert findings["no zoneIn entries"]["message"].startswith("No zoneIn entry says where a neighbour's zone line lands players")
   # Only a player shorter than playerHeight passes under the ramp, between its foot and the platform.
   squeeze = findings["squeeze reach"]

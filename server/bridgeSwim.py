@@ -1,7 +1,7 @@
 """Swim volumes: the boxes where the client lets players swim (the .zon's AWT_ water and ALV_ lava regions), designed as objects an
-artist places and adjusts and never derived at export. A generator gives a pool or river starting boxes from its surface and bed; hand
-edits are kept, and a body changed since its boxes were accepted is reported. A box need not match any surface: a floating pool is
-design. Runs under Blender's Python."""
+artist places and adjusts and never derived at export. A generator gives a pool or river starting boxes from its surface and bed, over
+water deep enough to swim in (playerScale.minimumSwimDepth); hand edits are kept, and a body changed since its boxes were accepted is
+reported. A box need not match any surface: a floating pool is design. Runs under Blender's Python."""
 import hashlib
 import json
 import math
@@ -15,6 +15,7 @@ import bridgeMeshAccess
 import bridgeObjects
 import bridgeSurfacing
 import bridgeWater
+import playerScale
 
 swimCollectionName = "swimVolumes"
 volumePrefixes = {"water": "AWT_", "lava": "ALV_"}
@@ -77,15 +78,16 @@ def liquidOfBody(body):
 
 
 def bodyCells(body, ground, area=None):
-  """The body's grid cells whose middles its surface covers with water over the bed: (i, j) -> (surface level, box floor, whether a
-  ceiling held the floor up). A cell's floor lies volumeFloorMargin under the deepest bed at its middle and corners, but stays
-  ceilingClearance above any open space found under that bed."""
+  """The body's grid cells whose middles its surface covers with water over the bed deeper, at the deepest of the cell's middle and
+  corners, than players swim in (playerScale.minimumSwimDepth): (i, j) -> (surface level, box floor, whether a ceiling held the floor
+  up); with how many cells hold shallower water, which players wade, and the cells' spacing. A cell's floor lies volumeFloorMargin under
+  that deepest bed, but stays ceilingClearance above any open space found under it."""
   spacing = bridgeWater.readDefinition(body)["spacing"]
   surface = bridgeMeshAccess.worldTree([body])
   positions, _ = bridgeMeshAccess.readVertexArrays(body)
   low, high = numpy.floor(positions[:, :2].min(0) / spacing).astype(int), numpy.ceil(positions[:, :2].max(0) / spacing).astype(int)
   above = float(positions[:, 2].max()) + 1
-  cells = {}
+  cells, shallow = {}, 0
   for i in range(low[0], high[0]):
     for j in range(low[1], high[1]):
       x, y = (i + 0.5) * spacing, (j + 0.5) * spacing
@@ -98,14 +100,18 @@ def bodyCells(body, ground, area=None):
       if not depth:
         continue
       corners = [ground.depth(x + dx * spacing / 2, y + dy * spacing / 2, location.z) for dx in (-1, 1) for dy in (-1, 1)]
-      bed = location.z - max([depth] + [corner for corner in corners if corner])
+      deepest = max([depth] + [corner for corner in corners if corner])
+      if deepest <= playerScale.minimumSwimDepth:
+        shallow += 1
+        continue
+      bed = location.z - deepest
       floor = bed - volumeFloorMargin
       below, normal, _, _ = ground.tree.ray_cast(mathutils.Vector((x, y, location.z - depth - 0.01)), down, bridgeMeshAccess.waterReach)
       held = below is not None and normal.z < 0 and below.z + ceilingClearance > floor
       if held:
         floor = below.z + ceilingClearance
       cells[(i, j)] = (location.z, min(floor, location.z - volumeTolerance), held)
-  return cells, spacing
+  return cells, shallow, spacing
 
 
 def bandRectangles(cells):
@@ -184,8 +190,9 @@ def takenNames():
 
 
 def buildSwimVolumes(body, area, replaceEdited):
-  """Starting boxes for a pool or river, or the part of it inside an area: its generated boxes there are replaced; boxes edited or placed
-  by hand are kept, and refuse the rebuild unless replaceEdited."""
+  """Starting boxes for a pool or river, or the part of it inside an area, over the water players swim in, leaving out cells shallower
+  than playerScale.minimumSwimDepth, which they wade: its generated boxes there are replaced; boxes edited or placed by hand are kept,
+  and refuse the rebuild unless replaceEdited."""
   bodyObject = requireSwimBody(body)
   definition = bridgeWater.readDefinition(bodyObject)
   if definition.get("swimmable") is False:
@@ -197,12 +204,18 @@ def buildSwimVolumes(body, area, replaceEdited):
   edited = [box.name for box in inScope if isHandEdited(box)]
   if edited and not replaceEdited:
     raise ValueError(f"Swim volumes {edited} of '{body}' were edited or placed by hand; rebuilding would replace them (give replaceEdited to)")
+  ground = bridgeWater.Ground()
+  cells, shallow, spacing = bodyCells(bodyObject, ground, area)
+  if not cells:
+    where = "" if area is None else f" inside the area {json.dumps(area)}"
+    if shallow:
+      deeper = f"deeper than players swim in ({playerScale.minimumSwimDepth:g}, playerScale minimumSwimDepth)"
+      if area is None:
+        raise ValueError(f"'{body}' has no water over its bed {deeper}: players wade all {shallow} of its cells; mark it not swimmable (editWater swimmable false)")
+      raise ValueError(f"'{body}' has no water over its bed{where} {deeper}: players wade all {shallow} of its cells there, which take no swim volume")
+    raise ValueError(f"'{body}' has no water over its bed{where}")
   for box in inScope:
     bpy.data.objects.remove(box)
-  ground = bridgeWater.Ground()
-  cells, spacing = bodyCells(bodyObject, ground, area)
-  if not cells:
-    raise ValueError(f"'{body}' has no water over its bed" + (" inside the area" if area is not None else ""))
   fingerprint = bodyFingerprint(bodyObject, bodyCells(bodyObject, ground)[0])
   taken = takenNames()
   stem = bridgeWater.fileStem(body)
@@ -212,7 +225,7 @@ def buildSwimVolumes(body, area, replaceEdited):
     boxObject(name, liquid, body, box["center"], box["halfExtents"], box, fingerprint)
     built.append(name)
   bpy.context.view_layer.update()
-  return {"body": body, "replaced": len(inScope), "built": built} | describeBody(bodyObject, ground)
+  return {"body": body, "replaced": len(inScope), "built": built, "shallowCells": shallow} | describeBody(bodyObject, ground)
 
 
 def placeSwimVolume(name, liquid, minimum, maximum, body):
@@ -262,14 +275,15 @@ def describeBox(box):
 
 
 def describeBody(body, ground):
-  """A body's swim state (boxed, changed since accepted, not swimmable, undecided) and findings to look at, never errors: cells left uncovered, tops away from the surface, boxes mostly over dry ground or without water over them."""
+  """A body's swim state (boxed, changed since accepted, not swimmable, undecided) and findings to look at, never errors: cells deep
+  enough to swim in left uncovered, tops away from the surface, boxes mostly over dry ground or without water over them."""
   definition = bridgeWater.readDefinition(body)
   boxes = [box for box in swimBoxes() if readBox(box)["body"] == body.name]
   if definition.get("swimmable") is False:
     return {"state": "notSwimmable", "boxes": [box.name for box in boxes], "findings": []}
   if not boxes:
     return {"state": "undecided", "boxes": [], "findings": []}
-  cells, spacing = bodyCells(body, ground)
+  cells, _, spacing = bodyCells(body, ground)
   fingerprint = bodyFingerprint(body, cells)
   state = "boxed" if all(readBox(box)["fingerprint"] == fingerprint for box in boxes) else "changed"
   bounds = [boxBounds(box) for box in boxes]

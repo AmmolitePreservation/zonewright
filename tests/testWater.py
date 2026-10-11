@@ -14,6 +14,7 @@ import eqEmitters
 import eqgFiles
 import eqgWriter
 from conftest import writeCubeDDS, writePNG
+from playerScale import minimumSwimDepth
 from testModelsAndDressing import freshScene, readShapedMesh
 
 environment = {
@@ -731,16 +732,22 @@ def testWaterToolsKeepUpWithALargeLake(stageBlenderServer, tmp_path):
   assert seconds["getWater"] < 1.0 and seconds["nearWater"] < 1.0 and seconds["carve"] < 2.0, seconds
 
 
+# The plateau's second channel is deep enough for a ribbon standing a margin deeper than players swim in, a margin under the plateau.
+ribbonMargin = 1.0
+ribbonFloor = 40 - minimumSwimDepth - 2 * ribbonMargin
+ribbonLevel = ribbonFloor + minimumSwimDepth + ribbonMargin
+
+
 async def cliffScene(session, tmp_path):
-  """A plateau at 40 north of y = 0 whose channels (floors 34, banks back up to 40 by 16 out) run south, at x = 0 to the cliff's edge
-  and at x = -60 to y = 60; a bowl at the cliff's foot (-12 at (0, -30), up to 0 by 60 out); the river at 37 down the first channel, a
-  fall 16 wide over its end, and a pool at -5 under it."""
+  """A plateau at 40 north of y = 0 whose channels (banks back up to 40 by 16 out) run south, at x = 0 to the cliff's edge (floor 34)
+  and at x = -60 to y = 60 (floor ribbonFloor); a bowl at the cliff's foot (-12 at (0, -30), up to 0 by 60 out); the river at 37 down
+  the first channel, a fall 16 wide over its end, and a pool at -5 under it."""
   await freshScene(session)
   await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [240, 240], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
   await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[0, -30, -12]], "radius": 60, "strength": 1, "profile": [[0, 0], [1, 12]], "conformRim": False})
   await session.expectSuccess("sculptOutline", {"objectName": "ground", "mode": "fill", "outline": [[-120, 0], [120, 0], [120, 120], [-120, 120]], "base": 0, "profile": [[-2, 0], [0, 40], [200, 40]], "conformBreaks": False})
-  for path in ([[0, 120, 34], [0, 0, 34]], [[-60, 120, 34], [-60, 60, 34]]):
-    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": path, "radius": 16, "strength": 1, "profile": [[0, 0], [1, 6]], "conformRim": False})
+  for path in ([[0, 120, 34], [0, 0, 34]], [[-60, 120, ribbonFloor], [-60, 60, ribbonFloor]]):
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": path, "radius": 16, "strength": 1, "profile": [[0, 0], [1, 40 - path[0][2]]], "conformRim": False})
   await liquidMaterials(session, tmp_path)
   await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, -30], "level": -5, "material": "water"})
   await session.expectSuccess("runWater", {"name": "river", "path": [[0, 118, 37], [0, 2, 37]], "reach": 12, "material": "water", "worldUnitsPerRepeat": 20})
@@ -777,7 +784,7 @@ def testFallsAndRiversRunTheirTexturesAsTheClientsDoAndExportSo(stageBlenderServ
     twice = await cornersOf(session, "fall")
     none = await session.expectError("editWater", {"name": "fall", "acrossRepeats": 0})
     await session.expectSuccess("editWater", {"name": "fall", "acrossRepeats": 1})
-    ribbon = await session.expectSuccess("runWater", {"name": "ribbon", "path": [[-60, 118, 37], [-60, 64, 37]], "reach": 12, "material": "falls"})
+    ribbon = await session.expectSuccess("runWater", {"name": "ribbon", "path": [[-60, 118, ribbonLevel], [-60, 64, ribbonLevel]], "reach": 12, "material": "falls"})
     ribbonBoxes = await session.expectSuccess("buildSwimVolumes", {"body": "ribbon"})
     # A strand 8 wide, its texture spanning it once and repeating every 64 down its drop: a texel 8 times longer down it than across.
     await session.expectSuccess("pourWaterfall", {"name": "strand", "lip": [[60, 0, 41], [68, 0, 41]], "bottom": -8, "material": "falls"})
@@ -800,7 +807,8 @@ def testFallsAndRiversRunTheirTexturesAsTheClientsDoAndExportSo(stageBlenderServ
   # The river runs u across (rightward looking downstream, here -x) and its v falls downstream a repeat every 20, so the client's v,
   # once export counts it down from the texture's top, rises downstream.
   assert numpy.allclose(river[:, 4], -(118 - river[:, 1]) / 20) and numpy.allclose(river[:, 3], -river[:, 0] / 20)
-  # A river may be a waterfall ribbon over its bed, as Crescent Reach's are; players swim in it as water.
+  # A river may be a waterfall ribbon over its bed, as Crescent Reach's are; where it stands deeper than minimumSwimDepth over its
+  # channel's floor, players swim in it as water.
   assert ribbon["material"] == "falls" and ribbonBoxes["built"] and all(name.startswith("AWT_") for name in ribbonBoxes["built"])
   archive = eqArchive.EQArchive(archivePath)
   # Exported, the client's v counts down the drop and downstream, as most client falls and Brell's Rest's and Beasts' Domain's rivers

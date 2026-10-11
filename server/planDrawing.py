@@ -24,6 +24,9 @@ swimLabelMargin = 2
 gridColor = (255, 255, 255)
 labelHalo = (255, 255, 255)
 gridSteps = (10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000)
+# A section's heights take a step of their own, finer than its distances' where it is low, with at most heightLines lines.
+heightSteps = (1, 2, 5) + gridSteps
+heightLines = 16
 dashLength = 10
 gapLength = 6
 spotColor = (90, 30, 0)
@@ -771,7 +774,8 @@ def sectionImage(cuts, size, scale, title=None, lane=None):
     labels.append(((x, y - sectionLabelLift), text, color, size))
 
   step = gridStepFor(max(length, top - bottom))
-  for z in range(math.ceil(bottom / step) * step, math.floor(top) + 1, step):
+  heightStep = min(step, next(candidate for candidate in heightSteps if (top - bottom) / candidate <= heightLines))
+  for z in range(math.ceil(bottom / heightStep) * heightStep, math.floor(top) + 1, heightStep):
     y = pixel(0, z)[1]
     draw.line([(left, y), (left + length * scale, y)], fill=(205, 205, 205, 255), width=1)
     board.write((left - 6, y), str(z), (60, 60, 60), 13, "rm")
@@ -787,6 +791,7 @@ def sectionImage(cuts, size, scale, title=None, lane=None):
     draw.line([(x, pixel(0, top)[1]), (x, base)], fill=(218, 218, 218, 255), width=1)
     if board.isClear(board.textBox((x, base + 12), str(s), 12)):
       board.write((x, base + 12), str(s), (60, 60, 60), 12)
+  board.place((left + length * scale / 2, base + 28), "distance along the line", (60, 60, 60), 12)
   first, last = cuts["points"][0], cuts["points"][-1]
   board.write((left, padY / 2), title or f"[{first[0]:g}, {first[1]:g}]", (0, 0, 0), 14, "lm")
   if title is None:
@@ -871,7 +876,7 @@ def sectionImage(cuts, size, scale, title=None, lane=None):
     ledLabel(board, position, text, color, size, mark)
   for position, text, color, size in labels:
     board.place(position, text, color, size, "mb")
-  return image, {"gridStep": step, "unitsPerPixel": round(1 / scale, 4)}
+  return image, {"gridStep": step, "heightStep": heightStep, "unitsPerPixel": round(1 / scale, 4)}
 
 
 def drawSection(outputPath, cuts, lane=None):

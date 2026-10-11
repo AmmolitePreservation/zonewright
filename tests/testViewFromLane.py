@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import laneViews
 import playerReach
 import viewSheets
-from playerScale import eyeHeight, playerHeight, swimEyeAboveSurface, walkableNormalZ
+from playerScale import eyeHeight, minimumSwimDepth, playerHeight, swimEyeAboveSurface, walkableNormalZ
 from testModelsAndDressing import freshScene
 from testReach import cellHeight, cube, reachCourse
 from testWater import environment
@@ -322,9 +322,10 @@ def testTheTourIsReusedForAnUnchangedLane(stageBlenderServer, tmp_path):
 
 
 def testTourEyesStandWherePlayersStand(stageBlenderServer, tmp_path):
-  """The corridor's far end changed in turn: deep water, the same under a lid, shallow water, a lintel only a smaller player passes
-  under, and a block higher than a player's reach over the eye, climbed by a ramp and dropped off; walled higher than the block, so no
-  one climbs out."""
+  """The corridor's far end changed in turn: deep water, the same under a lid, water players swim in but too shallow for a swimmer's
+  eye, water too shallow to swim in, a lintel only a smaller player passes under, and a block higher than a player's reach over the eye,
+  climbed by a ramp and dropped off; walled higher than the block, so no one climbs out."""
+  wadingTop = (minimumSwimDepth + eyeHeight - swimEyeAboveSurface) / 2
   async def steps(session):
     await corridor(session, tmp_path, 20)
     await session.expectSuccess("setZoneProperties", environment | {"safePoint": [-100, 0, 0, 90]})
@@ -338,6 +339,9 @@ def testTourEyesStandWherePlayersStand(stageBlenderServer, tmp_path):
     await cube(session, "lid", [70, -10, 10.5], [110, 10, 11.5])
     await lead("lidded")
     await session.expectSuccess("deleteObjects", {"names": ["lid", "AWT_pool"]})
+    await session.expectSuccess("placeSwimVolume", {"name": "wading", "liquid": "water", "minimum": [70, -10, 0], "maximum": [110, 10, wadingTop]})
+    await lead("wading")
+    await session.expectSuccess("deleteObjects", {"names": ["AWT_wading"]})
     await session.expectSuccess("placeSwimVolume", {"name": "shallows", "liquid": "water", "minimum": [70, -10, 0], "maximum": [110, 10, 3]})
     await lead("shallow")
     await session.expectSuccess("deleteObjects", {"names": ["AWT_shallows"]})
@@ -361,9 +365,13 @@ def testTourEyesStandWherePlayersStand(stageBlenderServer, tmp_path):
   assert (deep["standing"][2], deep["eye"][2]) == (10.0, 10.0 + swimEyeAboveSurface)
   # Under a lid the swimmer's eye would lie in it: no eye stands in that water, so the farthest stands on the floor before it.
   assert (leads["lidded"]["label"], leads["lidded"]["swimming"]) == ("walk", False) and leads["lidded"]["standing"][0] < 70
-  # Water shallower than eyeHeight - swimEyeAboveSurface is waded: the eye stands eyeHeight over the ground under it.
+  # Water players swim in but shallower than eyeHeight - swimEyeAboveSurface is waded: the eye stands eyeHeight over the ground under it.
+  wading = leads["wading"]
+  assert (wading["label"], wading["swimming"]) == ("swim", False) and wading["standing"][0] > 70
+  assert wading["standing"][2] == pytest.approx(0.0, abs=0.01) and wading["eye"][2] == pytest.approx(eyeHeight, abs=0.01)
+  # Water shallower than minimumSwimDepth is no swimmer's: its floor is walked, the eye eyeHeight over it.
   shallow = leads["shallow"]
-  assert (shallow["label"], shallow["swimming"]) == ("swim", False) and shallow["standing"][0] > 70
+  assert (shallow["label"], shallow["swimming"]) == ("walk", False) and shallow["standing"][0] > 70
   assert shallow["standing"][2] == pytest.approx(0.0, abs=0.01) and shallow["eye"][2] == pytest.approx(eyeHeight, abs=0.01)
   # Under the lintel only a smaller player fits: no eye stands there.
   assert leads["squeeze"]["label"] == "walk" and leads["squeeze"]["standing"][0] < 70

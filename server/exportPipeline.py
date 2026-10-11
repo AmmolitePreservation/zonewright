@@ -272,12 +272,13 @@ def laneFindings(lane, description, analysis):
       count = len(found) + more.get(kind, {}).get("count", 0)
       findings.append(finding | {"message": f"{laneFindingMessages[kind]}: {count} (mapReach numbers them as here)"})
   nodes = analysis["nodes"]
-  squeezed = nodes.label == playerReach.squeezeLabel
+  # Water too shallow for the design player to swim in is squeeze too, though he walks its floor; it is no gap to look at.
+  squeezed = (nodes.label == playerReach.squeezeLabel) & ~(nodes.wet & nodes.shallow)
   if squeezed.any():
     places = playerReach.groupedProblems("squeeze", lane, squeezed, nodes, analysis["regionOfNode"], description["regions"])
     places.sort(key=lambda place: -place["area"])
     findings.append({
-      "finding": "squeeze reach", "area": analysis["reachedArea"]["squeeze"], "places": [placeOf(place) for place in places[:playerReach.problemsListed]],
+      "finding": "squeeze reach", "area": round(float(squeezed.sum()) * lane.cellSize * lane.cellSize, 1), "places": [placeOf(place) for place in places[:playerReach.problemsListed]],
       "message": (
         f"Only a player shorter than playerHeight ({playerScale.playerHeight:g}) passes here, through less open space than a player's height;"
         " containment counts it as reached"

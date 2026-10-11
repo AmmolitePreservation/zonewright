@@ -1,11 +1,12 @@
 """The player's lane in plan: where players reach, by label (walk green, swim blue, slide orange, squeeze pink, taken by a zone line
-yellow, traps hatched orange), walkable floor they never reach (open space joins it to the lane) cross-hatched dark, alone or over a
-level reached under it, columns reached at a level under a higher one dotted (black where the design player fits there, pink where only
-a smaller one does), ledges (reached floors side by side more than a step apart) dark, leak edges (onto nothing or under the
-underworld) magenta, the edges where a zone line catches a fall green, zone lines hatched green when reached and dashed when not, seeds
-as white arrows (hollow when isolated), plot entrances as ticks (a red X when unreached), region outlines in their access colors, and
-the problems ringed black (round the mark they lie on) and numbered over their rings or led to them by a line; with a legend band below
-naming what the drawing shows. LanePlan lays it over planDrawing.drawPlan's plan; drawLaneBesideNav draws a lane from server files over
+yellow, traps hatched orange), water the design player wades lined blue over its floor's fill, walkable floor they never reach (open
+space joins it to the lane) cross-hatched dark, alone or over a level reached under it, columns reached at a level under a higher one or
+under water standing clear of it dotted (black where the design player fits there, pink where only a smaller one does), ledges
+(reached walkable floors side by side more than the step apart, where the plan resolves columns) dark, leak edges (onto nothing or under
+the underworld) magenta, the edges where a zone line catches a fall green, zone lines hatched green when reached and dashed when not,
+swim boxes dashed over the fill, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X when unreached), region
+outlines in their access colors, and the problems ringed black (round the mark they lie on) and numbered over their rings or led to
+them by a line; with a legend band below naming what the drawing shows. LanePlan lays it over planDrawing.drawPlan's plan; drawLaneBesideNav draws a lane from server files over
 the floors it reaches beside the server's NPC nav."""
 import math
 
@@ -34,12 +35,15 @@ hatchAlpha = 215
 hatchSpacing = 8
 trapColor = (240, 120, 0)
 unreachedColor = (30, 30, 30)
-# Floor never reached is tinted under its cross-hatch, so the grid's lines crossing it read as dimmed, never as dash-dot outlines.
+# Floor never reached with no reached level under it is tinted under its cross-hatch, so the grid's lines crossing it read as dimmed,
+# never as dash-dot outlines; over a reached level the level's fill shows between the hatch's lines.
 unreachedFillAlpha = 70
 layeredColor = (25, 25, 25)
 squeezeLayeredColor = labelColors[playerReach.squeezeLabel]
 layeredSpacing = 8
 layeredDot = 2
+# Where reached walkable floors in columns side by side lie more than the step apart, a line along their shared edge, drawn where the
+# plan resolves columns.
 ledgeColor = (45, 35, 25)
 ledgeAlpha = 230
 zoneLineHatchSpacing = 6
@@ -76,7 +80,11 @@ legendBackground = (250, 250, 247)
 legendTextColor = (20, 20, 20)
 # The relief runs between these greys, its highest kept apart from the background.
 reliefLow, reliefHigh = (70, 66, 60), (200, 196, 186)
-trapFlag, layeredFlag, unreachedFlag, squeezeLayeredFlag = 1, 2, 4, 8
+trapFlag, layeredFlag, unreachedFlag, squeezeLayeredFlag, wadedFlag = 1, 2, 4, 8, 16
+# Water players wade: lines across it in the swim blue, this far apart.
+wadedColor = labelColors[playerReach.swimLabel]
+wadedSpacing = 6
+swimBoxHalo = (255, 255, 255)
 ribbonWidth = 7
 ribbonCasing = (15, 15, 15)
 ribbonCasingWidth = 12
@@ -103,7 +111,8 @@ separationTextSize = 13
 
 class LanePlan:
   """A lane drawn over a plan: fill (the labels, hatches, dots, ledges, and, for a whole lane plan, the region outlines as one layer, so
-  the plan's boundaries draw over the outlines), strokes (void and catch edges, zone lines, seeds, plot entrances, problem rings), claim
+  the plan's boundaries draw over the outlines), strokes (swim boxes, void and catch edges, zone lines, seeds, plot entrances, problem
+  rings), claim
   (the marks labels keep clear of), labels (problem numbers, zone line, seed and region names), and its legend of what the drawing
   showed. level {bottom, top} keeps only nodes whose height lies in it. Drawn as a layer of another plan (complete false), the problems,
   the regions, and the zone lines' names, which that plan draws its own way, are left out."""
@@ -117,31 +126,37 @@ class LanePlan:
     inBand = numpy.ones(lane.nodeCount, dtype=bool) if level is None else (nodes.height >= level["bottom"]) & (nodes.height <= level["top"])
     self.label = numpy.zeros(lane.columns, dtype=numpy.uint8)
     self.flags = numpy.zeros(lane.columns, dtype=numpy.uint8)
-    self.top = numpy.full(lane.columns, numpy.nan, dtype=numpy.float32)
+    self.floorTop = numpy.zeros(lane.columns, dtype=numpy.uint16)
     layered = numpy.zeros(lane.columns, dtype=bool)
     squeezeLayered = numpy.zeros(lane.columns, dtype=bool)
     # Each column's highest reached floor, in cells and one up, 0 where nothing is reached.
     reachedTop = numpy.zeros(lane.columns, dtype=numpy.uint32)
     carried = None
-    # A column's nodes lie together, lowest first, so the last reached one of a run is the column's top; a column split between two
-    # chunks has its higher nodes in the later one, which writes over the earlier, and its lower floor carried over.
+    # A column's nodes lie together, lowest first, each floor before the water over it, so the last reached one of a run is the
+    # column's top; a column split between two chunks has its higher nodes in the later one, which writes over the earlier, and its lower
+    # level carried over. Water the design player wades is drawn by the floor under it; water standing clear of the floor and the water
+    # under it (a floating box) is a level of its own.
+    held = None
     for start in range(0, lane.nodeCount, playerReach.chunkNodes):
       part = slice(start, min(lane.nodeCount, start + playerReach.chunkNodes))
       flat = nodes.z[part].astype(numpy.int32) * lane.columnsX + nodes.x[part]
       band = inBand[part]
-      reached = numpy.flatnonzero(nodes.reached[part] & band)
+      wet = nodes.wet[part]
+      floating, held = floatingWater(flat, wet, nodes.low[part], nodes.high[part], held)
+      reached = numpy.flatnonzero(nodes.reached[part] & band & ~(wet & nodes.shallow[part]))
       if len(reached):
         columns = flat[reached]
         top = numpy.append(columns[1:] != columns[:-1], True)
         tops = reached[top]
         self.label[columns[top]] = nodes.label[part][tops]
-        self.flags[columns[top]] = numpy.where(nodes.trap[part][tops], trapFlag, 0).astype(numpy.uint8)
-        self.top[columns[top]] = numpy.where(nodes.wet[part][tops], numpy.nan, nodes.height[part][tops])
+        self.floorTop[columns[top]] = numpy.where(wet[tops] | ~nodes.walkable[part][tops], 0, nodes.low[part][tops])
+        waded = ~wet & (nodes.box[part] >= 0) & nodes.shallow[part]
+        self.flags[columns[top]] = (numpy.where(nodes.trap[part][tops], trapFlag, 0) | numpy.where(waded[tops], wadedFlag, 0)).astype(numpy.uint8)
         reachedTop[columns[top]] = nodes.low[part][tops].astype(numpy.uint32) + 1
-        dry = reached[~nodes.wet[part][reached]]
-        floors = flat[dry]
+        levels = reached[~wet[reached] | floating[reached]]
+        floors = flat[levels]
         if len(floors):
-          full = (nodes.state[part][dry] & playerReach.reachedFullState) != 0
+          full = (nodes.state[part][levels] & playerReach.reachedFullState) != 0
           if carried is not None and carried[0] == floors[0]:
             (layered if carried[1] else squeezeLayered)[floors[0]] = True
           lower = numpy.append(floors[1:] == floors[:-1], False)
@@ -165,7 +180,7 @@ class LanePlan:
     del reachedTop
     self.label = self.label.reshape(lane.columnsZ, lane.columnsX)
     self.flags = self.flags.reshape(lane.columnsZ, lane.columnsX)
-    self.top = self.top.reshape(lane.columnsZ, lane.columnsX)
+    self.floorTop = self.floorTop.reshape(lane.columnsZ, lane.columnsX)
     self.fromColumns = (nodes.x[lane.events[:, 1]].astype(numpy.int64), nodes.z[lane.events[:, 1]].astype(numpy.int64)) if len(lane.events) else None
 
   def sample(self, frame, size):
@@ -183,25 +198,31 @@ class LanePlan:
     return inside, numpy.clip(columnZ, 0, lane.columnsZ - 1)[:, None], numpy.clip(columnX, 0, lane.columnsX - 1)[None, :]
 
   def pixels(self, frame, size):
-    """Each pixel's label and flags, and whether it lies on a ledge: where the dry floors two pixels side by side reach differ by more
-    than the step (playerScale.stepHeight), the edge of a platform, roof, or pit the plan's fills alone would not show."""
+    """Each pixel's label and flags, and whether it lies on a ledge: where two pixels side by side lie on neighbouring columns whose
+    reached walkable floors differ by more than the step (playerScale.stepHeight), the edge of a platform, roof, or pit the plan's fills
+    alone would not show; drawn only where the plan resolves columns, so a plan zoomed out draws no bands down steep walls."""
     inside, rows, columns = self.sample(frame, size)
     label = numpy.where(inside, self.label[rows, columns], 0)
     flags = numpy.where(inside, self.flags[rows, columns], 0)
-    top = numpy.where(inside, self.top[rows, columns], numpy.nan)
-    ledge = numpy.zeros(label.shape, dtype=bool)
-    across = numpy.abs(top[:, 1:] - top[:, :-1]) > playerScale.stepHeight
-    down = numpy.abs(top[1:, :] - top[:-1, :]) > playerScale.stepHeight
-    ledge[:, 1:] |= across
-    ledge[:, :-1] |= across
-    ledge[1:, :] |= down
-    ledge[:-1, :] |= down
+    floors = numpy.where(inside, self.floorTop[rows, columns], 0).astype(numpy.int32)
+    climb = playerScale.stepHeight / self.lane.cellHeight
+    ledge = numpy.zeros(floors.shape, dtype=bool)
+    for axis in (0, 1):
+      first, second = (floors[:-1], floors[1:]) if axis == 0 else (floors[:, :-1], floors[:, 1:])
+      neighbours = numpy.abs(numpy.diff(rows[:, 0]))[:, None] == 1 if axis == 0 else numpy.abs(numpy.diff(columns[0]))[None, :] == 1
+      apart = neighbours & (first > 0) & (second > 0) & (numpy.abs(second - first) > climb)
+      if axis == 0:
+        ledge[:-1] |= apart
+        ledge[1:] |= apart
+      else:
+        ledge[:, :-1] |= apart
+        ledge[:, 1:] |= apart
     return label, flags, ledge
 
   def fill(self, frame, size):
     label, flags, ledge = self.pixels(frame, size)
     self.shown |= {("label", int(value)) for value in numpy.unique(label) if value}
-    self.shown |= {("flag", flag) for flag in (trapFlag, layeredFlag, unreachedFlag, squeezeLayeredFlag) if ((flags & flag) != 0).any()}
+    self.shown |= {("flag", flag) for flag in (trapFlag, layeredFlag, unreachedFlag, squeezeLayeredFlag, wadedFlag) if ((flags & flag) != 0).any()}
     if ledge.any():
       self.shown.add("ledge")
     pixels = numpy.zeros((size[1], size[0], 4), dtype=numpy.uint8)
@@ -211,9 +232,11 @@ class LanePlan:
     trapHatch = ((across + down) % hatchSpacing < 2) & ((flags & trapFlag) != 0)
     pixels[trapHatch] = (*trapColor, hatchAlpha)
     unreached = (flags & unreachedFlag) != 0
-    pixels[unreached] = (*unreachedColor, unreachedFillAlpha)
+    pixels[unreached & (label == 0)] = (*unreachedColor, unreachedFillAlpha)
     crossing = ((across - down) % hatchSpacing == 0) | ((across + down) % hatchSpacing == 0)
     pixels[crossing & unreached] = (*unreachedColor, hatchAlpha)
+    waves = (down % wadedSpacing < 2) & ((flags & wadedFlag) != 0)
+    pixels[waves] = (*wadedColor, hatchAlpha)
     dots = (across % layeredSpacing < layeredDot) & (down % layeredSpacing < layeredDot)
     pixels[dots & ((flags & layeredFlag) != 0)] = (*layeredColor, 255)
     pixels[dots & ((flags & squeezeLayeredFlag) != 0)] = (*squeezeLayeredColor, 255)
@@ -294,6 +317,13 @@ class LanePlan:
     return boxes
 
   def strokes(self, draw, frame):
+    for box in self.description["swimBoxes"]:
+      low, high = box["low"], box["high"]
+      corners = [frame.pixel(point) for point in ((low[0], low[1]), (high[0], low[1]), (high[0], high[1]), (low[0], high[1]))]
+      draw.line(corners + corners[:2], fill=(*swimBoxHalo, 255), width=5, joint="curve")
+      planDrawing.dashedLine(draw, corners + corners[:1], (*planDrawing.swimColors[box["liquid"]], 255), 3)
+      if self.boxInFrame(frame, corners):
+        self.shown.add(("swimBox", box["liquid"]))
     for start, end, absorbed in self.edges():
       ends = [frame.pixel(start), frame.pixel(end)]
       draw.line(ends, fill=(*(catchColor if absorbed else voidColor), 255), width=edgeWidth)
@@ -350,7 +380,8 @@ class LanePlan:
   def labels(self, board, frame):
     """Name what the lane marks: for a whole lane plan each zone line in its box, which later labels keep clear of, and each problem's
     number just over its ring (led back to it by a line when it lands far off); then each seed's name beside it, clear of any ring round
-    it, and each region's name just over the middle of its outline's top, or just under it where that lies in the grid's labels."""
+    it, and each region's name, where its outline runs through the drawing and enough of it shows to hold its name, just over the middle
+    of the top of its outline in the drawing, or just under it where that lies in the grid's labels."""
     problems = self.problemsIn(frame) if self.complete else []
     if self.complete:
       boxes = [(box, line) for box, line, _ in self.zoneLineBoxes(frame) if box[2] > 0 and box[3] > 0 and box[0] < frame.size[0] and box[1] < frame.size[1]]
@@ -376,8 +407,10 @@ class LanePlan:
       ringed = [ringRadius(problem) for problem in problems if problem["kind"] == "disconnectedEntry" and problem.get("entry") == entry["name"]]
       nameBeside(board, frame.pixel(entry["at"]), max([seedLength] + ringed), "S" if entry["kind"] == "safePoint" else entry["name"], seedOutline, 13)
     for region in self.regions:
-      shown = planDrawing.clippedToFrame([frame.pixel(point) for point in region["outline"]], frame.size)
-      if planDrawing.showsName(board, shown, region["name"], 13):
+      points = [frame.pixel(point) for point in region["outline"]]
+      pieces = outlineInFrame(points, frame.size)
+      if pieces and planDrawing.showsName(board, planDrawing.clippedToFrame(points, frame.size), region["name"], 13):
+        shown = [point for piece in pieces for point in piece]
         highest = min(y for _, y in shown)
         along = [x for x, y in shown if y <= highest + 1]
         middle = (min(along) + max(along)) / 2
@@ -393,12 +426,14 @@ class LanePlan:
     then base, the entries of the plan's own layers under the lane (planLayerLegend), and which way the plan's axes run."""
     keyed = [
       *[(("label", label), ("fill", overRelief(labelColors[label], fillAlpha), labelWords[label])) for label in labelColors],
+      (("flag", wadedFlag), ("waves", wadedColor, f"water waded: no deeper than {playerScale.minimumSwimDepth:g}")),
       (("flag", trapFlag), ("hatch", trapColor, "trap (no way back)")), (("flag", unreachedFlag), ("crossHatch", unreachedColor, "walkable, never reached")),
       (("flag", layeredFlag), ("dots", layeredColor, "reached under a higher level")),
       (("flag", squeezeLayeredFlag), ("dots", squeezeLayeredColor, "only a smaller player under it")),
-      ("ledge", ("ledge", ledgeColor, f"ledge: floors side by side over a step ({playerScale.stepHeight:g}) apart")),
+      ("ledge", ("ledge", ledgeColor, f"ledge: walked floors side by side more than the step ({playerScale.stepHeight:g}) apart")),
       ("void", ("line", voidColor, "leak edge (onto nothing or under the underworld)")), ("catch", ("line", catchColor, "a zone line catches the fall")),
       ("zoneLineReached", ("hatchedBox", zoneLineColor, "zone line reached")), ("zoneLineUnreached", ("dashedBox", zoneLineColor, "zone line not reached")),
+      *[(("swimBox", liquid), ("swimBox", planDrawing.swimColors[liquid], f"{liquid} swim volume")) for liquid in sorted(planDrawing.swimColors)],
       ("seed", ("arrow", seedOutline, "seed: where players arrive")), ("isolatedSeed", ("hollowArrow", seedOutline, "isolated seed")),
       ("plotReached", ("plus", plotColor, "plot entrance reached")), ("plotUnreached", ("cross", unreachedPlotColor, "plot entrance not reached")),
       *[(("region", access), ("dashed", regionColors[access], f"{access or 'undecided'} region")) for access in ("play", "view", "none", None)],
@@ -598,9 +633,9 @@ class SectionLane:
 
 
 def sectionLayerLegend(cuts):
-  """A section's own layers its cuts hold, as legend entries: the ground, water, swim volumes, boundaries, zone lines, caves (floor,
-  vault, and marks), and the path's points."""
-  items = [("line", planDrawing.groundColor, "ground players stand on")] if cuts["ground"] else []
+  """A section's own layers its cuts hold, as legend entries: the ground, water, swim volumes, boundaries, zone lines, sketch massing,
+  areas, and paths, plot pads, caves (floor, vault, and marks), and the path's points."""
+  items = [("line", planDrawing.groundColor, "ground players stand on (all that collides)")] if cuts["ground"] else []
   if cuts["water"]:
     items.append(("line", planDrawing.waterColor, "water surface"))
   for liquid in sorted({box["liquid"] for box in cuts["swim"]}):
@@ -609,6 +644,12 @@ def sectionLayerLegend(cuts):
     items.append(("line", planDrawing.boundaryColor, "boundary"))
   if cuts["zoneLines"]:
     items.append(("box", planDrawing.zoneLineColor, "zone line"))
+  if cuts["massing"]:
+    items.append(("line", planDrawing.massingColor, "sketch massing"))
+  if cuts["sketch"]:
+    items.append(("dashed", planDrawing.sheetColors[0], "sketch areas (dashed) and paths, in their sheets' colors"))
+  if cuts["plots"]:
+    items.append(("line", planDrawing.plotColor, "plot pad"))
   if any(entry["floor"] for entry in cuts["caves"]):
     items += [("line", planDrawing.caveColor, "cave floor, as designed"), ("dashed", planDrawing.caveColor, "cave vault, as designed")]
   if any(entry["crossings"] for entry in cuts["caves"]):
@@ -621,18 +662,16 @@ def sectionLayerLegend(cuts):
 
 
 def planLayerLegend(overlays, frame):
-  """A plan's own layers the frame shows under a lane, as legend entries, each fill as it shows over the relief: water and swim volumes
-  by liquid, boundaries' walls, and their lids and floors."""
+  """A plan's own layers the frame shows under a lane, as legend entries, each fill as it shows over the relief: the relief, water by
+  liquid, boundaries' walls, and their lids and floors (the lane draws the swim volumes and names them in its own entries)."""
   def shows(points):
     pixels = [frame.pixel(point) for point in points]
     xs, ys = [x for x, _ in pixels], [y for _, y in pixels]
     return bool(pixels) and max(xs) >= 0 and min(xs) < frame.size[0] and max(ys) >= 0 and min(ys) < frame.size[1]
 
-  items = []
+  items = [("relief", None, "relief: lighter is higher")]
   liquids = sorted({body["liquid"] for body in overlays["water"] if shows([point for x0, y0, x1, y1 in body["runs"] for point in ((x0, y0), (x1, y1))] + [point for loop in body["loops"] for point in loop])})
   items += [("fill", overRelief(planDrawing.liquidColors[liquid], planDrawing.waterAlpha), f"{liquid} surface") for liquid in liquids]
-  boxes = sorted({box["liquid"] for box in overlays["swim"] if shows(box["corners"])})
-  items += [("dashedBox", planDrawing.swimColors[liquid], f"{liquid} swim volume") for liquid in boxes]
   if any(shows([point for line in boundary["lines"] for point in line]) for boundary in overlays["boundaries"]):
     items.append(("line", planDrawing.boundaryColor, "boundary wall"))
   if any(shows([point for area in boundary["areas"] for point in area]) for boundary in overlays["boundaries"]):
@@ -707,6 +746,47 @@ def overRelief(color, alpha):
   return tuple(round(channel * alpha / 255 + middle * (1 - alpha / 255)) for channel, middle in zip(color, reliefMiddle))
 
 
+def outlineInFrame(points, size):
+  """The pieces of a closed outline (pixel points) that lie inside a drawing of size, each [start, end]."""
+  pieces = []
+  for start, end in zip(points, points[1:] + points[:1]):
+    enter, leave = 0.0, 1.0
+    for axis in (0, 1):
+      delta = end[axis] - start[axis]
+      if delta == 0:
+        if not 0 <= start[axis] <= size[axis]:
+          enter, leave = 1.0, 0.0
+        continue
+      first, second = -start[axis] / delta, (size[axis] - start[axis]) / delta
+      enter, leave = max(enter, min(first, second)), min(leave, max(first, second))
+    if enter < leave:
+      pieces.append([(start[0] + (end[0] - start[0]) * share, start[1] + (end[1] - start[1]) * share) for share in (enter, leave)])
+  return pieces
+
+
+def floatingWater(flat, wet, low, high, held):
+  """Which of a run of nodes (their columns, wetness, and lows and highs in cells, in lane order) are water standing clear of what holds
+  it up in its column: its floor and the water under it there. held is (column, height) carried from the run before, or None; returns the
+  flags and what to carry on."""
+  count = len(flat)
+  newColumn = numpy.ones(count, dtype=bool)
+  newColumn[1:] = flat[1:] != flat[:-1]
+  if held is not None:
+    newColumn[0] = held[0] != flat[0]
+  segment = numpy.cumsum(~wet | newColumn).astype(numpy.int64)
+  span = 1 << 16
+  running = numpy.maximum.accumulate(segment * span + numpy.where(wet, high, low).astype(numpy.int64))
+  support = numpy.full(count, -1, dtype=numpy.int64)
+  continued = numpy.zeros(count, dtype=bool)
+  continued[1:] = segment[1:] == segment[:-1]
+  support[continued] = running[:-1][continued[1:]] - segment[continued] * span
+  if held is not None:
+    carried = segment == 0
+    support[carried] = numpy.maximum(support[carried], held[1])
+  floating = wet & (low.astype(numpy.int64) > support)
+  return floating, (int(flat[-1]), int(running[-1] - segment[-1] * span))
+
+
 def ringRadius(problem):
   """A problem's ring: wide enough to go round the mark it lies on (a seed's arrow, a plot entrance's cross)."""
   return ringRadii.get(problem["kind"], problemRing)
@@ -764,10 +844,21 @@ def drawLegendItem(draw, left, top, item):
     draw.rectangle([left + 2, top + 2, right - 2, bottom - 2], fill=overRelief(color, zoneLineFillAlpha))
     hatchBox(draw, (left + 2, top + 2, right - 2, bottom - 2), color, zoneLineHatchSpacing)
     draw.rectangle([left + 2, top + 2, right - 2, bottom - 2], outline=color, width=3)
-  elif kind == "dashedBox":
+  elif kind in ("dashedBox", "swimBox"):
     corners = [(left + 2, top + 2), (right - 2, top + 2), (right - 2, bottom - 2), (left + 2, bottom - 2)]
+    if kind == "swimBox":
+      draw.rectangle([left, top, right, bottom], fill=(205, 205, 205))
+      draw.rectangle([left + 2, top + 2, right - 2, bottom - 2], outline=swimBoxHalo, width=5)
     for start, end in zip(corners, corners[1:] + corners[:1]):
       draw.line([start, ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)], fill=color, width=3)
+  elif kind == "relief":
+    for step in range(legendSwatch + 1):
+      share = step / legendSwatch
+      draw.line([(left + step, top), (left + step, bottom)], fill=tuple(round(low + (high - low) * share) for low, high in zip(reliefLow, reliefHigh)))
+  elif kind == "waves":
+    draw.rectangle([left, top, right, bottom], fill=overRelief(labelColors[playerReach.walkLabel], fillAlpha), outline=serverMapDrawing.darker(labelColors[playerReach.walkLabel]))
+    for y in range(top + 2, bottom, wadedSpacing):
+      draw.line([(left, y), (right, y)], fill=color, width=2)
   elif kind in ("arrow", "hollowArrow"):
     draw.polygon([(right, middle), (left + 2, top + 2), (left + 2, bottom - 2)], fill=None if kind == "hollowArrow" else seedFill, outline=color, width=2)
   elif kind == "plus":
