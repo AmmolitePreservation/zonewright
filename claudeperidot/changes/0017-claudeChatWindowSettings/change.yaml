@@ -1,0 +1,41 @@
+title: The owner's MQ2ChatWnd.ini holds a [claudeperidot.Claudewright] section, the MQ chat window's settings for Claude's character
+why: >-
+  MQ2ChatWnd, loaded in every client from the owner's [Plugins], keeps each character's MQ chat window settings in
+  the shared config\MQ2ChatWnd.ini under [<server>.<character>], and wrote this section when Claudewright first
+  entered the world on 2026-10-11. It is recorded after the fact: the record was not written ahead of that first entry,
+  because the section was not foreseen. It is the only section of that file Claude's client added; the owner's
+  sections are untouched. The ledger never writes the file; the undo removes exactly this section.
+kind: client
+scope:
+  - ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+disposition: fixture
+significance: minor
+ownerClearance: pending
+activation: none
+production: none
+commits: []
+steps:
+  - |-
+    throw 'MQ2ChatWnd writes this section itself when Claude''s character enters the world through claudelink; the ledger records it and never writes MQ2ChatWnd.ini'
+undo:
+  - |-
+    $path = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini"
+    $encoding = [Text.Encoding]::GetEncoding(28591)
+    $text = [IO.File]::ReadAllText($path, $encoding)
+    $newline = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $suffix = ''
+    if ($text.EndsWith($newline)) { $text = $text.Substring(0, $text.Length - $newline.Length); $suffix = $newline }
+    $lines = $text -split [regex]::Escape($newline)
+    $start = [Array]::IndexOf($lines, '[claudeperidot.Claudewright]')
+    if ($start -lt 0) { throw "$path has no [claudeperidot.Claudewright] section" }
+    $end = $start + 1
+    while ($end -lt $lines.Count -and -not $lines[$end].StartsWith('[')) { $end++ }
+    $kept = @()
+    if ($start -gt 0) { $kept += $lines[0..($start - 1)] }
+    if ($end -lt $lines.Count) { $kept += $lines[$end..($lines.Count - 1)] }
+    [IO.File]::WriteAllText($path, ($kept -join $newline) + $suffix, $encoding)
+checks:
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+    section: claudeperidot.Claudewright
+    key: WindowTitle
+    value: MQ
