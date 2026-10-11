@@ -9,6 +9,7 @@ import numpy
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
+import buildTolerances
 import laneDrawing
 import planDrawing
 import playerReach
@@ -83,7 +84,7 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   assert len({problem["kind"] for problem in report["problems"]}) > 8 and len({problem["kind"] for problem in chosen}) == 8
   assert [view["number"] for view in sheet["views"]] == [problem["number"] for problem in chosen]
   for view, problem in zip(sheet["views"], chosen):
-    assert set(view["view"]) == {"eye", "target"} and view["view"]["target"] == [*problem["center"][:2], round(problem["center"][2] + playerReach.problemViewLift, 2)]
+    assert set(view["view"]) == {"eye", "target"} and view["view"]["target"] == [*problem["center"][:2], round(problem["center"][2] + buildTolerances.floorSightLift, 2)]
     assert view["view"]["eye"][2] > view["view"]["target"][2]
   assert Image.open(io.BytesIO(base64.b64decode(whole.content[1].data))).size == (sheet["width"], sheet["height"]) and sheet["width"] == 8 + 3 * (640 + 8)
   # Over the whole course, the open stretch of the ground's edge is drawn as a void edge and a walled stretch is not; the legend lies in

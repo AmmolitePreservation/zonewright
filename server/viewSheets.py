@@ -54,16 +54,23 @@ def fitted(image):
   return cell
 
 
-def writeGrid(cells, columns, outputPath):
+def writeGrid(cells, columns, outputPath, below=None):
   """cells: [(image, label)] laid out in rows of `columns`, each fitted to cellSize, labeled under it (wrapped to its width, every row
-  as tall as the longest label needs); written as JPEG."""
+  as tall as the longest label needs); below, an (image, label) set under the rows at its own size, centered, so its lines and words
+  keep their size (a plan with its legend); written as JPEG."""
   rows = -(-len(cells) // columns)
   width, height = cellSize
   font = ImageFont.load_default(size=labelSize)
   measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
   labels = [wrappedLines(measure, label, font, width) for _, label in cells]
-  labelArea = labelHeight + lineHeight * (max(len(lines) for lines in labels) - 1)
-  sheet = Image.new("RGB", (gap + columns * (width + gap), gap + rows * (height + labelArea + gap)), backgroundColor)
+  labelArea = labelHeight + lineHeight * (max((len(lines) for lines in labels), default=1) - 1)
+  gridHeight = gap + rows * (height + labelArea + gap)
+  sheetWidth, sheetHeight = gap + columns * (width + gap), gridHeight
+  if below is not None:
+    belowLines = wrappedLines(measure, below[1], font, below[0].width)
+    sheetWidth = max(sheetWidth, below[0].width + 2 * gap)
+    sheetHeight += below[0].height + labelHeight + lineHeight * (len(belowLines) - 1) + gap
+  sheet = Image.new("RGB", (sheetWidth, sheetHeight), backgroundColor)
   draw = ImageDraw.Draw(sheet)
   for index, ((image, _), lines) in enumerate(zip(cells, labels)):
     left = gap + index % columns * (width + gap)
@@ -71,6 +78,11 @@ def writeGrid(cells, columns, outputPath):
     sheet.paste(fitted(image), (left, top))
     for line, text in enumerate(lines):
       draw.text((left, top + height + 2 + line * lineHeight), text, fill=labelColor, font=font)
+  if below is not None:
+    left = (sheetWidth - below[0].width) // 2
+    sheet.paste(below[0].convert("RGB"), (left, gridHeight))
+    for line, text in enumerate(belowLines):
+      draw.text((left, gridHeight + below[0].height + 2 + line * lineHeight), text, fill=labelColor, font=font)
   sheet.save(outputPath, "JPEG", quality=jpegQuality)
   return {"width": sheet.width, "height": sheet.height}
 

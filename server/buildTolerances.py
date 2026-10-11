@@ -48,6 +48,14 @@ levelProbeLift = 2.0
 # ground or floor it lies on.
 probeOverFloor = 2.0
 # A point given with its height finds the ground from this far above it, so a height read off a floor or a little under it still
-# stands on that floor, down to groundSearchDistance below it: standAt, entries, and the lane's seeds and teleport landings.
+# stands on that floor, down to groundSearchDistance below it: standAt, entries, the lane's seeds and teleport landings, and the
+# ground under a lane view's eye.
 groundSearchAbove = 3.0
 groundSearchDistance = 50.0
+
+# A sight to a point counts as clear when nothing blocks it short of this far before the point: a hit that near is the point's own
+# face or the floor it lies over. Problem views and lane views judge their sights by it.
+sightShort = 2.0
+# A floor is looked at this far over it, so a sight to it is not lost in the floor's own faces: a problem's view target and a region's
+# points in a lane view.
+floorSightLift = 1.0

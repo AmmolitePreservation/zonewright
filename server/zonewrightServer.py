@@ -47,6 +47,7 @@ import eqZones
 import exportPipeline
 import extensionCatalog
 import laneDrawing
+import laneViews
 import loadTimeLight
 import machineProfile
 import planDrawing
@@ -2602,6 +2603,174 @@ async def renderReviewSet(context: Context, names: list[str] | None = None, shad
   return [sheet, size | {"cameras": [{"name": name, "note": cameras[name]["note"], "outputPath": path} for name, path in zip(chosen, paths)]}]
 
 
+async def viewedSubject(context, nodes, description, target):
+  """What viewFromLane looks at: a region by its name, else an object by its name (points spread over its surface), else a player
+  standing on the lane's floor at a point."""
+  if not isinstance(target, str):
+    return laneViews.pointSubject(nodes, target)
+  region = next((region for region in description["regions"] if region["name"] == target), None)
+  if region is not None:
+    return await anyio.to_thread.run_sync(laneViews.regionSubject, nodes, region)
+  try:
+    surface = await callBridge(context, "surfacePoints", {"name": target, "count": laneViews.surfaceSamples})
+  except ToolError as error:
+    if str(error).startswith("No object named"):
+      raise ToolError(f"The target '{target}' is neither a region ({[region['name'] for region in description['regions']]}) nor an object") from error
+    raise
+  return laneViews.objectSubject(target, surface)
+
+
+async def eyesOnGround(context, candidates, chosen):
+  """The chosen eye candidates stood on the ground the zone ships under them, found as standAt finds it (laneViews.placedEyes): (which
+  stand, standing points, eyes)."""
+  points = laneViews.groundedPoints(candidates, chosen)
+  found = (await callBridge(context, "footings", {"points": points.tolist()}))["footings"] if len(points) else []
+  return laneViews.placedEyes(candidates, chosen, [None if ground is None else (ground["height"], ground["normalZ"]) for ground in found])
+
+
+async def groundedTour(context, picks):
+  """The tour's eyes (laneViews.tourSpread), each candidate where no eye stands left out and the spread chosen again without it:
+  (candidate indices, spacings, (standing points, eyes))."""
+  leftOut = numpy.zeros(len(picks["candidates"]["node"]), dtype=bool)
+  while True:
+    chosen, spacing = laneViews.tourSpread(picks, leftOut)
+    stands, standing, eyes = await eyesOnGround(context, picks["candidates"], chosen)
+    if stands.all():
+      break
+    leftOut[chosen[~stands]] = True
+  if not len(chosen):
+    raise ToolError("No reached floor the lane holds lies on the ground the zone ships under it, so no eye stands on it")
+  return chosen, spacing, (standing, eyes)
+
+
+async def fittedLanePlan(context, framing, lanePlan, sky):
+  """lanePlanRender over a laneViews.planFraming: as wide as its extent across needs, widened when its extent up would not fit the plan's
+  shape. Returns (path, width, drawn plan)."""
+  center, across, up = framing
+  planPath, base, drawn = await lanePlanRender(context, center, across, lanePlan, lanePlanLayers, sky)
+  if up > across * base["height"] / base["width"]:
+    planPath.unlink()
+    across = up * base["width"] / base["height"]
+    planPath, base, drawn = await lanePlanRender(context, center, across, lanePlan, lanePlanLayers, sky)
+  return planPath, across, drawn
+
+
+@guardedTool()
+async def viewFromLane(context: Context, target: str | list[float] | None = None, count: int | None = None):
+  """See the zone as players see it, from the lane (mapReach): eyes stand where players reach, never where only a smaller player fits,
+  on reached walkable floor (eyeHeight over the ground the zone ships at the column's middle, where that ground is the lane's floor as
+  a seed's footing is its node's) or in a swim box's water open to the air
+  (swimming, swimEyeAboveSurface over the box's top, where the water over the floor is deeper than eyeHeight - swimEyeAboveSurface, else
+  wading, eyeHeight over the floor, as renderView's standAt views stand a player), and look no farther than the far sight (maxClip, or
+  the fog's end when fog is on and nearer). Without a target, a tour: `count` eyes (at most 8, and 8 unless given) from one candidate
+  per 16-unit block (the member with the most open floor round it), spread away from where players arrive and from the world's end
+  (each the candidate farthest from the safe point, the stored entries, reached floor beside columns where the zone ships nothing, and
+  the eyes before it), leaving out a candidate beside a roomier one, each facing the one of 16 headings whose view holds the most
+  reached ground (the mean run across the view's width, its middle counting most; a run ends at a column no one reaches or whose floor
+  rises more than playerHeight over the eye); the tour is kept beside the
+  lane and reused while the lane, the far sight, and its rules hold, so later tours show the same views. With a target (a region's or
+  an object's name, or a point [x, y] or [x, y, z] on the lane's floor), up to `count` eyes (at most 6, and 6 unless given) that see it,
+  the best of each bearing sector it is seen from (standing beyond its radius from its middle before within it, then seeing the most
+  of it inside its view, then standing nearest 2.5 of its radii from its middle, where the view holds it whole), spread round it, each looking at the middle of what it sees of it; what players see of it is tried from up
+  to 32 eyes in each of 16 bearing sectors round it (one candidate per 2-unit block, at distances spread in proportion from the nearest
+  out to the far sight), by sights cast against what the zone ships as collision to points on it, each seen only from in front of it:
+  96 points spread over an object's surface by area, on the side its face's normal faces most (north +X, east -Y, south -X, west +Y,
+  top, or underside); a point's player (playerHeight tall) on those four sides and its top; a region's highest floor, each point's
+  side the side of the region's middle it lies toward. Picture: one sheet of client-shaded views, each captioned with its number, how
+  the player stands (walk, wade, or swim), and the way it faces (tour) or the side of the target it stands on, how far, and the share
+  it sees of what faces it; a target's views mark it (a region's outline along its floor, a point's player as a line from his feet to
+  his head, brackets round the part of an object the eye sees). Under them the lane plan (renderSketch's lane layer, its axes named: X up, Y across) with its legend:
+  the eyes as numbered yellow discs, each arrow the way it looks, and a target outlined with its points (filled where a player sees
+  them) and the bearings no player sees it from as a band round it, red where players stand but none sees it and dark where no reached
+  floor lies within the far sight; the plan is also written at plan.outputPath and each view, unmarked, at its eye's outputPath. The
+  JSON gives the constants used with their sources, what is not modelled (doors among it: taken as open, though the client collides
+  with a closed one, so an eye may stand behind a door players must open first), and the limits; whether the lane and the tour were
+  computed or reused; the far sight; how many candidates (and of a tour's, how many are roomiest); the arrivals a tour spreads from
+  and how many world's end points (the tour file holds them); and each eye's standing point, eye, lane label and whether it swims, its heading, direction, run along it and mean
+  run across its view (tour) or its bearing and direction from the target, distance from its middle, and seen share of what faces it
+  (target), its view (renderView renders it), and its render. For a target: its bounds and radius, the seen share of each side (null
+  for a side it has no points on) and of the whole, and the bearing sectors (headings from it to where a player would stand) no player
+  sees it from, blocked or with no reached floor within the far sight. Refused: zone properties a client-shaded view needs that are
+  missing (before the lane is mapped), mapReach's refusals, a count out of range, a target that is neither a region nor an object, an
+  object with no faces, a point off the lane's grid or over no floor, a region holding no floor in its band, and a lane with nowhere for
+  an eye to stand."""
+  most = laneViews.tourEyes if target is None else laneViews.targetEyes
+  if count is None:
+    count = most
+  if isinstance(count, bool) or not isinstance(count, int) or not 1 <= count <= most:
+    raise ToolError(f"count is a whole number of eyes from 1 to {most} {'for a tour' if target is None else 'for a target'}, got {count!r}")
+  zone = await callBridge(context, "getZoneProperties", {})
+  sky = await zoneSky(zone)
+  await callBridge(context, "requireViewZone", {"sky": sky})
+  far = laneViews.farSight(zone)
+  lane, description, laneStatus, seconds, analysis = await sceneLane(context)
+  nodes = analysis["nodes"]
+  result = playerReach.laneTerms(lane, description)
+  result["constants"] |= laneViews.constantsUsed()
+  result["limits"] += laneViews.limits(far, target is not None)
+  result |= {"lane": laneStatus, "seconds": seconds, "laneFile": str(lane.path), "farSight": far}
+  if target is None:
+    kept, tourPath = laneViews.keptTour(lane, far)
+    tourStatus = "reused"
+    if kept is None:
+      picks = await anyio.to_thread.run_sync(laneViews.tourPicks, nodes, description)
+      chosen, spacing, placed = await groundedTour(context, picks)
+      kept, tourPath = await anyio.to_thread.run_sync(laneViews.finishTour, nodes, description, far, picks, chosen, spacing, placed)
+      tourStatus = "computed"
+    eyes = kept["eyes"][:count]
+    result |= {
+      "tour": tourStatus, "tourFile": str(tourPath), "candidates": kept["candidates"], "openCandidates": kept["openCandidates"],
+      "arrivals": kept["arrivals"], "worldEndPoints": len(kept["worldEnd"]), "eyes": eyes,
+    }
+    labels = [laneViews.tourLabel(eye) for eye in eyes]
+    eyePlan = laneViews.EyePlan(analysis, description, eyes)
+    bounds = description["bounds"]
+    framing = laneViews.planFraming([bounds["minimum"], bounds["maximum"]], 0.04, 0.0)
+    planLabel = "the lane plan: each eye numbered as its view, its arrow the way it looks"
+    marks = [None] * len(eyes)
+  else:
+    subject = await viewedSubject(context, nodes, description, target)
+    candidates = await anyio.to_thread.run_sync(laneViews.eyeCandidates, nodes, description, laneViews.targetEyeBlock)
+    laneViews.requireCandidates(candidates)
+    plan = laneViews.sightPlan(subject, candidates, far)
+    stands, standing, eyePoints = await eyesOnGround(context, candidates, plan["tried"])
+    plan = laneViews.standingTried(plan, stands)
+    placed = (standing[stands], eyePoints[stands])
+    front = laneViews.facing(subject, placed[1])
+    asked = laneViews.sights(subject, placed[1], front)
+    clear = (await callBridge(context, "clearSights", {"sights": asked, "short": buildTolerances.sightShort}))["clear"] if asked else []
+    judged, pointSeen, eyeSeen = laneViews.judge(subject, candidates, plan, placed, front, clear, count)
+    eyes = judged["eyes"]
+    result |= {"target": laneViews.describeSubject(subject), "candidates": len(candidates["node"])} | judged
+    labels = [laneViews.targetLabel(eye) for eye in eyes]
+    eyePlan = laneViews.EyePlan(analysis, description, eyes, subject, judged["unseenSectors"], pointSeen)
+    framing = laneViews.planFraming([subject["low"], subject["high"]] + [eye["eye"] for eye in eyes], 0.15, 12 * playerScale.playerHeight)
+    planLabel = "the lane plan: the target outlined, each eye numbered as its view and pointing at it"
+    outline = await anyio.to_thread.run_sync(laneViews.outlineOnFloor, nodes, subject) if subject["kind"] == "region" else None
+    marks = [(subject, seen, outline) for seen in eyeSeen]
+  emitters = await previewEmitterAssets()
+  cells = []
+  for index, (eye, label, mark) in enumerate(zip(eyes, labels, marks)):
+    await context.report_progress(index, len(eyes) + 1, f"rendering view {index + 1} of {len(eyes)}")
+    viewPath = newRenderPath()
+    await callBridge(context, "renderView", {
+      "view": eye["view"], "outputPath": str(viewPath), "figureModel": None, "shading": "client", "bandHeight": 50.0, "guides": True, "sky": sky,
+      "swimVolumes": False, "labels": None, "emitters": emitters,
+    })
+    eye["outputPath"] = str(viewPath)
+    image = viewSheets.openRender(viewPath)
+    if mark is not None:
+      laneViews.markTarget(image, eye["view"], *mark)
+    cells.append((image, label))
+  await context.report_progress(len(eyes), len(eyes) + 1, "drawing the lane plan")
+  planPath, planWidth, drawn = await fittedLanePlan(context, framing, eyePlan, sky)
+  sheetPath = newRenderPath().with_suffix(".jpg")
+  size = viewSheets.writeGrid(cells, min(3, max(1, len(cells))), sheetPath, (viewSheets.openRender(planPath), planLabel))
+  result["sheet"] = {"outputPath": str(sheetPath)} | size
+  result["plan"] = {"outputPath": str(planPath), "center": framing[0], "width": round(planWidth, 2), "frameSize": drawn["size"]}
+  return [Image(data=sheetPath.read_bytes(), format="jpeg"), result]
+
+
 @guardedTool()
 async def compareToConcept(
   context: Context, camera: str | None = None, concept: str | None = None, view: dict | None = None,
@@ -2990,8 +3159,6 @@ lanePlanLayers = ["water", "swim", "boundaries"]
 # A whole lane plan spans what the zone ships this many times over, leaving room past its edges for the rings, names, and scale bar.
 lanePlanSpare = 1.2
 problemViewFrame = {"size": [960, 540], "verticalFieldOfViewDegrees": 50.0}
-# A sight to a problem counts as clear when nothing blocks it short of this far before its target.
-problemSightShort = 2.0
 
 
 async def sceneLaneOnly(context, fromEntry=None):
@@ -3037,7 +3204,7 @@ async def chooseProblemViews(context, analysis, description, zone):
   farthest = min(zone["maxClip"], zone["fogEnd"] if zone["fogOn"] else zone["maxClip"]) / 2
   sights = [playerReach.problemSights(standing, problem, description, farthest) for problem in chosen]
   asked = [[candidate["eye"], candidate["target"]] for candidates, _, _ in sights for candidate in candidates]
-  clear = iter((await callBridge(context, "clearSights", {"sights": asked, "short": problemSightShort}))["clear"])
+  clear = iter((await callBridge(context, "clearSights", {"sights": asked, "short": buildTolerances.sightShort}))["clear"])
   views = []
   for problem, (candidates, radius, distance) in zip(chosen, sights):
     found = [candidate for candidate, isClear in zip(candidates, clear) if isClear]

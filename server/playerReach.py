@@ -46,7 +46,6 @@ problemViewFrame = 3.0
 problemViewDistance = 4 * playerScale.playerHeight
 problemViewElevations = (30.0, 50.0, 70.0, 85.0)
 problemViewBearings = (0, 45, -45, 90, -90, 135, -135, 180)
-problemViewLift = 1.0
 
 laneHeader = struct.Struct("<8s3f2f4iI")
 laneMagic = b"ZWLANE01"
@@ -808,7 +807,7 @@ def problemRadius(problem, description):
 def problemSights(standing, problem, description, farthest):
   """The eyes a problem may be viewed from, in the order they are tried: problemViewFrame times its radius back from it (at least
   problemViewDistance, at most farthest, where the view still draws it), raised by each of problemViewElevations in turn and turned to
-  each of problemViewBearings from the reached floor nearest it beyond its radius; each {eye, target}, the target problemViewLift over
+  each of problemViewBearings from the reached floor nearest it beyond its radius; each {eye, target}, the target floorSightLift over
   its center. Returns (candidates, radius, distance)."""
   radius = problemRadius(problem, description)
   distance = min(max(problemViewFrame * radius, problemViewDistance), farthest)
@@ -819,7 +818,7 @@ def problemSights(standing, problem, description, farthest):
   if beyond.any():
     nearest = standing[int(numpy.argmin(numpy.where(beyond, away, numpy.inf)))]
     start = math.atan2(nearest[1] - center[1], nearest[0] - center[0])
-  target = center + [0.0, 0.0, problemViewLift]
+  target = center + [0.0, 0.0, buildTolerances.floorSightLift]
   candidates = []
   for elevation in problemViewElevations:
     rise, across = math.sin(math.radians(elevation)) * distance, math.cos(math.radians(elevation)) * distance
