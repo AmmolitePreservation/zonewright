@@ -6,6 +6,7 @@ import numpy
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
+import buildTolerances
 import eqArchive
 import eqgFiles
 import eqgWriter
@@ -19,6 +20,17 @@ environment = {
   "newEngineZone": False,
 }
 view = {"eye": [-70, -80, 55], "target": [10, 0, 5]}
+
+
+def assertDrawsAlike(first, second):
+  """Two renders (PNG bytes) of one view alike within the round trip's tolerances (buildTolerances): the same pixels within a level or
+  two, outside a few antialiased edge pixels."""
+  first, second = (numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB"), dtype=numpy.int64) for image in (first, second))
+  difference = numpy.abs(first - second)
+  largest = difference.max(axis=-1)
+  assert difference.mean() < buildTolerances.roundTripMeanLevels, difference.mean()
+  assert numpy.percentile(largest, buildTolerances.roundTripPercentile) <= buildTolerances.roundTripPercentileLevels, numpy.percentile(largest, buildTolerances.roundTripPercentile)
+  assert (largest > buildTolerances.roundTripChangedLevels).mean() < buildTolerances.roundTripChangedShare, (largest > buildTolerances.roundTripChangedLevels).mean()
 
 
 def patternedRGBA(side, seed):
@@ -94,10 +106,8 @@ def testExportedZoneComesBackAsItWasBuilt(stageBlenderServer, tmp_path):
     "missingTextures": [], "droppedTriangles": 0,
   }
   assert detail["triangles"] == sum(sceneTriangles.values())
-  # The archive draws as the scene it came from: the same pixels within a level, outside a few antialiased edge pixels.
-  difference = numpy.abs(numpy.asarray(Image.open(io.BytesIO(built)).convert("RGB"), dtype=numpy.int64) - numpy.asarray(Image.open(io.BytesIO(again)).convert("RGB"), dtype=numpy.int64))
-  assert difference.mean() < 0.5, difference.mean()
-  assert numpy.percentile(difference.max(axis=-1), 99) <= 2, numpy.percentile(difference.max(axis=-1), 99)
+  # The archive draws as the scene it came from.
+  assertDrawsAlike(built, again)
 
 
 flipCode = """
@@ -164,9 +174,7 @@ def testFacesTurnedInsideOutDrawAlikeBuiltAndExported(stageBlenderServer, tmp_pa
   # The crate's faces toward the camera and the sky, which fill most of the view, are turned inside out. Seen from behind, each is lit
   # by its own normal, built as the zone file's stored normal lights it once exported, so the two draw alike.
   assert flipped == 2
-  difference = numpy.abs(pixels(built) - pixels(again))
-  assert difference.mean() < 0.5, difference.mean()
-  assert numpy.percentile(difference.max(axis=-1), 99) <= 2, numpy.percentile(difference.max(axis=-1), 99)
+  assertDrawsAlike(built, again)
   # A file saved before the lighting group took Stored has the group's older build and no Stored on its materials. Opened again, the
   # group is rebuilt and each material's Stored is read from its own nodes: the imported meshes light by their stored normals and the
   # crate draws as it did before it was saved.
