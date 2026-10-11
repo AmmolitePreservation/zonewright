@@ -509,6 +509,7 @@ def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
   routes = {"tower": {"to": [90, -120, 30]}, "slideFace": {"to": [-60, 50.5, 10]}, "pool": {"to": [-120, 40, 2]}}
   stops = {
     "steepRamp": {"to": [110, 36]}, "pastZoneLine": {"to": [-160, 173]}, "pastDiagonal": {"to": [234, -235]}, "floating": {"to": [-255, 105]},
+    "highBank": {"to": [-105, 46]},
   }
 
   async def steps(session):
@@ -551,3 +552,9 @@ def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
   # Over the walled edge to the floating platform: the wall, then the columns with nothing at all.
   floating = results["floating"]
   assert [(stop["kind"], stop.get("name")) for stop in floating["separations"]] == [("boundary", "edgeLowC"), ("noFloor", None)], floating["separations"]
+  # The pool's high bank rises more than the step over the ground between the banks; its view stands back on the low bank's top (y 30
+  # to 38), the level the nearest place lies on, never dropped behind the low bank, whose face would fill the view.
+  highBank = results["highBank"]
+  assert [(stop["kind"], stop["face"]) for stop in highBank["separations"]] == [("rise", "bankHigh")], highBank["separations"]
+  standAt, nearest = highBank["view"]["view"]["standAt"], highBank["nearest"]["at"]
+  assert abs(standAt[2] - nearest[2]) <= cellHeight and 30 <= standAt[1] < nearest[1], (standAt, nearest)

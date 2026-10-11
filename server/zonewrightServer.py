@@ -3414,9 +3414,9 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   run on 12 past each and from 12 under the lowest of them and what separates them to 12 over the highest, with the traced lane as its
   lane layer, the nearest node marked with a white disc, the point with a black ring, and each separation with a dark diamond (and a
   dashed line to where a run ends) named with its measure, the name led back to it where it is set off; picture 2, an eye-level view
-  from the reached floor up to 12 back from the nearest node, away from the point, as far as the lane joins it, facing the point and
-  pitched to the middle of the span between the nearest node's floor and it, the swim boxes tinted and the scale figure standing on
-  the nearest node (a player's height or more off). Every result gives the constants, what is not modelled (doors taken as open among
+  from the reached floor up to 12 back from the nearest node, away from the point, as far as the lane joins it without a drop of more
+  than the step, facing the point and pitched to the middle of the span between the nearest node's floor and it, the swim boxes tinted
+  and the scale figure standing on the nearest node (a player's height or more off). Every result gives the constants, what is not modelled (doors taken as open among
   them: the client collides with a closed door), the limits, and whether the lane was computed or reused. Refused: `to` not [x, y] or
   [x, y, z], or outside what the zone ships; an unknown fromEntry; no reached place beside the point; and mapReach's refusals."""
   if len(to) not in (2, 3) or not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in to):

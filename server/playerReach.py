@@ -1228,7 +1228,8 @@ def separationWalk(nodes, description, start, targetPoint, target):
 
 def standBack(nodes, description, start, targetPoint):
   """Where to look at a traced point from: the reached node farthest back from a reached node, away from the point along the plan line
-  through them, up to frameStandBack, that every column between joins by a move; the node itself when the two share a column's
+  through them, up to frameStandBack, that every column between joins by a move that drops no more than the step, so the eye keeps the
+  level it looks from and no ledge it dropped off stands between it and the point; the node itself when the two share a column's
   place."""
   lane = nodes.lane
   startPoint = nodePoint(nodes, start)
@@ -1241,6 +1242,8 @@ def standBack(nodes, description, start, targetPoint):
     column = lane.columnOf(x, z)
     node = None if column is None else tracedNode(nodes, column, current)
     if node is None or not nodes.reached[node] or nodes.shape[node] & absorbedShape or transitionFailure(nodes, description, current, node) is not None:
+      break
+    if not nodes.wet[current] and lane.height(nodes.low[current]) - lane.height(nodes.low[node]) > playerScale.stepHeight:
       break
     current = node
   return current
