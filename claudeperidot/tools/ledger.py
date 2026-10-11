@@ -224,12 +224,13 @@ def validateChangeFields(fields):
     return problems
   form = changeForm(fields)
   if fields["disposition"] in ("fixture", "exploration") and fields["production"] != "none":
-    problems.append(f"a {fields['disposition']} change never reaches Peridot: production must be none")
+    problems.append(f"{fields['disposition']} changes never reach Peridot: production must be none")
   if fields["disposition"] == "production":
     if form == "client":
       problems.append("a client change stays on the workstation and cannot be production")
     elif fields["production"] not in productionForms[form]:
-      problems.append(f"a production {form} change reaches Peridot as {' or '.join(productionForms[form])}")
+      problems.append(f"a production {'row' if form == 'rows' else form} change reaches Peridot as "
+        f"{' or '.join(productionForms[form])}")
   commits = fields["commits"]
   if not isinstance(commits, list) or not all(isinstance(commit, str) and commitPattern.match(commit) for commit in commits):
     problems.append("commits must be a list of lowercase commit SHAs")
@@ -559,7 +560,10 @@ class Server:
 
 
 def runPowerShell(script):
-  encoded = base64.b64encode(("$ErrorActionPreference = 'Stop'\n" + script).encode("utf-16-le")).decode("ascii")
+  # Errors are written to the console directly: PowerShell serializes its own error stream as CLIXML when it is redirected.
+  wrapped = ("$ErrorActionPreference = 'Stop'\n$ProgressPreference = 'SilentlyContinue'\ntry {\n" + script + "\n} catch {\n"
+    "  [Console]::Error.WriteLine(($_ | Out-String).Trim())\n  exit 1\n}\n")
+  encoded = base64.b64encode(wrapped.encode("utf-16-le")).decode("ascii")
   result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand",
     encoded], capture_output=True, text=True)
   if result.returncode != 0:
@@ -942,7 +946,7 @@ class Ledger:
     columns = {table: [] for table in tables}
     for row in self.server.sql("SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IFNULL(CHARACTER_SET_NAME, ''), EXTRA FROM "
         f"information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ({names}) "
-        "ORDER BY TABLE_NAME, ORDINAL_POSITION;"):
+        "ORDER BY TABLE_NAME, ORDINAL_POSITION;\n"):
       if len(row) != 5:
         raise LedgerError(f"information_schema gave the column row {row!r}")
       if "GENERATED" not in row[4].upper():
@@ -966,7 +970,7 @@ class Ledger:
     if not tables:
       return {}
     checksums = {}
-    for row in self.server.sql(f"CHECKSUM TABLE {', '.join(quoteIdentifier(table) for table in tables)} EXTENDED;",
+    for row in self.server.sql(f"CHECKSUM TABLE {', '.join(quoteIdentifier(table) for table in tables)} EXTENDED;\n",
         timeoutSeconds=1800):
       if len(row) != 2 or not numberPatterns["integer"].match(row[1]):
         raise LedgerError(f"CHECKSUM TABLE gave {row!r}")
@@ -980,7 +984,7 @@ class Ledger:
     tables = change.tables
     names = ", ".join(f"'{table}'" for table in sorted(set(tables)))
     existing = {row[0] for row in self.server.sql("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = "
-      f"DATABASE() AND TABLE_NAME IN ({names});")}
+      f"DATABASE() AND TABLE_NAME IN ({names});\n")}
     present = [table for table in tables if table in existing]
     rows = self.server.sql("".join(f"SHOW CREATE TABLE {quoteIdentifier(table)};\n" for table in present)) if present else []
     if len(rows) != len(present):
@@ -1119,11 +1123,15 @@ class Ledger:
       saved = self.readSaved(change)
       if self.schemaFingerprint(change) != saved["tables"]:
         raise LedgerError(f"the tables of {change.identifier} changed since stage: stage it again")
-    self.server.sql("".join(f"{statement};\n" for statement in statements[state.done:]), writes=True, timeoutSeconds=3600)
+    failure = None
+    try:
+      self.server.sql("".join(f"{statement};\n" for statement in statements[state.done:]), writes=True, timeoutSeconds=3600)
+    except LedgerError as error:
+      failure = error
     after = self.state(change)
-    if not after.isApplied:
+    if failure is not None or not after.isApplied:
       raise LedgerError(f"{change.identifier}: {after.done} of {after.total} steps are done; fix the cause and run apply again "
-        "to resume from the next step")
+        "to resume from the next step" + (f" ({failure})" if failure else "")) from failure
     fingerprint = self.schemaFingerprint(change)
     writeJSON(change.folder / "applied.json", {"checksum": hashlib.sha256(json.dumps(fingerprint, sort_keys=True).encode(
       "utf-8")).hexdigest(), "tables": fingerprint, "tableChecksums": {table: value["checksum"] for table, value in
@@ -1159,8 +1167,8 @@ class Ledger:
 
   def revertRows(self, change):
     saved = self.readSaved(change)
-    applied = self.readApplied(change)
     self.requireState(change, "applied", "revert")
+    applied = self.readApplied(change)
     current = self.fetchScope(change)
     if scopeChecksum(current) != applied["checksum"]:
       changed = [table["table"] for table, digest in zip(current, applied["digests"]) if tableDigest(table["rows"]) != digest]
@@ -1186,9 +1194,17 @@ class Ledger:
     if state.isApplied and self.schemaFingerprint(change) != self.readApplied(change)["tables"]:
       raise LedgerError(f"the tables of {change.identifier} changed since apply; revert refuses to overwrite them")
     statements = self.revertStatements(change)
-    self.server.sql("".join(f"{statement};\n" for statement in statements[change.steps - state.done:]), writes=True,
-      timeoutSeconds=3600)
-    if self.state(change).state != "notApplied" or self.schemaFingerprint(change) != saved["tables"]:
+    failure = None
+    try:
+      self.server.sql("".join(f"{statement};\n" for statement in statements[change.steps - state.done:]), writes=True,
+        timeoutSeconds=3600)
+    except LedgerError as error:
+      failure = error
+    after = self.state(change)
+    if failure is not None or after.state != "notApplied":
+      raise LedgerError(f"{change.identifier}: {after.done} of {after.total} steps are still done; fix the cause and run "
+        "revert again to undo the rest" + (f" ({failure})" if failure else "")) from failure
+    if self.schemaFingerprint(change) != saved["tables"]:
       raise LedgerError(f"{change.identifier}: after revert.sql the tables are not as saved at stage")
 
   def updatePlan(self, change):
@@ -1213,7 +1229,7 @@ class Ledger:
 
   def baseTables(self):
     return [row[0] for row in self.server.sql("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() "
-      "AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;")]
+      "AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;\n")]
 
   def drift(self):
     baseline = self.readBaseline()
@@ -1253,31 +1269,31 @@ class Ledger:
     if pending:
       raise LedgerError(f"promote waits for the owner to clear the significant changes {', '.join(pending)}")
     self.requireState(change, "applied", "promote")
-    outputFolder = change.folder / "peridot"
-    outputFolder.mkdir(exist_ok=True)
     production = change.fields["production"]
     if production == "contentSQL":
       saved = self.readSaved(change)
       check = self.checkStatement(change)
       header = (f"-- {change.identifier}: {change.fields['title']}\n-- Written by ledger.py promote. Fails and rolls back unless "
         "Peridot still holds the rows the change was made against, and unless its check gives 1 after it.\n")
-      (outputFolder / "content.sql").write_text(header + "SET NAMES utf8mb4;\nSET time_zone = '+00:00';\n"
+      outputs = {"content.sql": header + "SET NAMES utf8mb4;\nSET time_zone = '+00:00';\n"
         "SET SESSION group_concat_max_len = 4294967295;\nSTART TRANSACTION;\n"
         + rowsGuards(saved["tables"], [tableDigest(table["rows"]) for table in saved["tables"]], f"{change.number}: Peridot rows "
           "differ from those the change was made against")
         + "".join(f"{statement};\n" for statement in self.applyStatements(change))
         + guardBlock(f"({checkQuery(check)}) = 1", f"{change.number}: check is not 1 after the content SQL")
-        + "COMMIT;\n", encoding="utf-8")
-      (outputFolder / "check.sql").write_text(checkQuery(check) + ";\n", encoding="utf-8")
+        + "COMMIT;\n", "check.sql": checkQuery(check) + ";\n"}
     elif production == "customMigration":
-      (outputFolder / "customMigration.cpp").write_text(self.manifestEntry(change, manifestVersion), encoding="ascii")
+      outputs = {"customMigration.cpp": self.manifestEntry(change, manifestVersion)}
     elif production == "questCommit":
-      (outputFolder / "cherryPick.sh").write_text(f"#!/bin/sh\nset -e\ncd {peridotQuestsPath}\ngit cherry-pick "
-        f"{' '.join(change.fields['commits'])}\n", encoding="ascii", newline="\n")
+      outputs = {"cherryPick.sh": f"#!/bin/sh\nset -e\ncd {peridotQuestsPath}\ngit cherry-pick {' '.join(change.fields['commits'])}\n"}
     else:
-      (outputFolder / "edit.md").write_text(f"# {change.identifier}: carry into the {production}\n\n{change.fields['title']}\n\n"
+      outputs = {"edit.md": f"# {change.identifier}: carry into the {production}\n\n{change.fields['title']}\n\n"
         f"{change.fields['why']}\n\n- Files: {', '.join(change.fields['scope'])}\n- Commits: {', '.join(change.fields['commits'])}"
-        f"\n- Activation: {change.fields['activation']}\n", encoding="utf-8")
+        f"\n- Activation: {change.fields['activation']}\n"}
+    outputFolder = change.folder / "peridot"
+    outputFolder.mkdir(exist_ok=True)
+    for name, text in outputs.items():
+      (outputFolder / name).write_text(text, encoding="utf-8", newline="\n")
     self.record([change.folder], f"Promote {change.identifier}: {change.fields['title']}")
     return [f"promoted {change.identifier}: {self.relative(outputFolder)}"]
 
@@ -1286,8 +1302,8 @@ class Ledger:
       raise LedgerError("a custom migration needs --manifestVersion, the next version in Peridot's "
         "database_update_manifest_custom.cpp")
     statements = self.applyStatements(change)
-    if any(')"' in statement for statement in statements):
-      raise LedgerError(f"{change.identifier}: a statement holds )\", which would end a C++ raw string")
+    if any(')"' in statement or not statement.isascii() for statement in statements):
+      raise LedgerError(f"{change.identifier}: a statement holds )\" (which would end a C++ raw string) or non-ASCII text")
     check = " ".join(f"{checkQuery(self.checkStatement(change))} WHERE applied = {change.steps}".split())
     check = check.replace("\\", "\\\\").replace('"', '\\"')
     pieces = "\n\t\t\t".join(f'R"({statement};\n)"' for statement in statements)
@@ -1326,8 +1342,8 @@ class Ledger:
       raise LedgerError(f"no peq-*.sql.gz in {hostPaths['dumps']}: run seed with the copy script first")
     dumpPath = f"{hostPaths['dumps']}/{dumps[0]}"
     dumpTime = datetime.datetime.fromtimestamp(int(self.server.run(f"stat -c %Y {dumpPath}").strip()), datetime.UTC)
-    versionRows = self.server.sql("SELECT version, bots_version, custom_version FROM db_version;")
-    masterRows = self.server.sql("SHOW MASTER STATUS;")
+    versionRows = self.server.sql("SELECT version, bots_version, custom_version FROM db_version;\n")
+    masterRows = self.server.sql("SHOW MASTER STATUS;\n")
     if len(versionRows) != 1 or len(masterRows) != 1:
       raise LedgerError(f"db_version gave {versionRows!r} and SHOW MASTER STATUS gave {masterRows!r}; the baseline needs one "
         "db_version row and the binary log on")
