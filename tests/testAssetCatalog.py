@@ -1,5 +1,7 @@
+import hashlib
 import io
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -8,7 +10,7 @@ import numpy
 from PIL import Image
 import pytest
 
-from conftest import pinnedBlender
+from conftest import everquestClient, pinnedBlender, repositoryRoot
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import eqArchive
@@ -17,6 +19,8 @@ import eqgFiles
 pytestmark = pytest.mark.clientData("survey")
 classicZone = "nektulos"
 eqgZone = "nektulosa"
+clientRoot = Path(everquestClient)
+repositoryCatalog = repositoryRoot / "catalog"
 
 
 def stageCatalogServer(stageServer):
@@ -76,7 +80,7 @@ def testDescriptionsUseTheVocabularyAndAreFoundByWhatTheySay(stageServer):
   server.callToolExpectingSuccess("surveyAssets", {"zones": [eqgZone]})
   textures, _ = server.callToolExpectingSuccess("findAssets", {"kind": "texture", "source": eqgZone, "sortBy": "areaShare", "limit": 2})
   textureID = textures["assets"][0]["id"]
-  base = {"id": textureID, "category": "grass", "tags": {"color": ["green"], "use": ["terrainFlat"]}, "description": "Dark mossy forest floor with roots.", "usage": "Flat shaded ground under trees; repeat about every 40 units."}
+  base = {"id": textureID, "judgedFrom": {"views": ["thumbnail"], "facts": ["colorName"]}, "category": "grass", "tags": {"color": ["green"], "use": ["terrainFlat"]}, "description": "Dark mossy forest floor with roots.", "usage": "Flat shaded ground under trees; repeat about every 40 units."}
   badCategory = server.callToolExpectingError("describeAssets", {"descriptions": [base | {"category": "lawn"}]})
   badTerm = server.callToolExpectingError("describeAssets", {"descriptions": [base | {"tags": {"color": ["moss"]}}]})
   noUsage = server.callToolExpectingError("describeAssets", {"descriptions": [base | {"usage": " "}]})
@@ -94,7 +98,7 @@ def testDescriptionsUseTheVocabularyAndAreFoundByWhatTheySay(stageServer):
   assert "usage must be written" in noUsage
   assert "is not in the catalog; survey the zone or folder that holds it" in unknownAsset
   assert added == {"group": "material", "term": "loam", "meaning": "Dark rich soil."} and "'loam' is already a material term" in addedAgain
-  assert described == {"described": [textureID]}
+  assert described == {"described": {textureID: ["category", "tags.color", "tags.material", "description", "usage"]}}
   assert [asset["id"] for asset in byWords["assets"]] == [textureID] and [asset["id"] for asset in byTags["assets"]] == [textureID]
   assert byOtherTags["total"] == 0
   assert textureID not in [asset["id"] for asset in undescribed["assets"]] and undescribed["total"] == textures["total"] - 1
@@ -207,3 +211,97 @@ def testModelSheetDrawsEachModel(stageBlenderServer):
     cell = sheet.crop((left, 4, left + 256, 260))
     assert len(numpy.unique(numpy.asarray(cell).reshape(-1, 3), axis=0)) > 200
   assert summary["objectCount"] == 0
+
+
+def stagedCatalog(server):
+  """The staged server's catalog folder holding the repository's server roles extract and descriptions."""
+  folder = server.repositoryPath / "catalog"
+  folder.mkdir(parents=True, exist_ok=True)
+  for name in ("serverRoles.json", "interpreted.json"):
+    shutil.copy(repositoryCatalog / name, folder / name)
+  return folder
+
+
+def testObjectArchivesAreSurveyedWithTheirModels(stageServer):
+  server = stageCatalogServer(stageServer)
+  stagedCatalog(server)
+  surveyed, progress = server.callToolExpectingSuccess("surveyAssets", {"archives": ["crystals.eqg"]})
+  zoneArchive = server.callToolExpectingError("surveyAssets", {"archives": ["breedinggrounds.eqg"]})
+  models, _ = server.callToolExpectingSuccess("findAssets", {"kind": "model", "source": "crystals.eqg", "sortBy": "name", "limit": 100})
+  server.callToolExpectingSuccess("surveyAssets", {"zones": [classicZone, eqgZone]})
+  classic, _ = server.callToolExpectingSuccess("findAssets", {"kind": "model", "source": classicZone, "limit": 500})
+  trees, _ = server.callToolExpectingSuccess("findAssets", {"kind": "model", "source": eqgZone, "text": "obj_tree_bg_"})
+  client = eqArchive.EQArchive(clientRoot / "crystals.eqg")
+  entry = next(asset for asset in models["assets"] if asset["id"].startswith("model/obj_fscrystala.mod@"))
+  full, _ = server.callToolExpectingSuccess("getAsset", {"id": entry["id"]})
+  assert surveyed["source"] == "archive:crystals.eqg" and progress == ["checking archive hashes", "surveyed archive:crystals.eqg"]
+  assert "breedinggrounds.eqg" in zoneArchive and "zone archives are surveyed by zone" in zoneArchive
+  # Every model the archive defines, each keyed by its content: the id's hash is the entry's own.
+  assert len(models["assets"]) == sum(name.endswith(".mod") for name in client.entries)
+  digest = hashlib.sha256(client.read("obj_fscrystala.mod")).hexdigest()
+  assert entry["id"] == f"model/obj_fscrystala.mod@{digest[:8]}" and full["measured"]["sha256"] == digest
+  # Measured from its file: it stands on its origin, its colors from its textures, and the server's tables name it a door, some teleporting.
+  model = eqgFiles.parseModel(client.read("obj_fscrystala.mod"), "obj_fscrystala.mod")
+  drawn = numpy.unique(model["triangles"][model["triangleMaterials"] >= 0])
+  assert full["measured"]["size"] == [round(float(value), 2) for value in model["vertices"][drawn].max(0) - model["vertices"][drawn].min(0)]
+  assert full["measured"]["origin"] == "base" and full["measured"]["dominantColors"][0]["share"] > 0.5
+  assert full["measured"]["role"]["kinds"] == ["door", "teleportDoor"] and full["measured"]["role"]["doors"]["teleports"] == 2
+  assert "chapterhouse" in full["sources"]["archive:crystals.eqg"]["links"]["listedBy"]
+  # A classic zone's objects are keyed by a digest of what they draw, as EQG models are by their bytes.
+  assert classic["total"] > 0 and all(re.fullmatch(r"model/.+@[0-9a-f]{8}", asset["id"]) for asset in classic["assets"] if "problem" not in asset)
+  # How a client zone places a model: how often, how it sits, and beside what.
+  [placedTree] = trees["assets"]
+  treeEntry, _ = server.callToolExpectingSuccess("getAsset", {"id": placedTree["id"]})
+  use = treeEntry["sources"][f"zone:{eqgZone}"]
+  assert use["placements"] == sum(use["sits"].values()) > 0 and use["beside"]
+
+
+def testDescriptionsMergeFieldByFieldAndRecordWhatTheyWereJudgedFrom(stageBlenderServer):
+  async def steps(session):
+    await session.expectSuccess("surveyAssets", {"archives": ["crystals.eqg"]})
+    models = await session.expectSuccess("findAssets", {"kind": "model", "source": "crystals.eqg", "text": "obj_fscrystala"})
+    assetID = models["assets"][0]["id"]
+    image, sheet = await session.expectImage("viewModels", {"ids": [assetID], "views": ["front", "side", "top", "threeQuarter"]}, "image/jpeg")
+    first = {"id": assetID, "judgedFrom": {"views": ["front", "threeQuarter"], "facts": ["size"]}, "plainName": "Tall violet crystal", "category": "decoration", "tags": {"form": ["tall"]}}
+    described = await session.expectSuccess("describeAssets", {"descriptions": [first]})
+    queued = await session.expectSuccess("describeQueue", {"kind": "model", "field": "tags.mood", "source": "crystals.eqg"})
+    clash = await session.expectError("describeAssets", {"descriptions": [first | {"category": "rock"}]})
+    unjudged = await session.expectError("describeAssets", {"descriptions": [{"id": assetID, "tags": {"mood": ["eerie"]}}]})
+    merged = await session.expectSuccess("describeAssets", {"descriptions": [{"id": assetID, "judgedFrom": {"views": ["side"]}, "category": "decoration", "tags": {"mood": ["eerie"]}}]})
+    rewritten = await session.expectSuccess("describeAssets", {"descriptions": [{"id": assetID, "judgedFrom": {"views": ["top"]}, "category": "rock", "rewrite": ["category"]}]})
+    entry = await session.expectSuccess("getAsset", {"id": assetID})
+    Path(entry["views"]["front"]).write_bytes(Path(entry["views"]["top"]).read_bytes())
+    review = await session.expectSuccess("describeQueue", {"kind": "model", "source": "crystals.eqg", "limit": 100})
+    return assetID, image, sheet, described, queued, clash, unjudged, merged, rewritten, entry, review
+
+  assetID, image, sheet, described, queued, clash, unjudged, merged, rewritten, entry, review = stageBlenderServer.session(steps)
+  assert [list(cell["views"]) for cell in sheet["cells"]] == [["front", "side", "top", "threeQuarter"]]
+  # Four views of one model side by side, each a drawn model, not an empty frame.
+  sheetImage = Image.open(io.BytesIO(image)).convert("RGB")
+  assert sheetImage.size == (4 + 4 * 260, 4 + 288)
+  for left in (4, 264, 524, 784):
+    assert len(numpy.unique(numpy.asarray(sheetImage.crop((left, 4, left + 256, 260))).reshape(-1, 3), axis=0)) > 100
+  assert described == {"described": {assetID: ["category", "tags.form", "plainName"]}}
+  assert assetID in [asset["id"] for asset in queued["assets"]]
+  assert "['category'] are written already and differ" in clash and "judgedFrom names what it was judged from" in unjudged
+  # A field already written with the same value is left as it was; only the missing one is written, with its own judgement.
+  assert merged == {"described": {assetID: ["tags.mood"]}} and rewritten == {"described": {assetID: ["category"]}}
+  interpreted = entry["interpreted"]
+  assert (interpreted["plainName"], interpreted["category"], interpreted["tags"]) == ("Tall violet crystal", "rock", {"form": ["tall"], "mood": ["eerie"]})
+  assert sorted(interpreted["provenance"]["plainName"]["views"]) == ["front", "threeQuarter"] and interpreted["provenance"]["plainName"]["facts"]["size"] == entry["measured"]["size"]
+  assert list(interpreted["provenance"]["tags.mood"]["views"]) == ["side"]
+  # The front view changed: only the fields judged from it are to review.
+  reviewed = next(asset for asset in review["assets"] if asset["id"] == assetID)
+  assert reviewed["review"] == {field: ["view front changed"] for field in ("plainName", "tags.form")}
+
+
+def testExistingDescriptionsSurviveNewOnes(stageServer):
+  server = stageCatalogServer(stageServer)
+  folder = stagedCatalog(server)
+  before = json.loads((folder / "interpreted.json").read_text(encoding="utf-8"))
+  server.callToolExpectingSuccess("surveyAssets", {"archives": ["crystals.eqg"]})
+  textures, _ = server.callToolExpectingSuccess("findAssets", {"kind": "texture", "source": "crystals.eqg", "described": False, "limit": 1})
+  textureID = textures["assets"][0]["id"]
+  server.callToolExpectingSuccess("describeAssets", {"descriptions": [{"id": textureID, "judgedFrom": {"views": ["thumbnail"]}, "category": "ice", "description": "Violet crystal facets.", "usage": "Crystal props only."}]})
+  after = json.loads((folder / "interpreted.json").read_text(encoding="utf-8"))
+  assert {key: after[key] for key in before} == before and set(after) - set(before) == {textureID}
