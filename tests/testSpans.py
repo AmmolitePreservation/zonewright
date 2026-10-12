@@ -12,6 +12,8 @@ import playerScale
 # The medium body group, which holds the walked human male, is the one these tests size their courses by.
 medium = playerScale.groups["medium"]
 eyeHeight, stepHeight, steepestWalkableDegrees = medium.eyeHeight, medium.stepHeight, medium.steepestWalkableDegrees
+# A flight built for every group is judged by the least step among them.
+everyGroupStep = playerScale.strictest(playerScale.groupNames).stepHeight
 
 # Anchors on the gorge's lips: a deck sagging from an anchor back on the rim would dip into the rim's flat ground, and one from the wall
 # below the lip leaves a notch to step into.
@@ -194,7 +196,7 @@ def testAFlightHasEqualRisersAtMostTheRiserAndWalksFootToHead(stageBlenderServer
     })
     found = await structurePlots.faces(session, "gorgeFlight")
     steep = await session.expectError("buildStairs", {"name": "steepFlight", "kitPath": kitPath, "bottom": [-55, -60, -40], "top": head, "width": 6, "tread": "testKitTread"})
-    tall = await session.expectError("buildStairs", {"name": "tallFlight", "kitPath": kitPath, "bottom": foot, "top": head, "width": 6, "tread": "testKitTread", "riser": stepHeight + 0.5})
+    tall = await session.expectError("buildStairs", {"name": "tallFlight", "kitPath": kitPath, "bottom": foot, "top": head, "width": 6, "tread": "testKitTread", "riser": everyGroupStep + 0.5})
     return built, found, steep, tall
 
   built, found, steep, tall = stageBlenderServer.session(steps)
@@ -209,7 +211,7 @@ def testAFlightHasEqualRisersAtMostTheRiserAndWalksFootToHead(stageBlenderServer
   assert built["legs"] and all(abs(leg["bottom"] - (structurePlots.gorgeHeight(leg["at"][0]) - 2.0)) <= 0.05 for leg in built["legs"])
   assert walkOf(built["walk"])["walkable"], walkOf(built["walk"])["problems"]
   assert "needs a run of at least 40.00" in steep
-  assert f"riser must be above 0 and at most a step ({stepHeight:g}) for the body groups it is built for (['small', 'medium', 'large'], playerScale)" in tall
+  assert f"riser must be above 0 and at most a step ({everyGroupStep:g}) for the body groups it is built for (['small', 'medium', 'large'], playerScale)" in tall
 
 
 def testAWalkwayHoldsLevelLandingsGradesItsLegsAndLaysListedFlights(stageBlenderServer, tmp_path):

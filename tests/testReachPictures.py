@@ -82,11 +82,11 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   async def steps(session):
     await reachCourse(session, tmp_path)
     whole, _ = await session.call("mapReach", {})
-    framed = await session.expectImage("mapReach", {"center": [60, 40], "width": 240, "problemViews": False})
-    west = await session.expectImage("mapReach", {"center": [-137, 40], "width": 240, "problemViews": False})
-    edge = await session.expectImage("mapReach", {"center": [-215, 20], "width": 160, "problemViews": False})
-    ford = await session.expectImage("mapReach", {"center": [-110, -40], "width": 100, "problemViews": False})
-    leveled = await session.expectImage("mapReach", {"center": [160, 40], "width": 80, "level": {"bottom": 9, "top": 11}, "problemViews": False})
+    framed = await session.expectImage("mapReach", {"center": [60, 40], "width": 240, "problemViews": False, "bodyGroup": "medium"})
+    west = await session.expectImage("mapReach", {"center": [-137, 40], "width": 240, "problemViews": False, "bodyGroup": "medium"})
+    edge = await session.expectImage("mapReach", {"center": [-215, 20], "width": 160, "problemViews": False, "bodyGroup": "medium"})
+    ford = await session.expectImage("mapReach", {"center": [-110, -40], "width": 100, "problemViews": False, "bodyGroup": "medium"})
+    leveled = await session.expectImage("mapReach", {"center": [160, 40], "width": 80, "level": {"bottom": 9, "top": 11}, "problemViews": False, "bodyGroup": "medium"})
     sketched = await session.expectImage("renderSketch", {"center": [60, 40], "width": 240, "layers": ["regions", "lane"]})
     plain = await session.expectImage("renderSketch", {"center": [60, 40], "width": 240, "layers": ["regions"]})
     return whole, framed, west, edge, leveled, sketched, plain, ford
@@ -119,8 +119,8 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   planImage, planReport = framed
   stations = Image.open(io.BytesIO(planImage))
   stations.save(tmp_path / "courseStations.png")
-  # Walked ground and the platform the gentle ramp reaches are green; the tops of the step over a player's step and of the platform
-  # past the steep ramp are cross-hatched, walkable floor never reached, and ringed as problems.
+  # The framed plan draws the medium group's lane, which the stations are sized by. Walked ground and the platform the gentle ramp
+  # reaches are green; the tops of the step over a player's step and of the platform past the steep ramp are cross-hatched, walkable floor never reached, and ringed as problems.
   assert greenShare(pixelsAround(stations, planReport["plan"], [20, -10])) > 0.9
   assert greenShare(pixelsAround(stations, planReport["plan"], [80, 45])) > 0.9
   for point in ([40, 70], [110, 43]):
@@ -146,6 +146,8 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   assert greenShare(shallowWater) > 0.4 and blueShare(shallowWater) > 0.2
   assert pinkShare(pixelsAround(westPlan, westFrame, [-105, 10])) > 0.9
   stacked, floating = pixelsAround(westPlan, westFrame, [-150, 10], 6), pixelsAround(westPlan, westFrame, [-170, 40], 6)
+  # The large group's unreached swim in the upper stacked box is ringed there, in black and white over the medium group's water.
+  stacked = stacked[~((stacked == 15).all(axis=1) | (stacked == 255).all(axis=1))]
   assert blueShare(stacked) > 0.9 and colorShare(stacked, laneDrawing.layeredColor) == 0
   assert blueShare(floating) > 0.8 and colorShare(floating, laneDrawing.layeredColor) > 0
   # Boxes too small in the drawing to hold their names are listed; the pool holds its own.

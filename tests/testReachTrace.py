@@ -33,7 +33,8 @@ corridorHalf = 8.0
 groundEdge = 12.0
 wallHeight = 20.0
 slabBottom = -20.0
-riser = stepHeight - heightMargin
+# On the lane's height grid, a margin or more under the step.
+riser = math.floor((stepHeight - heightMargin) / cellHeight) * cellHeight
 # The second riser stands back from the first by less than a player's height of tread: the two are one climb run.
 riserB = -10 + playerHeight / 2
 bed = -(stepHeight + playerHeight)
@@ -546,7 +547,7 @@ def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
     for name, arguments in (routes | stops).items():
       result, _ = await session.call("traceReach", arguments)
       found[name] = result
-    ford = await session.expectImage("renderSection", {"start": [-138, -40], "end": [-82, -40], "layers": ["ground", "swim", "lane"]})
+    ford = await session.expectImage("renderSection", {"start": [-138, -40], "end": [-82, -40], "layers": ["ground", "swim", "lane"], "bodyGroup": "medium"})
     return found, ford
 
   found, (fordImage, ford) = stageBlenderServer.session(steps)

@@ -669,12 +669,15 @@ def placeScaleFigure(preview, surfaces, ground, headingDegrees, figureModel):
   """Walk ahead along what players stand on (surfaces, bridgeMeshAccess.PlayerSurfaces), as a player would, until figureDistance or a
   wall, or a climb or drop over the step of the figure's body group (playerScale), stops the walk; then stand the figure there."""
   stepHeight = playerScale.group(figureModel["bodyGroup"]).stepHeight
+  # Probed from a whole unit over the step: from a fractional height the footing lands a rounding error off the ground a saved review
+  # camera finds again under it, and the camera would not render its view exactly.
+  probe = math.ceil(stepHeight)
   heading = math.radians(headingDegrees)
   ahead = mathutils.Vector((math.sin(heading), math.cos(heading), 0))
   side = mathutils.Vector((math.cos(heading), -math.sin(heading), 0))
   down = mathutils.Vector((0, 0, -1))
   position = ground.copy()
-  sideHit = surfaces.cast(position + side * figureSideOffset + mathutils.Vector((0, 0, stepHeight)), down, 2 * stepHeight)
+  sideHit = surfaces.cast(position + side * figureSideOffset + mathutils.Vector((0, 0, probe)), down, probe + stepHeight)
   if sideHit is not None:
     position = sideHit
   walked = 0.0
@@ -682,7 +685,7 @@ def placeScaleFigure(preview, surfaces, ground, headingDegrees, figureModel):
     chest = position + mathutils.Vector((0, 0, figureModel["avatarHeight"]))
     if surfaces.cast(chest, ahead, figureStep + figureClearance) is not None:
       break
-    nextGround = surfaces.cast(position + ahead * figureStep + mathutils.Vector((0, 0, stepHeight)), down, 2 * stepHeight)
+    nextGround = surfaces.cast(position + ahead * figureStep + mathutils.Vector((0, 0, probe)), down, probe + stepHeight)
     if nextGround is None:
       break
     position = nextGround

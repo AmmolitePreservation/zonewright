@@ -128,9 +128,11 @@ def testBoxesStopAboveACaveUnderTheBedAndDrawInViews(stageBlenderServer, tmp_pat
 
 # The water stands this much deeper than players swim in over the floor, and as much shallower over a shelf whose edge lies inside a
 # column of the water's cells (8 across, from 0), so that column keeps a corner over the deeper water; every depth of the scene is
-# minimumSwimDepth give or take it. The shelf is a block standing in the ground, its bottom under the ground's face so no face of it lies
+# shallowestSwimDepth give or take it. The shelf is a block standing in the ground, its bottom under the ground's face so no face of it lies
 # on another.
 depthMargin = 0.5
+# The ford is sized by the shallowest water any body group swims in.
+shallowestSwimDepth = min(group.minimumSwimDepth for group in playerScale.groups.values())
 shelfTop = 2 * depthMargin
 shelfFooting = 1.0
 shelfEdge = 10.0
@@ -156,17 +158,17 @@ def testBuildSwimVolumesLeavesOutShallowCells(stageBlenderServer, tmp_path):
     await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [160, 80], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
     await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "shelf", "size": [80 - shelfEdge, 80, shelfTop + shelfFooting], "location": [(80 + shelfEdge) / 2, 0, -shelfFooting]})
     await liquidMaterials(session, tmp_path)
-    await session.expectSuccess("floodWater", {"name": "ford", "seed": [-40, 0], "level": minimumSwimDepth + depthMargin, "material": "water"})
+    await session.expectSuccess("floodWater", {"name": "ford", "seed": [-40, 0], "level": shallowestSwimDepth + depthMargin, "material": "water"})
     built = await session.expectSuccess("buildSwimVolumes", {"body": "ford"})
     volumes = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
-    section = {"start": sectionStart, "end": sectionEnd, "bottom": min(volume["minimum"][2] for volume in volumes) - 2, "top": minimumSwimDepth + depthMargin + 2}
+    section = {"start": sectionStart, "end": sectionEnd, "bottom": min(volume["minimum"][2] for volume in volumes) - 2, "top": shallowestSwimDepth + depthMargin + 2}
     drawn, cut = await session.expectImage("renderSection", section)
     shelfOnly = await session.expectError("buildSwimVolumes", {"body": "ford", "area": shelfArea})
     afterArea = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
-    await session.expectSuccess("editWater", {"name": "ford", "level": minimumSwimDepth + 3 * depthMargin})
+    await session.expectSuccess("editWater", {"name": "ford", "level": shallowestSwimDepth + 3 * depthMargin})
     deepened = await session.expectSuccess("buildSwimVolumes", {"body": "ford"})
     deepVolumes = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
-    await session.expectSuccess("editWater", {"name": "ford", "level": minimumSwimDepth - depthMargin})
+    await session.expectSuccess("editWater", {"name": "ford", "level": shallowestSwimDepth - depthMargin})
     waded = await session.expectError("buildSwimVolumes", {"body": "ford"})
     kept = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
     return built, volumes, drawn, cut, shelfOnly, afterArea, deepened, deepVolumes, waded, kept
@@ -180,15 +182,18 @@ def testBuildSwimVolumesLeavesOutShallowCells(stageBlenderServer, tmp_path):
   # corners stand over the deeper water; nor are they reported uncovered. The boxes fill the rest, tops at the surface.
   assert [planExtent(volumes)[index] for index in (0, 2, 3)] == [west, south, north] and planExtent(volumes)[1] == 16
   assert planArea(volumes) == (16 - west) * (north - south) and built["shallowCells"] == (east - 16) / 8 * (north - south) / 8
-  # Every group swims in water as deep as the walked human did until walks measure the others, so each wades the same shallow cells.
-  assert all(group["wadesCells"] == built["shallowCells"] and group["minimumSwimDepth"] == minimumSwimDepth for group in built["groups"].values())
-  assert sorted(built["groups"]) == ["large", "medium", "small"] and len({group["swimsCells"] for group in built["groups"].values()}) == 1
-  assert built["findings"] == [] and built["state"] == "boxed" and all(volume["maximum"][2] == minimumSwimDepth + depthMargin for volume in volumes)
+  # The small group swims from the shallowest depth, so it wades only the shelf's cells the boxes leave out; the medium and large groups
+  # swim only in deeper water than the ford holds, and wade all of it.
+  groups = built["groups"]
+  assert sorted(groups) == ["large", "medium", "small"] and groups["small"]["minimumSwimDepth"] == shallowestSwimDepth
+  assert groups["small"]["wadesCells"] == built["shallowCells"] and groups["small"]["swimsCells"] > 0
+  assert all(groups[name]["swimsCells"] == 0 and groups[name]["wadesCells"] == groups["small"]["wadesCells"] + groups["small"]["swimsCells"] for name in ("medium", "large"))
+  assert built["findings"] == [] and built["state"] == "boxed" and all(volume["maximum"][2] == shallowestSwimDepth + depthMargin for volume in volumes)
   # In section, the boxes run to the column over the shelf's edge (x 16, 24 along the cut from x -8) and stop there, one box over each
   # cell the cut runs through, every box from 4 under the bed to the surface; the heights are marked every unit, so the water's depth
   # over the bed and over the shelf reads off the picture, and a legend band under it names the ground, the water, and the boxes.
   assert max(box["s"][1] for box in cut["swim"]) == 16 - sectionStart[0]
-  assert all(box["z"] == [-4.0, minimumSwimDepth + depthMargin] for box in cut["swim"])
+  assert all(box["z"] == [-4.0, shallowestSwimDepth + depthMargin] for box in cut["swim"])
   overlaps = [(a["s"], b["s"]) for index, a in enumerate(cut["swim"]) for b in cut["swim"][index + 1:] if min(a["s"][1], b["s"][1]) > max(a["s"][0], b["s"][0])]
   assert overlaps == [] and cut["heightStep"] == 1
   sectionPicture = Image.open(io.BytesIO(drawn))
@@ -199,7 +204,7 @@ def testBuildSwimVolumesLeavesOutShallowCells(stageBlenderServer, tmp_path):
   assert "swimmable false" not in shelfOnly and afterArea == volumes
   # Shallower than players swim in everywhere, the water is waded, not swum: the rebuild is refused, naming the depth, and leaves the
   # boxes as they were.
-  assert f"deeper than any body group swims in ({minimumSwimDepth:g}, playerScale minimumSwimDepth): players wade all" in waded and "editWater swimmable false" in waded
+  assert f"deeper than any body group swims in ({shallowestSwimDepth:g}, playerScale minimumSwimDepth): players wade all" in waded and "editWater swimmable false" in waded
   assert kept == deepVolumes
 
 

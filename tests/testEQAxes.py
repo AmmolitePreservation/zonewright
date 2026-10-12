@@ -58,10 +58,11 @@ def testPlayerScaleNamesASourceForEveryGroupMeasure():
     # The steepest walkable angle is walkableNormalZ's, not a second value to keep in step with it.
     assert body.sources["steepestWalkableDegrees"].startswith("derived: walkableNormalZ")
     assert abs(math.cos(math.radians(body.steepestWalkableDegrees)) - body.walkableNormalZ) < 1e-12
-    # A measured limit's source states the value taken from it.
-    assert f"(normal z {body.walkableNormalZ:g})" in body.sources["walkableNormalZ"]
-    assert f"to {body.stepHeight:.2f}" in body.sources["stepHeight"]
-    assert "(3.74, 4.59]" in body.sources["minimumSwimDepth"] and f"is his avatarHeight, {body.minimumSwimDepth:.2f}," in body.sources["minimumSwimDepth"]
-    assert 3.74 < body.minimumSwimDepth <= 4.59
-  # Only the medium group holds the walked human male, so only its climbing is measured.
-  assert [name for name in playerScale.groupNames if playerScale.groups[name].sources["stepHeight"].startswith("measured: ")] == ["medium"]
+    # A walked limit's source states the value taken from it.
+    assert f"climbed up to {round(body.steepestWalkableDegrees, 6):g} degrees" in body.sources["walkableNormalZ"]
+    assert f"walked the bed to {body.minimumSwimDepth:g} deep" in body.sources["minimumSwimDepth"]
+    assert f"passed {body.playerHeight:g} and" in body.sources["playerHeight"] and f"passed {body.playerWidth:g} and" in body.sources["playerWidth"]
+    if body.sources["stepHeight"].startswith("measured: "):
+      assert f"climbed up to {body.stepHeight:g}," in body.sources["stepHeight"]
+  # Only the small group's bodies were refused every riser, so only its step is derived.
+  assert [name for name in playerScale.groupNames if playerScale.groups[name].sources["stepHeight"].startswith("derived: ")] == ["small"]

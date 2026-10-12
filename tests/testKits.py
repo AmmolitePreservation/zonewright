@@ -1,4 +1,5 @@
 import math
+import math
 import sys
 from pathlib import Path
 
@@ -489,7 +490,7 @@ def testAKitEditReachesEveryZoneThatLinksIt(stageBlenderServer, tmp_path):
 
 def testARailPieceIsPassableToWalks(stageBlenderServer, tmp_path):
   # Taller than a step, so only its passable flag lets a walk through it.
-  barHeight = stepHeight + 2
+  barHeight = math.ceil(stepHeight) + 2
   bar = {"size": [25, 0.8, barHeight], "materials": {"side": "testKitTimber", "end": "testKitTrim"}, "worldUnitsPerRepeat": {"side": 12.5, "end": 12.5}}
 
   async def steps(session):

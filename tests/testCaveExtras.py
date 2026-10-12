@@ -14,9 +14,8 @@ import eqgFiles
 from buildTolerances import wallFootClearance
 import playerScale
 
-# The medium body group, which holds the walked human male, is the one these tests size their courses by.
-medium = playerScale.groups["medium"]
-stepHeight = medium.stepHeight
+# A cave built for every group is judged by the least step among them.
+everyGroupStep = playerScale.strictest(playerScale.groupNames).stepHeight
 from conftest import writePNG, walkOf
 from testCaves import caveCanyon, checkCave, borderEdges
 
@@ -518,7 +517,7 @@ def testBranchRefusals(stageBlenderServer, tmp_path):
     await caveCanyon(session, tmp_path)
     outside = await session.expectError("cutCave", branched | {"branches": [side | {"path": [[80, 200, 2], [120, 200], [150, 200]]}]})
     hole = await session.expectError("cutCave", branched | {"branches": [side | {"path": [[0, 200, -1], [90, 200], [150, 200]]}]})
-    raised = await session.expectError("cutCave", branched | {"branches": [side | {"path": [[0, 200, 2 + stepHeight + 1.5], [90, 200], [150, 200]]}]})
+    raised = await session.expectError("cutCave", branched | {"branches": [side | {"path": [[0, 200, 2 + everyGroupStep + 1.5], [90, 200], [150, 200]]}]})
     twice = await session.expectError("cutCave", branched | {"branches": [side, side]})
     unknown = await session.expectError("cutCave", branched | {"branches": [side | {"from": "nowhere"}]})
     detail = await session.expectSuccess("getObjectDetail", {"name": "ground"})
@@ -528,7 +527,7 @@ def testBranchRefusals(stageBlenderServer, tmp_path):
   assert "Branch 'side' starts at [80.0, 200.0, 2.0] with its first section reaching 20.7 out of its parent 'main''s walls (at [80.0, 200.0, 32.0])" in outside
   assert "Branch 'side''s floor where it starts" in hole and "lies 3.00 under its parent 'main''s floor there" in hole
   # Started 1.5 higher than a player steps over the parent's floor, it is refused unless an overlook.
-  assert f"Branch 'side' starts {stepHeight + 1.5:.1f} over its parent 'main''s floor, more than a step ({stepHeight:g}) for the body groups it is built for (['small', 'medium', 'large'], playerScale)" in raised and "overlook" in raised
+  assert f"Branch 'side' starts {everyGroupStep + 1.5:.1f} over its parent 'main''s floor, more than a step ({everyGroupStep:g}) for the body groups it is built for (['small', 'medium', 'large'], playerScale)" in raised and "overlook" in raised
   assert "Two branches are named 'side'" in twice
   assert "Branch 'side' leaves 'nowhere', which is not the main run or a branch named before it (['main'])" in unknown
   assert detail["caves"] == []

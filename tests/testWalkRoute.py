@@ -119,10 +119,13 @@ def rampArguments(name, degrees, y, run=8.0):
 
 
 def testWalkRouteClimbsWhatTheRoF2ClientClimbs(stageBlenderServer):
+  # Half a unit or more under the step, on the tenths the profile gives heights in.
+  lowRiser = math.floor((stepHeight - 0.5) * 10) / 10
+
   async def steps(session):
     await freshScene(session)
     await session.expectSuccess("createTerrainGrid", {"name": "course", "size": [200, 120], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
-    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "lowRiser", "size": [20, 20, stepHeight - 0.5], "location": [-60, 0, 0]})
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "lowRiser", "size": [20, 20, lowRiser], "location": [-60, 0, 0]})
     await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "highRiser", "size": [20, 20, stepHeight + 0.5], "location": [-60, 40, 0]})
     await session.expectSuccess("createPrimitive", rampArguments("climbable", steepestWalkableDegrees - 2, 0))
     await session.expectSuccess("createPrimitive", rampArguments("tooSteep", steepestWalkableDegrees + 5, 40))
@@ -134,9 +137,9 @@ def testWalkRouteClimbsWhatTheRoF2ClientClimbs(stageBlenderServer):
     return walks
 
   walks = {name: walkOf(result) for name, result in stageBlenderServer.session(steps).items()}
-  # Half a unit under the step players climb (playerScale) is walked up and down; half a unit over it stops them.
+  # Under the step players climb (playerScale) is walked up and down; half a unit over it stops them.
   assert walks["lowRiser"]["walkable"] and walks["lowRiser"]["problems"] == [] and walks["lowRiser"]["oneWay"] == []
-  assert max(row["at"][2] for row in walks["lowRiser"]["profile"]) == stepHeight - 0.5
+  assert max(row["at"][2] for row in walks["lowRiser"]["profile"]) == lowRiser
   assert [(problem["kind"], problem["height"]) for problem in walks["highRiser"]["problems"]] == [("rise", round(stepHeight + 0.5, 1))]
   # A face two degrees under the steepest players walk is climbed; one five degrees over it is too steep.
   assert walks["climbable"]["walkable"] and walks["climbable"]["problems"] == []
@@ -189,7 +192,7 @@ def testWalkRouteGoesUnderOneSidedCoverAndMeasuresPlaneWalls(stageBlenderServer)
 
 
 # Taller than a step (playerScale), so it is a rise from the ground and a ledge from its top.
-instancedStepHeight = stepHeight + 2
+instancedStepHeight = math.ceil(stepHeight) + 2
 instancedStepCode = f"""
 kit = bpy.data.collections.new('kit')
 mesh = bpy.data.meshes.new('step')
