@@ -1,0 +1,612 @@
+{
+  "sensitive": false,
+  "checksum": "13915f250e35b7ff6467d3bda1ce47ec64c2b7ba034bd08cecc60e2f3c3ffe5f",
+  "tables": [
+    {
+      "table": "zone",
+      "where": "short_name = 'arttest' AND version = 0",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "zoneidnumber",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "version",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "short_name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "long_name",
+          "type": "text",
+          "charset": "latin1"
+        },
+        {
+          "name": "min_status",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "map_file_name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "note",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "min_expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "max_expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "content_flags",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "content_flags_disabled",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "file_name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "safe_x",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "safe_y",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "safe_z",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "safe_heading",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "graveyard_id",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "min_level",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "max_level",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "timezone",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "maxclients",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ruleset",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "underworld",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "minclip",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "maxclip",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_minclip",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_maxclip",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_blue",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_red",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_green",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "sky",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "ztype",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "zone_exp_multiplier",
+          "type": "decimal",
+          "charset": ""
+        },
+        {
+          "name": "walkspeed",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "time_type",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_red1",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_green1",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_blue1",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_minclip1",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_maxclip1",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_red2",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_green2",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_blue2",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_minclip2",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_maxclip2",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_red3",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_green3",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_blue3",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_minclip3",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_maxclip3",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_red4",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_green4",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_blue4",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_minclip4",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_maxclip4",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_density",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "flag_needed",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "canbind",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "cancombat",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "canlevitate",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "castoutdoor",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "hotzone",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "insttype",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "shutdowndelay",
+          "type": "bigint",
+          "charset": ""
+        },
+        {
+          "name": "peqzone",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "bypass_expansion_check",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "suspendbuffs",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "rain_chance1",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_chance2",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_chance3",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_chance4",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_duration1",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_duration2",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_duration3",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_duration4",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_chance1",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_chance2",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_chance3",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_chance4",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_duration1",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_duration2",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_duration3",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_duration4",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "gravity",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "type",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "skylock",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fast_regen_hp",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "fast_regen_mana",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "fast_regen_endurance",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "npc_max_aggro_dist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "client_update_range",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "underworld_teleport_index",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "lava_damage",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "min_lava_damage",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "idle_when_empty",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "seconds_before_idle",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "shard_at_player_count",
+          "type": "int",
+          "charset": ""
+        }
+      ],
+      "digest": "406c1a04e4a049fd3a5a1a1b4c9e1c7c5de61424ac408dc58e76b1918a17b799",
+      "rowCount": 1,
+      "rows": [
+        [
+          "V3131",
+          "V393936",
+          "V30",
+          "V61727474657374",
+          "V4172742054657374696E6720446F6D61696E",
+          "V3830",
+          "N",
+          "V",
+          "V2D31",
+          "V2D31",
+          "N",
+          "N",
+          "V3939",
+          "V",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V323535",
+          "V30",
+          "V30",
+          "V32",
+          "V2D32303330",
+          "V31353030",
+          "V32303030",
+          "V353030",
+          "V32303030",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V323535",
+          "V312E3030",
+          "V302E34303030303030303539363034363435",
+          "V32",
+          "V30",
+          "V30",
+          "V30",
+          "V353030",
+          "V32303030",
+          "V30",
+          "V30",
+          "V30",
+          "V353030",
+          "V32303030",
+          "V30",
+          "V30",
+          "V30",
+          "V353030",
+          "V32303030",
+          "V30",
+          "V30",
+          "V30",
+          "V353030",
+          "V32303030",
+          "V302E3130303030303030313439303131363132",
+          "V",
+          "V31",
+          "V31",
+          "V31",
+          "V31",
+          "V30",
+          "V30",
+          "V33363030303030",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V30",
+          "V302E34303030303030303539363034363435",
+          "V30",
+          "V30",
+          "V313830",
+          "V313830",
+          "V313830",
+          "V363030",
+          "V363030",
+          "V30",
+          "V3530",
+          "V3130",
+          "V31",
+          "V3630",
+          "V30"
+        ]
+      ]
+    }
+  ]
+}
