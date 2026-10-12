@@ -13,6 +13,7 @@ import eqCubeMaps
 import eqEmitters
 import eqgFiles
 import eqgWriter
+import previewFrame
 from conftest import writeCubeDDS, writePNG
 from playerScale import minimumSwimDepth
 from testModelsAndDressing import freshScene, readShapedMesh
@@ -1145,11 +1146,13 @@ def testLiquidTimeScrollsEachLayerAlongItsBodyAsTheClientDoes(stageBlenderServer
     return renders, backwards, older
 
   renders, backwards, older = stageBlenderServer.session(steps)
-  # The fall's band moves down it 0.25 repeats a second, 5 of its 20-unit repeats: about 55 pixels seen from 57 away.
-  assert 45 <= downwardShift(*renders["fall"], 480, (60, 440), 100) <= 65
+  # Pixels a unit spans a unit away, across the middle of the preview's frame.
+  perUnit = 270 / math.tan(math.radians(previewFrame.verticalFieldOfViewDegrees) / 2)
+  # The fall's band moves down it 0.25 repeats a second, a quarter of its 20-unit repeat: 5 units seen from 57 away.
+  assert abs(downwardShift(*renders["fall"], 480, (60, 440), 100) - 5 / 57 * perUnit) <= 10
   # The river's bands (its normal map at the texture coordinates and at twice them, both moving 0.25 repeats a second) move
-  # downstream, toward the camera looking upstream: 5 units in half a second, about 33 pixels this far off and this steeply down.
-  assert 22 <= downwardShift(*renders["river"], 480, (120, 420), 60) <= 44
+  # downstream, toward the camera looking upstream: 5 units in half a second, foreshortened this far off and this steeply down.
+  assert 0.035 * perUnit <= downwardShift(*renders["river"], 480, (120, 420), 60) <= 0.07 * perUnit
   assert "liquidTime is seconds on the client's effect clock, 0 or more" in backwards
   # A material made before previews scrolled would draw still at any time, so a view at a liquid time refuses it; at time 0 it draws.
   assert "Liquid materials ['stripedRiver'] were made before previews scrolled liquids" in older

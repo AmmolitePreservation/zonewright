@@ -184,12 +184,16 @@ def testCalibrationPredictsAClaudelinkShotOfAnEQGZoneFromItsDump(stageBlenderSer
     await session.expectSuccess("placeObject", {"zone": "highpasshold", "model": "IT69_ACTORDEF", "name": "item", "y": item[0], "x": item[1], "z": item[2], "heading": 100})
     image, _ = await session.expectImage("renderView", {"view": view, "guides": False, "carriedLight": {"lightType": 14, "at": feet, "headingDegrees": 270}})
     shot = writeShot(tmp_path / "shots", "shot", Image.open(io.BytesIO(image)).convert("RGB"), dump)
+    nearItem = await session.expectSuccess("placeDump", {"dumpPath": json.loads(shot.with_suffix(".json").read_text(encoding="ascii"))["dump"], "near": list(item), "radius": 5})
     predicted = await session.expectImage("calibrateShot", {"screenshotPath": str(shot), "discardUnsavedChanges": True}, mimeType="image/jpeg")
     fitted = await session.expectImage("calibrateShot", {"screenshotPath": str(shot), "fitLight": True, "discardUnsavedChanges": True}, mimeType="image/jpeg")
-    return slow, predicted[1], fitted[1], await session.expectSuccess("getToolingStatus")
+    return slow, nearItem, predicted[1], fitted[1], await session.expectSuccess("getToolingStatus")
 
-  slow, predicted, fitted, status = stageBlenderServer.session(steps)
+  slow, nearItem, predicted, fitted, status = stageBlenderServer.session(steps)
   assert "the client ran at 80.0 fps, under 100" in slow
+  # placeDump within 5 of the item places it alone, the guard 11 away left out; what the dump cannot place is listed either way.
+  assert nearItem["placed"] == [{"kind": "groundItem", "name": "groundItem5_IT69_ACTORDEF", "model": "IT69_ACTORDEF"}]
+  assert sorted(entry["name"] for entry in nearItem["notPlaced"]) == ["door3_OBJ_HIDDEN", "spawn8_unseen000"]
   # The dump's camera, frame, sky, header, light, viewer, and placements draw the shot again.
   assert predicted["frame"] == {"size": [960, 540], "verticalFieldOfViewDegrees": previewFrame.verticalFieldOfViewDegrees}
   assert predicted["comparison"]["meanPixelDifference"] < 0.5 and predicted["comparison"]["meanSkyDifference"] < 0.5

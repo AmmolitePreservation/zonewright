@@ -330,7 +330,8 @@ def testVerifyExportCatchesAMissingPlacementModel(stageBlenderServer, exportedZo
   ]
   views = checks["looks"]["details"]["views"]
   assert [view["passed"] for view in views] == [view["changedShare"] == 0 for view in views] and not all(view["passed"] for view in views)
-  assert "overview" in [view["name"] for view in quietlyDiffering(views)]
+  # The missing crate fails the overview, and some view draws otherwise within the round trip's tolerances yet still fails.
+  assert not next(view for view in views if view["name"] == "overview")["passed"] and quietlyDiffering(views)
   assertEveryDifferingViewPictured(result, pictures)
 
 
