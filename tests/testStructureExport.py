@@ -315,8 +315,8 @@ def testStructuresComeBackFromTheArchiveAsBuilt(stageBlenderServer, tmp_path):
     exported = await exportTest(session, tmp_path)
     await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
     imported = await session.expectSuccess("importZoneFile", {"path": str(archivePathIn(tmp_path))})
-    across = await session.expectSuccess("walkRoute", {"path": [[-110, 0, 0], [-10, 0, 0]]})
-    offTheSide = await session.expectSuccess("walkRoute", {"path": [[-70, 0, 0], [-70, 14, 0]]})
+    across = (await session.expectSuccess("walkRoute", {"path": [[-110, 0, 0], [-10, 0, 0]]}))["groups"]["medium"]
+    offTheSide = (await session.expectSuccess("walkRoute", {"path": [[-70, 0, 0], [-70, 14, 0]]}))["groups"]["medium"]
     return exported, imported, across, offTheSide
 
   exported, imported, across, offTheSide = stageBlenderServer.session(steps)

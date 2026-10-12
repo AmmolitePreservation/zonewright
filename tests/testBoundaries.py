@@ -46,10 +46,10 @@ def testBoundariesBlockPlayersFollowTheGroundAndDrawOnlyAsGuides(stageBlenderSer
     floor = await session.expectSuccess("placeBoundaryPlane", {"name": "floor", "kind": "floor", "outline": [[120, 120], [180, 120], [180, 180], [120, 180]], "height": -50})
     normals = (await session.expectSuccess("runPython", {"code": faceNormals}))["result"]
     await session.expectSuccess("setZoneProperties", environment)
-    blocked = await session.expectSuccess("walkRoute", {"path": [[100, 0, 0], [190, 0, 0]]})
-    around = await session.expectSuccess("walkRoute", {"path": [[100, 110, 0], [190, 110, 0]]})
-    under = await session.expectSuccess("walkRoute", {"path": [[-190, -150, 0], [-110, -150, 0]]})
-    wading = await session.expectSuccess("walkRoute", {"path": [[-160, 0, 0], [0, 0, 0]]})
+    blocked = (await session.expectSuccess("walkRoute", {"path": [[100, 0, 0], [190, 0, 0]]}))["groups"]["medium"]
+    around = (await session.expectSuccess("walkRoute", {"path": [[100, 110, 0], [190, 110, 0]]}))["groups"]["medium"]
+    under = (await session.expectSuccess("walkRoute", {"path": [[-190, -150, 0], [-110, -150, 0]]}))["groups"]["medium"]
+    wading = (await session.expectSuccess("walkRoute", {"path": [[-160, 0, 0], [0, 0, 0]]}))["groups"]["medium"]
     view = {"eye": [100, 0, 10], "target": [150, 0, 10]}
     guided, _ = await session.expectImage("renderView", {"view": view})
     clean, _ = await session.expectImage("renderView", {"view": view, "guides": False})
@@ -66,7 +66,8 @@ def testBoundariesBlockPlayersFollowTheGroundAndDrawOnlyAsGuides(stageBlenderSer
   assert wall["minimum"] == [150.0, -100.0, -5.0] and wall["maximum"] == [150.0, 100.0, 40.0] and wall["replaced"] is False
   assert normals["eastWall"] == [[-1.0, 0.0, 0.0]] * 3 and normals["lid"] == [[0.0, 0.0, -1.0]] * 2 and normals["floor"] == [[0.0, 0.0, 1.0]] * 2
   assert lid["area"] == 3600.0 and floor["minimum"][2] == -50.0
-  assert not blocked["walkable"] and [(problem["kind"], problem["boundary"]) for problem in blocked["problems"]] == [("blocked", [150.0, 0.0, 3.0])]
+  # The medium group's walk meets the wall at half its height, 8.07 / 2 over the ground.
+  assert not blocked["walkable"] and [(problem["kind"], problem["boundary"]) for problem in blocked["problems"]] == [("blocked", [150.0, 0.0, 4.0])]
   assert 149 <= blocked["problems"][0]["at"][0] < 150 and 150 < blocked["problems"][0]["resumesAt"][0] <= 151
   assert around["walkable"] and around["length"] == 90.0
   assert [(problem["kind"], problem["lowest"]) for problem in under["problems"]] == [("headroom", 4.0)]
@@ -120,9 +121,9 @@ def testExportWritesWallsFlagsAndZoneLinesAndTheArchiveBringsThemBack(stageBlend
     imported = await session.expectSuccess("importZoneFile", {"path": str(archivePath)})
     await session.expectSuccess("setZoneProperties", environment)
     lines = await session.expectSuccess("getZoneLines", {})
-    blocked = await session.expectSuccess("walkRoute", {"path": [[100, 80, 0], [190, 80, 0]]})
-    through = await session.expectSuccess("walkRoute", {"path": [[100, 0, 0], [190, 0, 0]]})
-    wading = await session.expectSuccess("walkRoute", {"path": [[-160, 0, 0], [0, 0, 0]]})
+    blocked = (await session.expectSuccess("walkRoute", {"path": [[100, 80, 0], [190, 80, 0]]}))["groups"]["medium"]
+    through = (await session.expectSuccess("walkRoute", {"path": [[100, 0, 0], [190, 0, 0]]}))["groups"]["medium"]
+    wading = (await session.expectSuccess("walkRoute", {"path": [[-160, 0, 0], [0, 0, 0]]}))["groups"]["medium"]
     _, swimming = await session.expectImage("renderView", {"view": {"standAt": [0, 0], "headingDegrees": 90, "pitchDegrees": 0}, "guides": False})
     reference = await session.expectSuccess("checkExport", {"path": str(tmp_path / "again.eqg"), "purpose": "test"})
     return checked, exported, builtBoundaries, imported, lines, blocked, through, wading, swimming, reference

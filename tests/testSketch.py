@@ -41,7 +41,7 @@ def testASketchIsMeasuredAgainstTheGroundUnderIt(stageBlenderServer, tmp_path):
     drawn = await session.expectSuccess("sketch", {"sheet": "camp", "shapes": campShapes})
     taller = await session.expectSuccess("sketch", {"sheet": "camp", "shapes": [campShapes[0] | {"height": 30}]})
     objects = await session.expectSuccess("runPython", {"code": "result = sorted((o.name, len(o.data.vertices), len(o.data.polygons)) for o in bpy.data.objects if 'zonewrightSketch' in o)"})
-    walk = await session.expectSuccess("walkRoute", {"path": [[120, 0, 0], [180, 0, 0]]})
+    walk = (await session.expectSuccess("walkRoute", {"path": [[120, 0, 0], [180, 0, 0]]}))["groups"]["medium"]
     crossing = await session.expectError("sketch", {"sheet": "camp", "shapes": [{"name": "bad", "kind": "area", "outline": [[0, 0], [10, 10], [10, 0], [0, 10]]}]})
     unsure = await session.expectError("eraseSketch", {"sheet": "camp"})
     erased = await session.expectSuccess("eraseSketch", {"sheet": "camp", "names": ["shed"]})
