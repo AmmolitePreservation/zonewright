@@ -158,6 +158,8 @@ async def callBridge(context, command, arguments):
 # The live dumps record dark elf females at height 5, the race default.
 figureModelCode = "DAF"
 figureHeight = 5.0
+# A view stands the scale figure only her own model's height or more off, where she does not fill the frame.
+figureTall = next(body.modelHeight for body in playerScale.bodies if body.code == figureModelCode)
 standPose = {"animation": None, "variant": None, "frame": 0}
 
 
@@ -3922,7 +3924,7 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
     images = [Image(data=planPath.read_bytes(), format="png")]
     framed = playerReach.framedLegs(decisive, playerReach.routeFrameCount)
     if framed:
-      views = [playerReach.routeFrame(nodes, chain, points, moves, legs[move["first"]]) for move in framed]
+      views = [playerReach.routeFrame(nodes, chain, points, moves, legs[move["first"]], figureTall) for move in framed]
       labels = [playerReach.decisiveCaption(legs, move) for move in framed]
       sheet, size, paths = await renderSheet(context, zone, views, labels, "client", await zoneFigureModel(zone), swimVolumes=True)
       result["frames"] = [{"number": move["number"], "view": view, "outputPath": path} for move, view, path in zip(framed, views, paths)]
@@ -3967,7 +3969,7 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   )
   result["section"] = {"outputPath": str(sectionPath), "start": playerReach.roundedPoint(start), "end": playerReach.roundedPoint(end), "length": cuts["length"], "bottom": cuts["bottom"], "top": cuts["top"], "laneCut": laneState["laneCut"]}
   view = facingView(backPoint, aimPoint, backWet, lane.body)
-  figureAt = None if backWet or math.dist(backPoint[:2], nearPoint[:2]) < lane.body.playerHeight else asideFigure(nodes, backPoint, aimPoint, nearPoint)
+  figureAt = None if backWet or math.dist(backPoint[:2], nearPoint[:2]) < figureTall else asideFigure(nodes, backPoint, aimPoint, nearPoint)
   standsFigure = figureAt is not None
   if standsFigure:
     view["figureAt"] = figureAt

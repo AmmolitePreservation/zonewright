@@ -390,7 +390,7 @@ def judgedFromTheNorth(subject, distances, seenBy):
   """laneViews.judge of eyes standing on the ground north of a subject at distances from its middle, each seeing the points seenBy
   (masks), choosing one eye."""
   standing = numpy.array([[subject["center"][0] + distance, subject["center"][1], 0.0] for distance in distances])
-  eyes = laneViews.eyesOver(standing, numpy.zeros(len(distances), dtype=bool))
+  eyes = laneViews.eyesOver(standing, numpy.zeros(len(distances), dtype=bool), medium)
   candidates = {"label": numpy.full(len(distances), playerReach.walkLabel), "swimming": numpy.zeros(len(distances), dtype=bool)}
   bearing = laneViews.headingOf(eyes[:, 0] - subject["center"][0], eyes[:, 1] - subject["center"][1])
   plan = {
@@ -414,7 +414,7 @@ def testTargetEyesHoldTheTargetInView():
   every = numpy.ones(len(points), dtype=bool)
   farSees = numpy.abs(points[:, 1]) <= 85
   near, far = subject["radius"] + 1, 250.0
-  nearEye, farEye = laneViews.eyesOver(numpy.array([[near, 0.0, 0.0], [far, 0.0, 0.0]]), numpy.zeros(2, dtype=bool))
+  nearEye, farEye = laneViews.eyesOver(numpy.array([[near, 0.0, 0.0], [far, 0.0, 0.0]]), numpy.zeros(2, dtype=bool), medium)
   assert laneViews.inView(nearEye, points) < laneViews.inView(farEye, points[farSees]) < len(points)
   judged, pointSeen, eyeSeen = judgedFromTheNorth(subject, [near, far], [every, farSees])
   chosen = judged["eyes"][0]
@@ -422,7 +422,7 @@ def testTargetEyesHoldTheTargetInView():
   assert chosen["view"]["target"] == pytest.approx([0.0, 0.0, 1.0], abs=0.01) and pointSeen.all() and (eyeSeen[0] == farSees).all()
   within = subject["radius"] - 5
   littleSeen = numpy.abs(points[:, 1]) <= 30
-  withinEye = laneViews.eyesOver(numpy.array([[within, 0.0, 0.0]]), numpy.zeros(1, dtype=bool))[0]
+  withinEye = laneViews.eyesOver(numpy.array([[within, 0.0, 0.0]]), numpy.zeros(1, dtype=bool), medium)[0]
   assert laneViews.inView(withinEye, points) > laneViews.inView(farEye, points[littleSeen])
   judged, _, _ = judgedFromTheNorth(subject, [within, far], [every, littleSeen])
   assert judged["eyes"][0]["distance"] == pytest.approx(far, abs=1)

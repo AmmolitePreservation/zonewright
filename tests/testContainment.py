@@ -133,7 +133,7 @@ def testAnIslandIsReachedOnlyFromTheColumnsUnderIt():
 
   for height in numpy.arange(-100, 100.25, 0.25):
     inspection = {"islands": [{"number": 1}, {"number": 2}], "tiles": [{"polygons": [over(1, 0, height), over(2, 2, height)]}]}
-    assert exportPipeline.islandReach(inspection, nodes) == [bool(abs(height) <= stepHeight), False], height
+    assert exportPipeline.islandReach(inspection, nodes, stepHeight) == [bool(abs(height) <= stepHeight), False], height
 
 
 def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
@@ -170,13 +170,15 @@ def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
   ]
   # The lane found no leak: every entry connected, and its key the one mapReach computes (computed here, as nothing reused it yet).
   lane = exported["containment"]
-  assert lane["lane"] == "computed" and lane["reachGrid"] == playerReach.reachGrid and Path(lane["laneFile"]).name == f"lane-{lane['laneKey']}.bin"
-  assert [(entry["name"], entry["connected"]) for entry in lane["entries"]] == [("safe point", True), ("fromQeynos", True)]
+  every = list(playerScale.groupNames)
+  assert lane["lane"] == "computed" and lane["reachGrid"] == playerReach.reachGrid and lane["builtFor"] == every
+  assert {name: Path(path).name for name, path in lane["laneFiles"].items()} == {name: f"lane-{name}-{lane['laneKeys'][name]}.bin" for name in every}
+  assert [(entry["name"], entry["connected"]) for entry in lane["entries"]] == [("safe point", dict.fromkeys(every, True)), ("fromQeynos", dict.fromkeys(every, True))]
   # NPC paths are probed from the safe point to the zone line and to the stored entry.
   assert [(probe["name"], probe["point"], probe["reached"]) for probe in exported["serverFiles"]["nav"]["probes"]] == [
     ("ATP_1_north", [(low + high) / 2 for low, high in zip(northLine["minimum"], northLine["maximum"])], True), ("entry fromQeynos", [-40.0, -40.0, 0.0], True),
   ]
-  assert lane["zoneLines"] == [{"name": "ATP_1_north", "reached": True}]
+  assert lane["zoneLines"] == [{"name": "ATP_1_north", "reachedBy": every}]
   assert {kind for kind in lane["problems"]} <= {"unreachedPlayFloor", "trap"} and "voidEdge" not in lane["problems"]
   # Its rows: the zone row and one zone_points row at the line's box's center in the server's axes, numbered ten times its number.
   rows = serverRows.readRows((sqlFolder / "contained.sql").read_text(encoding="ascii"))
@@ -197,8 +199,8 @@ def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
   assert sorted(manifest["files"]) == sorted(path.relative_to(first).as_posix() for path in first.rglob("*") if path.is_file() and path.name != "contained_export.json")
   assert manifest["zone"] == {"shortName": short, "zoneId": 901, "longName": "The contained test", "serverTemplate": "qeynos2"}
   assert manifest["zonePoints"] == {"written": [10], "deleted": []}
-  assert manifest["lane"] == {key: lane[key] for key in ("laneKey", "reachGrid", "constants", "reachedArea")}
-  assert manifest["lane"]["constants"]["stepHeight"]["value"] == stepHeight
+  assert manifest["lane"] == {key: lane[key] for key in ("laneKeys", "builtFor", "reachGrid", "constants", "reachedArea")}
+  assert manifest["lane"]["constants"]["medium"]["stepHeight"]["value"] == stepHeight
   assert (manifest["writtenBy"], manifest["failures"], manifest["findings"]) == ("exportZone", 0, len(exported["findings"]))
   # The check of the moved line deletes the recorded row 10 and writes 20, in its own folder, and the record stays as the first export
   # left it.
@@ -290,7 +292,7 @@ def testALeakRefusesTheGameExportAndSaysWhere(stageBlenderServer, tmp_path):
   found = {failure["failure"]: failure for failure in checked["failures"]}
   assert sorted(failure["number"] for failure in checked["failures"]) == list(range(1, 7))
   # mapReach on the same lane, reused, numbers and places them as the export does, and the export states the same limits.
-  assert mapped["lane"] == "reused" and mapped["laneFile"] == checked["containment"]["laneFile"]
+  assert mapped["lane"] == "reused" and mapped["laneFiles"] == checked["containment"]["laneFiles"]
   assert [(problem["kind"], problem["number"], problem["center"]) for problem in mapped["problems"] if problem["kind"] in kinds] == [
     (failure["failure"], failure["number"], failure["center"]) for failure in checked["failures"]
   ]
@@ -437,11 +439,15 @@ def testLaneFindingsAndLeaksPastMapReachsListAreStated(stageBlenderServer, tmp_p
   overlaps = [(finding["zoneLine"], finding["swimBox"]) for finding in checked["findings"] if finding["finding"] == "zone line in a swim box"]
   assert overlaps == [("ATP_2_pool", "AWT_pool01"), ("ATP_2_pool", "AWT_pool02")], overlaps
   assert findings["no zoneIn entries"]["message"].startswith("No zoneIn entry says where a neighbour's zone line lands players")
-  # Only a player shorter than playerHeight passes under the ramp, between its foot and the platform.
-  squeeze = findings["squeeze reach"]
+  # Only a body smaller than each group passes under the ramp, between its foot and the platform: one finding a group, the taller the
+  # group the more of the ramp's underside it misses.
+  squeezes = {finding["group"]: finding for finding in checked["findings"] if finding["finding"] == "squeeze reach"}
+  assert sorted(squeezes) == sorted(playerScale.groupNames)
+  assert squeezes["small"]["area"] <= squeezes["medium"]["area"] <= squeezes["large"]["area"]
+  squeeze = squeezes["medium"]
   foot = platform[0][1] - platform[1][2] / math.tan(math.radians(rampDegrees))
   assert [place["area"] for place in squeeze["places"]] == [squeeze["area"]] and near(squeeze["places"][0]["center"], [40, (foot + platform[0][1]) / 2], 2 * cellSize)
-  assert squeeze["message"].startswith(f"Only a player shorter than playerHeight ({playerHeight:g}) passes here")
+  assert squeeze["message"].startswith(f"Bodies smaller than the medium group's playerHeight ({playerHeight:g}) pass here")
 
 
 def testFogWithoutASkyNeedsItsColorForTheRows(stageBlenderServer, tmp_path):

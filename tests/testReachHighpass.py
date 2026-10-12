@@ -47,12 +47,13 @@ def straightRises(nodes, start, end):
 
 def testHighpassHoldsZoneLinesAreReachedFromItsSafePoint(recastToolingRoot, tmp_path):
   mapBytes, waterBytes = referenceBytes("base/highpasshold.map"), referenceBytes("water/highpasshold.wtr")
-  lane, description, status, _ = playerReach.laneFromServerFiles(mapBytes, waterBytes, [{"name": "safe point", "point": highpassSafePoint, "kind": "safePoint"}], recastToolingRoot, noProgress)
-  analysis = playerReach.analyse(lane, description)
+  lanes, description, status, _ = playerReach.laneFromServerFiles(mapBytes, waterBytes, [{"name": "safe point", "point": highpassSafePoint, "kind": "safePoint"}], recastToolingRoot, noProgress)
+  analysis = playerReach.analyse(lanes, description, "medium")
   assert status == "computed"
-  # Every one of the five zone lines in Peridot's .wtr is reached from its safe point, and both pools are swum.
-  assert [(line["name"], line["reached"]) for line in analysis["zoneLines"]] == [(f".wtr record {index} (ZoneLine)", True) for index in range(2, 7)]
-  assert [(box["name"], box["reached"]) for box in analysis["swimBoxes"]] == [(".wtr record 0 (Water)", True), (".wtr record 1 (Water)", True)]
+  # Every one of the five zone lines in Peridot's .wtr is reached from its safe point by every body group, and both pools are swum.
+  every = list(playerScale.groupNames)
+  assert [(line["name"], line["reachedBy"]) for line in analysis["zoneLines"]] == [(f".wtr record {index} (ZoneLine)", every) for index in range(2, 7)]
+  assert [(box["name"], box["reachedBy"]) for box in analysis["swimBoxes"]] == [(".wtr record 0 (Water)", every), (".wtr record 1 (Water)", every)]
   nodes = analysis["nodes"]
   # And the lane does not flood everything: the backdrop mountains' tops stay out of reach.
   reached = numpy.flatnonzero(nodes.reached & ~nodes.wet)
@@ -84,6 +85,8 @@ def testHighpassHoldsZoneLinesAreReachedFromItsSafePoint(recastToolingRoot, tmp_
     "only a smaller player under it", "zone line reached", "water swim volume", "seed: where players arrive",
   ]
   assert drawn["legends"] == [
-    ["relief: the highest reached floor, else the highest floor", "no floor at all"] + marks + [f"1-{traps} trap", "plan: +X (north) up, +Y left"],
+    ["relief: the highest reached floor, else the highest floor", "no floor at all"] + marks + [
+      f"1-{traps} trap", f"the medium body group's lane ({medium.playerHeight:g} tall; squeeze: only a smaller body)", "plan: +X (north) up, +Y left",
+    ],
     ["main piece: 3,677 polygons", "640 islands, 297 at snap risk", "Disabled and zone line: 53 polygons"],
   ]

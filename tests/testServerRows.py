@@ -15,10 +15,6 @@ import eqClientZones
 import eqgFiles
 import serverRows
 import playerScale
-
-# The medium body group, which holds the walked human male, is the one these tests size their courses by.
-medium = playerScale.groups["medium"]
-playerHeight = medium.playerHeight
 from testEntries import entryArguments, groundGrid
 from testModelsAndDressing import freshScene
 from testWater import environment
@@ -191,11 +187,11 @@ def testWaysInUpdateTheNeighboursRowAndGuardAMissingOne():
   assert read["rows"] == [
     {
       "fromZone": "eastkarana", "fromNumber": 40, "message": "ways in: eastkarana zone_points number 40 is not exactly one version-0 row with no version -1 row",
-      "target_zone_id": 901, "target_x": 20.0, "target_y": 10.0, "target_z": 3.0 + playerHeight, "target_heading": 384.0,
+      "target_zone_id": 901, "target_x": 20.0, "target_y": 10.0, "target_z": 3.0 + playerScale.highestOrigin(), "target_heading": 384.0,
     },
     {
       "fromZone": "highkeep", "fromNumber": 120, "message": "ways in: highkeep zone_points number 120 is not exactly one version-0 row with no version -1 row",
-      "target_zone_id": 901, "target_x": 7.25, "target_y": -5.5, "target_z": playerHeight, "target_heading": 0.0,
+      "target_zone_id": 901, "target_x": 7.25, "target_y": -5.5, "target_z": playerScale.highestOrigin(), "target_heading": 0.0,
     },
   ]
   # Counted rows, not ROW_COUNT(), which reads 0 when an update changes nothing; a number two rows hold is refused.

@@ -163,7 +163,7 @@ def testTraceReachRoutesOverTheDropAndTheSwim(stageBlenderServer, tmp_path):
   assert [frame["number"] for frame in frames] == [1, 2, 3, 4]
   for frame, move in zip(frames, result["decisive"]):
     view = frame["view"]
-    assert set(view) - {"figureAt"} == {"standAt", "headingDegrees", "pitchDegrees"} and abs(view["headingDegrees"]) < 1e-6
+    assert set(view) - {"figureAt"} == {"standAt", "headingDegrees", "pitchDegrees", "bodyGroup"} and view["bodyGroup"] == "medium" and abs(view["headingDegrees"]) < 1e-6
     assert abs(view["standAt"][1] - (legs[move["leg"]]["start"][1] - playerReach.frameStandBack)) <= 1, (frame, move)
   # Legs report their points to a tenth.
   for frame, leg in ((frames[0], legs[1]), (frames[3], legs[7])):
@@ -234,7 +234,7 @@ def testTraceReachNamesWhatSeparates(stageBlenderServer, tmp_path):
   headroom = results["headroom"]
   assert headroom["target"]["label"] == "unreached" and near(headroom["nearest"]["at"], [-1, 90])
   assert [stop["kind"] for stop in headroom["separations"]] == ["headroom"]
-  assert abs(headroom["separations"][0]["clearance"] - lidGap) <= 0.02 and headroom["separations"][0]["needs"] == containmentHeadroom
+  assert abs(headroom["separations"][0]["clearance"] - lidGap) <= 0.02 and headroom["separations"][0]["needs"] == playerHeight
   # The slab's top lies far over that gap: what keeps players off it is the rise to it, whatever the gap under it.
   slabTop = results["slabTop"]
   assert abs(slabTop["target"]["at"][2] - wallHeight) <= cellHeight and near(slabTop["nearest"]["at"], [-1, 90])
@@ -298,7 +298,7 @@ def testSeparationsAlongOneFaceAreOne():
     {"kind": "boundary", "along": 10.0, "at": [10, 0, 26], "name": "rim"},
     {"kind": "boundary", "along": 11.0, "at": [11, 0, 26], "name": "fence"},
   ]
-  merged = playerReach.mergedSeparations(stated, 1.0)
+  merged = playerReach.mergedSeparations(stated, 1.0, stepHeight)
   assert [(stop["kind"], stop["columns"], stop.get("name")) for stop in merged] == [("steep", 3, None), ("rise", 2, None), ("boundary", 2, "rim"), ("boundary", 1, "fence")]
   steep, rise = merged[0], merged[1]
   assert (steep["degrees"], "why" in steep, steep["at"], steep["through"], steep["alongThrough"]) == (80.0, False, [3, 0, 2], [5, 0, 10], 5.0)
@@ -456,7 +456,8 @@ def testSectionDrawsTheLane(stageBlenderServer, tmp_path):
   plainHeight = Image.open(io.BytesIO(plainImage)).height
   assert "laneState" not in plain and plainHeight > planDrawing.sectionSize[1] and section.height > plainHeight
   cut = json.loads(Path(laned["laneState"]["laneCut"]).read_text())
-  assert laned["laneState"]["counts"] == {kind: len(marks) for kind, marks in cut.items()}
+  assert cut["group"] == laned["laneState"]["bodyGroup"] == "large"
+  assert laned["laneState"]["counts"] == {kind: len(marks) for kind, marks in cut.items() if kind != "group"}
 
   def bar(z, label, s0, s1):
     """The bar at height z of a label spanning s0 to s1 along the line, columns centered on whole units."""

@@ -718,8 +718,8 @@ def laneMarks(nodes, description):
     node = nodes.floorNodeAt(plot["point"])
     plots.append({"name": plot["name"], "at": plot["point"], "reached": node is not None and bool(nodes.reachedFull[node])} | ({} if node is not None else {"why": "no floor under it"}))
   swimReached = numpy.zeros(len(description["swimBoxes"]), dtype=bool)
-  wetReached = nodes.reachedFull & nodes.wet
-  swimReached[numpy.unique(nodes.box[wetReached])] = True
+  inBox = nodes.reachedFull & (nodes.wet | (nodes.box >= 0))
+  swimReached[numpy.unique(nodes.box[inBox])] = True
   swimBoxes = [{"name": box["name"], "reached": bool(swimReached[index])} for index, box in enumerate(description["swimBoxes"])]
   taken = numpy.flatnonzero(nodes.reachedFull & ((nodes.shape & absorbedShape) != 0))
   takenX, takenY = nodes.plan(taken)
@@ -1142,12 +1142,12 @@ def framedLegs(decisive, count):
   return [decisive[round(index * (len(decisive) - 1) / (count - 1))] for index in range(count)]
 
 
-def routeFrame(nodes, chain, points, moves, leg):
+def routeFrame(nodes, chain, points, moves, leg, figureTall):
   """An eye-level view of a decisive leg: standing on the route frameStandBack before it in plan (from its start when it is nearer),
   heading and pitched toward where the leg ends, the scale figure standing there; a drop's or a slide's toward where the route stands
   frameStandBack past its end, since the floor at a fall's foot lies hidden under its brink from above; a teleport's from its landing
-  toward where the route stands frameStandBack on. The figure stands only out of the water and a player's height or more ahead, where she
-  does not fill the frame. In water, the eye floats swimEyeAboveSurface over the water's top, without the figure."""
+  toward where the route stands frameStandBack on. The figure stands only out of the water and her own height (figureTall) or more
+  ahead, where she does not fill the frame. In water, the eye floats swimEyeAboveSurface over the water's top, without the figure."""
   along = [0.0]
   for at in range(1, len(points)):
     along.append(along[-1] + (0.0 if moves[at] == "teleport" else math.hypot(points[at][0] - points[at - 1][0], points[at][1] - points[at - 1][1])))
@@ -1174,7 +1174,7 @@ def routeFrame(nodes, chain, points, moves, leg):
     return {"eye": roundedPoint(eye), "target": roundedPoint(target)}
   pitch = math.degrees(math.atan2(seen[2] - (stand[2] + body.eyeHeight), max(across, nodes.lane.cellSize)))
   view = {"standAt": roundedPoint(stand, 3), "headingDegrees": round(heading, 2), "pitchDegrees": round(pitch, 2), "bodyGroup": nodes.lane.group}
-  return view | ({"figureAt": roundedPoint(seen, 3)} if across >= body.playerHeight and not nodes.wet[chain[look]] else {})
+  return view | ({"figureAt": roundedPoint(seen, 3)} if across >= figureTall and not nodes.wet[chain[look]] else {})
 
 
 def levelColumns(nodes, level):

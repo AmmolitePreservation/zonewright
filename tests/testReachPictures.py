@@ -210,7 +210,7 @@ def testUnreachedFloorIsDimmedAloneAndShowsTheLevelReachedUnderIt(stageBlenderSe
     await cube(session, "canopy", *canopy)
     await cube(session, "block", *block)
     sketch = {"center": [15, 0], "width": 80, "layers": []}
-    return await session.expectImage("renderSketch", sketch | {"layers": ["lane"]}), await session.expectImage("renderSketch", sketch)
+    return await session.expectImage("renderSketch", sketch | {"layers": ["lane"], "bodyGroup": "medium"}), await session.expectImage("renderSketch", sketch)
 
   (lanedImage, lanedReport), (plainImage, plainReport) = stageBlenderServer.session(steps)
   assert lanedReport["frameSize"] == plainReport["frameSize"]
@@ -283,7 +283,7 @@ def testLaneWalksACaveUnderItsVaultAndShowsThroughItsPlanFloor(stageBlenderServe
     return reached, sketched, plain
 
   reached, sketched, plain = stageBlenderServer.session(steps)
-  lane = playerReach.Lane(reached["laneFile"])
+  lane = playerReach.Lane(reached["laneFiles"]["medium"])
   nodes = playerReach.Nodes(lane)
   # The room is walked from the safe point on its lining's floor, under its vault (the room's height within its breakup), with the
   # hill's top over it.

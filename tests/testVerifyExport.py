@@ -185,8 +185,9 @@ def testVerifyExportPassesAFreshGameExport(stageBlenderServer, exportedZone):
   ]
   assert [(landed["zonePoint"], landed["zone"]) for landed in ground["otherZones"]] == [(10, "qeynos2")] and ground["otherZones"][0]["ground"] is not None
   lane = checks["containment"]["details"]
-  assert [(entry["name"], entry["connected"]) for entry in lane["entries"]] == [("safe point", True), ("fromQeynos", True)]
-  assert lane["reachedArea"] == lane["manifestReachedArea"] and lane["reachedArea"]["walk"] > 0
+  every = dict.fromkeys(playerScale.groupNames, True)
+  assert [(entry["name"], entry["connected"]) for entry in lane["entries"]] == [("safe point", every), ("fromQeynos", every)]
+  assert lane["reachedArea"] == lane["manifestReachedArea"] and all(lane["reachedArea"][name]["walk"] > 0 for name in playerScale.groupNames)
   # Every review camera and the tour's eight eyes, the scene drawn without the kiln and the reference zone as the archive draws.
   views = checks["looks"]["details"]["views"]
   assert sorted(view["name"] for view in views) == ["overview"] + [f"tour {number}" for number in range(1, 9)]
@@ -449,7 +450,7 @@ def testContainmentOnTheFilesTakesEachEntrysIsolation(stageBlenderServer, export
 
   def judged(landing):
     return exportVerification.containmentCheck(
-      files["map"], files["water"], entries + [landing], regions, -50, manifest, stageBlenderServer.toolingRoot, lambda *arguments: None,
+      files["map"], files["water"], entries + [landing], regions, -50, None, manifest, stageBlenderServer.toolingRoot, lambda *arguments: None,
     )
 
   assert judged(onCrate | {"isolated": True})["passed"] is True

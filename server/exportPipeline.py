@@ -241,12 +241,11 @@ def columnsBetween(low, high, origin, cellSize, count):
   return numpy.arange(max(0, math.ceil((low - origin) / cellSize - 0.5)), min(count - 1, math.floor((high - origin) / cellSize - 0.5)) + 1)
 
 
-def islandReach(inspection, nodes):
+def islandReach(inspection, nodes, step):
   """Whether players reach each NPC island, by its number: whether some dry floor any body reaches with the lane's group's moves lies
   within that group's step (so a player there steps onto it) of one of the island's polygons, in a column whose center the polygon holds.
   The polygon's height there is read off its corners, fanned from its first (Recast's polygons are convex)."""
   lane = nodes.lane
-  step = lane.body.stepHeight
   reached = numpy.zeros(len(inspection["islands"]), dtype=bool)
   standing = numpy.flatnonzero(nodes.reached & ~nodes.wet)
   if not len(reached) or not len(standing):
@@ -340,8 +339,8 @@ def leakFailure(problem, underworld, numbered="mapReach problem"):
       f" for {problem.get('builtFor')}"
     ),
   }[kind]
-  groups = f"; groups: {problem['groups']}" if "groups" in problem else ""
-  return {"failure": kind} | placeOf(problem) | {"message": f"{said} ({numbered} {number}, at {center}{groups})"}
+  groups = f"; the {problem['groups']} body groups reach it" if "groups" in problem else ""
+  return {"failure": kind} | placeOf(problem) | {"message": f"{said}{groups} ({numbered} {number}, at {center})"}
 
 
 def laneFindings(lane, description, analysis):
@@ -535,7 +534,7 @@ def build(checked, zone, zoneProperties, inputs, toolingRoot, reportProgress):
   report["containment"], failures, findings, nodes = containment(inputs, underworld, toolingRoot, reportProgress)
   report["failures"] += failures
   if server["inspection"] is not None:
-    reach = [None] * len(server["inspection"]["islands"]) if nodes is None else islandReach(server["inspection"], nodes)
+    reach = [None] * len(server["inspection"]["islands"]) if nodes is None else islandReach(server["inspection"], nodes, nodes.lane.body.stepHeight)
     for island, reached in zip(server["inspection"]["islands"], reach):
       island["playersReach"] = reached
     report["findings"] += navFindings(server["inspection"])

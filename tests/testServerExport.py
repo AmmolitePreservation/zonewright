@@ -492,7 +492,7 @@ def testTheManifestListsEveryFileWithItsHash(stageBlenderServer, tmp_path):
   assert (manifest["failures"], manifest["findings"]) == (len(checked["failures"]), len(checked["findings"]))
   assert manifest["zone"] == {"shortName": "servertest", "zoneId": 901, "longName": "The servertest test", "serverTemplate": "qeynos2"}
   assert manifest["zonePoints"] == {"written": [10], "deleted": []}
-  assert manifest["lane"] == {key: checked["containment"][key] for key in ("laneKey", "reachGrid", "constants", "reachedArea")}
+  assert manifest["lane"] == {key: checked["containment"][key] for key in ("laneKeys", "builtFor", "reachGrid", "constants", "reachedArea")}
   assert manifest["serverNavSettings"] == serverNav.serverNavSettings
   assert manifest["recastHelper"] == {"commit": pinnedRecast["commit"], "fingerprint": recastHelper.helperFingerprint(pinnedRecast, recastHelper.toolchain()[1])}
   summary = checked["serverFiles"]["nav"]

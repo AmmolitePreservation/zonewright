@@ -33,7 +33,7 @@ edge = 239.9
 otherZone = {"zone": "qeynos2", "x": 0, "y": 0, "z": 0, "headingDegrees": 0}
 gentleDegrees = steepestWalkableDegrees - 5
 steepDegrees = steepestWalkableDegrees + 5
-containmentHeadroom = playerReach.movement()["containmentHeadroom"]
+containmentHeadroom = playerReach.containmentHeadroom
 # One lintel leaves a gap between the containment headroom and playerHeight, which only a smaller player passes; the other leaves less
 # than the containment headroom.
 squeezeLintel = (containmentHeadroom + playerHeight) / 2
@@ -284,7 +284,7 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   assert result.is_error is False, result.content[0].text
   assert [content.type for content in result.content] == ["image", "text"]
   reached = json.loads(result.content[1].text)
-  lane = playerReach.Lane(reached["laneFile"])
+  lane = playerReach.Lane(reached["laneFiles"]["medium"])
   nodes = playerReach.Nodes(lane)
   assert labelsAt(nodes) == {name: label for name, (_, label) in (probes | wetProbes).items()}
   # The pit is walked into off the ledge and never left; the ground the ledge drops onto to its east is walked back from.
@@ -319,19 +319,23 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   seedNames = [entry["name"] for entry in reached["entries"]]
   assert seedNames == ["safe point", "hermit", "stranded"]
   assert origins[nodes.floorNodeAt(probes["hermit"][0])] == seedNames.index("hermit")
+  every = list(playerScale.groupNames)
   assert [(entry["name"], entry["connected"], entry["isolated"]) for entry in reached["entries"]] == [
-    ("safe point", True, False), ("hermit", False, True), ("stranded", False, False),
+    ("safe point", dict.fromkeys(every, True), False), ("hermit", dict.fromkeys(every, False), True), ("stranded", dict.fromkeys(every, False), False),
   ]
   assert reached["zoneLines"] == [
-    {"name": "ATP_3_corridor", "reached": True},
-    {"name": "ATP_4_home", "reached": True, "teleport": {"landing": [90.0, -120.0, 30.0], "followed": True}},
-    {"name": "ATP_5_catch", "reached": True},
+    {"name": "ATP_3_corridor", "reachedBy": every},
+    {"name": "ATP_4_home", "teleport": {"landing": [90.0, -120.0, 30.0], "followed": True}, "reachedBy": every},
+    {"name": "ATP_5_catch", "reachedBy": every},
   ]
-  assert reached["swimBoxes"] == [{"name": f"AWT_{name}", "reached": True} for name in ("floating", "ford", "pool", "shallow", "stackHigh", "stackLow")]
-  assert [(plot["name"], plot["reached"]) for plot in reached["plotEntrances"]] == [("1 Open Street", True), ("2 Closed Street", False)]
-  assert reached["reachGrid"] == playerReach.reachGrid
-  assert set(reached["constants"]) == {"playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight", "minimumSwimDepth", "smallestPlayerHeight"}
-  assert reached["constants"]["stepHeight"]["value"] == stepHeight and reached["constants"]["minimumSwimDepth"]["value"] == minimumSwimDepth
+  assert reached["swimBoxes"] == [{"name": f"AWT_{name}", "reachedBy": every} for name in ("floating", "ford", "pool", "shallow", "stackHigh", "stackLow")]
+  assert [(plot["name"], plot["reachedBy"]) for plot in reached["plotEntrances"]] == [("1 Open Street", every), ("2 Closed Street", [])]
+  assert reached["reachGrid"] == playerReach.reachGrid and reached["builtFor"] == every and reached["planGroup"] == "large"
+  assert set(reached["constants"]) == set(every) | {"containmentHeadroom"}
+  for name in every:
+    assert set(reached["constants"][name]) == {"playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight", "minimumSwimDepth"}
+    assert reached["constants"][name]["playerHeight"]["value"] == playerScale.groups[name].playerHeight
+  assert reached["constants"]["medium"]["stepHeight"]["value"] == stepHeight and reached["constants"]["medium"]["minimumSwimDepth"]["value"] == minimumSwimDepth
   assert any(entry.startswith("doors: taken as open") for entry in reached["notModeled"])
   assert any("2 x cellSize" in limit for limit in reached["limits"])
   problems = [(problem["kind"], problem.get("region")) for problem in reached["problems"]]
@@ -343,7 +347,7 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
     ("unreachedPlot", "closedRoom"),
     ("trap", "course"), ("trap", "course"),
     ("viewRegion", "viewDeck"),
-    ("unreachedPlayFloor", "course"), ("unreachedPlayFloor", "course"), ("unreachedPlayFloor", "course"),
+    *[("unreachedPlayFloor", "course")] * 9,
     ("undecidedWater", "course"),
   ]
   byKind = {}
@@ -359,17 +363,31 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   assert near(byKind["noneRegion"][0]["center"], [-50, 169])
   assert near(byKind["outsideRegions"][0]["center"], [0, 220])
   assert byKind["disconnectedEntry"][0]["entry"] == "stranded" and byKind["unreachedPlot"][0]["plot"] == "2 Closed Street"
+  # Every group misses both, and the zone is built for every group, so both fail.
+  for kind in ("disconnectedEntry", "unreachedPlot"):
+    assert {key: byKind[kind][0][key] for key in ("verdict", "passingGroups", "failingGroups", "builtFor")} == {"verdict": "fails", "passingGroups": [], "failingGroups": every, "builtFor": every}
+    assert playerReach.isFailure(byKind[kind][0])
   pitTrap, slideTrap = sorted(byKind["trap"], key=lambda problem: problem["center"][0])[::-1]
   # The pit is the floor wholly between its walls and the ledge's face.
   assert near(pitTrap["center"], [160, 55]) and pitTrap["area"] == columnsWithin(155, 165) * columnsWithin(50, 60) * cellSize ** 2
   assert near(slideTrap["center"], [-240 - slideRun / 2, 66])
   assert near(byKind["viewRegion"][0]["center"], [120, -30]) and byKind["viewRegion"][0]["area"] == centersWithin(100, 140) * centersWithin(-40, -20) * cellSize ** 2
   # Each block top players never reach: every column holding some of it.
-  unreachedFloors = sorted((problem["center"][:2], problem["area"]) for problem in byKind["unreachedPlayFloor"])
   steepTop = 35 + 10 / math.tan(math.radians(steepDegrees))
-  blocks = sorted([((-105, 46), (-110, -100, 42, 50)), ((40, 70), (35, 45, 65, 75)), ((110, steepTop + 5), (105, 115, steepTop, steepTop + 10))])
-  for (found, area), (expected, (lowX, highX, lowY, highY)) in zip(unreachedFloors, blocks):
-    assert near(found, expected) and area == columnsOver(lowX, highX) * columnsOver(lowY, highY) * cellSize ** 2
+  blocks = [((-105, 46), (-110, -100, 42, 50)), ((40, 70), (35, 45, 65, 75)), ((110, steepTop + 5), (105, 115, steepTop, steepTop + 10))]
+  for expected, (lowX, highX, lowY, highY) in blocks:
+    found = [problem for problem in byKind["unreachedPlayFloor"] if near(problem["center"], expected)]
+    # The steep platform's top joins the squeeze floor under its ramp, beside it, in one problem.
+    assert len(found) == 1 and found[0]["area"] >= columnsOver(lowX, highX) * columnsOver(lowY, highY) * cellSize ** 2
+    assert (found[0]["area"] == columnsOver(lowX, highX) * columnsOver(lowY, highY) * cellSize ** 2) == (expected[0] != 110)
+  # The rest is floor only containment reaches, smaller than every group: the low space under each ramp and the slide face, and the
+  # shallow pool's bank, reached only by climbing out of water too shallow for any group to swim. Every group misses it, and the zone
+  # is built for every group: findings judged as failing them, never refusing an export.
+  rest = [problem for problem in byKind["unreachedPlayFloor"] if not any(near(problem["center"], expected) for expected, _ in blocks)]
+  assert len(rest) == 6
+  for problem in rest:
+    assert playerReach.labelNames[nodes.label[nodes.floorNodeAt(problem["center"])]] == "squeeze"
+    assert problem["failingGroups"] == every and problem["verdict"] == "fails" and not playerReach.isFailure(problem)
   # The walls are faces standing on the ground, so their tops are no floor, where the diagonal wall joins the edge walls too: there the
   # ground's faces and a wall's merge within the climb, and Recast's own merge, raising a span's top before it compares tops, carried the
   # ground's walkable area up to the wall's top by the order the faces came in. So no floor too small to be a place is left over.
@@ -382,7 +400,7 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   assert byKind["undecidedWater"][0]["body"] == "lake" and near(byKind["undecidedWater"][0]["center"], [-180, -100])
   # Everything reached is labelled; the area of each label sums to the reached nodes.
   area = cellSize * cellSize
-  assert sum(value for name, value in reached["reachedArea"].items() if name != "trap") == float(nodes.reached.sum()) * area
+  assert sum(value for name, value in reached["reachedArea"]["medium"].items() if name != "trap") == float(nodes.reached.sum()) * area
 
 
 def testMapReachRefusesWhatNoLaneStartsFrom(stageBlenderServer, tmp_path):
@@ -426,8 +444,9 @@ def testLaneAgreesWithWalkRoute(stageBlenderServer):
     _, reached = await session.expectImage("mapReach", {"problemViews": False})
     return walks, reached
 
-  walks, reached = stageBlenderServer.session(steps)
-  nodes = playerReach.Nodes(playerReach.Lane(reached["laneFile"]))
+  results, reached = stageBlenderServer.session(steps)
+  walks = {name: result["groups"]["medium"] for name, result in results.items()}
+  nodes = playerReach.Nodes(playerReach.Lane(reached["laneFiles"]["medium"]))
 
   def label(point):
     return playerReach.labelNames[nodes.label[nodes.floorNodeAt(point)]]
@@ -464,11 +483,12 @@ def testSceneAndServerFilesGiveTheSameLane(stageBlenderServer, tmp_path):
   reached = stageBlenderServer.session(steps)
   zoneFiles = serverMapFiles.zoneFilesOf(archivePath.read_bytes())
   regions = eqgFiles.parseZone(zoneFiles["zon"], "samelane.zon")["regions"]
-  lane, _, status, _ = playerReach.laneFromServerFiles(
+  lanes, _, status, _ = playerReach.laneFromServerFiles(
     serverMapFiles.mapBytes(zoneFiles), serverMapFiles.waterBytes(regions), [{"name": "safe point", "point": [0, 0, 0], "kind": "safePoint"}],
     stageBlenderServer.toolingRoot, lambda done, of, message: None,
   )
-  scene = playerReach.Lane(reached["laneFile"])
+  scene = playerReach.Lane(reached["laneFiles"]["medium"])
+  lane = lanes["medium"]
   assert status == "computed" and reached["lane"] == "computed"
 
   def reachedNodes(found):
@@ -507,8 +527,8 @@ def testLaneKeySurvivesSaveReopenAndRestart(freshBlenderServer, tmp_path):
   first, reopened = freshBlenderServer.session(build)
   restarted = freshBlenderServer.session(again)
   assert (first["lane"], reopened["lane"], restarted["lane"]) == ("computed", "reused", "reused")
-  assert first["laneFile"] == reopened["laneFile"] == restarted["laneFile"]
-  assert Path(first["laneFile"]).parent.name.startswith("keptlane-")
+  assert first["laneFiles"] == reopened["laneFiles"] == restarted["laneFiles"]
+  assert all(Path(path).parent.name.startswith("keptlane-") for path in first["laneFiles"].values())
 
 
 # Walking down the bowl crosses the underworld a step under it; the block rises more than a step, and the lid, the zone line, and the
@@ -543,7 +563,7 @@ def testLaneLeaksUnderTheUnderworldAndListsWhatNoOneReachesUnderALid(stageBlende
     return reached
 
   reached = stageBlenderServer.session(steps)
-  nodes = playerReach.Nodes(playerReach.Lane(reached["laneFile"]))
+  nodes = playerReach.Nodes(playerReach.Lane(reached["laneFiles"]["medium"]))
   assert [(problem["kind"], problem["region"]) for problem in reached["problems"]] == [
     ("belowUnderworld", "all"), ("unreachedZoneLine", "all"), ("unreachedSwim", "all"), ("unreachedPlayFloor", "all"),
   ]
@@ -556,8 +576,8 @@ def testLaneLeaksUnderTheUnderworldAndListsWhatNoOneReachesUnderALid(stageBlende
   assert all(math.dist(corner, bowlCenter) < bowlRadius * math.sqrt(2) for corner in (leak["extent"]["minimum"][:2], leak["extent"]["maximum"][:2]))
   assert not any("no underworld is set" in limit for limit in reached["limits"])
   # The zone line and the swim box no move reaches are listed at their centers.
-  assert byKind["unreachedZoneLine"]["zoneLine"] == "ATP_1_high" and byKind["unreachedZoneLine"]["center"] == [(low + high) / 2 for low, high in zip(*highLine)]
-  assert byKind["unreachedSwim"]["swimBox"] == "AWT_highPool" and byKind["unreachedSwim"]["center"] == [(low + high) / 2 for low, high in zip(*highPool)]
+  assert byKind["unreachedZoneLine"]["zoneLine"] == "ATP_1_high" and byKind["unreachedZoneLine"]["center"] == [round((low + high) / 2, 1) for low, high in zip(*highLine)]
+  assert byKind["unreachedSwim"]["swimBox"] == "AWT_highPool" and byKind["unreachedSwim"]["center"] == [round((low + high) / 2, 1) for low, high in zip(*highPool)]
   # The block's top under the lid is play floor no one reaches; the lid's own top, a boundary, is not, though it lies walkable and open
   # to the sky in the same play region.
   floor = byKind["unreachedPlayFloor"]
@@ -565,7 +585,12 @@ def testLaneLeaksUnderTheUnderworldAndListsWhatNoOneReachesUnderALid(stageBlende
   lidTop = nodes.floorNodeAt([-70, -70, lidHeight])
   assert bool(nodes.walkable[lidTop]) and nodes.shape[lidTop] & playerReach.boundaryShape and not nodes.reached[lidTop]
   slivers = reached["moreProblems"].get("unreachedPlayFloorSlivers", {"area": 0.0})["area"]
-  assert reached["regions"] == [{"name": "all", "access": "play", "reachedShare": reached["regions"][0]["reachedShare"], "unreachedPlayFloor": floor["area"] + slivers}]
+  every = list(playerScale.groupNames)
+  assert reached["regions"] == [{
+    "name": "all", "access": "play", "builtFor": every, "reachedShare": reached["regions"][0]["reachedShare"],
+    "unreachedPlayFloor": dict.fromkeys(every, floor["area"] + slivers),
+  }]
+  assert floor["failingGroups"] == every and floor["verdict"] == "fails" and not playerReach.isFailure(floor)
 
 
 def testLaneKeyFollowsSwimBoxesZoneLinesAndTheUnderworld(stageBlenderServer):
@@ -579,7 +604,7 @@ def testLaneKeyFollowsSwimBoxesZoneLinesAndTheUnderworld(stageBlenderServer):
 
     async def lane():
       _, reached = await session.expectImage("mapReach", {"problemViews": False})
-      lanes.append((reached["lane"], reached["laneFile"]))
+      lanes.append((reached["lane"], reached["laneFiles"]["medium"]))
 
     await lane()
     await lane()
@@ -610,7 +635,7 @@ def testLaneWalksABridgeDeckOverTheGorgeItSpans(stageBlenderServer, tmp_path):
     return reached
 
   reached = stageBlenderServer.session(steps)
-  lane = playerReach.Lane(reached["laneFile"])
+  lane = playerReach.Lane(reached["laneFiles"]["medium"])
   nodes = playerReach.Nodes(lane)
   # Over the gorge's middle the highest floor is the bridge's deck, walked at the rims' height from the safe point; the gorge's floor
   # under it is walked too, its open space closed by the deck's underside.
@@ -620,3 +645,57 @@ def testLaneWalksABridgeDeckOverTheGorgeItSpans(stageBlenderServer, tmp_path):
   assert int(lane.read("originSeed")[deck]) == 0 and abs(float(nodes.height[deck]) - bridge["start"][2]) <= cellHeight
   assert abs(float(nodes.height[floor]) + structurePlots.gorgeDepth) <= cellHeight
   assert float(nodes.height[floor]) < float(lane.height(nodes.high[floor])) < float(nodes.height[deck])
+
+
+# A lintel over a doorway, higher than the small group's tallest body and lower than the medium group's.
+lowLintel = (playerScale.groups["small"].playerHeight + playerScale.groups["medium"].playerHeight) / 2
+
+
+async def lowRoom(session):
+  """Open ground with a walled room entered under a low lintel, a plot inside, the room a region of its own built for the small group."""
+  await freshScene(session)
+  await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [160, 160], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+  await session.expectSuccess("setZoneProperties", environment | {"safePoint": [0, 0, 0, 0]})
+  for name, minimum, maximum in (
+    ("north", [20, 10, 0], [61, 11, 12]), ("south", [20, -11, 0], [61, -10, 12]), ("east", [60, -10, 0], [61, 10, 12]),
+    ("westA", [19, -11, 0], [20, -3, 12]), ("westB", [19, 3, 0], [20, 11, 12]), ("lintel", [19, -3, lowLintel], [20, 3, 12]),
+  ):
+    await cube(session, name, minimum, maximum)
+  await session.expectSuccess("setZoneHousing", decision)
+  await session.expectSuccess("placePlot", {"address": "1 Low Street", "center": [48, 0], "facingDegrees": 270, "size": [8, 6]})
+  await region(session, "yard", rectangle([-80, -80], [80, 80]), "play")
+  await session.expectSuccess("createRegion", {
+    "name": "lowRoom", "outline": rectangle([20, -10], [60, 10]), "bottom": -30, "top": 60, "intent": "a gnome's room", "access": "play",
+    "builtFor": ["small"],
+  })
+
+
+def testRoomBuiltForTheSmallGroupMakesWhatOnlyItReachesAFinding(stageBlenderServer):
+  async def steps(session):
+    await lowRoom(session)
+    _, smallRoom = await session.expectImage("mapReach", {"problemViews": False})
+    _, mediumPlan = await session.expectImage("mapReach", {"problemViews": False, "bodyGroup": "medium"})
+    await session.expectSuccess("editRegion", {"name": "lowRoom", "builtFor": "zone"})
+    _, everyRoom = await session.expectImage("mapReach", {"problemViews": False})
+    return smallRoom, mediumPlan, everyRoom
+
+  smallRoom, mediumPlan, everyRoom = stageBlenderServer.session(steps)
+  every = list(playerScale.groupNames)
+  # The lanes differ: in the room the small group walks, while in the medium and large lanes only a smaller body fits, squeeze.
+  labels = {}
+  for name in every:
+    nodes = playerReach.Nodes(playerReach.Lane(smallRoom["laneFiles"][name]))
+    labels[name] = playerReach.labelNames[nodes.label[nodes.floorNodeAt([30, 0, 0])]]
+  assert labels == {"small": "walk", "medium": "squeeze", "large": "squeeze"}
+  assert (smallRoom["planGroup"], mediumPlan["planGroup"]) == ("large", "medium")
+  assert [(plot["name"], plot["reachedBy"]) for plot in smallRoom["plotEntrances"]] == [("1 Low Street", ["small"])]
+  # Built for the small group alone, the room's plot is a finding for the others; once the room follows the zone, built for every
+  # group, the same plot fails and a game export refuses it.
+  found = [problem for problem in smallRoom["problems"] if problem["kind"] == "unreachedPlot"]
+  assert [(problem["plot"], problem["region"], problem["verdict"], problem["builtFor"], problem["failingGroups"]) for problem in found] == [
+    ("1 Low Street", "lowRoom", "finding", ["small"], ["medium", "large"]),
+  ]
+  assert not playerReach.isFailure(found[0])
+  failing = [problem for problem in everyRoom["problems"] if problem["kind"] == "unreachedPlot"]
+  assert [(problem["verdict"], problem["builtFor"]) for problem in failing] == [("fails", every)] and playerReach.isFailure(failing[0])
+  assert [region["builtFor"] for region in smallRoom["regions"]] == [every, ["small"]]
