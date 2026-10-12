@@ -153,6 +153,7 @@ def test_theRepositoryPlanNamesItsFirstTwoUntickedStepsAndEveryChangeTheLedgerAp
   unticked = [step for step in steps if not step.ticked]
   assert ledger.planSection(text, "In progress") == unticked[0].describe()
   assert ledger.planSection(text, "Next") == (unticked[1].describe() if len(unticked) > 1 else "None.")
-  named = {number for step in steps for number in step.changes}
-  assert named == {change.number for change in ledger.loadChanges(realLedger) if change.kind != "lab"}
-  assert ledger.rewritePlan(text, {number: True for number in named}, named) == text
+  namings = [number for step in steps for number in step.changes]
+  named = set(namings)
+  assert sorted(namings) == sorted(named) == sorted(change.number for change in ledger.loadChanges(realLedger) if change.kind != "lab")
+  assert ledger.rewritePlan(text, {number: step.ticked for step in steps for number in step.changes}, named) == text
