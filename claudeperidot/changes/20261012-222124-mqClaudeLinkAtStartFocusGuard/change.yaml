@@ -1,0 +1,116 @@
+title: MacroQuest.ini [Plugins] loads MQClaudeLink 0.8 (claudelink 9583824) at MacroQuest's start, inert outside the spare, whose detours keep the spare from ever taking the foreground
+why: >-
+  The spare calls SetForegroundWindow itself about 5 s after launch (eqgame init after InitMouse, and its window
+  procedure on WM_ACTIVATEAPP and WM_LBUTTONDOWN) and raises its window with SetWindowPos(HWND_TOP) without
+  SWP_NOACTIVATE. claudelink's background guard lowered it from outside, but the spare still held the foreground for
+  under 50 ms, and Windows then handed it to an arbitrary next window instead of the owner's. MQClaudeLink loaded only
+  from Claude's per-character cfg, after login, too late to stop the call. The owner allowed loading it in every
+  client as long as it acts only in Claude's instances. MQClaudeLink 0.8 decides at InitializePlugin whether its
+  process runs S:\Research\EverQuest\housingclient\eqgame.exe (both paths resolved by GetFinalPathNameByHandleW and
+  compared without case); in any other process, and whenever it cannot tell, every entry point returns at once: no
+  detour, pipe, command or memory write. In the spare it detours user32's SetForegroundWindow and SetActiveWindow
+  (refused), SetFocus (refused unless the window's top-level is already the thread's active window), SetWindowPos
+  (never activates, never raises a top-level window; only HWND_BOTTOM moves it in the z-order) and ShowWindow
+  (non-activating commands) through MacroQuest's own detours, in its own process, and serves the link from the
+  login screen on; its focus command counts what was refused or changed. MacroQuest loads [Plugins] on the client's
+  first login-frontend pulse, about 1.5 s after injection, before the 5 s call. The [Plugins] entry is the single line
+  MQClaudeLink=1 at the end of that section; nothing else in MacroQuest.ini changes. Claude's cfg (0013) keeps its
+  /plugin MQClaudeLink load noauto, which now only prints that the plugin is already loaded. The owner's running
+  clients pick the entry up at their next start, inert. The DLL was built from claudelink 9583824 (Release, Win32,
+  only the MQClaudeLink project, into a folder outside the plugins folder) and kept with its .pdb in
+  %LOCALAPPDATA%\claudelink\builds\mqClaudeLink-9583824; the build it replaces is 20261012-220124's, kept in
+  %LOCALAPPDATA%\claudelink\builds\mqClaudeLink-aebca38, which the undo copies back. The steps refuse while the spare
+  runs, since it holds the DLL loaded.
+kind: client
+scope:
+  - ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.dll
+  - ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.pdb
+  - ~\LocalProjects\mqPeridot\build\bin\release\config\MacroQuest.ini
+  - ~\AppData\Local\claudelink\builds\mqClaudeLink-9583824
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-12, the owner on loading claudelink: "for emu i don''t care if claudelink is always loaded as long as you only actually mess with the instances you need to and not my game if i''m playing"'
+activation: each MacroQuest-injected client's next start (the spare's next launch; the owner's clients load it inert)
+production: none
+commits: []
+steps:
+  - |-
+    $spare = 'S:\Research\EverQuest\housingclient'
+    $running = @(Get-CimInstance Win32_Process -Filter "Name='eqgame.exe'" | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($spare + '\', [StringComparison]::OrdinalIgnoreCase) })
+    if ($running.Count -gt 0) { throw ("close the spare first; running: " + (($running | ForEach-Object { $_.ProcessId }) -join ', ')) }
+    $plugins = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\plugins"
+    $builds = "$env:LOCALAPPDATA\claudelink\builds"
+    $expected = @{
+      "$builds\mqClaudeLink-9583824\MQClaudeLink.dll" = '4785e91ed702d8c21f612a91e03679de75135722f7553de75063e6f74b6070f6'
+      "$builds\mqClaudeLink-9583824\MQClaudeLink.pdb" = '024e0871f258ccde5493d750d3225ca76dc7c4add32d905811e2fcfd80cf679d'
+      "$builds\mqClaudeLink-aebca38\MQClaudeLink.dll" = '8c05c21259ce295d0593a5725099153a95113ef314bfce27481a1e23b707e786'
+      "$builds\mqClaudeLink-aebca38\MQClaudeLink.pdb" = '423f980ff41352182501ef473f59d4236650a23b8835d31859a7fd70e1b098c4'
+      "$plugins\MQClaudeLink.dll" = '8c05c21259ce295d0593a5725099153a95113ef314bfce27481a1e23b707e786'
+    }
+    foreach ($path in $expected.Keys) {
+      if ((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash -ne $expected[$path]) { throw "$path is not the file this change was recorded with" }
+    }
+    Copy-Item -LiteralPath "$builds\mqClaudeLink-9583824\MQClaudeLink.dll", "$builds\mqClaudeLink-9583824\MQClaudeLink.pdb" -Destination $plugins -Force
+  - |-
+    $path = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\config\MacroQuest.ini"
+    $encoding = [Text.Encoding]::GetEncoding(28591)
+    $text = [IO.File]::ReadAllText($path, $encoding)
+    $newline = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $lines = New-Object System.Collections.Generic.List[string]
+    $lines.AddRange([string[]]($text -split [regex]::Escape($newline)))
+    $start = -1
+    for ($index = 0; $index -lt $lines.Count; $index++) { if ($lines[$index].Trim() -ieq '[Plugins]') { if ($start -ge 0) { throw "$path holds two [Plugins] sections" }; $start = $index } }
+    if ($start -lt 0) { throw "$path has no [Plugins] section" }
+    $last = $start
+    for ($index = $start + 1; $index -lt $lines.Count -and -not $lines[$index].TrimStart().StartsWith('['); $index++) {
+      if ($lines[$index] -match '^\s*MQClaudeLink\s*=') { throw "$path already lists MQClaudeLink in [Plugins]: $($lines[$index])" }
+      if ($lines[$index].Contains('=')) { $last = $index }
+    }
+    $lines.Insert($last + 1, 'MQClaudeLink=1')
+    [IO.File]::WriteAllText($path, ($lines -join $newline), $encoding)
+undo:
+  - |-
+    $path = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\config\MacroQuest.ini"
+    $encoding = [Text.Encoding]::GetEncoding(28591)
+    $text = [IO.File]::ReadAllText($path, $encoding)
+    $newline = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $lines = New-Object System.Collections.Generic.List[string]
+    $lines.AddRange([string[]]($text -split [regex]::Escape($newline)))
+    $start = -1
+    for ($index = 0; $index -lt $lines.Count; $index++) { if ($lines[$index].Trim() -ieq '[Plugins]') { $start = $index; break } }
+    if ($start -lt 0) { throw "$path has no [Plugins] section" }
+    $found = @()
+    for ($index = $start + 1; $index -lt $lines.Count -and -not $lines[$index].TrimStart().StartsWith('['); $index++) {
+      if ($lines[$index] -match '^\s*MQClaudeLink\s*=') { $found += $index }
+    }
+    if ($found.Count -ne 1 -or $lines[$found[0]] -cne 'MQClaudeLink=1') { throw "$path does not hold the single line MQClaudeLink=1 in [Plugins] this change wrote" }
+    $lines.RemoveAt($found[0])
+    [IO.File]::WriteAllText($path, ($lines -join $newline), $encoding)
+  - |-
+    $spare = 'S:\Research\EverQuest\housingclient'
+    $running = @(Get-CimInstance Win32_Process -Filter "Name='eqgame.exe'" | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($spare + '\', [StringComparison]::OrdinalIgnoreCase) })
+    if ($running.Count -gt 0) { throw ("close the spare first; running: " + (($running | ForEach-Object { $_.ProcessId }) -join ', ')) }
+    $plugins = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\plugins"
+    $builds = "$env:LOCALAPPDATA\claudelink\builds"
+    $expected = @{
+      "$builds\mqClaudeLink-aebca38\MQClaudeLink.dll" = '8c05c21259ce295d0593a5725099153a95113ef314bfce27481a1e23b707e786'
+      "$builds\mqClaudeLink-aebca38\MQClaudeLink.pdb" = '423f980ff41352182501ef473f59d4236650a23b8835d31859a7fd70e1b098c4'
+      "$plugins\MQClaudeLink.dll" = '4785e91ed702d8c21f612a91e03679de75135722f7553de75063e6f74b6070f6'
+    }
+    foreach ($path in $expected.Keys) {
+      if ((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash -ne $expected[$path]) { throw "$path is not the file this change was recorded with" }
+    }
+    Copy-Item -LiteralPath "$builds\mqClaudeLink-aebca38\MQClaudeLink.dll", "$builds\mqClaudeLink-aebca38\MQClaudeLink.pdb" -Destination $plugins -Force
+checks:
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.dll
+    sha256: 4785e91ed702d8c21f612a91e03679de75135722f7553de75063e6f74b6070f6
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.pdb
+    sha256: 024e0871f258ccde5493d750d3225ca76dc7c4add32d905811e2fcfd80cf679d
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\config\MacroQuest.ini
+    section: Plugins
+    key: MQClaudeLink
+    value: '1'
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: ad076749024d7a348
