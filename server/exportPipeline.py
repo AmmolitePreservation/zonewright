@@ -3,9 +3,11 @@ files, and the manifest (<zone>_export.json: every file with its SHA-256 and siz
 archive's bytes and the scene's decisions: under server\\maps, laid out as akk-stack's server/maps so the owner copies it whole, the
 collision map (.map), the region map (.wtr), and the nav mesh (.nav), which is inspected as the server loads it for NPC islands and path
 probes; the player's lane (playerReach), whose leaks and stranded arrivals are failures; the ground the server finds on the .map under
-where players arrive; and under server\\sql the zone's rows (serverRows). The zone_points rows every game export of a short name wrote are
-kept under the tooling root (the record), so a later export deletes a removed line's row wherever it is written. A test export removes
-this zone's server files, which would no longer match its archive. Every file goes in together, or none does."""
+where players arrive; and under server\\sql the zone's rows (serverRows) and its interactive pieces' doors and object rows (pieceRows).
+The client models the scene places go into the archive as clientModelBundle copies them, with where each came from in the manifest. The
+zone_points, doors, and object rows every game export of a short name wrote are kept under the tooling root (the records), so a later
+export deletes a removed one's row wherever it is written. A test export removes this zone's server files, which would no longer match
+its archive. Every file goes in together, or none does."""
 import hashlib
 import json
 import math
@@ -18,6 +20,8 @@ import eqAxes
 import eqEmitters
 import eqgExport
 import eqgFiles
+import clientModelBundle
+import pieceRows
 import playerReach
 import playerScale
 import recastHelper
@@ -25,9 +29,11 @@ import serverMapFiles
 import serverNav
 import serverRows
 import toolingManifest
+import zoneSources
 
 islandsListed = 25
 recordName = "zonePointsWritten.json"
+piecesRecordName = "piecesWritten.json"
 leakKinds = ("voidEdge", "belowUnderworld", "noneRegion", "outsideRegions", "disconnectedEntry", "unreachedPlot")
 laneFindingKinds = ("trap", "viewRegion", "unreachedZoneLine", "unreachedSwim", "unreachedPlayFloor", "undecidedWater")
 laneFindingMessages = {
@@ -48,7 +54,7 @@ def serverFilePaths(folder, zone):
   maps, sql = folder / "server" / "maps", folder / "server" / "sql"
   return {
     "map": maps / "base" / f"{zone}.map", "water": maps / "water" / f"{zone}.wtr", "nav": maps / "nav" / f"{zone}.nav",
-    "rows": sql / f"{zone}.sql", "waysIn": sql / f"{zone}_waysIn.sql",
+    "rows": sql / f"{zone}.sql", "waysIn": sql / f"{zone}_waysIn.sql", "pieces": sql / f"{zone}_pieces.sql",
   }
 
 
@@ -90,17 +96,51 @@ def readRecord(toolingRoot, short):
   return record["zonePoints"]
 
 
+def piecesRecordPath(toolingRoot, short):
+  return toolingRoot / "exports" / short / piecesRecordName
+
+
+def readPiecesRecord(toolingRoot, short, zoneID):
+  """Every doors and object row a game export of this short name wrote (pieceRows.piecesFile's), as the record keeps them: none before
+  the first."""
+  path = piecesRecordPath(toolingRoot, short)
+  if not path.is_file():
+    return {"doors": [], "objects": []}
+  try:
+    record = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(record, dict) or set(record) != {"shortName", "doors", "objects"} or record["shortName"] != short:
+      raise ValueError(f"it holds no {{shortName: {short!r}, doors, objects}}")
+    pieceRows.ownedRecord(record, short, zoneID)
+  except (OSError, ValueError) as error:
+    raise ToolError(
+      f"The record of the doors and object rows {short}'s game exports wrote, {path}, cannot be read: {type(error).__name__}: {error}. An export"
+      " deletes only the rows it holds, so put it back as it was rather than remove it"
+    ) from error
+  return {"doors": record["doors"], "objects": record["objects"]}
+
+
+def writeRecord(path, content):
+  path.parent.mkdir(parents=True, exist_ok=True)
+  partial = path.with_name(path.name + ".partial")
+  partial.write_text(json.dumps(content, indent=1), encoding="utf-8")
+  os.replace(partial, path)
+
+
 def recordExport(toolingRoot, built):
-  """Add a game export's zone_points rows to its short name's record, written whole and put in place, before the export's files are: a
-  row recorded and never applied only makes a later delete match nothing."""
+  """Add a game export's zone_points rows, and its doors and object rows, to its short name's records, written whole and put in place,
+  before the export's files are: a row recorded and never applied only makes a later delete match nothing."""
   short = built["zoneProperties"]["shortName"]
   path = recordPath(toolingRoot, short)
   kept = serverRows.ownedRows(readRecord(toolingRoot, short) + built["rows"]["zonePoints"], short)
-  path.parent.mkdir(parents=True, exist_ok=True)
-  partial = path.with_name(path.name + ".partial")
-  partial.write_text(json.dumps({"shortName": short, "zonePoints": kept}, indent=1), encoding="ascii")
-  os.replace(partial, path)
-  return {"path": str(path), "rows": len(kept)}
+  writeRecord(path, {"shortName": short, "zonePoints": kept})
+  recorded = {"path": str(path), "rows": len(kept)}
+  if built["pieces"] is not None:
+    record = readPiecesRecord(toolingRoot, short, built["zoneProperties"]["zoneId"])
+    doors = record["doors"] + [row for row in built["pieces"]["doors"] if row not in record["doors"]]
+    objects = record["objects"] + [row for row in built["pieces"]["objects"] if row not in record["objects"]]
+    writeRecord(piecesRecordPath(toolingRoot, short), {"shortName": short, "doors": doors, "objects": objects})
+    recorded["pieces"] = {"path": str(piecesRecordPath(toolingRoot, short)), "doors": len(doors), "objects": len(objects)}
+  return recorded
 
 
 def sideContents(collected, zone):
@@ -116,10 +156,44 @@ def sideContents(collected, zone):
 
 
 def zoneArchive(collected):
+  """The archive's bytes, what went into it, and the client models it copies (clientModelBundle.bundle)."""
   try:
-    return eqgExport.zoneArchive(collected)
+    bundle = clientModelBundle.bundle(zoneSources.resolveClientRoot(), collected["clientModels"])
+    data, summary = eqgExport.zoneArchive(collected, bundle)
   except (OSError, ValueError) as error:
     raise ToolError(f"{type(error).__name__}: {error}") from error
+  return data, summary, bundle
+
+
+def bundleReport(bundle, summary, game):
+  """The client models' failures and findings: what cannot be copied, a copy shadowing ours, our texture a startup one shadows, and
+  what the copies add to the archive; for a test export, the interactive pieces it writes no rows for."""
+  failures = bundle["failures"] + summary["bundleClashes"] + clientModelBundle.ownTextureFailures(zoneSources.resolveClientRoot(), summary["ownTextures"])
+  findings = list(bundle["findings"])
+  if bundle["copies"]:
+    findings.append({
+      "finding": "client models copied", "models": len(bundle["copies"]), "bytes": summary["clientBytes"],
+      "message": f"{len(bundle['copies'])} client models and their textures add {summary['clientBytes']} bytes to the archive (no budget until Phase 2 measures a real zone)",
+    })
+  if bundle["rowPieces"] and not game:
+    findings.append({
+      "finding": "pieces as rows", "pieces": len(bundle["rowPieces"]),
+      "message": f"{len(bundle['rowPieces'])} interactive pieces are doors and object rows, which a test export does not write: a test load draws them only once a game export's rows are applied",
+    })
+  return failures, findings
+
+
+def objectStands(archiveBytes, collision, pieces, game):
+  """Where the server will stand each interactive object (pieceRows.objectHeights) on the archive's .map collision (collision, or built
+  from the archive when None), as failures for a game export and findings for a test one."""
+  if not any(piece["row"]["table"] == "object" for piece in pieces):
+    return [], []
+  if collision is None:
+    collision = serverMapFiles.mapCollision(serverMapFiles.mapBytes(serverMapFiles.zoneFilesOf(archiveBytes)))
+  moved = pieceRows.movedFailures(pieceRows.objectHeights(collision, pieces))
+  if game:
+    return moved, []
+  return [], [{"finding": entry.pop("failure")} | entry for entry in moved]
 
 
 def probeTargets(entries):
@@ -418,14 +492,20 @@ def build(checked, zone, zoneProperties, inputs, toolingRoot, reportProgress):
   report["containment"] = testContainment if not game else "not checked: server files not built"
   built = {
     "report": report, "zoneProperties": zoneProperties, "archive": None, "summary": None, "sides": None, "housing": None, "server": None, "rows": None,
-    "rowsWhy": None,
+    "rowsWhy": None, "bundle": None, "pieces": None,
   }
   if checked["collected"] is None:
     return built
   collected = checked["collected"]
-  built["archive"], built["summary"] = zoneArchive(collected)
+  built["archive"], built["summary"], built["bundle"] = zoneArchive(collected)
+  failures, findings = bundleReport(built["bundle"], built["summary"], game)
+  for key in ("ownTextures", "bundleClashes"):
+    del built["summary"][key]
+  report["failures"] += failures
+  report["findings"] += findings
   built["sides"], built["housing"] = sideContents(collected, zone), collected["housing"]
   if not game:
+    report["findings"] += objectStands(built["archive"], None, built["bundle"]["rowPieces"], False)[1]
     return built
   safePoint = zoneProperties["safePoint"][:3] if "safePoint" in zoneProperties else None
   server = built["server"] = serverMaps(built["archive"], safePoint, probeTargets(inputs["entries"]), toolingRoot, reportProgress)
@@ -441,8 +521,14 @@ def build(checked, zone, zoneProperties, inputs, toolingRoot, reportProgress):
   report["findings"] += findings
   del nodes
   report["failures"] += groundFailures(server["collision"], underworld, arrivals(zoneProperties, inputs["entries"]))
+  report["failures"] += objectStands(built["archive"], server["collision"], built["bundle"]["rowPieces"], True)[0]
   built["rows"], built["rowsWhy"], failures = zoneRows(zoneProperties, zone, inputs, built["archive"])
   report["failures"] += failures
+  if built["rows"] is not None:
+    try:
+      built["pieces"] = pieceRows.piecesFile(zoneProperties, built["bundle"]["rowPieces"], inputs["piecesRecord"], hashlib.sha256(built["archive"]).hexdigest())
+    except ValueError as error:
+      report["failures"].append({"failure": "rows not written", "message": f"The zone's doors and object rows cannot be written: {error}"})
   return built
 
 
@@ -467,6 +553,7 @@ def rowsReport(built, paths):
   return {
     "written": True, "rows": str(paths["rows"]), "waysIn": None if rows["waysIn"] is None else str(paths["waysIn"]),
     "zonePointsWritten": rows["numbersWritten"], "zonePointsDeleted": rows["numbersDeleted"], "waysInToAdd": rows["waysInToAdd"],
+    "pieces": None if built["pieces"] is None else {"file": str(paths["pieces"]), "doors": built["pieces"]["doorNumbers"], "objects": len(built["pieces"]["objects"])},
   }
 
 
@@ -501,6 +588,7 @@ def manifestRecord(folder, built, files, blendPath, writtenBy):
     "purpose": report["purpose"], "writtenBy": writtenBy, "shortName": built["summary"]["zone"], "blend": blendPath,
     "files": {path.relative_to(folder).as_posix(): fileRecord(data) for path, data in files.items()},
     "failures": len(report["failures"]), "findings": len(report["findings"]),
+    "clientModels": built["bundle"]["copies"],
   }
   server = built["server"]
   if server is not None:
@@ -510,6 +598,7 @@ def manifestRecord(folder, built, files, blendPath, writtenBy):
     record |= {
       "zone": {key: zoneProperties.get(key) for key in ("shortName", "zoneId", "longName", "serverTemplate")},
       "zonePoints": None if built["rows"] is None else {"written": built["rows"]["numbersWritten"], "deleted": built["rows"]["numbersDeleted"]},
+      "pieces": None if built["pieces"] is None else {"doors": built["pieces"]["doorNumbers"], "objects": len(built["pieces"]["objects"])},
       "serverNavSettings": serverNav.serverNavSettings,
       "recastHelper": {"commit": pin["commit"], "fingerprint": recastHelper.helperFingerprint(pin, recastHelper.toolchain()[1])},
       "lane": {key: lane[key] for key in ("laneKey", "reachGrid", "constants", "reachedArea")} if isinstance(lane, dict) else None,
@@ -529,6 +618,7 @@ def writeExport(folder, built, blendPath, writtenBy):
   if built["rows"] is not None:
     serverFiles["rows"] = built["rows"]["rows"].encode("ascii")
     serverFiles["waysIn"] = None if built["rows"]["waysIn"] is None else built["rows"]["waysIn"].encode("ascii")
+    serverFiles["pieces"] = None if built["pieces"] is None else built["pieces"]["text"].encode("utf-8")
   contents = {path: built["sides"][kind] for kind, path in sideFilePaths(folder, zone).items()}
   contents |= {path: serverFiles.get(kind) for kind, path in serverFilePaths(folder, zone).items()}
   removed = [str(path) for path in serverFilePaths(folder, zone).values() if contents[path] is None and path.is_file()]

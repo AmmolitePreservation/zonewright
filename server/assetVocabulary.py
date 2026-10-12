@@ -53,7 +53,11 @@ categories = {
     "furniture": "Tables, chairs, beds, shelves.",
     "container": "Barrels, crates, chests, sacks.",
     "lightSource": "Torches, lamps, braziers, lanterns, candles.",
-    "decoration": "Statues, banners, signs, and ornaments.",
+    "decoration": "Statues, banners, and ornaments.",
+    "sign": "Signs, signposts, and boards that say or point.",
+    "prop": "Small movable things set about a scene: tools, books, pots, crates of goods.",
+    "workstation": "Tradeskill stations and work places: forges, kilns, looms, ovens, brew barrels.",
+    "door": "Doors, gates, hatches, and portals that open or carry players elsewhere.",
     "debris": "Rubble, bones, and scattered small things.",
     "water": "Water features: fountains, pools, falls.",
     "effect": "Models that carry effects or particles.",
@@ -171,6 +175,54 @@ tagGroups = {
   "scale": {
     "meaning": "How big its features read at its usual repeat.",
     "terms": {"fine": "Small features: pebbles, grass blades.", "medium": "Hand-sized to body-sized features.", "coarse": "Large features: boulders, strata."},
+  },
+  "form": {
+    "meaning": "A model's silhouette and how it stands.",
+    "terms": {
+      "tall": "Taller than wide.", "wide": "Wider than tall.", "flat": "Thin and flat: a slab, a rug, a sign board.", "round": "Round or domed.",
+      "boxy": "Square-cornered.", "spindly": "Thin limbs or members.", "massive": "Heavy and solid.", "freestanding": "Stands on its own on the ground.",
+      "wallMounted": "Hangs on or against a wall.", "hanging": "Hangs from above.", "leaning": "Leans or tilts by design.", "modular": "A piece meant to join others.",
+    },
+  },
+  "finish": {
+    "meaning": "How a model's surfaces are worked.",
+    "terms": {
+      "rough": "Raw and unworked.", "carved": "Carved or chiselled.", "polished": "Smooth and polished.", "painted": "Painted or dyed.",
+      "gilded": "Gold or bright metal trim.", "riveted": "Banded or riveted metal.", "woven": "Woven, wicker, or rope.", "glowing": "Lit from within.",
+    },
+  },
+  "era": {
+    "meaning": "The expansion a model's look comes from.",
+    "terms": {
+      "classic": "Original EverQuest.", "kunark": "The Ruins of Kunark.", "velious": "The Scars of Velious.", "luclin": "The Shadows of Luclin.",
+      "planes": "The Planes of Power.", "ldon": "Lost Dungeons of Norrath.", "gates": "Gates of Discord.", "omens": "Omens of War.",
+      "dragons": "Dragons of Norrath.", "depths": "Depths of Darkhollow.", "prophecy": "Prophecy of Ro.", "serpentSpine": "The Serpent's Spine.",
+      "buriedSea": "The Buried Sea.", "secrets": "Secrets of Faydwer.", "seeds": "Seeds of Destruction.", "underfoot": "Underfoot.",
+      "houseOfThule": "House of Thule.", "veilOfAlaris": "Veil of Alaris.", "rainOfFear": "Rain of Fear.",
+    },
+  },
+  "mood": {
+    "meaning": "The feeling a model brings to a scene.",
+    "terms": {
+      "homely": "Lived-in and warm.", "grand": "Imposing and important.", "eerie": "Unsettling or haunted.", "bleak": "Harsh and poor.",
+      "sacred": "Holy or ritual.", "menacing": "Threatening.", "festive": "Celebratory.", "serene": "Calm and peaceful.", "busy": "Working and bustling.",
+    },
+  },
+  "sceneRole": {
+    "meaning": "The part a model plays in a scene.",
+    "terms": {
+      "focal": "Draws the eye; one per view.", "filler": "Fills space between focal pieces.", "detail": "Small dressing seen close.",
+      "setPiece": "One of a matched set.", "variant": "A variant of another model in its set.",
+    },
+  },
+  "function": {
+    "meaning": "What a model is for in the world.",
+    "terms": {
+      "seating": "Sitting.", "sleeping": "Beds and bedrolls.", "eating": "Tables and food.", "storage": "Holding things: chests, shelves, barrels.",
+      "lighting": "Giving light.", "barrier": "Blocking or bounding.", "signage": "Saying or pointing.", "decoration": "Looking good.",
+      "shelter": "Keeping off weather.", "work": "A tradeskill or labor station.", "passage": "Letting players through or elsewhere.",
+      "display": "Showing things: racks, stands, plinths.", "worship": "Shrines and altars.",
+    },
   },
   "quality": {
     "meaning": "How well it holds up in a 2011-era zone.",

@@ -10,7 +10,8 @@ import buildTolerances
 import eqArchive
 import eqgFiles
 import eqgWriter
-from conftest import writePNG
+import modelMeasures
+from conftest import everquestClient, writePNG
 from testHousing import decision, flatGround
 from testModelsAndDressing import freshScene
 
@@ -471,8 +472,10 @@ def testExportLeavesOutWhatIsNotTheZonesOwnAndSaysWhy(stageBlenderServer, tmp_pa
     return await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
 
   exported = stageBlenderServer.session(steps)
+  # The kiln ships: its model and the textures it names, copied from the client's tradeskill_objects.eqg.
+  kilnArchive = eqArchive.EQArchive(Path(everquestClient) / "tradeskill_objects.eqg")
+  kilnFiles = ["it10800.mod"] + [name for name in modelMeasures.eqgMeasures(eqgFiles.parseModel(kilnArchive.read("it10800.mod"), "it10800.mod"))["textures"] if name in kilnArchive.entries]
   assert exported["excluded"] == [
-    {"reason": "a client object: client models do not export yet", "count": 1, "objects": ["kiln"]},
     {"reason": "a client spawn: the server's data, not zone geometry", "count": 1, "objects": ["visitor"]},
     {"reason": "a region: the plan", "count": 1, "objects": ["yard"]},
     {"reason": "an entry: where players arrive (server rows)", "count": 1, "objects": ["gate"]},
@@ -480,4 +483,6 @@ def testExportLeavesOutWhatIsNotTheZonesOwnAndSaysWhy(stageBlenderServer, tmp_pa
   ]
   assert exported["toConfirm"] == [{"object": "ground", "passesOff": ["mound"], "layersMuted": ["path"], "staleCaves": [], "staleDefinedPasses": [], "daylitCaves": []}]
   assert exported["modelTriangles"] == {"obj_crate.mod": 12}
-  assert sorted(eqArchive.EQArchive(archivePath).entries) == ["ground.dds", "obj_crate.mod", "ter_testplot.ter", "testplot.zon"]
+  archive = eqArchive.EQArchive(archivePath)
+  assert sorted(archive.entries) == sorted(["ground.dds", "obj_crate.mod", "ter_testplot.ter", "testplot.zon"] + kilnFiles)
+  assert all(archive.read(name) == kilnArchive.read(name) for name in kilnFiles) and len(kilnFiles) > 1

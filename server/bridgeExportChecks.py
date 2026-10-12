@@ -8,6 +8,7 @@ the client's registrations (an id it does not register, a short name it does), a
 refuse. Each names the object, material, image, and face count, with where the faces lie. The report also gives each structure's
 models and triangles and the triangles of every placement. The coverage view draws the same face statuses. Runs under Blender's
 Python."""
+import math
 import os
 
 import bpy
@@ -30,6 +31,7 @@ import bridgeSurfacing
 import bridgeSwim
 import bridgeViews
 import bridgeWater
+import clientModelRows
 import serverRows
 from bridgeState import state
 from buildTolerances import transitionGroundNormalZ
@@ -596,6 +598,71 @@ def placementFailures(shipped):
   return failures + missingKitFailures(shipped)
 
 
+# A turn about a horizontal axis smaller than this is none: a row holds a heading only.
+rowTiltTolerance = 1e-4
+# An interactive piece and a placement of the same model this close are one piece placed twice.
+samePlaceDistance = 0.05
+
+
+def clientCopies(collection, path=()):
+  """The members of a placed collection, to any depth, that are client models (a client content mark or a client mesh mark): each is
+  a copy of the client's mesh that would export as one of ours."""
+  found = []
+  for member in collection.all_objects:
+    if bridgeMeshAccess.isClientMesh(member):
+      found.append(" / ".join(path + (member.name,)))
+    elif bridgeMeshAccess.isCollectionInstance(member):
+      found += clientCopies(member.instance_collection, path + (member.name,))
+  return found
+
+
+def clientModelFailures(shipped):
+  """What stops the client models of a scene shipping: an own mesh or placed collection that is a client model's copy (a mesh made from
+  a client model, which only scripting makes, would ship as ours); a client model scaled unevenly; an interactive piece turned about
+  anything but Z, or scaled beyond what its row holds (an object 0.01 to 49.99, a door a whole percent); an interactive door's trigger
+  that names no interactive door; and one piece placed both as scenery and as a row (an interactive piece and a placement of its model
+  at its place), which the client would draw twice."""
+  failures = []
+  interactive, scenery = [], []
+  for sceneObject, role in shipped:
+    if role == "mesh" and bridgeMeshAccess.isClientMesh(sceneObject):
+      failures.append({"failure": "copy of a client model", "object": sceneObject.name, "at": objectLocation(sceneObject), "message": f"'{sceneObject.name}' is a client model's mesh shipping as one of ours; place the model with placeObject or placeDoor"})
+    if role == "instance":
+      copies = clientCopies(sceneObject.instance_collection)
+      if copies:
+        failures.append({"failure": "copy of a client model", "object": sceneObject.name, "members": copies, "at": objectLocation(sceneObject), "message": f"'{sceneObject.name}' places client models {copies} as part of one of our models; place each with placeObject or placeDoor"})
+    if role != "clientModel":
+      continue
+    row = bridgeExport.clientRowOf(sceneObject)
+    (scenery if row is None else interactive).append((sceneObject, row))
+    if not bridgeExport.isOnePositiveScale(sceneObject):
+      scale = tuple(round(component, 6) for component in sceneObject.matrix_world.to_scale())
+      failures.append({"failure": "scale", "object": sceneObject.name, "at": objectLocation(sceneObject), "message": f"'{sceneObject.name}' is scaled {scale}; a placed model takes one positive scale"})
+      continue
+    if row is None:
+      continue
+    turns = sceneObject.matrix_world.to_euler("XYZ")
+    scale = sceneObject.matrix_world.to_scale()[0]
+    problem = None
+    if abs(turns.x) > rowTiltTolerance or abs(turns.y) > rowTiltTolerance:
+      problem = f"is turned about X or Y ({round(math.degrees(turns.x), 3)}, {round(math.degrees(turns.y), 3)} degrees); a {row['table']} row holds a heading only"
+    elif row["table"] == "object" and not clientModelRows.objectScaleRange[0] <= scale <= clientModelRows.objectScaleRange[1]:
+      problem = f"is scaled {round(scale, 4)}; an object row holds 0.01 to 49.99"
+    elif row["table"] == "doors" and (abs(scale * 100 - round(scale * 100)) > 1e-3 or not 1 <= round(scale * 100) <= clientModelRows.doorSizeLimit):
+      problem = f"is scaled {round(scale, 6)}; a door row holds a whole percent"
+    if problem:
+      failures.append({"failure": "row cannot hold", "object": sceneObject.name, "at": objectLocation(sceneObject), "message": f"Interactive '{sceneObject.name}' {problem}"})
+  doorNames = {sceneObject.name for sceneObject, row in interactive if row["table"] == "doors"}
+  for sceneObject, row in interactive:
+    if row["table"] == "doors" and row["triggerDoor"] is not None and row["triggerDoor"] not in doorNames:
+      failures.append({"failure": "trigger door missing", "object": sceneObject.name, "triggerDoor": row["triggerDoor"], "message": f"Door '{sceneObject.name}' triggers '{row['triggerDoor']}', which is no interactive door of this zone"})
+    entry = bridgeExport.clientModelOf(sceneObject).get("entry")
+    for other, _ in scenery:
+      if bridgeExport.clientModelOf(other).get("entry") == entry and (other.matrix_world.translation - sceneObject.matrix_world.translation).length <= samePlaceDistance:
+        failures.append({"failure": "placed as scenery and as a row", "object": sceneObject.name, "scenery": other.name, "message": f"'{sceneObject.name}' is a row and '{other.name}' places its model at its place as scenery: the client would draw it twice"})
+  return failures
+
+
 def modelLabel(key):
   """A model by what it is made from: a mesh's name, or a collection's with the kit file it is linked from."""
   if key[0] != "collection":
@@ -689,6 +756,7 @@ def checkZoneExport(purpose, exportName, client):
   except ValueError as error:
     failures.append({"failure": "housing", "message": str(error)})
   hardFailures = list(failures)
+  failures += clientModelFailures(shipped)
   gapKey = "failure" if purpose == "game" else "finding"
   gaps = blockouts.listed(gapKey) + [{gapKey: f"swim {swimState}", "body": body.name, "at": bodyCenter(body)} for swimState, bodies in decisions.items() for body in bodies]
   gaps += [{gapKey: gap["gap"]} | {key: value for key, value in gap.items() if key != "gap"} for gap in zoneRowGaps(exportName, client) + bridgeBoundaries.zoneLineGaps() + playerSpaceGaps()]

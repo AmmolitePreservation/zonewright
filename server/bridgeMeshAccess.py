@@ -49,6 +49,14 @@ plotBorderProperty = "zonewrightPlotBorder"
 # export yet, and imported zones are reference.
 clientContentProperty = "zonewrightClientContent"
 clientContentKinds = ("spawn", "door", "object", "zone", "zoneFile")
+# A placed client model (spawn, door, object) is the client's own mesh: it is placed, moved, turned, and scaled, never edited. Its mesh
+# carries clientMeshProperty (the model cache it was built from), which copies keep. A door or object placed to ship carries the client
+# definition export copies byte for byte (clientModelProperty) and, when interactive, what its doors or object row holds
+# (clientRowProperty).
+clientModelKinds = ("spawn", "door", "object")
+clientMeshProperty = "zonewrightClientMesh"
+clientModelProperty = "zonewrightClientModel"
+clientRowProperty = "zonewrightClientRow"
 boundaryProperty = "zonewrightBoundary"
 zoneLineProperty = "zonewrightZoneLine"
 # An imported zone that parks objects far below itself (eqZones.parkedBelow) keeps its mesh's height range without them here.
@@ -137,14 +145,17 @@ def isCollectionInstance(sceneObject):
 
 def isPlayerSolid(sceneObject, collision=False):
   """Whether players stand on and are blocked by an object: rendered meshes and collection instances, but not objects marked passable,
-  guides, plot borders, regions, water bodies (swum, not stood on), spawns (players pass through them), or doors (taken as open); of
+  guides, plot borders, regions, water bodies (swum, not stood on), spawns (players pass through them), or interactive doors (taken as open); of
   its faces, only those players do not pass through (meshFaces). With collision, as the client collides: boundaries, never drawn,
   block too."""
   if collision and boundaryProperty in sceneObject:
     return sceneObject.type == "MESH"
   if passableProperty in sceneObject or sceneObject.hide_render or isDesignAid(sceneObject) or regionIntentProperty in sceneObject or waterProperty in sceneObject:
     return False
-  if sceneObject.get(clientContentProperty) in ("spawn", "door"):
+  if sceneObject.get(clientContentProperty) == "spawn":
+    return False
+  # A door is taken as open, but one placed as scenery is part of the zone file, which players collide with.
+  if sceneObject.get(clientContentProperty) == "door" and not (clientModelProperty in sceneObject and clientRowProperty not in sceneObject):
     return False
   return sceneObject.type == "MESH" or isCollectionInstance(sceneObject)
 
@@ -644,9 +655,19 @@ def requireMeshObject(name):
   return sceneObject
 
 
+def isClientMesh(sceneObject):
+  return sceneObject.get(clientContentProperty) in clientModelKinds or (sceneObject.type == "MESH" and clientMeshProperty in sceneObject.data)
+
+
+def requireNotClientMesh(sceneObject, action):
+  if isClientMesh(sceneObject):
+    raise ValueError(f"'{sceneObject.name}' is a client model, which {action} would edit: client models are placed, moved, turned, and scaled, never edited; a changed model is a new asset")
+
+
 def requireEditableMesh(name, action):
-  """A mesh the tool named by action may change: not part of a structure laid from its definition."""
+  """A mesh the tool named by action may change: not a client model, and not part of a structure laid from its definition."""
   sceneObject = requireMeshObject(name)
+  requireNotClientMesh(sceneObject, action)
   bridgeStructureData.requireNotStructurePart(sceneObject, action)
   return sceneObject
 

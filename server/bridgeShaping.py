@@ -607,6 +607,8 @@ def booleanCut(objectName, cutterName, operation, keepCutter):
     raise ValueError(f"operation must be one of {list(booleanOperations)}, got '{operation}'")
   sceneObject = bridgeMeshAccess.requireEditableMesh(objectName, "booleanCut")
   cutter = bridgeMeshAccess.requireMeshObject(cutterName)
+  # A cutter's shape or faces go into the cut mesh, whose data carries no client mark afterwards.
+  bridgeMeshAccess.requireNotClientMesh(cutter, "booleanCut as the cutter")
   if cutter == sceneObject:
     raise ValueError(f"'{objectName}' cannot cut itself")
   bridgeMeshAccess.requireNoShapingPasses(sceneObject, "cut it")

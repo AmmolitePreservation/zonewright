@@ -686,6 +686,35 @@ def zoneFileBoundaries(archivePath):
   }
 
 
+def buildZoneFileModel(cacheRoot, archivePath, entry):
+  """One static model an EQG zone archive holds, built from the archive alone (its textures from it too, as a row's model in a zone
+  archive finds them), for a doors or object row that names it; cached by the archive's SHA-256."""
+  data = archivePath.read_bytes()
+  digest = hashlib.sha256(data).hexdigest()
+  folder = cacheRoot / "zoneFiles" / f"{archivePath.stem.lower()}@{digest[:12]}" / "rows" / entry.rsplit(".", 1)[0]
+  stampPath = folder / "source.json"
+  stamp = {"modelCacheFormat": eqModels.modelCacheFormat, "sha256": digest, "entry": entry}
+  if stampPath.is_file():
+    stored = json.loads(stampPath.read_text(encoding="utf-8"))
+    if {key: stored.get(key) for key in stamp} == stamp:
+      return folder, stored
+  archive = eqArchive.EQArchive(archivePath)
+  if entry not in archive.entries:
+    raise ValueError(f"{archivePath.name} holds no {entry}")
+  label = f"{archivePath.name}:{entry}"
+  model = eqgFiles.parseModel(archive.read(entry), label)
+  if model["bones"] is not None:
+    raise ValueError(f"{label} is skinned; a row's skinned model is not drawn yet")
+  part = eqModels.meshPart(
+    model["vertices"], model["triangles"], eqModels.staticEQGUVs(model["uvs"]), *eqModels.eqgMaterialTextures(model["materials"], model["triangleMaterials"], {}),
+    standIns=eqModels.eqgTriangleStandIns(model["materials"], model["triangleMaterials"]),
+  )
+  folder.mkdir(parents=True, exist_ok=True)
+  details = stamp | eqModels.writePartsCache(folder, [part], [archive], label)
+  stampPath.write_text(json.dumps(details, indent=1), encoding="utf-8")
+  return folder, details
+
+
 def buildZoneFile(clientRoot, cacheRoot, archivePath):
   """An EQG zone archive outside the client, such as one zonewright exported: its one .zon and the models and textures it holds,
   cached by the archive's SHA-256; the client's moddat.ini poses any skinned model it places."""

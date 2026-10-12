@@ -25,6 +25,7 @@ import assetSurvey
 import blenderBridge
 import buildTolerances
 import checkpoints
+import clientModelRows
 import clientPointLights
 import conceptComparison
 import emitterAssets
@@ -46,6 +47,7 @@ import eqZones
 import exportPipeline
 import exportVerification
 import extensionCatalog
+import pieceRows
 import laneDrawing
 import laneViews
 import loadTimeLight
@@ -55,6 +57,7 @@ import playerReach
 import playerScale
 import previewFrame
 import recastHelper
+import serverMapFiles
 import serverNav
 import serverRows
 import skyDrawing
@@ -214,12 +217,22 @@ def modelSummary(details):
   }
 
 
-async def placeEQModel(context, folder, name, location, rotationDegrees, scale, avatarHeight, snapToGround, collection, details, clientContent):
+async def placeEQModel(context, folder, name, location, rotationDegrees, scale, avatarHeight, snapToGround, collection, details, clientContent, clientModel=None, row=None):
   placed = await callBridge(context, "placeModel", {
     "modelFolder": str(folder), "name": name, "location": location, "rotationDegrees": rotationDegrees, "scale": scale,
     "avatarHeight": avatarHeight, "snapToGround": snapToGround, "collection": collection, "clientContent": clientContent,
+    "clientModel": clientModel, "row": row,
   })
-  return placed | {"source": modelSummary(details)}
+  return placed | {"source": modelSummary(details)} | ({} if clientModel is None else {"ships": {"model": clientModel, "interactive": row}})
+
+
+def shippedPiece(details, rowOf):
+  """The client record of a placed door or object and its row (rowOf(record), or None for scenery), checked where the bad value enters."""
+  try:
+    record = clientModelRows.clientRecord(zoneSources.resolveClientRoot(), details)
+    return record, None if rowOf is None else rowOf(record)
+  except ValueError as error:
+    raise ToolError(str(error)) from error
 
 
 async def resolveSky(sky):
@@ -533,20 +546,35 @@ def sourceSummary(key, surveyed):
 
 @guardedTool()
 async def surveyAssets(
-  context: Context, zones: list[str] | None = None, allZones: bool = False, folder: str | None = None, path: str | None = None, refresh: bool = False,
+  context: Context, zones: list[str] | None = None, allZones: bool = False, archives: list[str] | None = None, allArchives: bool = False,
+  folder: str | None = None, path: str | None = None, refresh: bool = False,
 ):
   """Survey graphical assets into the asset catalog's measured lane: client zones (`zones`, or `allZones`; stale ones are surveyed in
   parallel, and a zone the parsers cannot read is reported with why), each with the textures of the archives it loads
   for its own geometry and objects, with how the zone uses each: area share, world units per texture repeat, slopes, shaders, paired
   textures; its placed models; its light styles; its emitters; an EQ terrain zone's ecosystems), a client folder of loose images
-  (Resources/Sky, Resources/WaterSwap, Resources/Precipitation, EnvEmitterEffects), or an EQG zone archive at an absolute `path`, such as
-  one exportZone wrote. Each texture is written out readable, with a thumbnail, under the tooling root; a client source's measurements
+  (Resources/Sky, Resources/WaterSwap, Resources/Precipitation, EnvEmitterEffects), the client's object, on-demand, and startup archives
+  (`archives` by name, or `allArchives`: every EQG archive the client links that is no zone's, such as crystals.eqg, tradeskill_objects.eqg,
+  plhousingexta.eqg, equipment-01.eqg; each with how the client links it and every model it defines, with its textures), or an EQG zone
+  archive at an absolute `path`, such as one exportZone wrote. Every model carries what was measured of it: size and footprint, where its
+  origin sits (base, hanging, wallBack, center, offset), drawn triangles, collision share, skinning, drawn materials and textures, dominant
+  colors, and per client zone that places it how often, at what scales, how it sits (upright or tilted), and beside which models; and its
+  in-game role as the server's doors and object tables hold it (catalog/serverRoles.json). Each texture is written out readable, with a thumbnail, under the tooling root; a client source's measurements
   are kept in the repository's catalog folder to be committed. Cached until the source's files change. For one source, returns its counts
   and most-used textures; for many zones, what became of each. findAssets, viewTextures, viewModels, and getAsset read the rest, and
   describeAssets writes what they are."""
-  if sum((zones is not None, allZones, folder is not None, path is not None)) != 1:
-    raise ToolError("Survey zones, allZones, a folder, or a path")
+  if sum((zones is not None, allZones, archives is not None, allArchives, folder is not None, path is not None)) != 1:
+    raise ToolError("Survey zones, allZones, archives, allArchives, a folder, or a path")
   clientRoot = zoneSources.resolveClientRoot()
+  if archives is not None or allArchives:
+    outcomes = await anyio.to_thread.run_sync(callReportingFailures, catalog.surveyArchives, clientRoot, archives, refresh, progressReporter(context))
+    if archives is not None and len(archives) == 1 and "error" not in outcomes[archives[0].lower()]:
+      key = f"archive:{archives[0].lower()}"
+      return sourceSummary(key, json.loads(catalog.sourcePath(key).read_text(encoding="utf-8")))
+    return {
+      "archives": len(outcomes), "surveyed": sum("surveyed" in outcome for outcome in outcomes.values()), "current": sum("current" in outcome for outcome in outcomes.values()),
+      "errors": {name: outcome["error"] for name, outcome in outcomes.items() if "error" in outcome},
+    }
   if zones is not None or allZones:
     zoneNames = sorted({variant["zone"] for variant in zoneSources.discoverZones(clientRoot).values()}) if allZones else [zone.lower() for zone in zones]
     outcomes = await anyio.to_thread.run_sync(callReportingFailures, catalog.surveyZones, clientRoot, toolingRoot / "models", zoneNames, refresh, progressReporter(context))
@@ -603,11 +631,27 @@ def extendAssetVocabulary(group: str, term: str, meaning: str):
 
 @guardedTool()
 def describeAssets(descriptions: list[dict]):
-  """Write what assets are, all or none: [{id, category, tags {group: [terms]}, description (what it shows and how it reads), usage
-  (where and how to use it: surfaces, scale, pairings, what to avoid), worldUnitsPerRepeat (textures: the repeat that reads right; the
-  measured unitsPerRepeat is how the source zone used it), pairsWith (ids of assets it goes with: its normal map, transitions)}], in
-  getAssetVocabulary's words. Each replaces its asset's earlier description."""
+  """Write what assets are, all or none, field by field, in getAssetVocabulary's words: [{id, judgedFrom {views: [...], facts: [...]},
+  and any of its kind's fields}]. Every kind takes category, tags {group: [terms]}, description (what it shows and how it reads), usage
+  (where and how to use it: surfaces, scale, pairings, what to avoid), and pairsWith (ids of assets it goes with); a texture also
+  worldUnitsPerRepeat (the repeat that reads right; the measured unitsPerRepeat is how the source zone used it); a model also plainName
+  (what a player would call it), dressingNotes (how the client's artists used it: where, how often, beside what, at what scale), and in
+  tags its form, material, finish, style, era, biome, mood, sceneRole, and function. A field is written once: it fills only where the
+  asset lacks it, and a different value for a field already written is refused unless the description names the field in rewrite (to
+  correct a wrong one). judgedFrom says what the fields were judged from: views (a texture's thumbnail; a model's front, side, top, and
+  threeQuarter, rendered by viewModels with views) and facts (measured fact names, such as size, origin, dominantColors, role); each
+  field records their images' SHA-256 and the facts' values, so a later survey that changes them puts the field in describeQueue's
+  review. Returns per asset the fields written."""
   return {"described": callReportingFailures(catalog.describe, descriptions)}
+
+
+@guardedTool()
+def describeQueue(kind: str, field: str | None = None, source: str | None = None, limit: int = 40):
+  """What remains to describe of one kind: the assets missing `field` (or any field the queue tracks for the kind: a model's tags one
+  per group, tags.form and the rest) and those whose written fields rest on views or facts that changed since they were judged
+  (review, with why), each with its views' files (None where not rendered yet: viewModels with views renders a model's). source limits
+  it to a zone, archive, or source key. Describing goes where something is missing; nothing is described twice."""
+  return callReportingFailures(catalog.queue, kind, field, source, limit)
 
 
 def sheetEntries(ids, kind, text, categories, tags, source, described, sortBy, limit, measuredFilters=(None, None, None, None)):
@@ -650,34 +694,65 @@ def viewTextures(
   return writeSheetImage(cells, columns, [{"number": number, "id": asset["id"]} for number, asset in enumerate(assets, start=1)], cellSide)
 
 
+def catalogModelLink(asset):
+  """How placing a catalog model finds it through the client's links: (zone, model name, source archive). A zone's model is found in
+  that zone; an object archive's in the startup lists and OnDemandResources.txt (no zone) when the client loads it so, else in the
+  first zone whose _assets.txt names it."""
+  if asset["kind"] != "model" or "problem" in asset["measured"]:
+    raise ToolError(f"{asset['id']} is not a readable model")
+  for key, facts in sorted(asset["sources"].items()):
+    if key.startswith("zone:"):
+      # The client names an EQG model by its entry without the .mod extension.
+      return key.split(":", 1)[1], asset["name"].removesuffix(".mod"), facts.get("archive")
+  for key, facts in sorted(asset["sources"].items()):
+    if key.startswith("archive:"):
+      links = facts["links"]
+      zone = None if links["startup"] or links["onDemand"] else links["listedBy"][0]
+      return zone, facts["entry"].removesuffix(".mod"), key.split(":", 1)[1]
+  raise ToolError(f"{asset['id']} is in no client zone or archive source")
+
+
+modelSheetViews = ("front", "side", "top", "threeQuarter")
+
+
 @guardedTool(description=(
-  "Look at models from the catalog on one numbered contact sheet (up to 48), each drawn as the client draws it in neutral daylight from"
-  " three-quarters above: by ids, or by the findAssets filters (kind is model). Models of client zones only." + findHelp))
+  "Look at models from the catalog on one numbered contact sheet, each drawn as the client draws it in neutral daylight: by ids, or by"
+  " the findAssets filters (kind is model), from client zones and object, on-demand, and startup archives. views (front, side, top,"
+  " threeQuarter; default threeQuarter) puts each model's views side by side; every view is kept under the tooling root by the model's"
+  " content, so it is rendered once, and describeAssets records what a description was judged from by these images." + findHelp))
 async def viewModels(
   context: Context, ids: list[str] | None = None, text: str | None = None, categories: list[str] | None = None, tags: dict | None = None,
-  source: str | None = None, described: bool | None = None, sortBy: str = "relevance", limit: int = 24, columns: int = 6,
+  source: str | None = None, described: bool | None = None, sortBy: str = "relevance", limit: int = 24, columns: int | None = None,
+  views: list[str] | None = None,
 ):
+  views = views or ["threeQuarter"]
+  if not views or set(views) - set(modelSheetViews) or len(set(views)) != len(views):
+    raise ToolError(f"views are distinct names among {list(modelSheetViews)}; got {views}")
   assets = sheetEntries(ids, "model", text, categories, tags, source, described, sortBy, limit)
   if not assets:
     raise ToolError("No models match")
-  folders = []
+  if len(assets) * len(views) > assetSheets.cellSides[128]:
+    raise ToolError(f"{len(assets)} models of {len(views)} views each is more than a sheet holds ({assetSheets.cellSides[128]} cells)")
+  toRender = []
   for asset in assets:
-    zones = [key.split(":", 1)[1] for key in asset["sources"] if key.startswith("zone:")]
-    if asset["kind"] != "model" or not zones:
-      raise ToolError(f"{asset['id']} is not a model of a client zone")
-    zoneName = zones[0]
-    # The client names an EQG model by its entry without the .mod extension.
-    folder, _ = await anyio.to_thread.run_sync(eqModel, zoneName, asset["name"].removesuffix(".mod"), asset["sources"][f"zone:{zoneName}"].get("archive"))
-    folders.append({"folder": str(folder)})
-  outputFolder = toolingRoot / "renders" / "modelThumbnails"
-  outputFolder.mkdir(parents=True, exist_ok=True)
-  rendered = await callBridge(context, "renderModelThumbnails", {"models": folders, "outputFolder": str(outputFolder)})
+    files = catalog.viewFiles(asset)
+    if not files:
+      raise ToolError(f"{asset['id']} has no content digest to keep its views by; survey its source again")
+    if not all(files[view].is_file() for view in views):
+      zone, model, archive = catalogModelLink(asset)
+      folder, _ = await anyio.to_thread.run_sync(eqModel, zone, model, archive)
+      toRender.append({"folder": str(folder), "outputFolder": str(catalog.modelViewFolder(asset))})
+  if toRender:
+    await callBridge(context, "renderModelViews", {"models": toRender, "views": list(modelSheetViews)})
   interpretations = catalog.interpretations()
-  cells = [{
-    "image": thumbnail["file"], "tiled": False, "showAlpha": False,
-    "lines": [f"{number} {asset['name']}", f"{'x'.join(str(round(value)) for value in asset['measured'].get('size', []))}{' *' if asset['id'] in interpretations else ''}"],
-  } for number, (asset, thumbnail) in enumerate(zip(assets, rendered["thumbnails"]), start=1)]
-  return writeSheetImage(cells, columns, [{"number": number, "id": asset["id"]} for number, asset in enumerate(assets, start=1)], 256 if len(cells) <= assetSheets.cellSides[256] else 128)
+  cells, legend = [], []
+  for number, asset in enumerate(assets, start=1):
+    files = catalog.viewFiles(asset)
+    size = "x".join(str(round(value)) for value in asset["measured"].get("size", []))
+    for view in views:
+      cells.append({"image": str(files[view]), "tiled": False, "showAlpha": False, "lines": [f"{number} {asset['name']}", f"{view} {size}{' *' if asset['id'] in interpretations else ''}"]})
+    legend.append({"number": number, "id": asset["id"], "views": {view: str(files[view]) for view in views}})
+  return writeSheetImage(cells, columns or (len(views) if len(views) > 1 else 6), legend, 256 if len(cells) <= assetSheets.cellSides[256] else 128)
 
 
 @guardedTool()
@@ -1123,38 +1198,68 @@ async def placeSpawn(
   return placed | {key: spawn[key] for key in ("height", "scale", "avatarHeight")}
 
 
+shipHelp = (
+  " The placed model ships with the zone: exportZone copies the client's model and its textures into the zone's archive byte for byte"
+  " (an EQG .mod; a classic actor or a skinned model is refused there), and the piece stays the client's mesh, which tools move, turn,"
+  " and scale but never edit. Not interactive, it is scenery placed by the zone file; interactive, it is a row of EQ's own doors or object"
+  " table naming that copy, which the server sends the client, and never also scenery. result.ships says which."
+)
+
+
 @guardedTool(description=(
   "Place an EverQuest door (the dumps' doors: any server-placed model, from doors and lifts to teleport pads, books, and furniture) closed,"
-  " model origin at its position, scaled by scaleFactor (percent, as the dumps and EQEmu give it; 100 draws the model as built)." + placementHelp
+  " model origin at its position, scaled by scaleFactor (percent, as the dumps and EQEmu give it; 100 draws the model as built)." + shipHelp
+  + " A door is interactive by default: its doors row holds openType (required: EQ's doors.opentype, as the client's own doors of the model"
+  " use it, getAsset's role: 5 and 0 swing, 58 and 57 teleport on a click, 55 and 160 are plot borders, ...), destination {zone, x, y, z,"
+  " headingDegrees} (Blender axes; the door sends the clicker there), keyItem, lockpick, triggerDoor (another interactive door's object"
+  " name, which opens with it), triggerType, noKeyring, closeTimerMilliseconds (default 5000); a whole-percent scaleFactor; turned about Z"
+  " only. interactive false places the model as scenery." + placementHelp
 ))
 async def placeDoor(
   context: Context, zone: str | None, model: str, name: str,
   location: list[float] | None = None, headingDegrees: float | None = None,
   x: float | None = None, y: float | None = None, z: float | None = None, heading: float | None = None,
   scaleFactor: float = 100, source: str | None = None, collection: str | None = None,
+  interactive: bool = True, openType: int | None = None, destination: dict | None = None, keyItem: int = 0, lockpick: int = 0,
+  triggerDoor: str | None = None, triggerType: int = 0, noKeyring: int = 0, closeTimerMilliseconds: int = 5000,
 ):
   if scaleFactor <= 0:
     raise ToolError(f"scaleFactor must be positive, got {scaleFactor}")
+  rowArguments = {
+    "openType": openType, "destination": destination, "keyItem": keyItem, "lockpick": lockpick, "triggerDoor": triggerDoor, "triggerType": triggerType,
+    "noKeyring": noKeyring, "closeTimerMilliseconds": closeTimerMilliseconds,
+  }
+  if not interactive and (openType is not None or destination is not None or triggerDoor is not None or keyItem or lockpick or triggerType or noKeyring or closeTimerMilliseconds != 5000):
+    raise ToolError("A door placed as scenery (interactive false) has no row: openType, destination, keys, and triggers belong to an interactive door")
   frameLocation, rotation = placementFrame(location, headingDegrees, x, y, z, heading)
   folder, details = await anyio.to_thread.run_sync(eqModel, zone, model, source)
-  return await placeEQModel(context, folder, name, frameLocation, rotation, scaleFactor / 100, 0, False, collection, details, "door")
+  record, row = shippedPiece(details, (lambda found: clientModelRows.doorRow(found, scaleFactor, rowArguments)) if interactive else None)
+  return await placeEQModel(context, folder, name, frameLocation, rotation, scaleFactor / 100, 0, False, collection, details, "door", record, row)
 
 
 @guardedTool(description=(
   "Place an EverQuest ground object (the dumps' ground spawns: tradeskill containers such as kilns and looms, dropped items, housing"
-  " pieces; names like IT10800_ACTORDEF), model origin at its position, scaled by scale." + placementHelp
+  " pieces; names like IT10800_ACTORDEF), model origin at its position, scaled by scale." + shipHelp
+  + " An object is scenery by default; interactive true makes it a row of the object table: objectType (required: a tradeskill container's"
+  " kind such as potteryWheel, potteryKiln, forge, brewBarrel, tailoring, or staticUnlocked for a plain clickable object; the names of"
+  " EQEmu's object types, or their numbers) and displayName; scale 0.01 to 49.99; turned about Z only; the server stands an object row on"
+  " the zone's collision under it as it boots, so export refuses one it would move." + placementHelp
 ))
 async def placeObject(
   context: Context, zone: str | None, model: str, name: str,
   location: list[float] | None = None, headingDegrees: float | None = None,
   x: float | None = None, y: float | None = None, z: float | None = None, heading: float | None = None,
   scale: float = 1, source: str | None = None, collection: str | None = None,
+  interactive: bool = False, objectType: str | int | None = None, displayName: str | None = None,
 ):
   if scale <= 0:
     raise ToolError(f"scale must be positive, got {scale}")
+  if not interactive and (objectType is not None or displayName is not None):
+    raise ToolError("An object placed as scenery (interactive false) has no row: objectType and displayName belong to an interactive object")
   frameLocation, rotation = placementFrame(location, headingDegrees, x, y, z, heading)
   folder, details = await anyio.to_thread.run_sync(eqModel, zone, model, source)
-  return await placeEQModel(context, folder, name, frameLocation, rotation, scale, 0, False, collection, details, "object")
+  record, row = shippedPiece(details, (lambda found: clientModelRows.objectRow(found, scale, objectType, displayName)) if interactive else None)
+  return await placeEQModel(context, folder, name, frameLocation, rotation, scale, 0, False, collection, details, "object", record, row)
 
 
 def zoneModel(zone):
@@ -1282,7 +1387,11 @@ async def importZoneFile(context: Context, path: str, collection: str | None = N
   fits each model, and the triangles it lets players through marked so players pass through them wherever ground is looked for; its lights and the emitters of the
   <zone>_EnvironmentEmitters.txt beside it, as importZone brings them; and its player boundaries as reference: the terrain's invisible
   walls as one boundary in "<zone> boundaries" and its ATP_ regions as zone-line guides in "<zone> zone lines", as importZone brings a
-  client zone's (no targets; tilted ones listed in zoneLinesTilted, not placed). The result counts each model's passable triangles."""
+  client zone's (no targets; tilted ones listed in zoneLinesTilted, not placed). The result counts each model's passable triangles.
+  With server\\sql\\<zone>_pieces.sql beside it (a game export's interactive pieces), each doors and object row is placed in "<zone>
+  rows" as reference (never shipped) with the model it names drawn from the archive alone, at its place, heading, and size, an object
+  where the server stands it on the export's .map as it boots; rows lists them, the objects the server moves (moved), and any not placed
+  with why."""
   archivePath = Path(path)
   if not archivePath.is_absolute() or archivePath.suffix.lower() != ".eqg" or not archivePath.is_file():
     raise ToolError(f"'{path}' is not an absolute path to an existing .eqg file")
@@ -1309,7 +1418,49 @@ async def importZoneFile(context: Context, path: str, collection: str | None = N
   walls = {"boundary": None} if boundaries["walls"] is None else await callBridge(context, "placeImportedBoundaries", {"zone": zone, "walls": boundaries["walls"]})
   return placed | {"source": {key: value for key, value in details.items() if key not in zoneFileSourceKeys}} | environment | walls | await placeZoneLineGuides(
     context, zone, boundaries, "zoneFile",
-  ) | {"passableTriangles": boundaries["passableTriangles"]}
+  ) | {"passableTriangles": boundaries["passableTriangles"], "rows": await placeZoneFileRows(context, archivePath, zone)}
+
+
+async def placeZoneFileRows(context, archivePath, zone):
+  """A zone archive's interactive pieces from the pieces file beside it (exportPipeline's layout), placed as reference: each row's model
+  drawn from the archive, an object where FindBestZ stands it on the .map beside the archive (its zpos where there is none). None
+  without a pieces file."""
+  piecesPath = archivePath.parent / "server" / "sql" / f"{zone}_pieces.sql"
+  if not piecesPath.is_file():
+    return None
+  try:
+    pieces = pieceRows.readPieces(piecesPath.read_text(encoding="utf-8"), piecesPath.name)
+  except (OSError, ValueError) as error:
+    raise ToolError(f"{piecesPath} does not read: {error}") from error
+  mapPath = archivePath.parent / "server" / "maps" / "base" / f"{zone}.map"
+  triangles = None
+  if mapPath.is_file():
+    triangles = eqAxes.zoneFromServer(serverMapFiles.collisionTriangles(serverMapFiles.readMap(mapPath.read_bytes())).astype(numpy.float64))
+  placedRows, moved, notPlaced = [], [], []
+  rows = [("door", f"{zone}_door{row['doorid']}", row["name"], [row["pos_y"], row["pos_x"], row["pos_z"]], row["heading"], row["size"] / 100) for row in pieces["doors"]]
+  rows += [
+    ("object", f"{zone}_object{number}", row["objectname"].removesuffix("_ACTORDEF"), [row["ypos"], row["xpos"], row["zpos"]], row["heading"], row["size"] / 100)
+    for number, row in enumerate(pieces["objects"], start=1)
+  ]
+  for kind, name, model, position, heading, scale in rows:
+    entry = model.lower() + ".mod"
+    if kind == "object" and triangles is not None:
+      ground = pieceRows.findBestZ(triangles, position[0], position[1], position[2])
+      if ground is None or abs(ground - position[2]) > pieceRows.standTolerance:
+        moved.append({"object": name, "zpos": position[2], "server": ground})
+      if ground is not None:
+        position = [position[0], position[1], ground]
+    try:
+      folder, _ = await anyio.to_thread.run_sync(eqZones.buildZoneFileModel, toolingRoot / "models", archivePath, entry)
+    except (OSError, ValueError) as error:
+      notPlaced.append({"row": name, "model": entry, "why": str(error)})
+      continue
+    await callBridge(context, "placeModel", {
+      "modelFolder": str(folder), "name": name, "location": position, "rotationDegrees": eqAxes.turnFromEQHeading(heading), "scale": scale,
+      "avatarHeight": 0, "snapToGround": False, "collection": f"{zone} rows", "clientContent": "zoneFile",
+    })
+    placedRows.append({"row": name, "kind": kind, "model": entry, "at": [round(value, 3) for value in position]})
+  return {"placed": placedRows, "moved": moved, "notPlaced": notPlaced}
 
 
 def groupedExclusions(excluded, shownPerReason=25):
@@ -1418,6 +1569,7 @@ async def gameInputs(context, zoneProperties, client, workFile, laneInputPath):
     "zoneLines": (await callBridge(context, "getZoneLines", {}))["zoneLines"], "clientZones": client["zones"],
     "skyFogColor": None if sky is None else sky["environment"]["fogColor"],
     "record": exportPipeline.readRecord(toolingRoot, zoneProperties["shortName"]) if "shortName" in zoneProperties else [],
+    "piecesRecord": exportPipeline.readPiecesRecord(toolingRoot, zoneProperties["shortName"], zoneProperties.get("zoneId")) if "shortName" in zoneProperties else {"doors": [], "objects": []},
   }
 
 
@@ -1483,11 +1635,9 @@ def clearCheckFolder(zone):
 ))
 async def checkExport(context: Context, path: str, purpose: str):
   archivePath, zone = exportTarget(path)
-  if purpose != "game":
-    client = await zoneRowClientFacts(context, await callBridge(context, "getZoneProperties", {}))
-    report = await callBridge(context, "checkZoneExport", {"purpose": purpose, "exportName": zone, "client": client})
-    return {"path": str(archivePath), "zone": zone} | exportReport(report | {"containment": exportPipeline.testContainment})
   built, blendPath = await buildExport(context, zone, purpose)
+  if purpose != "game":
+    return {"path": str(archivePath), "zone": zone} | exportReport(built["report"])
   folder = await anyio.to_thread.run_sync(clearCheckFolder, zone)
   if built["archive"] is not None:
     await writeExport(folder, built, blendPath, "checkExport")
@@ -1711,6 +1861,7 @@ async def verifyExport(context: Context, path: str):
   skyFogColor = None if sky is None else sky["environment"]["fogColor"]
   checks.append(exportVerification.rowsCheck(files["rows"], files["waysIn"], zone, zoneLines, entries, clientZones, skyFogColor, files["archive"], short))
   checks.append(await anyio.to_thread.run_sync(exportVerification.groundCheck, files["map"], files["rows"], entries, zoneSources.resolveClientRoot(), clientZones, short))
+  checks.append(await anyio.to_thread.run_sync(exportVerification.clientModelsCheck, files["archive"], files["pieces"], files["map"], manifest, zoneSources.resolveClientRoot(), short))
   await step("mapping the lane the server files give")
   checks.append(await anyio.to_thread.run_sync(
     exportVerification.containmentCheck, files["map"], files["water"], entries, regions, zone.get("underworld"), manifest, toolingRoot, progress,

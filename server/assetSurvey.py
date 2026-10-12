@@ -22,11 +22,12 @@ import eqModels
 import eqTextures
 import eqWorldFile
 import eqZones
+import modelMeasures
 import surveyFields
 import zoneGeometry
 import zoneSources
 
-surveyVersion = 5
+surveyVersion = 6
 thumbnailSide = 128
 imageExtensions = (".dds", ".bmp", ".tga", ".png", ".jpg")
 looseFolders = ("Resources/Sky", "Resources/WaterSwap", "Resources/Precipitation", "EnvEmitterEffects")
@@ -194,40 +195,52 @@ def textureNamesOf(value):
   return value.lower() if isinstance(value, str) and value.lower().endswith(imageExtensions) else None
 
 
+def materialUses(models):
+  """Per texture, over models [(name, measured facts, weight)]: the material properties it fills, the shaders it is drawn with, the
+  textures it shares a material with, and the models that use it, weighed by their placements."""
+  uses = collections.defaultdict(lambda: {"roles": collections.Counter(), "shaders": collections.Counter(), "partners": collections.Counter(), "models": collections.Counter()})
+  for modelName, facts, weight in models:
+    for material in facts["drawnMaterials"]:
+      for role, textureName in material["textures"].items():
+        entry = uses[textureName]
+        entry["roles"][role] += 1
+        entry["shaders"][material["shader"]] += 1
+        entry["models"][modelName] += weight
+        for partner in material["textures"].values():
+          if partner != textureName:
+            entry["partners"][partner] += 1
+  return {name: {key: dict(counter.most_common(listLength)) for key, counter in entry.items()} for name, entry in uses.items()}
+
+
 def eqgModelFacts(library, placements):
-  """Facts for each placed EQG model and, per texture, the material properties it fills, the shaders it is drawn with, the textures
-  it shares a material with, and the models that use it."""
-  counts = collections.Counter(placement["model"] for placement in placements)
-  scales = collections.defaultdict(list)
-  for placement in placements:
-    # EQ terrain zones scale each axis; the range follows the largest.
-    scales[placement["model"]].append(float(numpy.max(placement["scale"])))
-  models, textureMaterials = {}, collections.defaultdict(lambda: {"roles": collections.Counter(), "shaders": collections.Counter(), "partners": collections.Counter(), "models": collections.Counter()})
-  for modelName, count in counts.items():
+  """Facts for each placed EQG model (modelMeasures.eqgMeasures, keyed by its content) with how this zone places it (how often, at what
+  scales, how it sits, beside what), and per texture its material uses (materialUses)."""
+  uses = modelMeasures.placementUses(placements)
+  models, measured = {}, []
+  for modelName, use in uses.items():
     holder = next((archive for archive in library.archives if modelName in archive.entries), None)
     model = library.model(modelName)
     if holder is None or model is None:
       continue
-    digest = shortHash(holder.read(modelName))
-    size = model["vertices"].max(0) - model["vertices"].min(0) if len(model["vertices"]) else numpy.zeros(3)
-    materials = []
-    for material in model["materials"]:
-      named = {key: textureNamesOf(value) for key, value in material["properties"].items() if textureNamesOf(value)}
-      materials.append({"shader": material["shader"], "textures": named})
-      for role, textureName in named.items():
-        entry = textureMaterials[textureName]
-        entry["roles"][role] += 1
-        entry["shaders"][material["shader"]] += 1
-        entry["models"][modelName] += count
-        for partner in named.values():
-          if partner != textureName:
-            entry["partners"][partner] += 1
-    models[f"model/{modelName}@{digest[:8]}"] = {
-      "kind": "model", "name": modelName, "archive": holder.archivePath.name.lower(), "sha256": digest,
-      "triangles": int(len(model["triangles"])), "size": [round(float(value), 1) for value in size], "skinned": model["bones"] is not None,
-      "placements": count, "scaleRange": [round(min(scales[modelName]), 3), round(max(scales[modelName]), 3)], "materials": materials,
-    }
-  return models, {name: {key: dict(counter.most_common(listLength)) for key, counter in entry.items()} for name, entry in textureMaterials.items()}
+    data = holder.read(modelName)
+    facts = modelMeasures.eqgMeasures(model)
+    measured.append((modelName, facts, use["placements"]))
+    models[f"model/{modelName}@{shortHash(data)[:8]}"] = {
+      "kind": "model", "name": modelName, "entry": modelName, "archive": holder.archivePath.name.lower(), "sha256": shortHash(data), "bytes": len(data),
+    } | facts | use
+  return models, materialUses(measured)
+
+
+def withDominantColors(assets):
+  """Each model's dominantColors from the measured colors of the textures stored beside it (the first unshadowed image of each name)."""
+  textureFacts = {}
+  for facts in assets.values():
+    if facts["kind"] == "texture" and not facts.get("shadowed") and "colorName" in facts:
+      textureFacts.setdefault(facts["name"], facts)
+  for facts in assets.values():
+    if facts["kind"] == "model" and "textureShares" in facts:
+      facts["dominantColors"] = modelMeasures.dominantColors(facts["textureShares"], textureFacts)
+  return assets
 
 
 def wldMaterialFacts(archive):
@@ -245,16 +258,27 @@ def wldMaterialFacts(archive):
 
 
 def wldModelFacts(clientRoot, cacheRoot, zoneName, archive):
-  """The objects a classic zone's objects.wld places, by actor, with the archive that defines each (the first the client loads)."""
-  models = {}
+  """The objects a classic zone's objects.wld places, by actor, with the archive that defines each (the first the client loads), each
+  keyed by a digest of what it draws (modelMeasures.wldActorDigest)."""
+  models, worldFiles = {}, {}
   for actor, count in zoneGeometry.wldPlacementCounts(archive).items():
     try:
       definition = eqModels.resolveModel(clientRoot, cacheRoot, actor, zoneName)
     except ValueError as error:
       models[f"model/{actor}@unresolved"] = {"kind": "model", "name": actor, "placements": count, "problem": str(error)}
       continue
-    models[f"model/{actor}@{definition['archive'].rsplit('.', 1)[0]}"] = {
-      "kind": "model", "name": actor, "archive": definition["archive"], "modelKind": definition["kind"], "placements": count,
+    key = (definition["archive"], definition["wld"])
+    if key not in worldFiles:
+      worldFiles[key] = eqWorldFile.WorldFile(eqArchive.EQArchive(clientRoot / definition["archive"]).read(definition["wld"]), f"{definition['archive']}:{definition['wld']}")
+    worldFile = worldFiles[key]
+    actorFragment = next(fragment for fragment in worldFile.fragmentsOfType(0x14) if fragment.name == definition["actor"])
+    try:
+      digest = modelMeasures.wldActorDigest(worldFile, actorFragment, eqModels.actorReferences(worldFile, actorFragment))
+    except (ValueError, struct.error) as error:
+      models[f"model/{actor}@unreadable"] = {"kind": "model", "name": actor, "archive": definition["archive"], "placements": count, "problem": f"{type(error).__name__}: {error}"}
+      continue
+    models[f"model/{actor}@{digest[:8]}"] = {
+      "kind": "model", "name": actor, "archive": definition["archive"], "wld": definition["wld"], "sha256": digest, "modelKind": definition["kind"], "placements": count,
     }
   return models
 
@@ -386,7 +410,7 @@ def surveyClientZone(clientRoot, cacheRoot, catalogRoot, zoneName):
   archives = [eqArchive.EQArchive(path) for path in archivePaths]
   problems = []
   geometry = zoneGeometry.buildGeometry(clientRoot, source)
-  models, materialUses, wldMaterials, layerUses = {}, {}, {}, {}
+  models, textureMaterials, wldMaterials, layerUses = {}, {}, {}, {}
   if source["format"] == "wld":
     zoneArchive = eqArchive.EQArchive(source["archive"])
     models = wldModelFacts(clientRoot, cacheRoot, zoneName, zoneArchive)
@@ -404,14 +428,14 @@ def surveyClientZone(clientRoot, cacheRoot, catalogRoot, zoneName):
       placements = terrain["placements"]
       ecosystems, layerUses = ecosystemFacts(zoneName, terrainArchive, terrain["header"]["quadsPerTile"] * terrain["header"]["unitsPerVertex"])
       models |= ecosystems
-    placedModels, materialUses = eqgModelFacts(library, placements)
+    placedModels, textureMaterials = eqgModelFacts(library, placements)
     models |= placedModels
   lights = eqZones.zoneLights(clientRoot, zoneName)
   if lights is None:
     problems.append("This EQ terrain zone's lights are not read")
   emitters = eqEmitters.parseEmitters(emitterPath.read_text(encoding="latin1"), emitterPath.name) if emitterPath else []
-  assets = storeTextures(TextureStore(catalogRoot), archives, textureUses(geometry), materialUses, wldMaterials, layerUses)
-  assets |= models | lightFacts(zoneName, lights or []) | emitterFacts(zoneName, emitters)
+  assets = storeTextures(TextureStore(catalogRoot), archives, textureUses(geometry), textureMaterials, wldMaterials, layerUses)
+  assets = withDominantColors(assets | models) | lightFacts(zoneName, lights or []) | emitterFacts(zoneName, emitters)
   return {"source": f"zone:{zoneName}", "zone": zoneName, "format": source["format"], "archives": [path.name.lower() for path in archivePaths], "assets": assets, "problems": problems}
 
 
@@ -441,9 +465,72 @@ def surveyZoneFile(clientRoot, catalogRoot, archivePath):
   source = {"zone": zoneName, "format": "eqgz", "archive": archivePath, "zon": zoneFiles[0]}
   geometry = zoneGeometry.buildEQGGeometry(clientRoot, source)
   zone = eqgFiles.parseZone(archive.read(zoneFiles[0]), zoneFiles[0])
-  models, materialUses = eqgModelFacts(zoneSources.ModelLibrary([archivePath], zoneName), zone["placements"])
+  models, textureMaterials = eqgModelFacts(zoneSources.ModelLibrary([archivePath], zoneName), zone["placements"])
   emitterPath = archivePath.parent / f"{archivePath.stem}_EnvironmentEmitters.txt"
   emitters = eqEmitters.parseEmitters(emitterPath.read_text(encoding="latin1"), emitterPath.name) if emitterPath.is_file() else []
-  assets = storeTextures(TextureStore(catalogRoot), [archive], textureUses(geometry), materialUses, {}, {})
-  assets |= models | lightFacts(zoneName, zone["lights"]) | emitterFacts(zoneName, emitters)
+  assets = storeTextures(TextureStore(catalogRoot), [archive], textureUses(geometry), textureMaterials, {}, {})
+  assets = withDominantColors(assets | models) | lightFacts(zoneName, zone["lights"]) | emitterFacts(zoneName, emitters)
   return {"source": f"file:{archivePath}", "zone": zoneName, "format": "eqgz", "archives": [archivePath.name.lower()], "assets": assets, "problems": []}
+
+
+def holdsZone(clientRoot, archiveName):
+  """Whether an archive is a zone's: it holds a .zon, or a loose <archive>.zon lies beside it (which the client reads in its place)."""
+  if (clientRoot / f"{archiveName[:-4]}.zon").is_file():
+    return True
+  return any(name.endswith(".zon") for name in eqArchive.EQArchive(clientRoot / archiveName).entries)
+
+
+def objectArchives(clientRoot):
+  """The EQG archives the client links that are no zone's, by name, with how it links each: loaded at startup (Resources/GlobalLoad.txt
+  and the startup lists), named in Resources/OnDemandResources.txt, and the client zones whose <zone>_assets.txt names it. These hold
+  the props, furniture, houses, and switches no zone archive does."""
+  links = collections.defaultdict(lambda: {"startup": False, "onDemand": False, "listedBy": []})
+  for link in eqLinks.globalLinks(clientRoot)["archives"]:
+    if link["archive"].endswith(".eqg"):
+      links[link["archive"]]["startup"] = True
+  for entries in eqLinks.onDemandResources(clientRoot)["models"].values():
+    for entry in entries:
+      if entry["archive"].endswith(".eqg") and eqLinks.clientFile(clientRoot, entry["archive"]):
+        links[entry["archive"]]["onDemand"] = True
+  for listPath in sorted(clientRoot.glob("*_assets.txt")):
+    zoneName = listPath.name[:-len("_assets.txt")].lower()
+    for token in listPath.read_text(encoding="latin1").split():
+      name = token.lower()
+      if name.endswith(".eqg") and "\\" not in name and eqLinks.clientFile(clientRoot, name) and zoneName not in links[name]["listedBy"]:
+        links[name]["listedBy"].append(zoneName)
+  return {name: link for name, link in sorted(links.items()) if not holdsZone(clientRoot, name)}
+
+
+def surveyClientArchive(clientRoot, catalogRoot, archiveName, link):
+  """An object, on-demand, or startup archive's assets: every texture it holds, and every static or skinned model (.mod) it defines with
+  its measured facts (modelMeasures.eqgMeasures) and how the client links its archive (link: objectArchives' entry). Skinned piece
+  models (.mds), the creatures and characters spawns draw, are counted, not cataloged."""
+  archive = eqArchive.EQArchive(clientRoot / archiveName)
+  models, measured, problems = {}, [], []
+  for entry in sorted(name for name in archive.entries if name.endswith(".mod")):
+    data = archive.read(entry)
+    try:
+      facts = modelMeasures.eqgMeasures(eqgFiles.parseModel(data, f"{archiveName}:{entry}"))
+    except (ValueError, struct.error) as error:
+      models[f"model/{entry}@unreadable"] = {"kind": "model", "name": entry, "archive": archiveName, "problem": f"{type(error).__name__}: {error}"}
+      continue
+    measured.append((entry, facts, 1))
+    models[f"model/{entry}@{shortHash(data)[:8]}"] = {
+      "kind": "model", "name": entry, "entry": entry, "archive": archiveName, "sha256": shortHash(data), "bytes": len(data), "links": link,
+    } | facts
+  pieceModels = sum(name.endswith(".mds") for name in archive.entries)
+  if pieceModels:
+    problems.append(f"{pieceModels} skinned piece models (.mds) are counted, not cataloged")
+  assets = storeTextures(TextureStore(catalogRoot), [archive], {}, materialUses(measured), {}, {})
+  return {
+    "source": f"archive:{archiveName}", "archive": archiveName, "format": "eqg", "archives": [archiveName], "links": link,
+    "assets": withDominantColors(assets | models), "problems": problems,
+  }
+
+
+def surveyClientArchiveInWorker(clientRoot, catalogCacheRoot, archiveName, link):
+  """Runs in a worker process. An archive these parsers cannot read is reported rather than stopping the others."""
+  try:
+    return {"survey": surveyClientArchive(clientRoot, catalogCacheRoot, archiveName, link)}
+  except (ValueError, KeyError, struct.error) as parseError:
+    return {"error": f"{type(parseError).__name__}: {parseError}"}

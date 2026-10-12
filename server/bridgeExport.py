@@ -10,6 +10,7 @@ the scene passed bridgeExportChecks; it writes the meshes to modelArrays.npz and
 volumes and zone lines as regions, and the zone's housing. collisionTriangles collects what the client collides with in that same
 zone, by the same rule, for the checks that need its ground. Runs under Blender's Python."""
 import collections
+import json
 import os
 import re
 
@@ -33,8 +34,8 @@ modelArraysFileName = "modelArrays.npz"
 uniformScaleTolerance = 1e-5
 clientContentReasons = {
   "spawn": "a client spawn: the server's data, not zone geometry",
-  "door": "a client door: the server's data, not zone geometry",
-  "object": "a client object: client models do not export yet",
+  "door": "a client door placed for reference (placeDump), not to ship: placeDoor places one that ships",
+  "object": "a client object placed for reference (placeDump), not to ship: placeObject places one that ships",
   "zone": "part of an imported client zone: reference",
   "zoneFile": "part of an imported zone archive: reference",
 }
@@ -43,7 +44,7 @@ clientContentReasons = {
 def exclusionReason(sceneObject):
   """Why an object is not part of the exported zone, or None when it is."""
   kind = sceneObject.get(bridgeMeshAccess.clientContentProperty)
-  if kind is not None:
+  if kind is not None and not isShippedClientModel(sceneObject):
     return clientContentReasons[kind]
   if sceneObject.type == "CAMERA":
     return "a camera"
@@ -68,8 +69,22 @@ def exclusionReason(sceneObject):
   return None
 
 
+def isShippedClientModel(sceneObject):
+  """A door or object placeDoor or placeObject placed to ship: its client model is copied into the archive."""
+  return bridgeMeshAccess.clientModelProperty in sceneObject and sceneObject.get(bridgeMeshAccess.clientContentProperty) in ("door", "object")
+
+
+def clientModelOf(sceneObject):
+  return json.loads(sceneObject[bridgeMeshAccess.clientModelProperty])
+
+
+def clientRowOf(sceneObject):
+  """An interactive piece's row values besides its place (clientModelRows), or None for scenery."""
+  return json.loads(sceneObject[bridgeMeshAccess.clientRowProperty]) if bridgeMeshAccess.clientRowProperty in sceneObject else None
+
+
 def classifyObjects():
-  """What a zone export ships, each object with its role (terrain, boundary, mesh, instance, light, or emitter); what it leaves out,
+  """What a zone export ships, each object with its role (terrain, boundary, mesh, instance, light, emitter, or clientModel); what it leaves out,
   each with why; and what it cannot take, each a failure with why. Nothing is unhidden, retagged, or removed."""
   terrainCollection = bpy.data.collections.get(terrainCollectionName)
   terrainNames = {member.name for member in terrainCollection.all_objects} if terrainCollection is not None else set()
@@ -82,6 +97,8 @@ def classifyObjects():
       # A boundary that is not a mesh is bridgeBoundaries.boundaryErrors' failure, so it is not listed twice.
       if sceneObject.type == "MESH":
         shipped.append((sceneObject, "boundary"))
+    elif isShippedClientModel(sceneObject):
+      shipped.append((sceneObject, "clientModel"))
     elif sceneObject.name in terrainNames:
       if sceneObject.type == "MESH":
         shipped.append((sceneObject, "terrain"))
@@ -233,8 +250,8 @@ def solidTriangles(sceneObject, depsgraph, matrix, marked):
 
 def collisionTriangles():
   """What the client collides with in the zone as exported: the world triangles of every shipped terrain, boundary (a wall's facing
-  both ways, as the archive holds it), mesh, and collection instance's parts (nested instances included), without those players pass
-  through; {positions, triangles, owners (each triangle's index into ownerNames), ownerNames}. Reference content, guides, regions,
+  both ways, as the archive holds it), mesh, collection instance's parts (nested instances included), and client model placed as scenery
+  (an interactive piece is a server row, which the zone's collision never holds), without those players pass through; {positions, triangles, owners (each triangle's index into ownerNames), ownerNames}. Reference content, guides, regions,
   sketches, and entries do not ship, so none of them is here."""
   bpy.context.view_layer.update()
   depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -245,7 +262,7 @@ def collisionTriangles():
     if role == "boundary":
       arrays = bridgeBoundaries.boundaryArrays(sceneObject, depsgraph)
       parts = [(arrays["positions"], arrays["triangles"])]
-    elif role in ("terrain", "mesh"):
+    elif role in ("terrain", "mesh") or (role == "clientModel" and clientRowOf(sceneObject) is None):
       parts = [solidTriangles(sceneObject, depsgraph, numpy.array(sceneObject.matrix_world), marked)]
     elif role == "instance":
       parts = [
@@ -346,8 +363,11 @@ def collectZoneExport(outputFolder, zoneName):
 
   shipped, _ = exportedObjects()
   regions = bridgeSwim.swimRegions() + bridgeBoundaries.zoneLineRegions()
-  terrainParts, terrainShares, models, placements, lights, emitters = [], [], {}, [], [], []
+  terrainParts, terrainShares, models, placements, lights, emitters, clientModels = [], [], {}, [], [], [], []
   for sceneObject, role in shipped:
+    if role == "clientModel":
+      clientModels.append({"object": sceneObject.name, "kind": sceneObject[bridgeMeshAccess.clientContentProperty], "model": clientModelOf(sceneObject), "row": clientRowOf(sceneObject)} | placementTransform(sceneObject))
+      continue
     if role == "light":
       lights.append(bridgeEnvironment.lightRecord(sceneObject))
       continue
@@ -404,5 +424,5 @@ def collectZoneExport(outputFolder, zoneName):
     "terrain": {"file": f"ter_{zoneName}.ter", "materials": [exportedNames[name] for name in terrain["materials"]], "arrays": "terrain", "daylight": daylit},
     "models": modelList, "materials": [materialRecord(material) | {"name": exportedNames[name]} for name, material in materials.items()],
     "placements": placementList, "lights": lights, "emitters": emitters,
-    "regions": regions, "housing": bridgeHousing.collectHousing(),
+    "regions": regions, "housing": bridgeHousing.collectHousing(), "clientModels": clientModels,
   }

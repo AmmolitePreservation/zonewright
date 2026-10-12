@@ -205,11 +205,17 @@ def modelObject(folder, name, scale, location, rotationDegrees):
   return modelObjectInstance
 
 
-def placeModel(modelFolder, name, location, rotationDegrees, scale, avatarHeight, snapToGround, collection, clientContent):
+def placeModel(modelFolder, name, location, rotationDegrees, scale, avatarHeight, snapToGround, collection, clientContent, clientModel=None, row=None):
   """Place a cached EQ model with its origin at `location`, marked as the client content it is (bridgeMeshAccess.clientContentKinds);
-  snapToGround instead stands the origin avatarHeight above the surface below, as the client stands a spawn."""
+  snapToGround instead stands the origin avatarHeight above the surface below, as the client stands a spawn. A door or object placed to
+  ship carries clientModel, the client definition export copies ({archive, entry, sha256, kind, actor}), and, when interactive, row, what
+  its doors or object row holds beside its place (bridgeClientModels); its mesh is marked as the client's, so no tool edits it."""
   if clientContent not in bridgeMeshAccess.clientContentKinds:
     raise ValueError(f"clientContent must be one of {list(bridgeMeshAccess.clientContentKinds)}, got {clientContent!r}")
+  if (clientModel is not None or row is not None) and clientContent not in ("door", "object"):
+    raise ValueError(f"Only a door or object ships as a client model, not a {clientContent}")
+  if row is not None and clientModel is None:
+    raise ValueError("A row names the client model it draws")
   bridgeObjects.requireNewName(name)
   origin = mathutils.Vector(location)
   ground = None
@@ -221,6 +227,12 @@ def placeModel(modelFolder, name, location, rotationDegrees, scale, avatarHeight
     origin = ground + mathutils.Vector((0, 0, avatarHeight))
   placed = modelObject(modelFolder, name, scale, origin, rotationDegrees)
   placed[bridgeMeshAccess.clientContentProperty] = clientContent
+  if clientContent in bridgeMeshAccess.clientModelKinds:
+    placed.data[bridgeMeshAccess.clientMeshProperty] = os.path.basename(modelFolder)
+  if clientModel is not None:
+    placed[bridgeMeshAccess.clientModelProperty] = json.dumps(clientModel, sort_keys=True)
+  if row is not None:
+    placed[bridgeMeshAccess.clientRowProperty] = json.dumps(row, sort_keys=True)
   bridgeObjects.targetCollection(collection).objects.link(placed)
   bpy.context.view_layer.update()
   return bridgeObjects.describeTransform(placed) | {"ground": ground and bridgeObjects.roundVector(ground), "dimensions": bridgeObjects.roundVector(placed.dimensions)}

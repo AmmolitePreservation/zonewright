@@ -136,8 +136,10 @@ def testEntryFootingIgnoresReferenceContent(stageBlenderServer, tmp_path):
     await freshScene(session)
     await groundGrid(session, tmp_path, size=96)
     await session.expectSuccess("setZoneProperties", environment)
-    await session.expectSuccess("placeObject", {"zone": None, "model": "IT10800_ACTORDEF", "name": "kiln", "location": [20, 20, 0], "headingDegrees": 0})
-    await session.expectSuccess("placeObject", {"zone": None, "model": "IT10800_ACTORDEF", "name": "farKiln", "location": [300, 300, 0], "headingDegrees": 0})
+    # Interactive objects are rows of the server's, which the zone's own collision never holds.
+    wheel = {"zone": None, "model": "IT10800_ACTORDEF", "headingDegrees": 0, "interactive": True, "objectType": "potteryWheel"}
+    await session.expectSuccess("placeObject", wheel | {"name": "kiln", "location": [20, 20, 0]})
+    await session.expectSuccess("placeObject", wheel | {"name": "farKiln", "location": [300, 300, 0]})
     measured = await session.expectSuccess("measure", {"points": [[20, 20, 50], [300, 300, 50]], "snapToSurface": True})
     _, besideKiln = await session.expectImage("placeEntry", entryArguments("byTheKiln", [20, 20]))
     overFarKiln = await session.expectError("placeEntry", entryArguments("onTheKiln", [300, 300]))

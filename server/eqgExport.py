@@ -2,7 +2,10 @@
 boundaries merged in as triangles without a material, each model (.mod) at its placements, triangles players pass through flagged 0x1,
 a version 1 .zon with the swim volumes and zone lines as regions and the scene's point lights, and every material's textures as DDS.
 The terrain placement carries baked light (ter_<zone>.lit) only where caves set daylight: no baked color, the share of scene light as
-alpha; models carry none. The scene's emitters go beside the archive in the client's emitter list, which the client reads loose."""
+alpha; models carry none. The client models the scene uses come in as clientModelBundle copies them: their entries and textures byte
+for byte, the scenery among them placed by the .zon under the client's own entry names. The scene's emitters go beside the archive in
+the client's emitter list, which the client reads loose."""
+import hashlib
 import os
 from pathlib import Path
 
@@ -26,8 +29,10 @@ def textureEntry(path):
   return os.path.splitext(name)[0] + ".dds", eqgWriter.ddsBytes(rgba)
 
 
-def zoneArchive(collected):
-  """The archive's bytes and what went into it."""
+def zoneArchive(collected, bundle):
+  """The archive's bytes and what went into it: the scene's own terrain, models, and textures, and the client files bundle brings
+  (clientModelBundle.bundle). A copied file whose name one of ours already takes with other bytes is listed in bundleClashes, and the
+  copy is left out; the export refuses while any is listed."""
   zone = collected["zone"]
   if not eqgFiles.zoneNamePattern.match(zone):
     raise ValueError(f"Zone name '{zone}' is not a zone short name: {eqgFiles.zoneNameRule}")
@@ -77,7 +82,15 @@ def zoneArchive(collected):
     files[entry["file"]] = model("mod", entry)
   placements = [{"model": terrainFile, "name": f"TER_{zone}", "position": (0.0, 0.0, 0.0), "rotation": (0.0, 0.0, 0.0), "scale": 1.0}]
   placements += [{key: placement[key] for key in ("model", "name", "position", "rotation", "scale")} for placement in collected["placements"]]
-  files[f"{zone}.zon"] = eqgWriter.zoneBytes([terrainFile] + [entry["file"] for entry in collected["models"]], placements, collected["regions"], collected["lights"])
+  ownTextures = {name: hashlib.sha256(files[name]).hexdigest() for name in textureSources}
+  clashes = []
+  for name, data in bundle["files"].items():
+    if name in files and files[name] != data:
+      clashes.append({"failure": "client file shadows ours", "entry": name, "message": f"The client's {name}, which a placed client model brings, and ours of that name differ; the archive holds one file of a name: rename ours"})
+    else:
+      files[name] = data
+  placements += [{key: placement[key] for key in ("model", "name", "position", "rotation", "scale")} for placement in bundle["placements"]]
+  files[f"{zone}.zon"] = eqgWriter.zoneBytes([terrainFile] + [entry["file"] for entry in collected["models"]] + bundle["zonModels"], placements, collected["regions"], collected["lights"])
   data = eqgWriter.archiveBytes(files)
   return data, {
     "zone": zone, "bytes": len(data), "terrainTriangles": len(collected["terrain"]["materials"]),
@@ -86,5 +99,7 @@ def zoneArchive(collected):
     "passableTriangles": {entry["file"]: int(arrays[f"{entry['arrays']}_passable"].sum()) for entry in [collected["terrain"]] + collected["models"] if arrays[f"{entry['arrays']}_passable"].any()},
     "placements": len(collected["placements"]), "lights": len(collected["lights"]), "emitters": len(collected["emitters"]), "terrainBakedLight": litFile,
     "regions": [region["name"] for region in collected["regions"]],
-    "textures": sorted(textureSources), "materials": sorted(materials),
+    "textures": sorted(textureSources), "materials": sorted(materials), "ownTextures": ownTextures,
+    "clientFiles": sorted(bundle["files"]), "clientPlacements": len(bundle["placements"]), "clientRowPieces": len(bundle["rowPieces"]),
+    "clientBytes": sum(len(data) for data in bundle["files"].values()), "bundleClashes": clashes,
   }

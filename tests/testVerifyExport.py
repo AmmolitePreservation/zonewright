@@ -50,7 +50,7 @@ loopLanding = [-60, -20, 0]
 pond = {"minimum": [-40, -40, -10], "maximum": [-20, -24, 2]}
 fromQeynos = {"name": "fromQeynos", "at": [-40, 30], "headingDegrees": 90, "kind": "zoneIn", "fromZone": "qeynos2", "fromNumber": 3}
 overview = {"standAt": [-70, 0], "headingDegrees": 90, "pitchDegrees": -5}
-checkNames = ["manifest", "current", "archive", "map", "water", "nav", "rows", "ground", "containment", "looks"]
+checkNames = ["manifest", "current", "archive", "map", "water", "nav", "rows", "ground", "clientModels", "containment", "looks"]
 # How often, a quarter second apart, the scene's status is read after a cancelled verifyExport until the work file is open again.
 reopenPolls = 240
 
@@ -96,7 +96,7 @@ async def verifiedZone(session, folder):
   await region(session, "yard", rectangle([-halfLength, -halfWidth], [halfLength, halfWidth]), "play", bottom=-20, top=40)
   await session.expectImage("placeEntry", fromQeynos)
   await session.expectSuccess("importZoneFile", {"path": str(reference)})
-  await session.expectSuccess("placeObject", {"zone": None, "model": "IT10800_ACTORDEF", "name": "kiln", "location": [40, 10, 0], "headingDegrees": 0})
+  await session.expectSuccess("placeObject", {"zone": None, "model": "IT10800_ACTORDEF", "name": "kiln", "location": [40, 10, 0], "headingDegrees": 0, "interactive": True, "objectType": "potteryWheel"})
   await session.expectSuccess("saveReviewCamera", {"name": "overview", "view": overview, "note": "the yard, the kiln, and the reference zone"})
   await session.expectSuccess("saveFile", {"path": str(folder / f"{short}.blend")})
   return reference
@@ -162,7 +162,9 @@ def testVerifyExportPassesAFreshGameExport(stageBlenderServer, exportedZone):
   assert sorted(place["object"] for place in labelled["labels"]["shown"]) == ["kiln", "reference"]
   assert result["passed"] is True and result["failedChecks"] == [] and [check["check"] for check in result["checks"]] == checkNames
   checks = byCheck(result)
-  assert checks["manifest"]["details"]["listed"] == 6
+  assert checks["manifest"]["details"]["listed"] == 7
+  # The kiln is a row of the object table naming the copy of its model in the archive, standing where the server stands it.
+  assert checks["clientModels"]["details"] == {"copies": 1, "doors": 0, "objects": 1, "failures": []}
   assert checks["current"]["details"]["identical"] is True
   assert checks["archive"]["details"]["regions"] == ["AWT_pond", "ATP_1_north", "ATP_2_loop"]
   collision = checks["map"]["details"]
@@ -359,7 +361,9 @@ def testVerifyExportCatchesAMapFromAnotherArchive(stageBlenderServer, exportedZo
   (copy / "server" / "maps" / "base" / f"{short}.map").write_bytes(other)
   pictures, result = verifyCopy(stageBlenderServer, exportedZone, copy)
   checks = byCheck(result)
-  assert result["failedChecks"] == ["manifest", "map", "nav", "ground", "containment"]
+  assert result["failedChecks"] == ["manifest", "map", "nav", "ground", "clientModels", "containment"]
+  # The kiln's object row, standing on the zone's ground, would be stood elsewhere on the other zone's collision.
+  assert [failure["row"] for failure in checks["clientModels"]["details"]["failures"]] == ["IT10800_ACTORDEF"]
   told = checks["map"]["details"]["failures"]
   assert len(told) == 1 and told[0]["message"].startswith("The .map is not the one the archive makes (serverMapFiles.mapBytes): this .map, then the archive's, hold")
   ours = serverMapFiles.readMap((exportedZone.export / "server" / "maps" / "base" / f"{short}.map").read_bytes())

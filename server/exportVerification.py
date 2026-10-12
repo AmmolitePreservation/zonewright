@@ -16,12 +16,15 @@ from mcp.server.mcpserver.exceptions import ToolError
 from PIL import Image
 
 import buildTolerances
+import clientModelBundle
 import eqArchive
 import eqAxes
 import eqgFiles
 import eqTextures
 import eqZones
 import exportPipeline
+import modelMeasures
+import pieceRows
 import playerReach
 import serverMapDrawing
 import serverMapFiles
@@ -263,6 +266,85 @@ def archiveCheck(archiveBytes, short, swimVolumes, zoneLines):
         })
     failures += regionFailures(zone["regions"], swimVolumes, zoneLines)
   return checked("archive", listedFailures(failures), entries=len(entries), placements=None if zone is None else len(zone["placements"]), regions=None if zone is None else [region["name"] for region in zone["regions"]])
+
+
+def standalone(entries, zone, startup):
+  """What the archive loaded alone draws otherwise: every .zon name resolves only against the archive itself (and startup, which no
+  zonewright archive places from), and every texture an archive model's drawn materials name must be in the archive or registered at
+  startup (startup: clientModelBundle.startupTextures). Returns the textures that resolve nowhere, by model."""
+  unresolved = {}
+  for name, data in sorted(entries.items()):
+    if not name.endswith((".mod", ".ter")):
+      continue
+    measures = modelMeasures.eqgMeasures(eqgFiles.parseModel(data, name))
+    missing = [texture for texture in measures["textures"] if texture not in entries and texture not in startup]
+    if missing:
+      unresolved[name] = missing
+  return unresolved
+
+
+def clientModelsCheck(archiveBytes, piecesData, mapData, manifest, clientRoot, short):
+  """Check 11: the zone stands alone. Every .zon placement and every row names a model the archive holds, every texture its models'
+  drawn materials name is in the archive or registered at startup (but one the manifest records missing for the client too), every
+  client model the manifest records is in the archive byte for byte (its SHA-256 and its textures') and the client's own entry still is
+  (an unpatched client), no interactive piece is also a .zon placement at its place, and every object row stands where the server's
+  FindBestZ puts it on the exported .map."""
+  if archiveBytes is None:
+    return checked("clientModels", [{"message": "No archive lies at the export's path"}])
+  try:
+    entries = archiveEntries(archiveBytes, "the exported archive")
+    zone = eqgFiles.parseZone(entries[f"{short}.zon"], f"{short}.zon")
+  except (OSError, KeyError, ValueError, struct.error, zlib.error) as error:
+    return checked("clientModels", [{"message": f"The archive cannot be read: {type(error).__name__}: {error}"}])
+  failures = []
+  copies = manifest.get("clientModels")
+  if not isinstance(copies, list):
+    return checked("clientModels", [{"message": "The manifest records no clientModels: it is not an export that copies client models"}])
+  missingForClient = {(copy["entry"], name) for copy in copies for name in copy.get("missingTextures", [])}
+  for model, textures in standalone(entries, zone, clientModelBundle.startupTextures(clientRoot)).items():
+    left = [texture for texture in textures if (model, texture) not in missingForClient]
+    if left:
+      failures.append({"entry": model, "textures": left, "message": f"{model} names {left}, which neither the archive nor the startup archives hold: the client draws those faces without them"})
+  for copy in copies:
+    data = entries.get(copy["entry"])
+    if data is None or sha256(data) != copy["sha256"]:
+      failures.append({"entry": copy["entry"], "message": f"The archive's {copy['entry']} is not {copy['archive']}'s copy the manifest records ({copy['sha256']})"})
+    for texture in copy["textures"]:
+      held = entries.get(texture["name"])
+      if held is None or sha256(held) != texture["sha256"]:
+        failures.append({"entry": texture["name"], "message": f"The archive's {texture['name']} is not {texture['archive']}'s copy the manifest records ({texture['sha256']})"})
+    try:
+      client = eqArchive.EQArchive(clientRoot / copy["archive"]).read(copy["entry"])
+    except (OSError, KeyError, ValueError) as error:
+      failures.append({"entry": copy["entry"], "message": f"The client's {copy['archive']}:{copy['entry']} cannot be read: {type(error).__name__}: {error}"})
+      continue
+    if sha256(client) != copy["sha256"]:
+      failures.append({"entry": copy["entry"], "message": f"The client's {copy['archive']}:{copy['entry']} changed since the export copied it (a patch): export again"})
+  pieces = {"doors": [], "objects": []}
+  if piecesData is not None:
+    try:
+      pieces = pieceRows.readPieces(piecesData.decode("utf-8"), f"{short}_pieces.sql")
+    except (UnicodeDecodeError, ValueError) as error:
+      return checked("clientModels", failures + [{"message": f"{short}_pieces.sql does not read: {error}"}])
+  placed = [(placement["model"], numpy.array(placement["position"], dtype=numpy.float64)) for placement in zone["placements"]]
+  rows = [(row["name"].lower() + ".mod", [row["pos_y"], row["pos_x"], row["pos_z"]], f"door {row['doorid']}") for row in pieces["doors"]]
+  rows += [(row["objectname"].lower().removesuffix("_actordef") + ".mod", [row["ypos"], row["xpos"], row["zpos"]], f"object {row['objectname']}") for row in pieces["objects"]]
+  for entry, position, label in rows:
+    if entry not in entries:
+      failures.append({"row": label, "message": f"Row {label} names {entry}, which the archive does not hold: the client would look it up elsewhere"})
+    if any(model == entry and numpy.linalg.norm(at - numpy.array(position)) <= pieceRows.standTolerance for model, at in placed):
+      failures.append({"row": label, "message": f"Row {label} stands where the .zon places {entry} too: the client would draw it twice"})
+  if pieces["objects"]:
+    if mapData is None:
+      failures.append({"message": "The export lacks its .map, so where the server stands its object rows is not known"})
+    else:
+      collision = serverMapFiles.collisionTriangles(serverMapFiles.readMap(mapData)).astype(numpy.float64)
+      triangles = eqAxes.zoneFromServer(collision)
+      for row in pieces["objects"]:
+        ground = pieceRows.findBestZ(triangles, row["ypos"], row["xpos"], row["zpos"])
+        if ground is None or abs(ground - row["zpos"]) > pieceRows.standTolerance:
+          failures.append({"row": row["objectname"], "message": f"Object row {row['objectname']} at zpos {row['zpos']:g}: the server stands it at {'no ground' if ground is None else format(ground, 'g')} on the .map as it boots"})
+  return checked("clientModels", listedFailures(failures), copies=len(copies), doors=len(pieces["doors"]), objects=len(pieces["objects"]))
 
 
 def clientSolid(zone, entries):

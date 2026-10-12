@@ -13,15 +13,55 @@ import re
 
 import assetSurvey
 import assetVocabulary
+import eqLinks
 import eqModels
 import machineProfile
+import serverRoleExtract
 import zoneSurvey
 
 # Facts that differ between the sources an asset appears in; everything else is a property of the asset itself.
-perSourceKeys = ("archives", "shadowed", "uses", "materials", "wldMaterials", "ecosystemLayers", "archive", "modelKind", "placements", "scaleRange")
-descriptionKeys = ("category", "tags", "description", "usage", "worldUnitsPerRepeat", "pairsWith")
+perSourceKeys = (
+  "archives", "shadowed", "uses", "materials", "wldMaterials", "ecosystemLayers", "archive", "modelKind", "placements", "scaleRange", "entry", "wld",
+  "links", "sits", "beside",
+)
+# The fields a description holds, per asset kind (others take defaultFields). Each is written once and filled only where missing.
+defaultFields = ("category", "tags", "description", "usage", "pairsWith")
+fieldsByKind = {
+  "texture": ("category", "tags", "description", "usage", "worldUnitsPerRepeat", "pairsWith"),
+  "model": ("plainName", "category", "tags", "description", "usage", "dressingNotes", "pairsWith"),
+}
+textFields = ("plainName", "description", "usage", "dressingNotes")
+# A model's tag groups, each a field of its own in the describe queue: what it is shaped like, made of and finished with, whose and from
+# when, where it belongs, the mood it sets, its role in a scene, and what it is for.
+modelTagGroups = ("form", "material", "finish", "style", "era", "biome", "mood", "sceneRole", "function")
+descriptionKeys = ("plainName", "category", "tags", "description", "usage", "dressingNotes", "worldUnitsPerRepeat", "pairsWith")
+provenanceKey = "provenance"
 termPattern = re.compile(r"^[a-z][A-Za-z0-9]*$")
-textSearchFields = ("description", "usage", "category")
+textSearchFields = ("plainName", "description", "usage", "dressingNotes", "category")
+# The views a model's description is judged from (rendered by viewModels and kept under the tooling root), and a texture's.
+modelViews = ("front", "side", "top", "threeQuarter")
+textureViews = ("thumbnail",)
+modelViewsVersion = 1
+rolesFileName = "serverRoles.json"
+
+
+def fieldsOf(kind):
+  return fieldsByKind.get(kind, defaultFields)
+
+
+def queueFields(kind):
+  """The fields the describe queue tracks for a kind: its description fields, with a model's tags one per tag group."""
+  fields = fieldsOf(kind)
+  if kind != "model":
+    return fields
+  return tuple(field for field in fields if field != "tags") + tuple(f"tags.{group}" for group in modelTagGroups)
+
+
+def writtenFields(kind, interpreted):
+  if interpreted is None:
+    return set()
+  written = {field for field in fieldsOf(kind) if field in interpreted}
+  return written | {f"tags.{group}" for group in interpreted.get("tags", {})}
 
 
 class AssetCatalog:
@@ -35,7 +75,7 @@ class AssetCatalog:
 
   def measuredFolder(self, sourceKey):
     """Client sources are kept in the repository; a zone archive outside the client is this machine's alone."""
-    return (self.root if sourceKey.startswith(("zone:", "folder:")) else self.cacheRoot) / "measured"
+    return (self.root if sourceKey.startswith(("zone:", "folder:", "archive:")) else self.cacheRoot) / "measured"
 
   def sourcePath(self, sourceKey):
     slug = re.sub(r"[^a-z0-9]+", "_", sourceKey.lower()).strip("_")[-60:]
@@ -109,6 +149,44 @@ class AssetCatalog:
           raise
     return dict(sorted(outcomes.items()))
 
+  def surveyArchives(self, clientRoot, archiveNames, refresh, reportProgress):
+    """The measured lane for object, on-demand, and startup archives (assetSurvey.objectArchives; None for every one), the stale ones
+    surveyed in parallel worker processes. An archive that is no such archive is refused. Returns per archive whether it was surveyed,
+    already current, or why it could not be read."""
+    linked = assetSurvey.objectArchives(clientRoot)
+    names = sorted(linked) if archiveNames is None else [name.lower() for name in archiveNames]
+    unknown = [name for name in names if name not in linked]
+    if unknown:
+      raise ValueError(f"{unknown} are no object, on-demand, or startup archives the client links (zone archives are surveyed by zone)")
+    reportProgress(0, None, "checking archive hashes")
+    hashes = self.fileHashes([clientRoot / name for name in names])
+    keyOf = {name: f"archive:{name}" for name in names}
+    sourceHashes = {name: {name: hashes[name]} | {"links": json.dumps(linked[name], sort_keys=True)} for name in names}
+    stale = [name for name in names if refresh or not self.isCurrent(keyOf[name], sourceHashes[name])]
+    outcomes = {name: {"current": True} for name in names if name not in stale}
+
+    def record(name, outcome):
+      if "error" in outcome:
+        outcomes[name] = outcome
+      else:
+        self.store(keyOf[name], outcome["survey"], sourceHashes[name])
+        outcomes[name] = {"surveyed": True}
+
+    if len(stale) == 1:
+      record(stale[0], assetSurvey.surveyClientArchiveInWorker(clientRoot, self.cacheRoot, stale[0], linked[stale[0]]))
+      reportProgress(1, 1, f"surveyed archive:{stale[0]}")
+    elif stale:
+      with concurrent.futures.ProcessPoolExecutor(min(machineProfile.workerCount(), len(stale)), mp_context=multiprocessing.get_context("spawn")) as pool:
+        futures = {pool.submit(assetSurvey.surveyClientArchiveInWorker, clientRoot, self.cacheRoot, name, linked[name]): name for name in stale}
+        try:
+          for done, future in enumerate(concurrent.futures.as_completed(futures), start=1):
+            record(futures[future], future.result())
+            reportProgress(done, len(stale), f"surveyed archive:{futures[future]}")
+        except BaseException:
+          pool.shutdown(wait=False, cancel_futures=True)
+          raise
+    return dict(sorted(outcomes.items()))
+
   def survey(self, surveyFunction, sourceKey, sourcePaths, refresh):
     """The measured lane for one source, rebuilt when its files' SHA-256 or the survey's version changed, or when this machine lacks
     the textures extracted from it."""
@@ -138,8 +216,30 @@ class AssetCatalog:
           entry["sources"][source["source"]] = {key: facts[key] for key in perSourceKeys if key in facts}
           if facts["kind"] == "emitter":
             entry["measured"]["zones"] = entry["measured"]["zones"] | facts["zones"]
+      roles = self.serverRoles()
+      for entry in merged.values():
+        if entry["kind"] == "model":
+          entry["measured"]["role"] = roles.get(eqLinks.modelKey(entry["name"].removesuffix(".mod")), serverRoleExtract.sceneryRole)
       self.mergedAssets = merged
     return self.mergedAssets
+
+  def serverRoles(self):
+    """The in-game role of each model name as the server's doors and object tables hold it (serverRoleExtract), from the committed
+    extract; none before one is made."""
+    path = self.root / rolesFileName
+    return json.loads(path.read_text(encoding="utf-8"))["roles"] if path.is_file() else {}
+
+  def modelViewFolder(self, asset):
+    return self.cacheRoot / "modelViews" / f"{asset['measured']['sha256'][:16]}v{modelViewsVersion}"
+
+  def viewFiles(self, asset):
+    """The files a description of the asset is judged from, by view name: a texture's thumbnail, a model's rendered views."""
+    if asset["kind"] == "texture":
+      return {"thumbnail": assetSurvey.thumbnailPath(self.cacheRoot, asset["measured"]["sha256"])} if "sha256" in asset["measured"] else {}
+    if asset["kind"] == "model" and "sha256" in asset["measured"]:
+      folder = self.modelViewFolder(asset)
+      return {view: folder / f"{view}.png" for view in modelViews}
+    return {}
 
   def requireAsset(self, assetID):
     assets = self.assets()
@@ -181,47 +281,163 @@ class AssetCatalog:
     self.vocabularyPath.write_text(json.dumps(extensions, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     return {"group": group, "term": term, "meaning": meaning.strip()}
 
-  def validatedDescription(self, description, vocabulary):
-    unknown = sorted(set(description) - {"id"} - set(descriptionKeys))
-    if unknown or "id" not in description:
-      raise ValueError(f"A description is {{id, {', '.join(descriptionKeys)}}}; got {sorted(description)}")
-    asset = self.requireAsset(description["id"])
-    kind = asset["kind"]
-    if description.get("category") not in vocabulary["categories"][kind]:
-      raise ValueError(f"{description['id']}: category {description.get('category')!r} is not a {kind} category: {sorted(vocabulary['categories'][kind])}")
-    tags = description.get("tags", {})
-    if not isinstance(tags, dict):
-      raise ValueError(f"{description['id']}: tags are {{group: [terms]}}")
-    for group, terms in tags.items():
-      if group not in vocabulary["tagGroups"]:
-        raise ValueError(f"{description['id']}: no tag group '{group}'; groups: {list(vocabulary['tagGroups'])}")
-      unknownTerms = sorted(set(terms) - set(vocabulary["tagGroups"][group]["terms"])) if isinstance(terms, list) and terms else None
-      if unknownTerms is None or unknownTerms:
-        raise ValueError(f"{description['id']}: {group} takes a non-empty list of {sorted(vocabulary['tagGroups'][group]['terms'])}; unknown: {unknownTerms}")
-    for field in ("description", "usage"):
-      if not isinstance(description.get(field), str) or not description[field].strip():
-        raise ValueError(f"{description['id']}: {field} must be written: {'what it shows and how it reads' if field == 'description' else 'where and how to use it, at what scale, with what'}")
-    repeat = description.get("worldUnitsPerRepeat")
-    if repeat is not None and (kind != "texture" or not isinstance(repeat, (int, float)) or repeat <= 0):
-      raise ValueError(f"{description['id']}: worldUnitsPerRepeat is a positive number of units, for textures only")
-    for partner in description.get("pairsWith", []):
-      self.requireAsset(partner)
-    return {"category": description["category"], "tags": tags, "description": description["description"].strip(), "usage": description["usage"].strip(),
-      "worldUnitsPerRepeat": repeat, "pairsWith": description.get("pairsWith", [])}
+  def validatedFields(self, description, asset, vocabulary):
+    """The description's fields, each checked against the vocabulary and the asset's kind; tags split one field per group."""
+    assetID, kind = description["id"], asset["kind"]
+    allowed = fieldsOf(kind)
+    unknown = sorted(set(description) - {"id", "judgedFrom", "rewrite"} - set(allowed))
+    if unknown:
+      raise ValueError(f"{assetID}: a {kind} description holds {list(allowed)}; not {unknown}")
+    fields = {}
+    if "category" in description:
+      if description["category"] not in vocabulary["categories"][kind]:
+        raise ValueError(f"{assetID}: category {description['category']!r} is not a {kind} category: {sorted(vocabulary['categories'][kind])}")
+      fields["category"] = description["category"]
+    if "tags" in description:
+      tags = description["tags"]
+      if not isinstance(tags, dict) or not tags:
+        raise ValueError(f"{assetID}: tags are {{group: [terms]}}, at least one group")
+      for group, terms in tags.items():
+        if group not in vocabulary["tagGroups"]:
+          raise ValueError(f"{assetID}: no tag group '{group}'; groups: {list(vocabulary['tagGroups'])}")
+        unknownTerms = sorted(set(terms) - set(vocabulary["tagGroups"][group]["terms"])) if isinstance(terms, list) and terms else None
+        if unknownTerms is None or unknownTerms:
+          raise ValueError(f"{assetID}: {group} takes a non-empty list of {sorted(vocabulary['tagGroups'][group]['terms'])}; unknown: {unknownTerms}")
+        fields[f"tags.{group}"] = list(terms)
+    for field in textFields:
+      if field in description:
+        if not isinstance(description[field], str) or not description[field].strip():
+          raise ValueError(f"{assetID}: {field} must be written, not empty")
+        fields[field] = description[field].strip()
+    if "worldUnitsPerRepeat" in description:
+      repeat = description["worldUnitsPerRepeat"]
+      if repeat is not None and (isinstance(repeat, bool) or not isinstance(repeat, (int, float)) or repeat <= 0):
+        raise ValueError(f"{assetID}: worldUnitsPerRepeat is a positive number of units, or null where no repeat applies (a normal map's is its diffuse's)")
+      fields["worldUnitsPerRepeat"] = repeat
+    if "pairsWith" in description:
+      if not isinstance(description["pairsWith"], list):
+        raise ValueError(f"{assetID}: pairsWith is a list of asset ids")
+      for partner in description["pairsWith"]:
+        self.requireAsset(partner)
+      fields["pairsWith"] = list(description["pairsWith"])
+    if not fields:
+      raise ValueError(f"{assetID}: the description writes no field")
+    return fields
+
+  def judgedFrom(self, description, asset):
+    """What the description was judged from, as recorded beside each field it writes: each view named (judgedFrom.views) by its image's
+    SHA-256, and each measured fact named (judgedFrom.facts) by its value now. A view must exist (viewModels renders a model's views)."""
+    assetID = description["id"]
+    given = description.get("judgedFrom")
+    if not isinstance(given, dict) or set(given) - {"views", "facts"} or not (given.get("views") or given.get("facts")):
+      raise ValueError(f"{assetID}: judgedFrom names what it was judged from: {{views: [...], facts: [...]}}, at least one; a description written from a name alone is no description")
+    files = self.viewFiles(asset)
+    views = {}
+    for view in given.get("views", []):
+      if view not in files:
+        raise ValueError(f"{assetID}: no view '{view}'; a {asset['kind']} is judged from {sorted(files) or 'no views'}")
+      if not files[view].is_file():
+        raise ValueError(f"{assetID}: its {view} view is not rendered on this machine; look at it first (viewModels with views)")
+      views[view] = hashlib.sha256(files[view].read_bytes()).hexdigest()
+    facts = {}
+    for fact in given.get("facts", []):
+      if fact not in asset["measured"]:
+        raise ValueError(f"{assetID}: no measured fact '{fact}'; its facts: {sorted(asset['measured'])}")
+      facts[fact] = asset["measured"][fact]
+    return {"views": views, "facts": facts}
 
   def describe(self, descriptions):
-    """Write descriptions, all or none: each replaces what its asset had."""
+    """Write descriptions, all or none, field by field: a field fills only where the asset lacks it and never rewrites what is there,
+    unless the description names it in rewrite (to correct a wrong one); each field written records what it was judged from. Returns
+    per asset the fields written."""
     vocabulary = self.vocabulary()
-    validated = {description.get("id"): self.validatedDescription(description, vocabulary) for description in descriptions}
-    if len(validated) != len(descriptions):
-      raise ValueError("Each asset is described once per call")
-    interpretations = self.interpretations() | validated
+    ids = [description.get("id") for description in descriptions]
+    if None in ids or len(set(ids)) != len(ids):
+      raise ValueError("Each description names its asset by id, and each asset is described once per call")
+    interpretations = self.interpretations()
+    written = {}
+    for description in descriptions:
+      asset = self.requireAsset(description["id"])
+      fields = self.validatedFields(description, asset, vocabulary)
+      rewrite = description.get("rewrite", [])
+      if not isinstance(rewrite, list) or set(rewrite) - set(fields):
+        raise ValueError(f"{description['id']}: rewrite names fields this description writes, of {sorted(fields)}; got {rewrite!r}")
+      provenance = self.judgedFrom(description, asset)
+      current = dict(interpretations.get(description["id"], {}))
+      existing = {field: value for field, value in current.items() if field != provenanceKey}
+      tags = dict(existing.get("tags", {}))
+      clashing = []
+      for field, value in fields.items():
+        group = field.split(".", 1)[1] if field.startswith("tags.") else None
+        held = tags.get(group) if group else existing.get(field)
+        present = (group in tags) if group else (field in existing)
+        if present and held != value and field not in rewrite:
+          clashing.append(field)
+      if clashing:
+        raise ValueError(f"{description['id']}: {clashing} are written already and differ; a field is written once (name it in rewrite to correct a wrong one)")
+      changed = []
+      records = dict(current.get(provenanceKey, {}))
+      for field, value in fields.items():
+        group = field.split(".", 1)[1] if field.startswith("tags.") else None
+        present = (group in tags) if group else (field in existing)
+        if present and field not in rewrite:
+          continue
+        if group:
+          tags[group] = value
+        else:
+          current[field] = value
+        records[field] = provenance
+        changed.append(field)
+      if tags:
+        current["tags"] = dict(sorted(tags.items()))
+      current[provenanceKey] = records
+      interpretations[description["id"]] = current
+      written[description["id"]] = changed
     self.root.mkdir(parents=True, exist_ok=True)
     self.interpretedPath.write_text(json.dumps(interpretations, indent=1, sort_keys=True) + "\n", encoding="utf-8")
-    return sorted(validated)
+    return dict(sorted(written.items()))
+
+  def reviewReasons(self, asset, interpreted):
+    """The fields whose judgement rests on what changed since: a view whose image now differs, or a fact whose measured value does."""
+    reasons = {}
+    files = self.viewFiles(asset)
+    for field, record in (interpreted or {}).get(provenanceKey, {}).items():
+      why = [f"view {view} changed" for view, digest in record["views"].items() if view in files and files[view].is_file() and hashlib.sha256(files[view].read_bytes()).hexdigest() != digest]
+      why += [f"fact {fact} changed" for fact, value in record["facts"].items() if asset["measured"].get(fact) != value]
+      if why:
+        reasons[field] = why
+    return reasons
+
+  def queue(self, kind, field, source, limit):
+    """The assets of a kind missing a field (or any field the describe queue tracks for the kind, queueFields), and those whose written
+    fields rest on views or facts that changed since (review), each with what to judge it from: its views (present or not) and the
+    measured facts."""
+    tracked = queueFields(kind)
+    if field is not None and field not in tracked:
+      raise ValueError(f"A {kind} description's fields are {list(tracked)}; not {field!r}")
+    interpretations = self.interpretations()
+    entries = []
+    for asset in self.assets().values():
+      if asset["kind"] != kind or "problem" in asset["measured"]:
+        continue
+      if source is not None and not any(key == source or key == f"zone:{source.lower()}" or key == f"archive:{source.lower()}" for key in asset["sources"]):
+        continue
+      interpreted = interpretations.get(asset["id"])
+      missing = [name for name in tracked if name not in writtenFields(kind, interpreted)]
+      review = self.reviewReasons(asset, interpreted)
+      if (field is None and (missing or review)) or (field is not None and (field in missing or field in review)):
+        files = self.viewFiles(asset)
+        entries.append({
+          "id": asset["id"], "name": asset["name"], "sources": sorted(asset["sources"]), "missing": missing, "review": review,
+          "views": {view: str(path) if path.is_file() else None for view, path in files.items()},
+        })
+    entries.sort(key=lambda entry: (-len(entry["review"]), entry["id"]))
+    return {"kind": kind, "field": field, "fields": list(tracked), "total": len(entries), "assets": entries[:limit]}
 
   def entry(self, assetID):
-    return self.requireAsset(assetID) | {"interpreted": self.interpretations().get(assetID)}
+    asset = self.requireAsset(assetID)
+    interpreted = self.interpretations().get(assetID)
+    return asset | {"interpreted": interpreted, "review": self.reviewReasons(asset, interpreted), "views": {view: str(path) if path.is_file() else None for view, path in self.viewFiles(asset).items()}}
 
   def find(self, kind, text, categories, tags, source, described, sortBy, limit, colors=None, minimumSide=None, tiles=None, usedOn=None):
     """Assets matching every filter given: kind, words of text (each in the id, name, description, usage, category, tags, or measured
@@ -241,11 +457,11 @@ class AssetCatalog:
         continue
       if described is not None and (interpreted is not None) != described:
         continue
-      if source is not None and not any(key == source or key == f"zone:{source.lower()}" or key == f"folder:{source}" for key in asset["sources"]):
+      if source is not None and not any(key == source or key == f"zone:{source.lower()}" or key == f"folder:{source}" or key == f"archive:{source.lower()}" for key in asset["sources"]):
         continue
-      if categories and (interpreted is None or interpreted["category"] not in categories):
+      if categories and (interpreted is None or interpreted.get("category") not in categories):
         continue
-      if tags and (interpreted is None or any(not set(terms) <= set(interpreted["tags"].get(group, [])) for group, terms in tags.items())):
+      if tags and (interpreted is None or any(not set(terms) <= set(interpreted.get("tags", {}).get(group, [])) for group, terms in tags.items())):
         continue
       measured = asset["measured"]
       if colors and measured.get("colorName") not in colors:
@@ -260,10 +476,10 @@ class AssetCatalog:
           continue
       if words:
         haystack = " ".join([asset["id"], asset["name"], asset["measured"].get("colorName", ""), json.dumps(asset["measured"].get("zones", {})), json.dumps(asset["measured"].get("names", []))]
-          + ([interpreted[field] for field in textSearchFields] + [term for terms in interpreted["tags"].values() for term in terms] if interpreted else [])).lower()
+          + ([interpreted.get(field, "") for field in textSearchFields] + [term for terms in interpreted.get("tags", {}).values() for term in terms] if interpreted else [])).lower()
         if not all(word in haystack for word in words):
           continue
-        relevance = sum(" ".join(interpreted[field] for field in textSearchFields).lower().count(word) for word in words) if interpreted else 0
+        relevance = sum(" ".join(interpreted.get(field, "") for field in textSearchFields).lower().count(word) for word in words) if interpreted else 0
       else:
         relevance = 0
       matches.append((relevance, asset, interpreted))
@@ -306,8 +522,9 @@ def compactEntry(asset, interpreted):
     entry["size"] = f"{measured['width']}x{measured['height']}" if "width" in measured else None
     entry |= {key: value for key, value in (("mainUse", mainUse(asset)), ("materialRoles", roles)) if value}
   elif asset["kind"] == "model":
-    entry |= {key: measured[key] for key in ("size", "triangles", "skinned", "materials", "problem") if key in measured}
+    entry |= {key: measured[key] for key in ("size", "footprint", "origin", "triangles", "collisionShare", "skinned", "dominantColors", "textures", "role", "problem") if key in measured}
     entry["placements"] = sum(facts.get("placements", 0) for facts in asset["sources"].values())
+    entry["placedIn"] = sorted(key.split(":", 1)[1] for key, facts in asset["sources"].items() if facts.get("placements"))
   elif asset["kind"] == "light":
     entry |= {key: measured[key] for key in ("zone", "count", "colors", "radii", "names", "flickerFrames")}
   elif asset["kind"] == "emitter":
