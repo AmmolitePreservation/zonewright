@@ -250,10 +250,11 @@ def testImportZoneBringsATerrainZone(stageBlenderServer):
     "placements": 5730, "objectGroups": 5, "missingObjectGroups": ["drgbrownie"],
   }
   # Every tile placement is drawn, plus the merchant tent and the zone-out wall of the two object groups the archive holds; the wall's
-  # baked light file does not fit its model. No quad is a hole and every map and baked light file the zone names is in its archive.
+  # baked light file does not fit its model. No quad is a hole and every map and baked light file the zone names is in its archive;
+  # one MPL coverage map its objects name, coverage_base2.dds, is in no linked archive, so those faces read an empty sampler.
   assert source["placedObjects"] == 5732
   assert source["litFilesNotMatchingModels"] == ["zoneout_obj_zone_out.lit"]
-  assert source["missingModels"] == [] and source["missingTextures"] == []
+  assert source["missingModels"] == [] and source["missingTextures"] == ["coverage_base2.dds"]
   assert (source["holeQuads"], source["terrainMapsMissing"], source["litFilesMissing"], source["litFilesShorterThanTheirCount"]) == (0, {}, [], [])
 
 
