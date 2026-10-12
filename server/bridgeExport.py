@@ -225,9 +225,13 @@ def meshArrays(sceneObject, depsgraph, matrix, materialNames, marked):
   corners = numpy.concatenate([loopVertices[:, None].astype(numpy.float64), normals, uvs], axis=1)
   unique, firstLoop, loopToVertex = numpy.unique(corners, axis=0, return_index=True, return_inverse=True)
   loopToVertex = loopToVertex.ravel()
+  triangles = loopToVertex[triangleLoops].reshape(-1, 3)
+  # A mirroring matrix turns every face's corners the other way round; reversed, each face keeps the front the preview draws.
+  if numpy.linalg.det(matrix[:3, :3]) < 0:
+    triangles = triangles[:, ::-1]
   return {
     "positions": positions[loopVertices[firstLoop]], "normals": normals[firstLoop], "uvs": uvs[firstLoop], "sourceVertices": loopVertices[firstLoop],
-    "triangles": loopToVertex[triangleLoops].reshape(-1, 3),
+    "triangles": triangles,
     "materials": [materialNames(slotMaterials[slot]) for slot in triangleSlots], "passable": passable,
   }
 

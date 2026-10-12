@@ -111,6 +111,31 @@ def testExportedZoneComesBackAsItWasBuilt(stageBlenderServer, tmp_path):
   assertDrawsAlike(built, again)
 
 
+
+def testAMirroredTerrainExportsFacingWhereItDraws(stageBlenderServer, tmp_path):
+  groundTexture = tmp_path / "ground.dds"
+  groundTexture.write_bytes(eqgWriter.ddsBytes(patternedRGBA(16, 1)))
+  crateTexture = tmp_path / "crate.png"
+  Image.fromarray(patternedRGBA(8, 2)).save(crateTexture)
+  archivePath = tmp_path / "testplot.eqg"
+
+  async def steps(session):
+    await buildPlot(session, groundTexture, crateTexture, tmp_path / "plot.blend")
+    await session.expectSuccess("runPython", {"code": "bpy.data.objects['ground'].scale = (-1, 1, 1)"})
+    await session.expectSuccess("saveFile", {})
+    built, _ = await session.expectImage("renderView", {"view": view})
+    await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    await session.expectSuccess("importZoneFile", {"path": str(archivePath)})
+    await session.expectSuccess("setZoneProperties", environment)
+    again, _ = await session.expectImage("renderView", {"view": view})
+    return built, again
+
+  built, again = stageBlenderServer.session(steps)
+  # Mirrored, the ground's faces turn their corners the other way round while the preview still draws them from above: export reverses
+  # them, so the archive's ground faces up too and draws as the scene does.
+  assertDrawsAlike(built, again)
+
 flipCode = """
 import bmesh
 crate = bpy.data.objects['crate']
@@ -122,6 +147,12 @@ editor.to_mesh(crate.data)
 editor.free()
 crate.data.update()
 result = len(flipped)
+"""
+
+
+twoSidedCode = """
+for material in bpy.data.materials:
+  material.use_backface_culling = False
 """
 
 
@@ -152,9 +183,14 @@ def testFacesTurnedInsideOutDrawAlikeBuiltAndExported(stageBlenderServer, tmp_pa
 
   async def steps(session):
     await buildPlot(session, groundTexture, crateTexture, tmp_path / "plot.blend")
+    whole, _ = await session.expectImage("renderView", {"view": crateView})
     flipped = (await session.expectSuccess("runPython", {"code": flipCode}))["result"]
     await session.expectSuccess("saveFile", {})
+    await session.expectSuccess("runPython", {"code": twoSidedCode})
     built, _ = await session.expectImage("renderView", {"view": crateView})
+    await session.expectSuccess("runPython", {"code": "bpy.data.objects['crate'].hide_render = True"})
+    withoutCrate, _ = await session.expectImage("renderView", {"view": crateView})
+    await session.expectSuccess("openFile", {"path": str(tmp_path / "plot.blend"), "discardUnsavedChanges": True})
     await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
     await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
     await session.expectSuccess("importZoneFile", {"path": str(archivePath)})
@@ -165,16 +201,19 @@ def testFacesTurnedInsideOutDrawAlikeBuiltAndExported(stageBlenderServer, tmp_pa
     await session.expectSuccess("openFile", {"path": str(tmp_path / "older.blend")})
     reopened, _ = await session.expectImage("renderView", {"view": crateView})
     stored = (await session.expectSuccess("runPython", {"code": storedCode}))["result"]
-    return flipped, built, again, olderUses, reopened, stored
+    return flipped, whole, built, withoutCrate, again, olderUses, reopened, stored
 
   def pixels(image):
     return numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB"), dtype=numpy.int64)
 
   crateView = {"eye": [-20, -12, 12], "target": [-20, 10, 4]}
-  flipped, built, again, olderUses, reopened, stored = stageBlenderServer.session(steps)
-  # The crate's faces toward the camera and the sky, which fill most of the view, are turned inside out. Seen from behind, each is lit
-  # by its own normal, built as the zone file's stored normal lights it once exported, so the two draw alike.
+  flipped, whole, built, withoutCrate, again, olderUses, reopened, stored = stageBlenderServer.session(steps)
+  # The crate's faces toward the camera and the sky, which fill most of the view, are turned inside out. The client draws a face from
+  # its front only, so the crate vanishes: those faces are seen from behind, and through them the backs of the rest. A material saved
+  # drawing both sides is drawn so too, and the exported zone draws as the scene.
   assert flipped == 2
+  assert numpy.abs(pixels(whole) - pixels(withoutCrate)).max() > 100
+  assertDrawsAlike(built, withoutCrate)
   assertDrawsAlike(built, again)
   # A file saved before the lighting group took Stored has the group's older build and no Stored on its materials. Opened again, the
   # group is rebuilt and each material's Stored is read from its own nodes: the imported meshes light by their stored normals and the

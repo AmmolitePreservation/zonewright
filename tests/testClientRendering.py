@@ -5,7 +5,7 @@ import numpy
 from PIL import Image
 import pytest
 
-from conftest import writePNG
+from conftest import writeCubeDDS, writePNG
 
 texture = (200, 150, 100, 255)
 environment = {
@@ -71,40 +71,51 @@ def testPreviewLightsAndFogsAsTheClientDoes(stageBlenderServer, tmp_path):
 
 flipCode = """
 import bmesh
-plane = bpy.data.objects['flipped']
-editor = bmesh.new()
-editor.from_mesh(plane.data)
-bmesh.ops.reverse_faces(editor, faces=list(editor.faces))
-editor.to_mesh(plane.data)
-editor.free()
-plane.data.update()
-result = [list(polygon.normal) for polygon in plane.data.polygons]
+for name in flipped:
+  plane = bpy.data.objects[name]
+  editor = bmesh.new()
+  editor.from_mesh(plane.data)
+  bmesh.ops.reverse_faces(editor, faces=list(editor.faces))
+  editor.to_mesh(plane.data)
+  editor.free()
+  plane.data.update()
+result = sorted({tuple(polygon.normal) for name in flipped for polygon in bpy.data.objects[name].data.polygons})
 """
 
 
-def testAFaceSeenFromBehindIsLitByItsOwnNormal(stageBlenderServer, tmp_path):
+def testAFaceSeenFromBehindIsNotDrawnButALiquidsIs(stageBlenderServer, tmp_path):
   texturePath = writePNG(tmp_path / "stone.png", 8, 8, texture)
+  leafPath = writePNG(tmp_path / "leaf.png", 8, 8, (60, 160, 40, 255))
+  waterPaths = {
+    "diffuseTexture": str(writePNG(tmp_path / "water_c.png", 4, 4, (40, 90, 110, 255))), "normalTexture": str(writePNG(tmp_path / "water_n.png", 4, 4, (128, 128, 255, 255))),
+    "environmentTexture": str(writeCubeDDS(tmp_path / "water_e.dds", 4, [(200, 150, 100, 255)] * 6)),
+  }
+  planes = {"floor": ("stone", 0), "flipped": ("stone", 100), "leaf": ("leaf", 200), "water": ("water", 300), "falls": ("falls", 400)}
 
   async def steps(session):
     await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
     await session.expectSuccess("createMaterial", {"name": "stone", "diffuseTexture": str(texturePath)})
-    for name, x in (("floor", 0), ("flipped", 100)):
+    await session.expectSuccess("createMaterial", {"name": "leaf", "diffuseTexture": str(leafPath), "cutout": True, "alphaThreshold": 0.5})
+    await session.expectSuccess("createLiquidMaterial", {"name": "water", "liquid": "water"} | waterPaths)
+    await session.expectSuccess("createLiquidMaterial", {"name": "falls", "liquid": "waterfall", "diffuseTexture": waterPaths["diffuseTexture"]})
+    for name, (material, x) in planes.items():
       await session.expectSuccess("createPrimitive", {"kind": "plane", "name": name, "size": [64, 64, 0], "location": [x, 0, 0]})
-      await session.expectSuccess("assignMaterial", {"objectName": name, "materialName": "stone"})
-    normals = (await session.expectSuccess("runPython", {"code": flipCode}))["result"]
+      await session.expectSuccess("assignMaterial", {"objectName": name, "materialName": material})
+    normals = (await session.expectSuccess("runPython", {"code": f"flipped = {sorted(set(planes) - {'floor'})!r}" + flipCode}))["result"]
     await session.expectSuccess("setZoneProperties", environment)
-    floor = await renderedPixel(session, {"eye": [0, 0, 20], "target": [0, 0.001, 0]})
-    flipped = await renderedPixel(session, {"eye": [100, 0, 20], "target": [100, 0.001, 0]})
-    return normals, floor, flipped
+    return normals, {name: await renderedPixel(session, {"eye": [x, 0, 20], "target": [x, 0.001, 0]}) for name, (_, x) in planes.items()}
 
-  normals, floor, flipped = stageBlenderServer.session(steps)
-  # The flipped plane faces down and is seen from above, from behind: the client's vertex shader lights it by its own normal, turned
-  # from the sun, so only bounce light reaches it, where a front face there takes the sun.
+  normals, pixels = stageBlenderServer.session(steps)
+  # Every plane but the floor faces down and is seen from above, from behind. The client draws a face from its front only, so the
+  # flipped stone and the leaf card are not drawn and the fog color shows through; it draws a liquid from both sides, so the water and
+  # the falls draw. The floor, seen from its front, is lit as the client lights it.
   assert normals == [[0.0, 0.0, -1.0]]
-  for measured, expected in zip(floor, clientPixel((0, 0, 1))):
+  for measured, expected in zip(pixels["floor"], clientPixel((0, 0, 1))):
     assert abs(measured - expected) <= 1.5 / 255
-  for measured, expected in zip(flipped, clientPixel((0, 0, -1))):
-    assert abs(measured - expected) <= 1.5 / 255
+  for name in ("flipped", "leaf"):
+    assert all(abs(measured - fog) <= 1.5 / 255 for measured, fog in zip(pixels[name], environment["fogColor"])), (name, pixels[name])
+  for name in ("water", "falls"):
+    assert max(abs(measured - fog) for measured, fog in zip(pixels[name], environment["fogColor"])) > 20 / 255, (name, pixels[name])
 
 
 def testFogIsOffWithTheZonesFogSwitchAndPulledInShortOfTheFarClip(stageBlenderServer, tmp_path):

@@ -106,7 +106,8 @@ class PreviewScene:
         and sourceObject.name not in self.leftOut
       ):
         self.scene.collection.objects.link(sourceObject)
-    self.camera = self.addObject(bpy.data.objects.new(previewName + "Camera", bpy.data.cameras.new(previewName + "Camera")))
+    bridgeClientLight.drawSidesOfAll()
+    self.camera =self.addObject(bpy.data.objects.new(previewName + "Camera", bpy.data.cameras.new(previewName + "Camera")))
     self.camera.data.sensor_fit = "VERTICAL"
     self.camera.data.angle = math.radians(verticalFieldOfViewDegrees)
     self.camera.data.clip_start = cameraClipStart

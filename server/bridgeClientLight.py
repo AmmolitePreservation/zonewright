@@ -6,6 +6,8 @@ import math
 
 import bpy
 
+import bridgeMeshAccess
+
 groupName = "eqClientLight"
 # Raised whenever buildGroup changes, so a group saved in an older .blend is rebuilt in place.
 groupVersion = 13
@@ -285,3 +287,17 @@ def surfaceOutput(material, baseColor, alpha, alphaMode, lit, threshold, normal=
     material.surface_render_method = "BLENDED" if alphaMode == "blended" else "DITHERED"
   output = next(node for node in tree.nodes if node.type == "OUTPUT_MATERIAL")
   links.new(surface, output.inputs["Surface"])
+  drawSides(material)
+
+
+def drawSides(material):
+  """Draw a surface's faces from the front only, as the client draws every zone and object face, or both for a liquid
+  (docs/clientRendering.md, Back faces)."""
+  material.use_backface_culling = not (bridgeMeshAccess.liquidProperty in material or bridgeMeshAccess.clientLiquidProperty in material)
+
+
+def drawSidesOfAll():
+  """drawSides on every material the client's light draws, the file's own and its kits', also those made before it culled."""
+  for material in bpy.data.materials:
+    if material.node_tree is not None and any(node.type == "GROUP" and node.node_tree is not None and node.node_tree.name == groupName for node in material.node_tree.nodes):
+      drawSides(material)

@@ -264,13 +264,6 @@ def buildModelMesh(folder, meshName):
     else:
       mesh.materials.append(modelMaterial(folder, *key))
   mesh.polygons.foreach_set("material_index", data["triangleMaterials"].astype(numpy.int32))
-  # The client draws a client mesh's faces from the front only: seen from behind, Freeport West's passage walls are not drawn
-  # (docs/renderingWorklist.md, Validation). Liquids keep both sides (culled, Crescent Reach's falls draw thinner than its shots show),
-  # and so does an exported zone (twoSided), as the authored surfaces it was built from still draw.
-  cull = not bool(data["twoSided"])
-  for material in mesh.materials:
-    if material.get(bridgeMeshAccess.clientLiquidProperty) is None:
-      material.use_backface_culling = cull
   mesh.update()
   mesh.validate()
   return mesh
