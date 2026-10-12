@@ -86,11 +86,8 @@ def testTheDumpGivesTheZoneTheViewerAndTheLightTheClientDrew():
   viewed = eqCalibration.viewer(dump)
   # The vision floor 0.08 times one less the share 0.1, truncated to a byte: 18/255.
   assert viewed["specialAmbientColor"] == [18 / 255] * 3
-  # The client's sky runs an hour ahead of the clock the dump reads (13:31 draws the sky of 14:31), wrapping past midnight.
-  late = dump | {"world": dump["world"] | {"time": dump["world"]["time"] | {"hour": 23}}}
-  assert eqCalibration.zoneProperties(late, viewed["specialAmbientColor"])["sky"] == {"type": "highpasshold", "hour": 0, "minute": 31}
   assert eqCalibration.zoneProperties(dump, viewed["specialAmbientColor"]) == {
-    "sky": {"type": "highpasshold", "hour": 14, "minute": 31}, "fogStart": 200.0, "fogEnd": 1500.0, "fogDensity": 0.33, "fogOn": False,
+    "sky": {"type": "highpasshold", "hour": 13, "minute": 31}, "fogStart": 200.0, "fogEnd": 1500.0, "fogDensity": 0.33, "fogOn": False,
     "minClip": 50.0, "maxClip": 1500.0, "newEngineZone": False, "shortName": "highpasshold", "zoneId": 407, "specialAmbientColor": [18 / 255] * 3,
   }
   carried = eqCalibration.carriedLight(dump)

@@ -32,7 +32,8 @@ def testAZoneWithoutItsOwnSkyGetsTheDefaultSkyAndItsLight(tmp_path):
     "sunColor": light[0], "fogColor": light[1], "ambientColor": light[2], "bounceColor": light[3],
     "sunAzimuthDegrees": 0.0, "sunElevationDegrees": 75.0,
   }
-  assert state["dome"]["axis"] == [0.0, 0.258819, 0.965926]
+  # The scene light comes from the 13:00 sun, the sky an hour ahead: its dome turns about the 14:00 sun.
+  assert state["dome"]["axis"] == [0.0, 0.5, 0.866025]
   assert state["horizon"]["minAngle"] == 0.067612 and state["horizon"]["maxWidth"] == 0.6
   assert [satellite["name"] for satellite in state["satellites"]] == ["ClearSun", "ClearMoon"]
   sun = state["satellites"][0]
@@ -57,8 +58,9 @@ def testTheMoonLightsTheSceneBefore555AndAfter1820WithTheAmbientRaisedToTheFloor
 
 
 def testAColorSetCrossFadesInEightBitsInsideATransition(tmp_path):
-  # DefaultClear's day map starts at 0.279999 of a day and fades in over 0.019989: 6:50 is 310 of its 1309 65536ths in, weight 60.
-  state = eqSky.skyState(clientRoot, tmp_path, {"type": "default", "weather": "DefaultClear", "hour": 6, "minute": 50})
+  # DefaultClear's day map starts at 0.279999 of a day and fades in over 0.019989: 6:50 is 310 of its 1309 65536ths in, weight 60. The
+  # sky runs an hour ahead of the clock, so the clock's 5:50 draws it.
+  state = eqSky.skyState(clientRoot, tmp_path, {"type": "default", "weather": "DefaultClear", "hour": 5, "minute": 50})
   assert state["chain"][-1] == "ColorSet-DefaultClear -> ColorMap-DefaultClearDawn fading to ColorMap-DefaultClearDay"
   dawn = colorMapPixel("ColorMap-DefaultDawn.dds", 0, 0)
   day = colorMapPixel("ColorMap-DefaultDay.dds", 0, 0)

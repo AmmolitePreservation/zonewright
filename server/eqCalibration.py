@@ -31,7 +31,6 @@ weatherCondition = "#set weather 0 before the shot; the client's current weather
 clipSliderMaximum = 20
 # After NewZone the client raises a minimum clip under 50 to 50 (eqgame.exe 0x48ae80).
 clientMinimumClip = 50.0
-skyHourLead = 1
 # The zone types whose scene ambient is the sky's (eqgame.exe 0x4942b0); the others' is a fixed gray, which previews do not draw yet.
 skyLitZoneTypes = (1, 2, 5)
 # Human, barbarian, and erudite see without infravision or ultravision: their vision floor is viewerLight's.
@@ -209,10 +208,8 @@ def zoneProperties(dump, specialAmbientColor):
   if slider != clipSliderMaximum or camera["farClip"] != header["maxClip"]:
     raise ValueError(f"The clip slider is {slider} and the far clip {camera['farClip']}; previews draw the far clip at the zone's maximum, {header['maxClip']} (slider {clipSliderMaximum})")
   fog = header["fogSets"][0]
-  # The sky runs one hour ahead of the clock the dump reads: in every claudelink dump the sky object's day fraction and sun angle are
-  # the clock's hour plus one (docs/clientRendering.md, Sky).
   return {
-    "sky": {"type": world["sky"]["type"]["value"], "hour": (world["time"]["hour"] + skyHourLead) % 24, "minute": world["time"]["minute"]},
+    "sky": {"type": world["sky"]["type"]["value"], "hour": world["time"]["hour"], "minute": world["time"]["minute"]},
     "fogStart": float(fog["start"]), "fogEnd": float(fog["end"]), "fogDensity": header["fogDensity"], "fogOn": header["fogOnOff"] != 0,
     "minClip": max(float(header["minClip"]), clientMinimumClip), "maxClip": float(header["maxClip"]), "newEngineZone": bool(header["newEngineZone"]),
     "shortName": dump["zone"]["shortName"], "zoneId": header["zoneId"], "specialAmbientColor": specialAmbientColor,

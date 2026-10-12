@@ -23,6 +23,12 @@ secondColorAttribute = "eqSecondColor"
 secondUVMap = "eqSecondUV"
 
 
+def cullBackFaces(material):
+  """The client draws a client mesh's faces from the front only: seen from behind, Freeport West's passage walls are not drawn
+  (docs/renderingWorklist.md, Validation). Liquids keep both sides: culled, Crescent Reach's falls draw thinner than its shots show."""
+  material.use_backface_culling = True
+
+
 def missingTextureMaterial(textureName, lit):
   """Faces whose texture no linked archive holds: the client's effect samples no texture there, which reads black and opaque, so they
   draw black, lit and fogged as any surface (docs/clientRendering.md, EQG zones)."""
@@ -34,6 +40,7 @@ def missingTextureMaterial(textureName, lit):
     empty = material.node_tree.nodes.new("ShaderNodeRGB")
     empty.outputs["Color"].default_value = emptySamplerColor
     bridgeClientLight.surfaceOutput(material, empty.outputs["Color"], None, "opaque", lit, alphaThreshold)
+    cullBackFaces(material)
   return material
 
 
@@ -65,6 +72,7 @@ def modelMaterial(folder, textureName, alphaMode, tint, lit):
     colorInputs[1].default_value = (*(((tint >> shift) & 0xFF) / 255 for shift in (16, 8, 0)), 1.0)
     baseColor = next(socket for socket in multiply.outputs if socket.type == "RGBA")
   bridgeClientLight.surfaceOutput(material, baseColor, diffuse.outputs["Alpha"], alphaMode, lit, alphaThreshold)
+  cullBackFaces(material)
   return material
 
 
@@ -128,6 +136,7 @@ def mplModelMaterial(folder, textureName, alphaMode, mpl, lit):
   covered = saturated(vectorMath("SCALE", vectorMath("MULTIPLY", diffuse.outputs["Color"], coverage), 2.0))
   baseColor = saturated(vectorMath("SCALE", vectorMath("MULTIPLY", covered, vertexColor.outputs["Color"]), 2.0))
   bridgeClientLight.surfaceOutput(material, baseColor, diffuse.outputs["Alpha"], alphaMode, lit, alphaThreshold)
+  cullBackFaces(material)
   return material
 
 
@@ -210,6 +219,7 @@ def terrainMaterial(folder, comboIndex):
     covered = vectorMath("SCALE", passColor, colorMap.outputs["Alpha"])
     total = covered if total is None else vectorMath("ADD", total, covered)
   bridgeClientLight.surfaceOutput(material, total, None, "opaque", True, alphaThreshold)
+  cullBackFaces(material)
   return material
 
 

@@ -27,6 +27,8 @@ horizonRow = 30
 # CSky lights the scene by the moon before the first and after the second of these fractions of a day (EQGraphicsDX9.dll 0x100c20a0,
 # single-precision constants 0x1013f984 and 0x1013f988: 5:55 and 18:20), and eqgame.exe takes the time as minutes times 1/1440
 # (0x496b8d), both in single precision.
+# The sky object's day fraction and satellite angles are the clock's hour plus one in every claudelink dump (docs/clientRendering.md, Sky).
+skyHourLead = 1
 moonBefore = numpy.float32(0.2465277761220932)
 moonAfter = numpy.float32(0.7638888955116272)
 minuteOfDay = numpy.float32(0.0006944444612599909)
@@ -204,14 +206,16 @@ def skyState(clientRoot, cachePath, sky):
   chain.append(f"SkySetting-{settingName} -> WeatherPattern-{weatherName}" + ("" if sky.get("weather") else " (its DefaultWeather)"))
   pattern = files.require("WeatherPattern", weatherName, "SkySetting-" + settingName)
   dayFraction = (hour * 60 + minute) / 1440
-  time = int(dayFraction * dayUnits)
+  # CSky runs an hour ahead of the clock the scene light reads: its colors and satellites are those of the next hour.
+  skyFraction = (((hour + skyHourLead) % 24) * 60 + minute) / 1440
+  time = int(skyFraction * dayUnits)
   colorSet = requireValue(pattern, "colorset", "WeatherPattern-" + weatherName)
   colors, maps = evaluateColorSet(files, colorSet, time, "WeatherPattern-" + weatherName)
   chain.append(f"ColorSet-{colorSet} -> " + " fading to ".join(f"ColorMap-{name}" for name in maps))
   satellites = []
   for role in ("sun", "moon"):
     if pattern.get(role):
-      satellites.append(evaluateSatellite(files, pattern[role], time, dayFraction, cachePath, "WeatherPattern-" + weatherName))
+      satellites.append(evaluateSatellite(files, pattern[role], time, skyFraction, cachePath, "WeatherPattern-" + weatherName))
   horizonValues = {key: float(setting.get(key, default)) for key, default in horizonDefaults.items()}
   if horizonValues["maxcameraz"] <= horizonValues["mincameraz"]:
     raise ValueError(f"[SkySetting-{settingName}] has MaxCameraZ {horizonValues['maxcameraz']} not above MinCameraZ {horizonValues['mincameraz']}")
@@ -223,6 +227,7 @@ def skyState(clientRoot, cachePath, sky):
       "minWidth": horizonValues["minwidth"], "maxWidth": horizonValues["maxwidth"], "minCameraZ": horizonValues["mincameraz"], "maxCameraZ": horizonValues["maxcameraz"],
     }
   sun = satelliteDirection(2 * math.pi * dayFraction, 0.0)
+  skySun = satelliteDirection(2 * math.pi * skyFraction, 0.0)
   # By the moon, eqgame.exe lights from the moon's angle, the sun's plus half a turn (0x496f9a, 0x496bc7): the sun's direction reversed.
   byDay = not lightsByMoon(hour, minute)
   light = colors[:, lightColumn]
@@ -235,6 +240,6 @@ def skyState(clientRoot, cachePath, sky):
   assert set(environment) == set(skyDrawing.suppliedZoneKeys)
   return {
     "chain": chain, "dayFraction": round(dayFraction, 6), "lightFrom": "sun" if byDay else "moon", "environment": environment,
-    "dome": {"axis": sun.round(6).tolist(), "colors": [colorOf(pixel) for pixel in colors[:domeRows, 0]]},
+    "dome": {"axis": skySun.round(6).tolist(), "colors": [colorOf(pixel) for pixel in colors[:domeRows, 0]]},
     "horizon": horizon, "satellites": satellites,
   }
