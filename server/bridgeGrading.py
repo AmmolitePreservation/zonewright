@@ -12,6 +12,7 @@ import mathutils.bvhtree
 import numpy
 
 import bridgeAuthoring
+import bridgeBodyGroups
 import bridgeCaveData
 import bridgeCaveRuns
 import bridgeCaves
@@ -25,7 +26,6 @@ import bridgeShaping
 import bridgeSketch
 import bridgeStructures
 import bridgeSurfacing
-from playerScale import stepHeight, steepestWalkableDegrees
 
 routePassPrefix = "route "
 routeKind = "route"
@@ -245,8 +245,12 @@ def routeDefinition(points, width, widths, maximumGradeDegrees, cutBatterDegrees
   widths = [width] * len(points) if widths is None else widths
   if len(widths) != len(points) or min(widths) <= 0:
     raise ValueError(f"widths are one positive width per point ({len(points)}), got {widths!r}")
-  if not 0 < maximumGradeDegrees <= steepestWalkableDegrees:
-    raise ValueError(f"maximumGradeDegrees is above 0 and at most {steepestWalkableDegrees:.1f} (the steepest face players walk, playerScale), got {maximumGradeDegrees}")
+  climbing = bridgeBodyGroups.strictestAt([float(value) for value in points[0][:2]])
+  if not 0 < maximumGradeDegrees <= climbing.steepestWalkableDegrees:
+    raise ValueError(
+      f"maximumGradeDegrees is above 0 and at most {climbing.steepestWalkableDegrees:.1f} (the steepest face every body group the route's"
+      f" start is built for walks, {list(climbing.groups)}, playerScale), got {maximumGradeDegrees}"
+    )
   if not 5 <= cutBatterDegrees <= 85 or (fillBatterDegrees is not None and not 5 <= fillBatterDegrees <= 85):
     raise ValueError(f"cutBatterDegrees and fillBatterDegrees are from 5 to 85 (fillBatterDegrees null for a ledge), got {cutBatterDegrees} and {fillBatterDegrees}")
   if landingLength is not None and landingLength <= 0:
@@ -465,7 +469,11 @@ def requireNoClash(name, bench, tanCut, cutBatterDegrees):
 
 
 def requireFooting(name, centerline, standing, alongs, edgeLength):
-  """Refuse a ledge (no fill batter) where its bench would stand more than a step over the ground, naming each span where it would."""
+  """Refuse a ledge (no fill batter) where its bench would stand more than a step over the ground, for every body group its start is
+  built for, naming each span where it would."""
+  start = centerline.pointAt(numpy.array([0.0]))[0]
+  climbing = bridgeBodyGroups.strictestAt([float(start[0]), float(start[1])])
+  stepHeight = climbing.stepHeight
   over = standing > stepHeight + 1e-6
   if not over.any():
     return
@@ -480,7 +488,8 @@ def requireFooting(name, centerline, standing, alongs, edgeLength):
       f" {alongRun[-1]:.1f} along it) up to {float(standingRun.max()):.1f}"
     )
   raise ValueError(
-    f"Route '{name}' has no fill batter, so it is a ledge, but its bench would stand more than {stepHeight:g} (a step, playerScale) over the ground"
+    f"Route '{name}' has no fill batter, so it is a ledge, but its bench would stand more than {stepHeight:g} (a step for the body groups"
+    f" it is built for, {list(climbing.groups)}, playerScale) over the ground"
     f" {'; '.join(spans)}. Move it into the slope there, change its heights, or give it a fillBatterDegrees"
   )
 

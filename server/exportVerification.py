@@ -26,6 +26,7 @@ import exportPipeline
 import modelMeasures
 import pieceRows
 import playerReach
+import playerScale
 import serverMapDrawing
 import serverMapFiles
 import serverNav
@@ -720,10 +721,11 @@ def groundCheck(mapData, rowsData, entries, clientRoot, clientZones, short):
   return checked("ground", failures, places=places, underworld=values["underworld"], otherZones=landed, findings=findings)
 
 
-def containmentCheck(mapData, waterData, entries, regions, underworld, manifest, toolingRoot, reportProgress):
-  """Check 9: the lane the server files give (playerReach.laneFromServerFiles), seeded where the scene's entries stand (getEntries'; a
-  placed entry isolated as placeEntry stored it, the safe point never, as the scene's lane takes them), judged with its regions and plot
-  entrances, holds no leak a game export refuses; its reached area beside the manifest's."""
+def containmentCheck(mapData, waterData, entries, regions, underworld, builtFor, manifest, toolingRoot, reportProgress):
+  """Check 9: the body groups' lanes the server files give (playerReach.laneFromServerFiles), seeded where the scene's entries stand
+  (getEntries'; a placed entry isolated as placeEntry stored it, the safe point never, as the scene's lanes take them), judged with its
+  regions, plot entrances, and the groups the zone and its regions are built for, hold nothing a game export refuses
+  (playerReach.isFailure); their reached area beside the manifest's."""
   if mapData is None or waterData is None:
     return checked("containment", [{"message": "The export lacks its .map or .wtr, so no lane is had from them"}])
   seeds = [
@@ -732,17 +734,17 @@ def containmentCheck(mapData, waterData, entries, regions, underworld, manifest,
   ]
   plots = [{"name": entry["name"], "point": entry["at"]} for entry in entries if entry["kind"] == "plotEntrance"]
   try:
-    lane, description, status, seconds = playerReach.laneFromServerFiles(mapData, waterData, seeds, toolingRoot, reportProgress, regions, plots, underworld)
+    lanes, description, status, seconds = playerReach.laneFromServerFiles(mapData, waterData, seeds, toolingRoot, reportProgress, regions, plots, underworld, builtFor)
   except (ToolError, ValueError) as error:
     return checked("containment", [{"message": f"No lane is had from the server files: {error}"}])
-  analysis = playerReach.analyse(lane, description)
-  failures = [exportPipeline.leakFailure(problem, underworld, "the server files' lane problem") for problem in analysis["problems"] if problem["kind"] in exportPipeline.leakKinds]
-  for kind in exportPipeline.leakKinds:
+  analysis = playerReach.analyse(lanes, description, playerScale.planGroup(playerScale.builtForAt(builtFor, None)))
+  failures = [exportPipeline.leakFailure(problem, underworld, "the server files' lane problem") for problem in analysis["problems"] if playerReach.isFailure(problem)]
+  for kind in playerReach.leakKinds:
     if kind in analysis["moreProblems"]:
       failures.append({"failure": kind, "more": analysis["moreProblems"][kind], "message": f"{analysis['moreProblems'][kind]['count']} more {kind} problems"})
   manifestLane = manifest.get("lane")
   return checked(
-    "containment", failures, lane=status, seconds=seconds, laneFile=str(lane.path), entries=analysis["entries"], reachedArea=analysis["reachedArea"],
+    "containment", failures, lane=status, seconds=seconds, laneFiles={name: str(lane.path) for name, lane in lanes.items()}, entries=analysis["entries"], reachedArea=analysis["reachedArea"],
     manifestReachedArea=None if not isinstance(manifestLane, dict) else manifestLane.get("reachedArea"),
   )
 

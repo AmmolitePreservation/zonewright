@@ -31,6 +31,8 @@ selectorFields = {
 # and whether players reach it (play, view, or none) in the next; a region made before access was decided has none.
 regionIntentProperty = "zonewrightRegionIntent"
 regionAccessProperty = "zonewrightRegionAccess"
+# The body groups a region is built for (playerScale), when it overrides its zone's.
+regionBuiltForProperty = "zonewrightRegionBuiltFor"
 # An entry (bridgeEntries) is an arrow empty where players arrive, its kind and where they come from kept in this property.
 entryProperty = "zonewrightEntry"
 # A mesh surfaced by layers keeps their order in this property; its face materials are composed from them.
@@ -398,9 +400,9 @@ class PlayerSurfaces:
 
 def rockOverGround(castWithNormal, x, y, top):
   """Looking down at [x, y] from `top` (castWithNormal(origin, direction, distance) gives (point, normal) or None): where the highest
-  ground is the top of rock with room for a player between its underside and ground under it (a hill over a cave, an overhang), the
-  heights of the top, the underside, and that ground; None where the column holds one level of ground (a block resting on the ground
-  is one)."""
+  ground is the top of rock with room for a player of the shortest body group between its underside and ground under it (a hill over
+  a cave, an overhang), the heights of the top, the underside, and that ground; None where the column holds one level of ground (a
+  block resting on the ground is one)."""
   highest = castWithNormal(mathutils.Vector((x, y, top)), down, waterReach)
   if highest is None:
     return None
@@ -408,7 +410,7 @@ def rockOverGround(castWithNormal, x, y, top):
   if underside is None or underside[1].z >= 0:
     return None
   floor = castWithNormal(underside[0] + down * castNudge, down, waterReach)
-  if floor is None or underside[0].z - floor[0].z < playerScale.playerHeight:
+  if floor is None or underside[0].z - floor[0].z < playerScale.shortest().playerHeight:
     return None
   return highest[0].z, underside[0].z, floor[0].z
 

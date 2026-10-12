@@ -1,7 +1,8 @@
-"""The player's lane: every place in the zone players can reach from where they arrive, by the moves the Recast helper's reach mode
-models (docs/zoneWorkflow.md, Player space: reach), read here with numpy, classified against the regions, and turned into numbered
-problems. A lane is computed from what the zone ships (bridgeLane.laneInput) or from a zone's server files (laneFromServerFiles), and
-kept under the tooling root by a key of everything it depends on, so an unchanged zone's lane is reused; the newest three are kept.
+"""The players' lanes, one per body group (playerScale): every place in the zone a group can reach from where players arrive, by the moves
+the Recast helper's reach mode models with the group's measures (docs/zoneWorkflow.md, Player space: reach), read here with numpy,
+classified against the regions, and turned into numbered problems, each judged against the groups its region (else the zone) is built
+for. A lane is computed from what the zone ships (bridgeLane.laneInput) or from a zone's server files (laneFromServerFiles), and kept
+under the tooling root by a key of everything it depends on, so an unchanged zone's lanes are reused; the newest three scenes' are kept.
 Reach never runs in Blender: the bridge only collects and draws.
 
 Frames: the helper works in Recast axes (zone y, zone z, zone x); its columns run along Recast x (zone y) and z (zone x), and every
@@ -32,7 +33,8 @@ import toolingManifest
 # every face steeper than about 48 and 29 degrees, whose rise per column passes the step, and reach 77% and 9% of Highpass Hold. The
 # helper centers its columns on multiples of cellSize.
 reachGrid = {"cellSize": 1.0, "cellHeight": 0.25, "tileCells": 256}
-keptLanes = 3
+# The newest three scenes' lanes, one per body group each.
+keptLanes = 3 * len(playerScale.groupNames)
 untitledFolder = "untitled"
 serverFilesFolder = "serverFiles"
 footingSearch = {"above": buildTolerances.groundSearchAbove, "below": buildTolerances.groundSearchDistance}
@@ -43,7 +45,7 @@ problemsListed = 20
 # field, and never nearer than problemViewDistance; the eye is raised by each elevation in turn, steeper only where a lower one is
 # blocked, and turned to each bearing (degrees from the side of the reached floor nearest it).
 problemViewFrame = 3.0
-problemViewDistance = 4 * playerScale.playerHeight
+problemViewDistance = 4 * playerScale.tallest().playerHeight
 problemViewElevations = (30.0, 50.0, 70.0, 85.0)
 problemViewBearings = (0, 45, -45, 90, -90, 135, -135, 180)
 
@@ -63,56 +65,57 @@ problemKinds = (
 notModeled = [
   "jumps", "levitation", "the camera",
   "doors: taken as open, though the RoF2 client collides with a door in its closed position, so a closed door can block a way the lane shows",
-  "NPCs", "players wider than a point (playerRadius is unmeasured): a gap narrower than a player reads as passable",
+  "NPCs",
+  "players' width: the lane's columns are a point wide, so an opening narrower than a group's playerWidth reads as passable to it"
+  " (walkRoute judges width along a route)",
 ]
+# Containment floods with one cell height of headroom: no group's own clearance is measured, so the containment errs toward reach.
+containmentHeadroom = reachGrid["cellHeight"]
 
 
-def smallestPlayerHeight():
-  return vars(playerScale).get("smallestPlayerHeight")
-
-
-def movement():
-  """The movement the lane floods by, from playerScale: the step, the design player's height, the walkable normal z, the depth of water
-  players swim in, and the containment headroom (smallestPlayerHeight, or one cell height while it is unmeasured)."""
-  smallest = smallestPlayerHeight()
+def movement(groupName):
+  """The movement a body group's lane floods by, from playerScale: the group's step, height, walkable normal z, and the depth of water it
+  swims in; and the containment headroom every group's lane floods leaks with."""
+  body = playerScale.group(groupName)
   return {
-    "stepHeight": playerScale.stepHeight, "playerHeight": playerScale.playerHeight, "walkableNormalZ": playerScale.walkableNormalZ,
-    "minimumSwimDepth": playerScale.minimumSwimDepth, "containmentHeadroom": reachGrid["cellHeight"] if smallest is None else smallest,
+    "stepHeight": body.stepHeight, "playerHeight": body.playerHeight, "walkableNormalZ": body.walkableNormalZ,
+    "minimumSwimDepth": body.minimumSwimDepth, "containmentHeadroom": containmentHeadroom,
   }
 
 
 def constantsReport():
-  """Each constant the lane used, with its value and its playerScale source."""
+  """Each body group's constants its lane used, with their values and playerScale sources, and the containment headroom."""
   used = {
-    name: {"value": getattr(playerScale, name), "source": playerScale.sources[name]}
-    for name in ("playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight", "minimumSwimDepth")
+    name: {measure: playerScale.groups[name].measure(measure) for measure in ("playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight", "minimumSwimDepth")}
+    for name in playerScale.groupNames
   }
-  smallest = smallestPlayerHeight()
-  used["smallestPlayerHeight"] = (
-    {"value": None, "source": f"absent: containment floods with one cell height ({reachGrid['cellHeight']:g}) of headroom, which only adds reach"}
-    if smallest is None else {"value": smallest, "source": playerScale.sources["smallestPlayerHeight"]}
-  )
-  return used
+  return used | {"containmentHeadroom": {
+    "value": containmentHeadroom,
+    "source": "unmeasured: one cell height, under every body's own clearance, so containment and the traps err toward reach; no group's clearance is measured",
+  }}
 
 
 def limits(lane, underworld, boundariesKnown):
   """What can make a lane wrong in either direction besides notModeled; boundariesKnown false for a lane from server files."""
-  smallest = smallestPlayerHeight()
-  headroom = movement()["containmentHeadroom"]
+  heights = ", ".join(f"{name} {playerScale.groups[name].playerHeight:g}" for name in playerScale.groupNames)
+  swimDepths = ", ".join(f"{name} {playerScale.groups[name].minimumSwimDepth:g}" for name in playerScale.groupNames)
+  steps = ", ".join(f"{name} {playerScale.groups[name].stepHeight:g}" for name in playerScale.groupNames)
   stated = [
     f"a gap narrower than 2 x cellSize ({2 * lane.cellSize:g}) may rasterize closed and read as no way through: containment holds only for gaps at least that wide",
-    f"containment floods with {headroom:g} of headroom ({'smallestPlayerHeight' if smallest is not None else 'one cell height, smallestPlayerHeight being unmeasured'}),"
-    f" the design player with playerHeight {playerScale.playerHeight:g}; what only the smaller fits is labelled squeeze",
-    f"players enter a swim box whose bottom lies within playerHeight ({playerScale.playerHeight:g}) of the floor, so a box floating higher is"
-    " entered only from above: an assumption, as a taller race may reach a box set higher",
-    f"the design player swims only where the water stands deeper than minimumSwimDepth ({playerScale.minimumSwimDepth:g}) over the floor,"
-    " from the top of the boxes touching one over another there, and wades the bed where it is shallower, as the walked human did;"
-    " containment and the traps swim in a box at any depth, since a smaller race may float in shallower water, so what only that reaches"
-    " is labelled squeeze; a column's floor is taken from the bottom of the cell its top lies in, which errs toward swimming by up to"
-    " one cell height",
-    f"a swimmer climbs out onto walkable floor up to the box's top + stepHeight ({playerScale.stepHeight:g}): an assumption erring toward"
-    " reach, as in the RoF2 walk a swimmer floated with his feet about 3.85 under the box's top",
-    f"swimming between columns takes {headroom:g} of open overlap, an assumption until the bot measures it",
+    "each body group floods a lane of its own with its own moves (playerScale): a group reaches what its playerHeight fits through"
+    f" ({heights}); containment floods each with {containmentHeadroom:g} of headroom, and what only a body smaller than the group fits"
+    " is labelled squeeze in that group's lane",
+    "an entry's connection both ways (from the safe point and back) is judged by containment with the group's moves; the group's own height"
+    " is judged at the entry's node",
+    f"a group enters a swim box whose bottom lies within its playerHeight ({heights}) of the floor, so a box floating higher is entered"
+    " only from above",
+    f"a group swims only where the water stands deeper than its minimumSwimDepth ({swimDepths}) over the floor, from the top of the boxes"
+    " touching one over another there, and wades the bed where it is shallower, as the walked human did; containment and the traps swim in a"
+    " box at any depth, since a smaller race may float in shallower water, so what only that reaches is labelled squeeze; a column's floor"
+    " is taken from the bottom of the cell its top lies in, which errs toward swimming by up to one cell height",
+    f"a swimmer climbs out onto walkable floor up to the box's top + the group's stepHeight ({steps}): an assumption erring toward reach,"
+    " as in the RoF2 walk a swimmer floated with his feet about 3.85 under the box's top",
+    f"swimming between columns takes {containmentHeadroom:g} of open overlap, an assumption until a walk measures it",
     "a zone line takes a player whose floor point (the column's center, one cell height over the floor) lies in its box: the client's own"
     " test point is unmeasured, so the lane errs toward reach continuing",
     "unreached play floor is walkable floor in a play region that open space joins to the lane, at any rise: the lane is built from"
@@ -147,14 +150,14 @@ def quantized(values):
   return numpy.rint(numpy.asarray(values, dtype=numpy.float64) * 1000).astype(numpy.int64)
 
 
-def laneKey(fingerprint, triangles, boundary, description):
-  """SHA-256 of the helper's build, the grid, the movement and footing search, the triangles (rounded to 1e-3, each with whether it is a
-  boundary's, rows sorted), and the boxes, zone lines and their landings, seeds, and underworld."""
+def laneKey(fingerprint, triangles, boundary, description, groupName):
+  """SHA-256 of the helper's build, the grid, the group's movement and footing search, the triangles (rounded to 1e-3, each with whether
+  it is a boundary's, rows sorted), and the boxes, zone lines and their landings, seeds, and underworld."""
   rows = numpy.concatenate([quantized(triangles).reshape(-1, 9), numpy.asarray(boundary, dtype=numpy.int64).reshape(-1, 1)], axis=1)
   rows = rows[numpy.lexsort(rows.T[::-1])] if len(rows) else rows
   digest = hashlib.sha256()
   digest.update(fingerprint.encode("ascii"))
-  digest.update(json.dumps([reachGrid, movement(), footingSearch], sort_keys=True).encode("ascii"))
+  digest.update(json.dumps([reachGrid, movement(groupName), footingSearch], sort_keys=True).encode("ascii"))
   digest.update(rows.tobytes())
   rounded = {
     "swimBoxes": [quantized([box["low"], box["high"]]).tolist() for box in description["swimBoxes"]],
@@ -194,22 +197,36 @@ def requireTriangles(triangles):
     raise ToolError("The zone ships no collision triangles, so players stand on nothing: there is no lane")
 
 
-def computeLane(toolingRoot, folder, triangles, boundary, description, reportProgress):
-  """The lane for collision triangles (zone axes, [n, 3, 3]), which of them are a boundary's ([n] booleans), and a description
-  (swimBoxes, zoneLines, seeds, underworld), reused when one of its key is kept: (Lane, "computed" or "reused", seconds)."""
+def computeLanes(toolingRoot, folder, triangles, boundary, description, reportProgress):
+  """Every body group's lane for collision triangles (zone axes, [n, 3, 3]), which of them are a boundary's ([n] booleans), and a
+  description (swimBoxes, zoneLines, seeds, underworld), each reused when one of its key is kept: ({group: Lane}, "computed" when any
+  was, else "reused", seconds). The groups' lanes hold the same nodes (one grid, one containment headroom), which is checked."""
   started = time.perf_counter()
+  lanes, computed = {}, False
+  for groupName in playerScale.groupNames:
+    lanes[groupName], status = computeLane(toolingRoot, folder, triangles, boundary, description, groupName, reportProgress)
+    computed |= status == "computed"
+  first = lanes[playerScale.groupNames[0]]
+  for groupName, lane in lanes.items():
+    if lane.nodeCount != first.nodeCount or not numpy.array_equal(lane.read("columnStart"), first.read("columnStart")) or not numpy.array_equal(lane.read("low"), first.read("low")):
+      raise ValueError(f"The {groupName} lane {lane.path} holds other nodes than the {first.group} lane {first.path}: the groups' lanes must share one grid")
+  return lanes, "computed" if computed else "reused", round(time.perf_counter() - started, 2)
+
+
+def computeLane(toolingRoot, folder, triangles, boundary, description, groupName, reportProgress):
+  """One body group's lane, reused when one of its key is kept: (Lane, "computed" or "reused")."""
   requireTriangles(triangles)
   if not description["seeds"]:
     raise ToolError("The lane has no seeds: set the safe point (setZoneProperties safePoint) or placeEntry where players arrive")
-  key = laneKey(helperFingerprint(toolingRoot), triangles, boundary, description)
+  key = laneKey(helperFingerprint(toolingRoot), triangles, boundary, description, groupName)
   folder.mkdir(parents=True, exist_ok=True)
-  lanePath = folder / f"lane-{key}.bin"
+  lanePath = folder / f"lane-{groupName}-{key}.bin"
   if lanePath.is_file():
     os.utime(lanePath)
-    return Lane(lanePath), "reused", round(time.perf_counter() - started, 2)
+    return Lane(lanePath), "reused"
   safeSeeds = [index for index, seed in enumerate(description["seeds"]) if seed["kind"] == "safePoint"]
   inputBytes = recastHelper.reachInput(
-    eqAxes.recastFromZone(numpy.asarray(triangles, dtype=numpy.float32)), numpy.asarray(boundary, dtype=bool), reachGrid, movement(), footingSearch,
+    eqAxes.recastFromZone(numpy.asarray(triangles, dtype=numpy.float32)), numpy.asarray(boundary, dtype=bool), reachGrid, movement(groupName), footingSearch,
     description["underworld"],
     machineProfile.workerCount(),
     [recastBox(box["low"], box["high"]) for box in description["swimBoxes"]],
@@ -217,7 +234,7 @@ def computeLane(toolingRoot, folder, triangles, boundary, description, reportPro
     [{"name": seed["name"], "point": eqAxes.recastFromZone(numpy.array(seed["footing"])).tolist(), "tolerance": seed["tolerance"]} for seed in description["seeds"]],
     safeSeeds[0] if safeSeeds else None,
   )
-  partialPath = folder / f"lane-{key}.bin.partial"
+  partialPath = folder / f"lane-{groupName}-{key}.bin.partial"
   try:
     _, report = recastHelper.runHelper(toolingRoot, "reach", inputBytes, reportProgress, partialPath)
     os.replace(partialPath, lanePath)
@@ -226,16 +243,21 @@ def computeLane(toolingRoot, folder, triangles, boundary, description, reportPro
   keepNewest(folder)
   lane = Lane(lanePath)
   lane.report = report
-  return lane, "computed", round(time.perf_counter() - started, 2)
+  return lane, "computed"
 
 
 class Lane:
-  """A lane file (ZWLANE01): the grid, each column's nodes, and each node's floor and ceiling (cells), swim box, shape, flood state,
-  origin seed, predecessor, and move; then the void, underworld, and zone line events, each zone line's state, and each seed's node.
-  Arrays are read on demand; the file is read to its last byte or refused."""
+  """A body group's lane file (ZWLANE01, named lane-<group>-<key>.bin): the grid, each column's nodes, and each node's floor and ceiling
+  (cells), swim box, shape, flood state, origin seed, predecessor, and move; then the void, underworld, and zone line events, each zone
+  line's state, and each seed's node. Arrays are read on demand; the file is read to its last byte or refused."""
 
   def __init__(self, path):
     self.path = Path(path)
+    named = self.path.name.split("-")
+    if len(named) < 3 or named[0] != "lane" or named[1] not in playerScale.groups:
+      raise ValueError(f"{self.path} is not named lane-<group>-<key>.bin for a body group of {list(playerScale.groupNames)}")
+    self.group = named[1]
+    self.body = playerScale.groups[self.group]
     self.report = None
     size = self.path.stat().st_size
     with self.path.open("rb") as source:
@@ -339,17 +361,18 @@ def sceneDescription(inputPath):
     swimBoxes.append({"name": box["name"], "low": low, "high": high, "liquid": box["liquid"]})
   return triangles, boundary, {
     "swimBoxes": swimBoxes, "zoneLines": zoneLines, "seeds": seeds, "plotEntrances": plots, "regions": scene["regions"],
-    "underworld": scene["underworld"], "undecidedBodies": bodies, "notFollowed": scene["notFollowed"], "boundariesKnown": True,
+    "builtFor": scene["builtFor"], "underworld": scene["underworld"], "undecidedBodies": bodies, "notFollowed": scene["notFollowed"],
+    "boundariesKnown": True,
   }
 
 
-def currentLane(toolingRoot, workFile, inputPath, reportProgress):
-  """The lane of the open scene, from bridgeLane.laneInput's file: (Lane, description, "computed" or "reused", seconds). Every consumer
-  takes the lane from here, so nothing is recomputed silently."""
+def currentLanes(toolingRoot, workFile, inputPath, reportProgress):
+  """The open scene's lanes, one per body group, from bridgeLane.laneInput's file: ({group: Lane}, description, "computed" or "reused",
+  seconds). Every consumer takes the lanes from here, so nothing is recomputed silently."""
   triangles, boundary, description = sceneDescription(inputPath)
-  lane, status, seconds = computeLane(toolingRoot, laneFolder(toolingRoot, workFile), triangles, boundary, description, reportProgress)
+  lanes, status, seconds = computeLanes(toolingRoot, laneFolder(toolingRoot, workFile), triangles, boundary, description, reportProgress)
   description["bounds"] = shippedBounds(triangles)
-  return lane, description, status, seconds
+  return lanes, description, status, seconds
 
 
 def shippedBounds(triangles):
@@ -388,12 +411,13 @@ def footingOnTriangles(triangles, point):
   return [float(x), float(y), float(z[best])], float(normalZ[best])
 
 
-def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress, regions=None, plots=None, underworld=None):
-  """The lane a zone's server files give: the collision the server rebuilds from the .map (zone axes) and the .wtr's boxes, water and
-  lava as swim boxes and zone lines as zone lines, each negative extent swapped as the server swaps it. seeds are [{name, point (zone
-  axes), kind ("safePoint", "zoneIn", or "landing"), isolated, and headingDegrees or none}], each standing on the footing found under its point; regions as
-  getRegions gives them, plot entrances [{name, point}], and the underworld (the zone row's) are optional. A record of another type is
-  listed, not modelled. Returns (Lane, description, "computed" or "reused", seconds)."""
+def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress, regions=None, plots=None, underworld=None, builtFor=None):
+  """The lanes a zone's server files give, one per body group: the collision the server rebuilds from the .map (zone axes) and the
+  .wtr's boxes, water and lava as swim boxes and zone lines as zone lines, each negative extent swapped as the server swaps it. seeds are
+  [{name, point (zone axes), kind ("safePoint", "zoneIn", or "landing"), isolated, and headingDegrees or none}], each standing on the
+  footing found under its point; regions as getRegions gives them, plot entrances [{name, point}], the underworld (the zone row's), and
+  the zone's builtFor are optional. A record of another type is listed, not modelled. Returns ({group: Lane}, description, "computed"
+  or "reused", seconds)."""
   triangles = eqAxes.zoneFromServer(serverMapFiles.mapCollision(mapBytes))
   swimBoxes, zoneLines, ignored = [], [], []
   for index, record in enumerate(serverMapFiles.readWater(waterBytes)):
@@ -419,18 +443,19 @@ def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress
   described.sort(key=lambda seed: seed["kind"] != "safePoint")
   description = {
     "swimBoxes": swimBoxes, "zoneLines": zoneLines, "seeds": described, "plotEntrances": list(plots or []), "regions": list(regions or []),
-    "underworld": underworld, "undecidedBodies": [], "notFollowed": [], "ignoredRegions": ignored, "boundariesKnown": False,
+    "builtFor": builtFor, "underworld": underworld, "undecidedBodies": [], "notFollowed": [], "ignoredRegions": ignored, "boundariesKnown": False,
   }
   boundary = numpy.zeros(len(triangles), dtype=bool)
-  lane, status, seconds = computeLane(toolingRoot, reachRoot(toolingRoot) / serverFilesFolder, triangles, boundary, description, reportProgress)
+  lanes, status, seconds = computeLanes(toolingRoot, reachRoot(toolingRoot) / serverFilesFolder, triangles, boundary, description, reportProgress)
   description["bounds"] = shippedBounds(triangles)
-  return lane, description, status, seconds
+  return lanes, description, status, seconds
 
 
 class Nodes:
-  """A lane's nodes as arrays: each one's plan cell (x along Recast x, zone y; z along Recast z, zone x), height (a floor node's floor,
-  a wet node's the middle of its water), and label, with the lane's per-node state. Labels are the design player's: a floor under water
-  he wades is walked, and that water, which only containment swims in, is squeeze."""
+  """A body group's lane's nodes as arrays: each one's plan cell (x along Recast x, zone y; z along Recast z, zone x), height (a floor
+  node's floor, a wet node's the middle of its water), and label, with the lane's per-node state. reached is containment's (any body
+  with the group's moves), reachedFull the group's own. Labels are the group's: a floor under water it wades is walked, and that water,
+  which only containment swims in, is squeeze."""
 
   def __init__(self, lane):
     self.lane = lane
@@ -449,6 +474,7 @@ class Nodes:
     self.shallow = (self.shape & shallowShape) != 0
     self.walkable = (self.shape & walkableShape) != 0
     self.reached = (self.state & reachedState) != 0
+    self.reachedFull = (self.state & reachedFullState) != 0
     self.trap = (self.state & trapState) != 0
     middle = numpy.where(self.wet, (self.low.astype(numpy.float32) + self.high.astype(numpy.float32)) / 2, self.low.astype(numpy.float32))
     self.height = (lane.origin[1] + middle * lane.cellHeight).astype(numpy.float32)
@@ -457,7 +483,7 @@ class Nodes:
     label[self.reached & ~self.walkable] = slideLabel
     label[self.reached & self.walkable] = walkLabel
     label[self.reached & (self.wet | (self.box >= 0)) & ~self.shallow] = swimLabel
-    label[self.reached & ((self.state & reachedFullState) == 0)] = squeezeLabel
+    label[self.reached & ~self.reachedFull] = squeezeLabel
     label[self.reached & ((self.shape & absorbedShape) != 0)] = zoneLineLabel
     self.label = label
 
@@ -607,8 +633,9 @@ def describeGroup(kind, lane, planX, planY, height, regionIndex, regions, length
   return problem | ({"length": round(measure, 1)} if length else {"area": round(measure * lane.cellSize, 1)})
 
 
-def groupedProblems(kind, lane, selected, nodes, regionOfNode, regions):
-  """One problem per group of the selected nodes' columns."""
+def groupedProblems(kind, lane, selected, nodes, regionOfNode, regions, tags=None):
+  """One problem per group of the selected nodes' columns; with tags ({body group: node mask}), each names the groups whose mask holds
+  any of its nodes."""
   chosen = numpy.flatnonzero(selected)
   if not len(chosen):
     return []
@@ -618,16 +645,27 @@ def groupedProblems(kind, lane, selected, nodes, regionOfNode, regions):
   problems = []
   for part in (chosen[indices] for indices in numpy.split(order, bounds)):
     planX, planY = nodes.plan(part)
-    problems.append(describeGroup(kind, lane, planX, planY, nodes.height[part], regionOfNode[part], regions))
+    problem = describeGroup(kind, lane, planX, planY, nodes.height[part], regionOfNode[part], regions)
+    if tags is not None:
+      problem["groups"] = [name for name, mask in tags.items() if mask[part].any()]
+    problems.append(problem)
   return problems
 
 
-def eventProblems(kind, eventKind, lane, nodes, regionOfNode, regions):
-  """One problem per run of the lane's events of a kind, grouped by the columns they fall into: a void edge, or a fall under the
-  underworld, each in the region the falls start from."""
-  events = lane.events[lane.events[:, 0] == eventKind]
-  if not len(events):
+def eventProblems(kind, eventKind, lanes, regionOfNode, regions):
+  """One problem per run of the body groups' lanes' events of a kind, grouped by the columns they fall into: a void edge, or a fall under
+  the underworld, each in the region the falls start from, naming the groups whose lanes hold it."""
+  kept, owners = {}, {}
+  for name, lane in lanes.items():
+    for event in lane.events[lane.events[:, 0] == eventKind]:
+      key = (int(event[1]), int(event[2]), int(event[3]))
+      kept.setdefault(key, event)
+      owners.setdefault(key, set()).add(name)
+  if not kept:
     return []
+  keys = list(kept)
+  events = numpy.array([kept[key] for key in keys])
+  lane = next(iter(lanes.values()))
   x, z = lane.columnPlaces(events[:, 2].astype(numpy.int64))
   planX = (lane.origin[2] + (z + 0.5) * lane.cellSize).astype(numpy.float32)
   planY = (lane.origin[0] + (x + 0.5) * lane.cellSize).astype(numpy.float32)
@@ -636,8 +674,11 @@ def eventProblems(kind, eventKind, lane, nodes, regionOfNode, regions):
   numbered = groups(lane, x, z)
   problems = []
   for group in numpy.unique(numbered):
-    part = numbered == group
-    problems.append(describeGroup(kind, lane, planX[part], planY[part], height[part], sources[part], regions, length=True))
+    part = numpy.flatnonzero(numbered == group)
+    found = set().union(*(owners[keys[index]] for index in part))
+    problems.append(describeGroup(kind, lane, planX[part], planY[part], height[part], sources[part], regions, length=True) | {
+      "groups": [name for name in playerScale.groupNames if name in found],
+    })
   return problems
 
 
@@ -669,78 +710,151 @@ def laneMarks(nodes, description):
   entries = []
   for seed, node in zip(description["seeds"], lane.seedNodes):
     state = int(nodes.state[node])
-    connected = True if seed["kind"] == "safePoint" else (bool(state & fromSafeState and state & toSafeState) if hasSafe else None)
+    fits = bool(nodes.reachedFull[node])
+    connected = fits if seed["kind"] == "safePoint" else (fits and bool(state & fromSafeState and state & toSafeState) if hasSafe else None)
     entries.append({"name": seed["name"], "kind": seed["kind"], "at": seed["footing"], "isolated": seed["isolated"], "connected": connected})
   plots = []
   for plot in description["plotEntrances"]:
     node = nodes.floorNodeAt(plot["point"])
-    plots.append({"name": plot["name"], "at": plot["point"], "reached": node is not None and bool(nodes.reached[node])} | ({} if node is not None else {"why": "no floor under it"}))
+    plots.append({"name": plot["name"], "at": plot["point"], "reached": node is not None and bool(nodes.reachedFull[node])} | ({} if node is not None else {"why": "no floor under it"}))
   swimReached = numpy.zeros(len(description["swimBoxes"]), dtype=bool)
-  wetReached = nodes.reached & nodes.wet
+  wetReached = nodes.reachedFull & nodes.wet
   swimReached[numpy.unique(nodes.box[wetReached])] = True
   swimBoxes = [{"name": box["name"], "reached": bool(swimReached[index])} for index, box in enumerate(description["swimBoxes"])]
+  taken = numpy.flatnonzero(nodes.reachedFull & ((nodes.shape & absorbedShape) != 0))
+  takenX, takenY = nodes.plan(taken)
+  takenZ = nodes.height[taken] + lane.cellHeight
+  caught = lane.events[lane.events[:, 0] == absorbedEvent] if len(lane.events) else lane.events
+  caughtLines = set(caught[nodes.reachedFull[caught[:, 1]], 4].tolist()) if len(caught) else set()
   zoneLines = []
   for index, line in enumerate(description["zoneLines"]):
-    reported = {"name": line["name"], "reached": bool(lane.lineReached[index])}
+    low, high = numpy.asarray(line["low"]) - lane.cellSize, numpy.asarray(line["high"]) + lane.cellSize
+    held = (takenX >= low[0]) & (takenX <= high[0]) & (takenY >= low[1]) & (takenY <= high[1]) & (takenZ >= low[2]) & (takenZ <= high[2])
+    full = bool(held.any()) or index in caughtLines
+    reported = {"name": line["name"], "reached": bool(lane.lineReached[index]) and full}
     if line["landing"] is not None:
       reported["teleport"] = {"landing": line["landing"], "followed": bool(lane.lineLanding[index] >= 0)} | ({} if lane.lineLanding[index] >= 0 else {"why": "no floor under its target"})
     zoneLines.append(reported)
   return {"nodes": nodes, "entries": entries, "zoneLines": zoneLines, "plotEntrances": plots, "swimBoxes": swimBoxes}
 
 
-def analyse(lane, description):
-  """Everything mapReach reports of a lane: entries connected or not, reached area by label, per-region reach, zone lines, plot entrances,
-  and swim boxes reached or not, and the numbered problems; with the node arrays the plan draws from."""
-  nodes = Nodes(lane)
-  marks = laneMarks(nodes, description)
-  entries, plots, swimBoxes, zoneLines = marks["entries"], marks["plotEntrances"], marks["swimBoxes"], marks["zoneLines"]
+def regionBuiltFor(description, regionName):
+  """The groups a region (by name, None outside every region) is built for: its own, else the zone's, else every group."""
+  own = next((region.get("builtFor") for region in description["regions"] if region["name"] == regionName), None)
+  return playerScale.builtForAt(description.get("builtFor"), own)
+
+
+def judgedProblem(problem, passing, description):
+  """A problem judged by the body groups that pass it against the groups its region is built for (playerScale.judged)."""
+  return problem | playerScale.judged(passing, regionBuiltFor(description, problem["region"]))
+
+
+# Problems refused by a game export whatever the groups (a leak any body reaches), and those refused only where a group the place is
+# built for fails them; every other kind is a finding, judged the same way.
+leakKinds = ("voidEdge", "belowUnderworld", "noneRegion", "outsideRegions")
+builtForFailureKinds = ("disconnectedEntry", "unreachedPlot")
+
+
+def analyse(lanes, description, shownGroup):
+  """Everything mapReach reports of the body groups' lanes ({group: Lane}): per group, entries connected or not, reached area by label,
+  per-region reach, and zone lines, plot entrances, and swim boxes reached or not; and the numbered problems, each naming the groups it
+  concerns and, where groups can miss it, judged against the groups its region (else the zone) is built for; with shownGroup's node
+  arrays, which the plan draws from."""
   regions = description["regions"]
-  regionOfNode = nodeRegions(nodes, regions)
-  access = numpy.array([{"play": 0, "view": 1, "none": 2, None: 3}[region["access"]] for region in regions] + [4], dtype=numpy.int8)
-  nodeAccess = access[regionOfNode]
-  area = lane.cellSize * lane.cellSize
-  reachedArea = {name: round(float((nodes.label == index).sum()) * area, 1) for index, name in enumerate(labelNames) if index != unreachedLabel}
-  reachedArea["trap"] = round(float(nodes.trap.sum()) * area, 1)
-  playFloor = playFloorOf(nodes, description["underworld"])
+  underworld = description["underworld"]
+  shown, regionOfNode, nodeAccess = None, None, None
+  reachedBy, fullBy, trapBy, missedPlayBy, marksBy, areaBy, perRegionBy = {}, {}, {}, {}, {}, {}, {}
+  for name in playerScale.groupNames:
+    lane = lanes[name]
+    nodes = Nodes(lane)
+    if regionOfNode is None:
+      regionOfNode = nodeRegions(nodes, regions)
+      access = numpy.array([{"play": 0, "view": 1, "none": 2, None: 3}[region["access"]] for region in regions] + [4], dtype=numpy.int8)
+      nodeAccess = access[regionOfNode]
+    marksBy[name] = laneMarks(nodes, description)
+    area = lane.cellSize * lane.cellSize
+    areaBy[name] = {label: round(float((nodes.label == index).sum()) * area, 1) for index, label in enumerate(labelNames) if index != unreachedLabel}
+    areaBy[name]["trap"] = round(float(nodes.trap.sum()) * area, 1)
+    playFloor = playFloorOf(nodes, underworld)
+    perRegionBy[name] = []
+    for index, region in enumerate(regions):
+      inside = playFloor & (regionOfNode == index)
+      total, reached = int(inside.sum()), int((inside & nodes.reachedFull).sum())
+      perRegionBy[name].append((None if total == 0 else round(reached / total, 4), round((total - reached) * area, 1) if region["access"] == "play" else None))
+    reachedBy[name], fullBy[name], trapBy[name] = nodes.reached.copy(), nodes.reachedFull.copy(), nodes.trap.copy()
+    missedPlayBy[name] = playFloor & ~nodes.reachedFull & (nodeAccess == 0)
+    del playFloor
+    if name == shownGroup:
+      shown = nodes
+    del nodes
+  if shown is None:
+    raise ValueError(f"shownGroup must be one of {list(playerScale.groupNames)}, got {shownGroup!r}")
+  lane = lanes[shownGroup]
+  reachedAny = numpy.logical_or.reduce([reachedBy[name] for name in playerScale.groupNames])
+  trapAny = numpy.logical_or.reduce([trapBy[name] for name in playerScale.groupNames])
+  missedAny = numpy.logical_or.reduce([missedPlayBy[name] for name in playerScale.groupNames])
+
+  def byGroup(listName, field, index):
+    return {name: marksBy[name][listName][index][field] for name in playerScale.groupNames}
+
+  entries = []
+  for index, entry in enumerate(marksBy[shownGroup]["entries"]):
+    entries.append({key: entry[key] for key in ("name", "kind", "at", "isolated")} | {"connected": byGroup("entries", "connected", index)})
+  plots = []
+  for index, plot in enumerate(marksBy[shownGroup]["plotEntrances"]):
+    reached = byGroup("plotEntrances", "reached", index)
+    plots.append({key: plot[key] for key in plot if key != "reached"} | {"reachedBy": [name for name in playerScale.groupNames if reached[name]]})
+  swimBoxes = []
+  for index, box in enumerate(marksBy[shownGroup]["swimBoxes"]):
+    reached = byGroup("swimBoxes", "reached", index)
+    swimBoxes.append({"name": box["name"], "reachedBy": [name for name in playerScale.groupNames if reached[name]]})
+  zoneLines = []
+  for index, line in enumerate(marksBy[shownGroup]["zoneLines"]):
+    reached = byGroup("zoneLines", "reached", index)
+    zoneLines.append({key: line[key] for key in line if key != "reached"} | {"reachedBy": [name for name in playerScale.groupNames if reached[name]]})
   perRegion = []
   for index, region in enumerate(regions):
-    inside = playFloor & (regionOfNode == index)
-    total, reached = int(inside.sum()), int((inside & nodes.reached).sum())
     perRegion.append({
-      "name": region["name"], "access": region["access"], "reachedShare": None if total == 0 else round(reached / total, 4),
-      "unreachedPlayFloor": round((total - reached) * area, 1) if region["access"] == "play" else None,
+      "name": region["name"], "access": region["access"], "builtFor": list(regionBuiltFor(description, region["name"])),
+      "reachedShare": {name: perRegionBy[name][index][0] for name in playerScale.groupNames},
+      "unreachedPlayFloor": {name: perRegionBy[name][index][1] for name in playerScale.groupNames},
     })
 
   problems = {kind: [] for kind in problemKinds}
-  problems["voidEdge"] = eventProblems("voidEdge", voidEvent, lane, nodes, regionOfNode, regions)
-  problems["belowUnderworld"] = eventProblems("belowUnderworld", belowUnderworldEvent, lane, nodes, regionOfNode, regions)
-  problems["noneRegion"] = groupedProblems("noneRegion", lane, nodes.reached & (nodeAccess == 2), nodes, regionOfNode, regions)
+  problems["voidEdge"] = eventProblems("voidEdge", voidEvent, lanes, regionOfNode, regions)
+  problems["belowUnderworld"] = eventProblems("belowUnderworld", belowUnderworldEvent, lanes, regionOfNode, regions)
+  problems["noneRegion"] = groupedProblems("noneRegion", lane, reachedAny & (nodeAccess == 2), shown, regionOfNode, regions, reachedBy)
   if regions:
-    problems["outsideRegions"] = groupedProblems("outsideRegions", lane, nodes.reached & (regionOfNode < 0), nodes, regionOfNode, regions)
+    problems["outsideRegions"] = groupedProblems("outsideRegions", lane, reachedAny & (regionOfNode < 0), shown, regionOfNode, regions, reachedBy)
   for entry in entries:
-    if entry["connected"] is False and not entry["isolated"]:
-      problems["disconnectedEntry"].append({"kind": "disconnectedEntry", "entry": entry["name"], "center": entry["at"], "region": None})
+    connected = entry["connected"]
+    if not entry["isolated"] and any(value is False for value in connected.values()):
+      found = {"kind": "disconnectedEntry", "entry": entry["name"], "center": entry["at"], "region": regionAt(regions, entry["at"])}
+      problems["disconnectedEntry"].append(judgedProblem(found, [name for name, value in connected.items() if value], description))
   for plot in plots:
-    if not plot["reached"]:
-      problems["unreachedPlot"].append({"kind": "unreachedPlot", "plot": plot["name"], "center": plot["at"], "region": None})
-  problems["trap"] = groupedProblems("trap", lane, nodes.trap, nodes, regionOfNode, regions)
-  problems["viewRegion"] = groupedProblems("viewRegion", lane, nodes.reached & (nodeAccess == 1), nodes, regionOfNode, regions)
+    if len(plot["reachedBy"]) < len(playerScale.groupNames):
+      found = {"kind": "unreachedPlot", "plot": plot["name"], "center": plot["at"], "region": regionAt(regions, plot["at"])}
+      problems["unreachedPlot"].append(judgedProblem(found, plot["reachedBy"], description))
+  problems["trap"] = groupedProblems("trap", lane, trapAny, shown, regionOfNode, regions, trapBy)
+  problems["viewRegion"] = groupedProblems("viewRegion", lane, reachedAny & (nodeAccess == 1), shown, regionOfNode, regions, reachedBy)
   for line in zoneLines:
-    if not line["reached"]:
+    if len(line["reachedBy"]) < len(playerScale.groupNames):
       box = description["zoneLines"][[candidate["name"] for candidate in description["zoneLines"]].index(line["name"])]
-      problems["unreachedZoneLine"].append({"kind": "unreachedZoneLine", "zoneLine": line["name"], "center": [round((a + b) / 2, 1) for a, b in zip(box["low"], box["high"])], "region": None})
+      center = [round((a + b) / 2, 1) for a, b in zip(box["low"], box["high"])]
+      found = {"kind": "unreachedZoneLine", "zoneLine": line["name"], "center": center, "region": regionAt(regions, center)}
+      problems["unreachedZoneLine"].append(judgedProblem(found, line["reachedBy"], description))
   for box, reported in zip(description["swimBoxes"], swimBoxes):
-    if not reported["reached"]:
-      problems["unreachedSwim"].append({"kind": "unreachedSwim", "swimBox": box["name"], "center": [round((a + b) / 2, 1) for a, b in zip(box["low"], box["high"])], "region": None})
-  problems["unreachedPlayFloor"] = groupedProblems("unreachedPlayFloor", lane, playFloor & ~nodes.reached & (nodeAccess == 0), nodes, regionOfNode, regions)
+    if len(reported["reachedBy"]) < len(playerScale.groupNames):
+      center = [round((a + b) / 2, 1) for a, b in zip(box["low"], box["high"])]
+      found = {"kind": "unreachedSwim", "swimBox": box["name"], "center": center, "region": regionAt(regions, center)}
+      problems["unreachedSwim"].append(judgedProblem(found, reported["reachedBy"], description))
+  for found in groupedProblems("unreachedPlayFloor", lane, missedAny, shown, regionOfNode, regions, missedPlayBy):
+    problems["unreachedPlayFloor"].append(judgedProblem(found, [name for name in playerScale.groupNames if name not in found["groups"]], description))
   for body in description["undecidedBodies"]:
     footprint, surface = bodyFootprint(lane, body["triangles"])
-    walked = nodes.reached & ~nodes.wet & footprint[nodes.z, nodes.x] & (nodes.height < surface)
-    for problem in groupedProblems("undecidedWater", lane, walked, nodes, regionOfNode, regions):
+    walked = reachedAny & ~shown.wet & footprint[shown.z, shown.x] & (shown.height < surface)
+    for problem in groupedProblems("undecidedWater", lane, walked, shown, regionOfNode, regions, reachedBy):
       problems["undecidedWater"].append(problem | {"body": body["name"]})
-  for kind in ("disconnectedEntry", "unreachedPlot", "unreachedZoneLine", "unreachedSwim"):
-    for problem in problems[kind]:
-      problem["region"] = regionAt(regions, problem["center"])
   # Floor smaller than the gap the grid resolves is a sliver of rasterization (a thin wall's top, a face's rim), not a place.
   smallest = (2 * lane.cellSize) ** 2
   slivers = [problem for problem in problems["unreachedPlayFloor"] if problem["area"] < smallest]
@@ -757,10 +871,21 @@ def analyse(lane, description):
   for number, problem in enumerate(listed, 1):
     problem["number"] = number
   return {
-    "nodes": nodes, "regionOfNode": regionOfNode,
-    "entries": entries, "reachedArea": reachedArea, "regions": perRegion, "zoneLines": zoneLines, "plotEntrances": plots, "swimBoxes": swimBoxes,
+    "group": shownGroup, "nodes": shown, "regionOfNode": regionOfNode, "fullBy": fullBy,
+    "entries": entries, "reachedArea": areaBy, "regions": perRegion, "zoneLines": zoneLines, "plotEntrances": plots, "swimBoxes": swimBoxes,
     "problems": listed, "moreProblems": more,
   }
+
+
+def groupsReaching(lanes, node):
+  """The body groups whose own lane reaches a node (the groups' lanes share their nodes)."""
+  return [name for name in playerScale.groupNames if lanes[name].read("state")[node] & reachedFullState]
+
+
+def isFailure(problem):
+  """Whether a game export refuses a lane problem: a leak always, a disconnected entry or an unreached plot where a group its place is
+  built for misses it."""
+  return problem["kind"] in leakKinds or (problem["kind"] in builtForFailureKinds and problem["verdict"] == "fails")
 
 
 def regionAt(regions, point):
@@ -800,7 +925,8 @@ def walkPlaces(nodes):
 
 def problemRadius(problem, description):
   """How far a problem reaches from its center: half its extent's diagonal in plan or half its height, its box's for a zone line or swim
-  box, and never under playerHeight."""
+  box, and never under the tallest group's playerHeight."""
+  least = playerScale.tallest().playerHeight
   if "extent" in problem:
     low, high = numpy.asarray(problem["extent"]["minimum"]), numpy.asarray(problem["extent"]["maximum"])
   elif "zoneLine" in problem or "swimBox" in problem:
@@ -808,8 +934,8 @@ def problemRadius(problem, description):
     box = next(box for box in boxes if box["name"] == problem.get("zoneLine", problem.get("swimBox")))
     low, high = numpy.asarray(box["low"]), numpy.asarray(box["high"])
   else:
-    return playerScale.playerHeight
-  return max(float(numpy.hypot(*(high[:2] - low[:2]))) / 2, float(high[2] - low[2]) / 2, playerScale.playerHeight)
+    return least
+  return max(float(numpy.hypot(*(high[:2] - low[:2]))) / 2, float(high[2] - low[2]) / 2, least)
 
 
 def problemSights(standing, problem, description, farthest):
@@ -847,10 +973,12 @@ def laneTerms(lane, description):
   return {"constants": constantsReport(), "notModeled": notModeled, "limits": stated}
 
 
-def report(lane, description, analysis, status, seconds):
-  """mapReach's JSON: what the lane used and cannot see, and what it found."""
-  return laneTerms(lane, description) | {
-    "reachGrid": reachGrid, "lane": status, "seconds": seconds, "laneFile": str(lane.path), "nodes": lane.nodeCount,
+def report(lanes, description, analysis, status, seconds):
+  """mapReach's JSON: what the lanes used and cannot see, and what they found, per body group."""
+  shown = lanes[analysis["group"]]
+  return laneTerms(shown, description) | {
+    "reachGrid": reachGrid, "lane": status, "seconds": seconds, "laneFiles": {name: str(lane.path) for name, lane in lanes.items()}, "nodes": shown.nodeCount,
+    "builtFor": list(playerScale.builtForAt(description.get("builtFor"), None)), "planGroup": analysis["group"],
     "entries": analysis["entries"], "notFollowed": description["notFollowed"], "reachedArea": analysis["reachedArea"], "regions": analysis["regions"],
     "zoneLines": analysis["zoneLines"], "plotEntrances": analysis["plotEntrances"], "swimBoxes": analysis["swimBoxes"],
     "problems": analysis["problems"], "moreProblems": analysis["moreProblems"],
@@ -874,23 +1002,23 @@ tintColumns = numpy.dtype([("x", "<u2"), ("z", "<u2"), ("low", "<u2"), ("label",
 chunkNodes = 1 << 22
 
 
-def entryLane(toolingRoot, workFile, inputPath, entryName, reportProgress):
-  """The lane seeded at one arrival alone (a stored entry by name, or "safe point"), from bridgeLane.laneInput's file: (Lane,
-  description, "computed" or "reused", seconds)."""
+def entryLanes(toolingRoot, workFile, inputPath, entryName, reportProgress):
+  """The body groups' lanes seeded at one arrival alone (a stored entry by name, or "safe point"), from bridgeLane.laneInput's file:
+  ({group: Lane}, description, "computed" or "reused", seconds)."""
   triangles, boundary, description = sceneDescription(inputPath)
   chosen = [seed for seed in description["seeds"] if seed["name"] == entryName]
   if not chosen:
     raise ToolError(f"No arrival named '{entryName}': the lane starts from {[seed['name'] for seed in description['seeds']]}")
   description["seeds"] = chosen
-  lane, status, seconds = computeLane(toolingRoot, laneFolder(toolingRoot, workFile), triangles, boundary, description, reportProgress)
+  lanes, status, seconds = computeLanes(toolingRoot, laneFolder(toolingRoot, workFile), triangles, boundary, description, reportProgress)
   description["bounds"] = shippedBounds(triangles)
-  return lane, description, status, seconds
+  return lanes, description, status, seconds
 
 
 def stepRise(lane):
-  """The rise across one column over which a walk is a step up a riser: more than the steepest face players walk rises across a column,
-  by the cell height its floors are known to."""
-  return lane.cellSize * math.tan(math.radians(playerScale.steepestWalkableDegrees)) + lane.cellHeight
+  """The rise across one column over which a walk is a step up a riser: more than the steepest face the lane's group walks rises across
+  a column, by the cell height its floors are known to."""
+  return lane.cellSize * math.tan(math.radians(lane.body.steepestWalkableDegrees)) + lane.cellHeight
 
 
 def nodePoint(nodes, node):
@@ -958,7 +1086,7 @@ def routeLegs(nodes, chain, moves):
       leg["steps"] = leg["moves"]
     between = climbed[-1] if climbed else None
     run = climbed[-2] if len(climbed) > 1 else None
-    if leg["move"] == "step" and run is not None and run["move"] == "step" and between["move"] == "walk" and between["length"] < playerScale.playerHeight and run["label"] == between["label"] == leg["label"]:
+    if leg["move"] == "step" and run is not None and run["move"] == "step" and between["move"] == "walk" and between["length"] < nodes.lane.body.playerHeight and run["label"] == between["label"] == leg["label"]:
       run.update(
         end=leg["end"], length=run["length"] + between["length"] + leg["length"], moves=run["moves"] + between["moves"] + leg["moves"],
         steps=run["steps"] + leg["steps"], last=leg["last"],
@@ -1038,39 +1166,42 @@ def routeFrame(nodes, chain, points, moves, leg):
     heading = 0.0 if earlier is None else math.degrees(math.atan2(stand[0] - points[earlier][0], stand[1] - points[earlier][1])) % 360
   else:
     heading = math.degrees(math.atan2(seen[0] - stand[0], seen[1] - stand[1])) % 360
+  body = nodes.lane.body
   if nodes.wet[chain[index]]:
-    eye = [stand[0], stand[1], stand[2] + playerScale.swimEyeAboveSurface]
+    eye = [stand[0], stand[1], stand[2] + body.swimEyeAboveSurface]
     ahead = [math.sin(math.radians(heading)), math.cos(math.radians(heading))]
     target = seen if across >= 1e-6 else [eye[0] + ahead[0], eye[1] + ahead[1], eye[2]]
     return {"eye": roundedPoint(eye), "target": roundedPoint(target)}
-  pitch = math.degrees(math.atan2(seen[2] - (stand[2] + playerScale.eyeHeight), max(across, nodes.lane.cellSize)))
-  view = {"standAt": roundedPoint(stand, 3), "headingDegrees": round(heading, 2), "pitchDegrees": round(pitch, 2)}
-  return view | ({"figureAt": roundedPoint(seen, 3)} if across >= playerScale.playerHeight and not nodes.wet[chain[look]] else {})
+  pitch = math.degrees(math.atan2(seen[2] - (stand[2] + body.eyeHeight), max(across, nodes.lane.cellSize)))
+  view = {"standAt": roundedPoint(stand, 3), "headingDegrees": round(heading, 2), "pitchDegrees": round(pitch, 2), "bodyGroup": nodes.lane.group}
+  return view | ({"figureAt": roundedPoint(seen, 3)} if across >= body.playerHeight and not nodes.wet[chain[look]] else {})
 
 
 def levelColumns(nodes, level):
-  """The columns (z * columnsX + x) holding dry floor no one reaches within the step of a height, sorted."""
+  """The columns (z * columnsX + x) holding dry floor the lane's group does not reach within its step of a height, sorted."""
   held = []
+  step = nodes.lane.body.stepHeight
   for start in range(0, nodes.lane.nodeCount, chunkNodes):
     part = slice(start, min(nodes.lane.nodeCount, start + chunkNodes))
-    chosen = numpy.flatnonzero(~nodes.reached[part] & ~nodes.wet[part] & (numpy.abs(nodes.height[part] - level) <= playerScale.stepHeight))
+    chosen = numpy.flatnonzero(~nodes.reachedFull[part] & ~nodes.wet[part] & (numpy.abs(nodes.height[part] - level) <= step))
     held.append(nodes.z[part][chosen].astype(numpy.int64) * nodes.lane.columnsX + nodes.x[part][chosen])
   return numpy.unique(numpy.concatenate(held)) if held else numpy.zeros(0, dtype=numpy.int64)
 
 
 def nearestReached(nodes, point):
-  """The reached node nearest a point (in plan alone when it has no height), leaving out those a zone line took (players there are gone)
-  and, for a point with a height, those under or over its level: in a column holding floor no one reaches within the step of the point's
-  height while standing further from it than the step, where the point's level lies straight overhead or underfoot. None when nothing is
-  left."""
+  """The node the lane's group reaches nearest a point (in plan alone when it has no height), leaving out those a zone line took (players
+  there are gone) and, for a point with a height, those under or over its level: in a column holding floor the group does not reach
+  within its step of the point's height while standing further from it than the step, where the point's level lies straight overhead or
+  underfoot. None when nothing is left."""
   best, bestDistance = None, math.inf
+  step = nodes.lane.body.stepHeight
   covered = levelColumns(nodes, point[2]) if len(point) == 3 else None
   for start in range(0, nodes.lane.nodeCount, chunkNodes):
     part = slice(start, min(nodes.lane.nodeCount, start + chunkNodes))
-    chosen = numpy.flatnonzero(nodes.reached[part] & ((nodes.shape[part] & absorbedShape) == 0)) + start
+    chosen = numpy.flatnonzero(nodes.reachedFull[part] & ((nodes.shape[part] & absorbedShape) == 0)) + start
     if covered is not None and len(chosen):
       column = nodes.z[chosen].astype(numpy.int64) * nodes.lane.columnsX + nodes.x[chosen]
-      chosen = chosen[~(numpy.isin(column, covered) & (numpy.abs(nodes.height[chosen] - point[2]) > playerScale.stepHeight))]
+      chosen = chosen[~(numpy.isin(column, covered) & (numpy.abs(nodes.height[chosen] - point[2]) > step))]
     if not len(chosen):
       continue
     planX, planY = nodes.plan(chosen)
@@ -1145,13 +1276,14 @@ def zoneLineHolding(description, point):
 
 
 def transitionFailure(nodes, description, current, node):
-  """What stops a player going from one node to the node beside it on a traced line, by the lane's moves: a dict with the kind it looks
-  like before the collision is asked (rise, steep, headroom, ceiling, water, zoneLine), or None where a move goes on. As the helper's
-  moves do, a step or a drop takes the containment headroom of open space shared by the two nodes: a drop onto floor whose open space
-  ends under the floor it is made from meets the ceiling over that floor, or, where that space is lower than the containment headroom,
-  the gap's headroom."""
+  """What stops a player of the lane's body group going from one node to the node beside it on a traced line, by the lane's moves: a dict
+  with the kind it looks like before the collision is asked (rise, steep, headroom, ceiling, water, zoneLine), or None where a move goes
+  on. As the helper's moves for the group do, a step or a drop takes the group's playerHeight of open space shared by the two nodes: a
+  drop onto floor whose open space ends under the floor it is made from meets the ceiling over that floor, or, where that space is lower
+  than the group's height, the gap's headroom."""
   lane = nodes.lane
-  moving = movement()
+  moving = movement(lane.group)
+  clearance = moving["playerHeight"]
   low, high = float(lane.height(nodes.low[current])), float(lane.height(nodes.high[current]))
   otherLow, otherHigh = float(lane.height(nodes.low[node])), float(lane.height(nodes.high[node]))
   if nodes.shape[node] & absorbedShape:
@@ -1173,14 +1305,14 @@ def transitionFailure(nodes, description, current, node):
     return {"kind": "rise", "height": round(otherLow - low, 2), "limit": moving["stepHeight"]}
   overlap = min(high, otherHigh) - max(low, otherLow)
   if low - otherLow > moving["stepHeight"]:
-    if overlap >= moving["containmentHeadroom"]:
+    if overlap >= clearance:
       return None
-    if otherHigh - otherLow < moving["containmentHeadroom"]:
+    if otherHigh - otherLow < clearance:
       return {"kind": "headroom", "clearance": round(otherHigh - otherLow, 2)}
     return {"kind": "ceiling", "ceiling": round(otherHigh, 2), "floor": round(low, 2)}
   if otherLow > low and not (nodes.walkable[current] and nodes.walkable[node]):
     return {"kind": "steep", "steepNode": node if not nodes.walkable[node] else current}
-  if overlap < moving["containmentHeadroom"]:
+  if overlap < clearance:
     return {"kind": "headroom", "clearance": round(overlap, 2)}
   return None
 
@@ -1241,9 +1373,9 @@ def standBack(nodes, description, start, targetPoint):
   for x, z, _, _ in sideBySide(lineColumns(lane, startPoint[:2], away))[1:]:
     column = lane.columnOf(x, z)
     node = None if column is None else tracedNode(nodes, column, current)
-    if node is None or not nodes.reached[node] or nodes.shape[node] & absorbedShape or transitionFailure(nodes, description, current, node) is not None:
+    if node is None or not nodes.reachedFull[node] or nodes.shape[node] & absorbedShape or transitionFailure(nodes, description, current, node) is not None:
       break
-    if not nodes.wet[current] and lane.height(nodes.low[current]) - lane.height(nodes.low[node]) > playerScale.stepHeight:
+    if not nodes.wet[current] and lane.height(nodes.low[current]) - lane.height(nodes.low[node]) > lane.body.stepHeight:
       break
     current = node
   return current
@@ -1255,7 +1387,7 @@ def separationProbes(nodes, found):
   steep one) around that floor. Each list holds None where nothing is asked: no cast across a stop within one column, from a floor to
   the floor over or under it."""
   lane = nodes.lane
-  moving = movement()
+  moving = movement(lane.group)
   crossings, columns = [], []
   for stop in found:
     if stop["kind"] in ("noFloor", "zoneLine"):
@@ -1285,12 +1417,13 @@ def separationProbes(nodes, found):
 def separations(nodes, found, crossed, profiles, targetLevel):
   """What separates a reached node from a traced point at targetLevel (its height, or None for a point without one), from
   separationWalk's stops and what the collision showed at each (bridgeLane traceProbes): a boundary the cast across meets, by name;
-  under a rise, a gap within the step of the floor left from that is lower than the containment headroom (headroom, with its
+  under a rise, a gap within the step of the floor left from that is lower than the lane's group's playerHeight (headroom, with its
   clearance) when the gap's floor is the level the line goes for (within the step of targetLevel, or of the floor left from for a point
   without a height), else the rise; a rise by how much it passes its limit; a steep face by its degrees; a ceiling over the floor a drop
   would land on; water no bank within the step of the box's top leaves; a zone line's box; no floor at all; floor sealed off."""
   lane = nodes.lane
-  moving = movement()
+  moving = movement(lane.group)
+  clearance = moving["playerHeight"]
   stated = []
   for stop, crossing, profile in zip(found, crossed, profiles):
     kind = stop["kind"]
@@ -1308,8 +1441,8 @@ def separations(nodes, found, crossed, profiles, targetLevel):
       floor = max((face["z"] for face in profile if face["normalZ"] > 0 and abs(face["z"] - level) <= moving["stepHeight"]), default=None)
       ceiling = None if floor is None else min((face["z"] for face in profile if face["z"] > floor), default=None)
       goesFor = level if targetLevel is None else targetLevel
-      if ceiling is not None and ceiling - floor < moving["containmentHeadroom"] and abs(goesFor - floor) <= moving["stepHeight"]:
-        stated.append(shown | {"kind": "headroom", "at": roundedPoint([far[0], far[1], floor]), "clearance": round(ceiling - floor, 2), "needs": moving["containmentHeadroom"]})
+      if ceiling is not None and ceiling - floor < clearance and abs(goesFor - floor) <= moving["stepHeight"]:
+        stated.append(shown | {"kind": "headroom", "at": roundedPoint([far[0], far[1], floor]), "clearance": round(ceiling - floor, 2), "needs": clearance})
         continue
     if kind == "rise":
       reported = shown | {"at": roundedPoint(far), "from": roundedPoint(near), "height": stop["height"], "limit": stop["limit"], "over": round(stop["height"] - stop["limit"], 2)}
@@ -1323,9 +1456,9 @@ def separations(nodes, found, crossed, profiles, targetLevel):
       height = float(lane.height(nodes.low[steep]))
       face = min((face for face in profile or [] if abs(face["z"] - height) <= moving["stepHeight"]), key=lambda face: abs(face["z"] - height), default=None)
       measured = {"degrees": None, "why": "no face crosses the column's middle"} if face is None else {"degrees": round(math.degrees(math.acos(min(1.0, abs(face["normalZ"])))), 1)}
-      stated.append(shown | {"at": roundedPoint(nodePoint(nodes, steep))} | measured | {"steepestWalkable": round(playerScale.steepestWalkableDegrees, 1)})
+      stated.append(shown | {"at": roundedPoint(nodePoint(nodes, steep))} | measured | {"steepestWalkable": round(lane.body.steepestWalkableDegrees, 1)})
     elif kind == "headroom":
-      stated.append(shown | {"at": roundedPoint(far), "clearance": stop["clearance"], "needs": moving["containmentHeadroom"]})
+      stated.append(shown | {"at": roundedPoint(far), "clearance": stop["clearance"], "needs": clearance})
     elif kind == "sealed":
       stated.append(shown | {"at": roundedPoint(far), "why": "open space joins this floor to no reached place: it lies inside a closed solid or a sealed room"})
     elif kind == "ceiling":
@@ -1334,7 +1467,7 @@ def separations(nodes, found, crossed, profiles, targetLevel):
       stated.append(shown | {"at": roundedPoint(far)} | {key: stop[key] for key in ("swimBox", "boxTop", "bank", "overClimb")})
     else:
       stated.append(shown | {"at": roundedPoint(far), "zoneLine": stop["zoneLine"]})
-  return mergedSeparations(stated, nodes.lane.cellSize)
+  return mergedSeparations(stated, nodes.lane.cellSize, moving["stepHeight"])
 
 
 def separationText(stop):
@@ -1357,7 +1490,7 @@ def separationText(stop):
   return {"noFloor": "no floor", "sealed": "sealed"}[kind]
 
 
-def mergedSeparations(stated, cellSize):
+def mergedSeparations(stated, cellSize, stepHeight):
   """Separations of one kind (and one boundary, box, or zone line) in columns side by side along the line as one, from where it starts
   through where it ends (through, at alongThrough), over how many columns: a steep face by its steepest, a rise by its whole height, a
   gap by its lowest clearance; and gaps one after another at floors within the step of each other, nothing else between, as one gap
@@ -1366,7 +1499,7 @@ def mergedSeparations(stated, cellSize):
   for stop in stated:
     before = merged[-1] if merged else None
     alike = before is not None and before["kind"] == stop["kind"] and all(before.get(key) == stop.get(key) for key in ("name", "swimBox", "zoneLine"))
-    oneGap = alike and stop["kind"] == "headroom" and abs(stop["at"][2] - before["at"][2]) <= playerScale.stepHeight
+    oneGap = alike and stop["kind"] == "headroom" and abs(stop["at"][2] - before["at"][2]) <= stepHeight
     if not alike or (stop["along"] - before["until"] > 1.5 * cellSize and not oneGap):
       merged.append(stop | {"until": stop.get("alongThrough", stop["along"]), "columns": stop.get("columns", 1)})
       continue
@@ -1386,7 +1519,7 @@ def mergedSeparations(stated, cellSize):
 
 def laneCut(nodes, points, bottom, top):
   """Where a section's line (points [x, y], its legs laid end to end, s along it) crosses the lane, between bottom and top: reached
-  floors as bars at their heights by label, reached water as bands from its bottom to its top (water the design player wades shown by
+  floors as bars at their heights by label, reached water as bands from its bottom to its top (water the lane's group wades shown by
   the floor under it, as the plan shows it), walkable floor never reached that open
   space joins to the lane (never the inside of a closed solid or a boundary's top), and leak edges (where a fall onto nothing or under
   the underworld starts, at the floor it starts from); each run of columns of one kind, label, and height merged."""
@@ -1415,7 +1548,7 @@ def laneCut(nodes, points, bottom, top):
         continue
       if inside:
         marks.setdefault(key, []).append([s0, s1])
-  cut = {"bars": [], "bands": [], "unreached": [], "leaks": []}
+  cut = {"group": lane.group, "bars": [], "bands": [], "unreached": [], "leaks": []}
   for (kind, label, low, high), spans in marks.items():
     spans.sort()
     merged = [spans[0]]

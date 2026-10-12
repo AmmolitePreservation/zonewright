@@ -10,6 +10,7 @@ import math
 import bpy
 import mathutils
 
+import bridgeBodyGroups
 import bridgeBoundaries
 import bridgeCommands
 import bridgeExport
@@ -19,8 +20,8 @@ import bridgeObjects
 import bridgeSwim
 import bridgeViews
 import eqgFiles
+import playerScale
 import serverRows
-from playerScale import playerHeight, steepestWalkableDegrees, walkableNormalZ
 
 entryCollectionName = "entries"
 entryKinds = ("zoneIn", "landing")
@@ -75,7 +76,7 @@ def entryHeading(entry):
   return math.degrees(math.atan2(forward.x, forward.y)) % 360
 
 
-def standsInto(box, footing):
+def standsInto(box, footing, playerHeight):
   """Whether the space a player stands in over a footing, playerHeight up from it, meets a box empty (a swim volume or zone line: a
   unit cube scaled to its half extents), its faces included. The client tests a player's origin, which stands somewhere in that space
   by race and size."""
@@ -106,32 +107,41 @@ def undecidedSurfaceOver(footing):
   return None
 
 
-def footingProblem(footing, at):
-  """Why players cannot arrive on a footing found for `at`, or None."""
-  if footing is None:
-    return f"No ground the zone ships lies at {at}: reference zones, placed client objects, guides, and what players pass through are not ground"
-  point = roundPoint(footing.point)
+def groupProblem(footing, point, body):
+  """Why a body group's players cannot arrive on a footing, or None."""
   slope = math.degrees(math.acos(max(-1.0, min(1.0, footing.normal.z))))
-  if footing.normal.z < walkableNormalZ:
-    return f"The footing at {point} slopes {slope:.1f} degrees, steeper than players walk ({steepestWalkableDegrees:.1f}, playerScale)"
-  if footing.overhead is not None and footing.overhead[0].z - footing.point.z < playerHeight:
-    return f"The footing at {point} has {footing.overhead[0].z - footing.point.z:.2f} of headroom, under a player's height ({playerHeight:g}, playerScale)"
+  if footing.normal.z < body.walkableNormalZ:
+    return f"slopes {slope:.1f} degrees, steeper than the {body.name} group walks ({body.steepestWalkableDegrees:.1f}, playerScale)"
+  if footing.overhead is not None and footing.overhead[0].z - footing.point.z < body.playerHeight:
+    return f"has {footing.overhead[0].z - footing.point.z:.2f} of headroom, under the {body.name} group's height ({body.playerHeight:g}, playerScale)"
   for line in bridgeBoundaries.zoneLineObjects():
-    if bridgeBoundaries.isAuthored(line) and standsInto(line, footing.point):
-      return (
-        f"A player standing on the footing at {point} ({playerHeight:g} tall, playerScale) reaches into zone line '{line.name}': players"
-        " arriving there would zone out at once"
-      )
+    if bridgeBoundaries.isAuthored(line) and standsInto(line, footing.point, body.playerHeight):
+      return f"a {body.name} player standing there ({body.playerHeight:g} tall, playerScale) reaches into zone line '{line.name}' and would zone out at once"
   for box in bridgeSwim.swimBoxes():
-    if standsInto(box, footing.point):
+    if standsInto(box, footing.point, body.playerHeight):
       return (
-        f"A player standing on the footing at {point} ({playerHeight:g} tall, playerScale) reaches into swim volume '{box.name}': players"
-        " would arrive in its water, wading or swimming by its depth"
+        f"a {body.name} player standing there ({body.playerHeight:g} tall, playerScale) reaches into swim volume '{box.name}' and would"
+        " arrive in its water, wading or swimming by its depth"
       )
+  return None
+
+
+def footingProblem(footing, at):
+  """Why players cannot arrive on a footing found for `at` (None where they can), and what each body group meets there: (refusal or
+  None, {group: what stops it}). A group the spot is built for (bridgeBodyGroups) that cannot arrive refuses the footing; another group
+  is a finding."""
+  if footing is None:
+    return f"No ground the zone ships lies at {at}: reference zones, placed client objects, guides, and what players pass through are not ground", {}
+  point = roundPoint(footing.point)
   body = undecidedSurfaceOver(footing)
   if body is not None:
-    return f"The footing at {point} lies under the surface of '{body}', whose swimming is undecided: whether players arrive wading or swimming is not designed yet (buildSwimVolumes, placeSwimVolume, or editWater swimmable false)"
-  return None
+    return f"The footing at {point} lies under the surface of '{body}', whose swimming is undecided: whether players arrive wading or swimming is not designed yet (buildSwimVolumes, placeSwimVolume, or editWater swimmable false)", {}
+  stopped = {name: found for name in playerScale.groupNames if (found := groupProblem(footing, point, playerScale.groups[name])) is not None}
+  builtFor = bridgeBodyGroups.BuiltFor().at(footing.point)
+  failing = {name: why for name, why in stopped.items() if name in builtFor}
+  if failing:
+    return f"The footing at {point}, built for {list(builtFor)}, " + "; ".join(failing.values()), stopped
+  return None, stopped
 
 
 def requireEntryValues(name, at, headingDegrees, kind, fromZone, fromNumber, isolated):
@@ -173,7 +183,7 @@ def placeEntry(name, at, headingDegrees, kind, fromZone, fromNumber, isolated):
   requireEntryValues(name, at, headingDegrees, kind, fromZone, fromNumber, isolated)
   ground = ShippedGround(bridgeExport.collisionTriangles())
   footing = ground.footing(at)
-  problem = footingProblem(footing, at)
+  problem, stopped = footingProblem(footing, at)
   if problem is not None:
     raise ValueError(problem)
   replaced = bpy.data.objects.get(name)
@@ -181,13 +191,13 @@ def placeEntry(name, at, headingDegrees, kind, fromZone, fromNumber, isolated):
     bpy.data.objects.remove(replaced)
   entry = bpy.data.objects.new(name, None)
   entry.empty_display_type = "ARROWS"
-  entry.empty_display_size = playerHeight
+  entry.empty_display_size = playerScale.tallest().playerHeight
   entry.location = footing.point
   entry.rotation_euler = (0.0, 0.0, math.radians(-headingDegrees))
   entry[bridgeMeshAccess.entryProperty] = json.dumps({"kind": kind, "fromZone": fromZone, "fromNumber": fromNumber, "isolated": isolated})
   bridgeObjects.targetCollection(entryCollectionName).objects.link(entry)
   bpy.context.view_layer.update()
-  return describeEntry(entry, ground) | {"replaced": replaced is not None}
+  return describeEntry(entry, ground) | {"replaced": replaced is not None, "groupFindings": stopped}
 
 
 def describeEntry(entry, ground):

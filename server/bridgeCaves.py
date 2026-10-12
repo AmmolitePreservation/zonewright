@@ -18,6 +18,7 @@ import mathutils.kdtree
 import numpy
 
 import bridgeAuthoring
+import bridgeBodyGroups
 import bridgeCaveData
 import bridgeCaveLight
 import bridgeCaveRuns
@@ -118,8 +119,12 @@ def caveDefinition(
     raise ValueError(f"breakup is {{featureSize, amplitude, seed}} with a positive featureSize and amplitude, got {breakup!r}")
   if mouthFade is not None and mouthFade < 0:
     raise ValueError(f"mouthFade is a distance, at least 0, got {mouthFade}")
-  if not 0 < maximumFloorDegrees <= playerScale.steepestWalkableDegrees:
-    raise ValueError(f"maximumFloorDegrees is above 0 and at most {playerScale.steepestWalkableDegrees:.1f} (the steepest face players walk, playerScale), got {maximumFloorDegrees}")
+  climbing = bridgeBodyGroups.strictestAt(main["path"][0])
+  if not 0 < maximumFloorDegrees <= climbing.steepestWalkableDegrees:
+    raise ValueError(
+      f"maximumFloorDegrees is above 0 and at most {climbing.steepestWalkableDegrees:.1f} (the steepest face every body group the cave's"
+      f" start is built for walks, {list(climbing.groups)}, playerScale), got {maximumFloorDegrees}"
+    )
   if not minimumRock > 0:
     raise ValueError(f"minimumRock is the least rock left between two passages of a cave or two caves, positive, got {minimumRock}")
   for material in (wallMaterial, floorMaterial):
@@ -325,10 +330,12 @@ def sectionPoints(shape, floors, directions, widths, heights, scales):
 
 
 class TerrainSurface:
-  """The terrain (its triangles over shown positions) as it is seen near a line in plan, for casts. Only its triangles with a corner
-  within `margin` of the line's plan box are taken, so a large terrain costs no more than the ground in reach."""
+  """The terrain (its triangles over shown positions) as it is seen near a line in plan, for casts, judged for what every body group
+  its first plan point is built for climbs (bridgeBodyGroups.strictestAt). Only its triangles with a corner within `margin` of the
+  line's plan box are taken, so a large terrain costs no more than the ground in reach."""
 
   def __init__(self, shown, triangles, plan, margin):
+    self.climbing = bridgeBodyGroups.strictestAt([float(value) for value in numpy.asarray(plan, dtype=numpy.float64)[0, :2]])
     plan = numpy.asarray(plan, dtype=numpy.float64)[:, :2]
     near = ((shown[:, :2] >= plan.min(axis=0) - margin) & (shown[:, :2] <= plan.max(axis=0) + margin)).all(axis=1)
     triangles = triangles[near[triangles].any(axis=1)]
@@ -365,14 +372,15 @@ class TerrainSurface:
     """Whether each point stands within a step of walkable ground: over it in the open by a step or less, or under it by a step or less
     where the ground over it is walkable rather than a cliff's face."""
     standing = numpy.zeros(len(points), dtype=bool)
+    step, walkable = self.climbing.stepHeight, self.climbing.walkableNormalZ
     for index, point in enumerate(points.tolist()):
       origin = mathutils.Vector(point)
       location, normal, _, distance = self.tree.ray_cast(origin, up)
       if location is not None and normal.z > 0:
-        standing[index] = distance <= playerScale.stepHeight and normal.z >= playerScale.walkableNormalZ
+        standing[index] = distance <= step and normal.z >= walkable
       else:
         location, _, _, distance = self.tree.ray_cast(origin, down)
-        standing[index] = location is not None and distance <= playerScale.stepHeight
+        standing[index] = location is not None and distance <= step
     return standing
 
   def faceBeside(self, point, toSide, reach):
@@ -448,7 +456,7 @@ def requireOpenEnd(surface, line, run, end, owner):
     low, high = 0.0, float(line.stations[index])
   alongs = numpy.linspace(low, high, max(2, math.ceil((high - low) / 2.0) + 1))
   floors, _, widths, heights = line.at(alongs)
-  buried = surface.depths(floors + [0.0, 0.0, 0.01]) > playerScale.stepHeight
+  buried = surface.depths(floors + [0.0, 0.0, 0.01]) > surface.climbing.stepHeight
   vaultOpen = surface.depths(floors + numpy.column_stack([numpy.zeros((len(floors), 2)), heights])) <= 0
   trench = buried & vaultOpen
   spacing = (high - low) / (len(alongs) - 1)
@@ -526,7 +534,7 @@ def endKind(definition, shape, surface, floor, direction, width, height, end, ow
   named = bridgeCaveRuns.capitalized(owner)
   if (depths > 0).all():
     return "blind", not hall
-  if depths.max() <= playerScale.stepHeight:
+  if depths.max() <= surface.climbing.stepHeight:
     return "open", False
   if hall:
     raise ValueError(
@@ -965,11 +973,13 @@ def junctionOf(branch, parent, rows, unbroken, parentTree):
       " it would leave a hole in the parent's floor. Start it level with the parent's floor or above it"
     )
   rise = float(start[2] - relievedFloorsAt(parent, start[None])[0][0])
-  if rise > playerScale.stepHeight + 1e-9 and not branch["run"]["overlook"]:
+  builtFor = bridgeBodyGroups.BuiltFor().at([float(value) for value in start])
+  climbing = playerScale.strictest(builtFor)
+  if rise > climbing.stepHeight + 1e-9 and not branch["run"]["overlook"]:
     raise ValueError(
-      f"{named} starts {rise:.1f} over its parent '{parent['name']}''s floor, more than a step ({playerScale.stepHeight:g}):"
-      " a branch starts on its parent's floor; an opening high in the parent's wall that nobody walks through (a balcony, a window) is an"
-      " overlook: give the branch overlook true"
+      f"{named} starts {rise:.1f} over its parent '{parent['name']}''s floor, more than a step ({climbing.stepHeight:g}) for the body groups"
+      f" it is built for ({list(builtFor)}, playerScale): a branch starts on its parent's floor; an opening high in the parent's wall that"
+      " nobody walks through (a balcony, a window) is an overlook: give the branch overlook true"
     )
   reach = signedDistances(parentTree, first)
   if reach.max() > junctionTolerance:
@@ -996,6 +1006,7 @@ def junctionOf(branch, parent, rows, unbroken, parentTree):
   requireNoTrench(branch, parent, high)
   return {
     "branch": branch["name"], "from": parent["name"], "start": roundedPoint(start), "rise": round(rise, 2), "overlook": branch["run"]["overlook"],
+    "steppedUpBy": [name for name in playerScale.groupNames if rise <= playerScale.groups[name].stepHeight + 1e-9], "builtFor": list(builtFor),
     "exitAlong": high, "frame": {
       "center": roundedPoint(exitFloor), "facingDegrees": round(math.degrees(math.atan2(-exitDirection[0], -exitDirection[1])) % 360.0, 1),
       "width": round(float(exitWidth), 1), "height": round(float(exitHeight), 1),

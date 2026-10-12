@@ -1,7 +1,7 @@
-"""The player's lane in plan: where players reach, by label (walk green, swim blue, slide orange, squeeze pink, taken by a zone line
-yellow, traps hatched orange), water the design player wades lined blue over its floor's fill, walkable floor they never reach (open
+"""A body group's lane in plan: where its players reach, by label (walk green, swim blue, slide orange, squeeze pink, taken by a zone line
+yellow, traps hatched orange), water the group wades lined blue over its floor's fill, walkable floor they never reach (open
 space joins it to the lane) cross-hatched dark, alone or over a level reached under it, columns reached at a level under a higher one or
-under water standing clear of it dotted (black where the design player fits there, pink where only a smaller one does), ledges
+under water standing clear of it dotted (black where the group fits there, pink where only a smaller body does), ledges
 (reached walkable floors side by side more than the step apart, where the plan resolves columns) dark, leak edges (onto nothing or under
 the underworld) magenta, the edges where a zone line catches a fall green, zone lines hatched green when reached and dashed when not,
 swim boxes dashed over the fill, seeds as white arrows (hollow when isolated), plot entrances as ticks (a red X when unreached), region
@@ -28,8 +28,8 @@ labelWords = {
   playerReach.walkLabel: "walk", playerReach.swimLabel: "swim (a floor in a swim box)", playerReach.slideLabel: "slide (too steep to stand)",
   playerReach.squeezeLabel: "squeeze (only a smaller player)", playerReach.zoneLineLabel: "taken by a zone line",
 }
-# What a section's water bands are, by label: water the design player swims, water only a smaller player passes through (under too little
-# open space for the design player), and water a zone line takes.
+# What a section's water bands are, by label: water the lane's group swims, water only a smaller body passes through (under too little
+# open space for the group), and water a zone line takes.
 bandWords = {playerReach.swimLabel: "water swum", playerReach.squeezeLabel: "water only a smaller player swims", playerReach.zoneLineLabel: "water a zone line takes"}
 fillAlpha = 125
 # A view's lane tint moves each pixel of reached floor this share of the way toward its label's color.
@@ -139,7 +139,7 @@ class LanePlan:
     carried = None
     # A column's nodes lie together, lowest first, each floor before the water over it, so the last reached one of a run is the
     # column's top; a column split between two chunks has its higher nodes in the later one, which writes over the earlier, and its lower
-    # level carried over. Water the design player wades is drawn by the floor under it; water standing clear of the floor and the water
+    # level carried over. Water the lane's group wades is drawn by the floor under it; water standing clear of the floor and the water
     # under it (a floating box) is a level of its own.
     held = None
     for start in range(0, lane.nodeCount, playerReach.chunkNodes):
@@ -204,13 +204,13 @@ class LanePlan:
 
   def pixels(self, frame, size):
     """Each pixel's label and flags, and whether it lies on a ledge: where two pixels side by side lie on neighbouring columns whose
-    reached walkable floors differ by more than the step (playerScale.stepHeight), the edge of a platform, roof, or pit the plan's fills
+    reached walkable floors differ by more than the lane's group's step, the edge of a platform, roof, or pit the plan's fills
     alone would not show; drawn only where the plan resolves columns, so a plan zoomed out draws no bands down steep walls."""
     inside, rows, columns = self.sample(frame, size)
     label = numpy.where(inside, self.label[rows, columns], 0)
     flags = numpy.where(inside, self.flags[rows, columns], 0)
     floors = numpy.where(inside, self.floorTop[rows, columns], 0).astype(numpy.int32)
-    climb = playerScale.stepHeight / self.lane.cellHeight
+    climb = self.lane.body.stepHeight / self.lane.cellHeight
     ledge = numpy.zeros(floors.shape, dtype=bool)
     for axis in (0, 1):
       first, second = (floors[:-1], floors[1:]) if axis == 0 else (floors[:, :-1], floors[:, 1:])
@@ -318,8 +318,12 @@ class LanePlan:
     boxes = []
     for line, reported in zip(self.description["zoneLines"], self.analysis["zoneLines"]):
       (x0, y0), (x1, y1) = frame.pixel(line["high"][:2]), frame.pixel(line["low"][:2])
-      boxes.append(((min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)), line, reported["reached"]))
+      boxes.append(((min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)), line, self.isReached(reported)))
     return boxes
+
+  def isReached(self, reported):
+    """Whether the lane's body group reaches a zone line or plot entrance as analyse (reachedBy) or laneMarks (reached) reports it."""
+    return self.lane.group in reported["reachedBy"] if "reachedBy" in reported else reported["reached"]
 
   def strokes(self, draw, frame):
     for box in self.description["swimBoxes"]:
@@ -347,14 +351,15 @@ class LanePlan:
         self.shown.add("zoneLineReached" if reached else "zoneLineUnreached")
     for plot in self.analysis["plotEntrances"]:
       x, y = frame.pixel(plot["at"])
-      if plot["reached"]:
+      reached = self.isReached(plot)
+      if reached:
         draw.line([(x - plotMark, y), (x + plotMark, y)], fill=(*plotColor, 255), width=3)
         draw.line([(x, y - plotMark), (x, y + plotMark)], fill=(*plotColor, 255), width=3)
       else:
         draw.line([(x - plotMark, y - plotMark), (x + plotMark, y + plotMark)], fill=(*unreachedPlotColor, 255), width=4)
         draw.line([(x - plotMark, y + plotMark), (x + plotMark, y - plotMark)], fill=(*unreachedPlotColor, 255), width=4)
       if self.inFrame(frame, plot["at"]):
-        self.shown.add("plotReached" if plot["reached"] else "plotUnreached")
+        self.shown.add("plotReached" if reached else "plotUnreached")
     for seed, entry in zip(self.description["seeds"], self.analysis["entries"]):
       drawSeed(draw, frame.pixel(entry["at"]), seed.get("headingDegrees"), seed["isolated"])
       if self.inFrame(frame, entry["at"]):
@@ -433,13 +438,14 @@ class LanePlan:
     """The drawing's key, each entry (kind of mark, color, words): the labels and marks the lane drew in the frame (fill and strokes
     record them), each fill as it shows over the relief, and, for a whole lane plan, each kind of problem in the frame with its numbers;
     then base, the entries of the plan's own layers under the lane (planLayerLegend), and which way the plan's axes run."""
+    body = self.lane.body
     keyed = [
       *[(("label", label), ("fill", overRelief(labelColors[label], fillAlpha), labelWords[label])) for label in labelColors],
-      (("flag", wadedFlag), ("waves", wadedColor, f"water waded: no deeper than {playerScale.minimumSwimDepth:g}")),
+      (("flag", wadedFlag), ("waves", wadedColor, f"water waded: no deeper than {body.minimumSwimDepth:g}")),
       (("flag", trapFlag), ("hatch", trapColor, "trap (no way back)")), (("flag", unreachedFlag), ("crossHatch", unreachedColor, "walkable, never reached")),
       (("flag", layeredFlag), ("dots", layeredColor, "reached under a higher level")),
       (("flag", squeezeLayeredFlag), ("dots", squeezeLayeredColor, "only a smaller player under it")),
-      ("ledge", ("ledge", ledgeColor, f"ledge: walked floors side by side more than the step ({playerScale.stepHeight:g}) apart")),
+      ("ledge", ("ledge", ledgeColor, f"ledge: walked floors side by side more than the step ({body.stepHeight:g}) apart")),
       ("void", ("line", voidColor, "leak edge (onto nothing or under the underworld)")), ("catch", ("line", catchColor, "a zone line catches the fall")),
       ("zoneLineReached", ("hatchedBox", zoneLineColor, "zone line reached")), ("zoneLineUnreached", ("dashedBox", zoneLineColor, "zone line not reached")),
       *[(("swimBox", liquid), ("swimBox", planDrawing.swimColors[liquid], f"{liquid} swim volume")) for liquid in sorted(planDrawing.swimColors)],
@@ -453,7 +459,10 @@ class LanePlan:
       for problem in self.problemsIn(frame):
         byKind.setdefault(problem["kind"], []).append(problem["number"])
       items += [("ring", problemColor, f"{numberRuns(numbers)} {kind}") for kind, numbers in byKind.items()]
-    return items + list(base) + [("text", legendTextColor, "plan: +X (north) up, +Y left")]
+    return items + list(base) + [
+      ("text", legendTextColor, f"the {self.lane.group} body group's lane ({body.playerHeight:g} tall; squeeze: only a smaller body)"),
+      ("text", legendTextColor, "plan: +X (north) up, +Y left"),
+    ]
 
 
 class RoutePlan(LanePlan):
@@ -559,7 +568,7 @@ class SectionLane:
     run past: the ground's face steeper than walkable that rises to the floor's height, or the edge of a swim box (swim, the section's
     cuts of them) holding the floor, where it enters the box for a start and leaves it for an end."""
     cellSize, cellHeight = playerReach.reachGrid["cellSize"], playerReach.reachGrid["cellHeight"]
-    steep = math.tan(math.radians(playerScale.steepestWalkableDegrees))
+    steep = math.tan(math.radians(playerScale.groups[self.cut["group"]].steepestWalkableDegrees))
     s0, s1 = mark["s"]
     faces = []
     for a0, z0, a1, z1 in ground:

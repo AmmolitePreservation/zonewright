@@ -4,8 +4,13 @@ import re
 import numpy
 
 import eqgFiles
+import playerScale
 import zoneGeometry
-from playerScale import playerHeight, walkableNormalZ
+
+# The client's zones are described as the medium body group, most of the playable races, meets them: its walkable faces and its height
+# between levels. They describe, never judge, so one group serves.
+surveyBody = playerScale.groups["medium"]
+walkableNormalZ, playerHeight = surveyBody.walkableNormalZ, surveyBody.playerHeight
 
 probeColumnsPerSide = 128
 slopeBandEdges = (0, 15, 30, 45, 60, 75, 90)
@@ -286,7 +291,7 @@ def measureConstruction(geometry, frames):
 
 
 # Bump a group's version when its method or output changes; only that group is recomputed.
-# A group measured by the player's limits (playerScale) names them in its version, so a cached value is measured again once they change.
+# A group measured by the survey body's limits (playerScale) names them in its version, so a cached value is measured again once they change.
 measuredGroups = {
   "dimensions": (1, measureDimensions),
   "surfaces": (f"2 walkableNormalZ {walkableNormalZ:g}", measureSurfaces),

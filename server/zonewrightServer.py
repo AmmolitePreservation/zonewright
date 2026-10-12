@@ -891,6 +891,7 @@ async def setZoneProperties(
   timeType: str | None = None,
   entryGate: dict | str | None = None,
   serverTemplate: str | None = None,
+  builtFor: list[str] | None = None,
 ):
   """Set the zone's EQ properties stored in the .blend, in the client's lighting terms (docs/clientRendering.md): ambient, special
   ambient, bounce, and sun colors (0-1, raw as the client uses them); the direction toward the sun (azimuth 0 = +Y, clockwise;
@@ -919,13 +920,15 @@ async def setZoneProperties(
   (a character needs the zone flag for this zone's id, granted by a GM or a quest; the server reads no text flag); and
   serverTemplate, a zone the client registers, not this one, whose version-0 row a new zone row copies every column zonewright does not
   write from (ruleset, XP multiplier, binding, combat, levitation, outdoor casting, gravity, lava damage, client limits, idle timing).
-  The result gives how the client resolves the sky and the light it supplies."""
+  builtFor is the body groups the zone is built for (playerScale: small, medium, large; every group until set), which every check
+  judges a spot by unless its region sets its own (createRegion builtFor): a group it is built for that cannot pass is a failure, any
+  other group a finding. The result gives how the client resolves the sky and the light it supplies."""
   updates = {
     "ambientColor": ambientColor, "specialAmbientColor": specialAmbientColor, "bounceColor": bounceColor, "sunColor": sunColor,
     "sunAzimuthDegrees": sunAzimuthDegrees, "sunElevationDegrees": sunElevationDegrees, "fogColor": fogColor, "fogStart": fogStart,
     "fogEnd": fogEnd, "fogDensity": fogDensity, "fogOn": fogOn, "minClip": minClip, "maxClip": maxClip, "newEngineZone": newEngineZone, "sky": sky,
     "safePoint": safePoint, "underworld": underworld, "shortName": shortName, "zoneId": zoneId, "longName": longName, "timeType": timeType,
-    "entryGate": entryGate, "serverTemplate": serverTemplate,
+    "entryGate": entryGate, "serverTemplate": serverTemplate, "builtFor": builtFor,
   }
   given = {key: value for key, value in updates.items() if value is not None}
   if not given:
@@ -1010,7 +1013,18 @@ async def zoneFigureModel(zone):
   if "newEngineZone" not in zone:
     return None
   figure = await anyio.to_thread.run_sync(spawnModel, None, figureModelCode, figureHeight, bool(zone["newEngineZone"]))
-  return {key: figure[key] for key in ("folder", "scale", "avatarHeight")}
+  return {key: figure[key] for key in ("folder", "scale", "avatarHeight")} | {"bodyGroup": playerScale.groupOfCode(figureModelCode)}
+
+
+def chosenGroup(bodyGroup, zoneBuiltFor, chooser):
+  """The body group a picture or check is for: bodyGroup as given, else the one chooser (playerScale.viewGroup or planGroup) picks from
+  the groups the zone is built for."""
+  if bodyGroup is None:
+    return chooser(playerScale.builtForAt(zoneBuiltFor, None))
+  try:
+    return playerScale.group(bodyGroup).name
+  except ValueError as error:
+    raise ToolError(str(error)) from error
 
 
 async def scaleFigureModel(zone, view):
@@ -1024,7 +1038,9 @@ async def scaleFigureModel(zone, view):
   " {\"eye\": [x,y,z], \"target\": [x,y,z]}, or {\"standAt\": [x,y] or [x,y,z], \"headingDegrees\": h, \"pitchDegrees\": p} (on the"
   " highest ground players stand on at [x,y], never what they pass through (as walkRoute), or with z on the ground found from 3 above"
   " z down to 50 below it, for caves, under overhangs, and on ledges; heading 0 = +Y, clockwise;"
-  f" eye {playerScale.eyeHeight:g} above the ground"
+  " the eye at the body group's eyeHeight above the ground (playerScale: "
+  + ", ".join(f"{name} {playerScale.groups[name].eyeHeight:g}" for name in playerScale.groupNames)
+  + "; the view's own \"bodyGroup\", else the tool's bodyGroup, else the middle of the groups the zone is built for)"
   ", or, where water stands over that with nothing players stand on between (not under a floating pool's basin), a unit over the"
   " water's surface, swimming; adds a dark elf female of height 5, the race"
   " default, drawn as the client draws her in the zone (newEngineZone), walked ahead along the ground and facing the camera, or stood"
@@ -1066,15 +1082,15 @@ async def scaleFigureModel(zone, view):
   " boundaries (walls, lids, floors) stand, which the client never draws, a wall as a slab thick enough to show from above, and green"
   " where the zone lines stand, seen through the water but hidden behind and under the ground; with swimVolumes, the view is tinted"
   " where the swim volumes stand (cyan water, magenta lava), each box seen through the water, so its top shows evenly under a surface"
-  " it meets or lies just below, but hidden behind and under the ground; with lane, the view is tinted where it shows floor players"
-  f" reach, {round(laneDrawing.tintAlpha * 100)}% toward the color mapReach's lane gives it (walk green, swim blue for a floor in a"
+  " it meets or lies just below, but hidden behind and under the ground; with lane, the view is tinted where it shows floor the body"
+  f" group (bodyGroup, as for the eye) reaches, {round(laneDrawing.tintAlpha * 100)}% toward the color mapReach's lane of that group gives it (walk green, swim blue for a floor in a"
   " swim box, slide orange, squeeze pink, taken by a zone line yellow), pixel by pixel: each pixel's point is placed from the view's"
   " depth, and one on a face no steeper than"
   f" {math.degrees(math.acos(buildTolerances.laneTintNormalZ)):.0f} degrees that lies on a reached floor of its column"
   " (within a cell height of it, and down the face's slope across the column under it) is tinted, the floor under the water through"
   " it, never the scale figure, the walls, or what stands on the floor, nor what the guides' tint covers, under the swim volumes'"
   " tint; a band under the render names the labels it tints. The result's laneState gives whether the lane was computed or reused,"
-  " the lane file, the constants, what is not modelled, and the limits as mapReach does, and laneTint how many of the lane's columns"
+  " its body group and lane file, the constants, what is not modelled, and the limits as mapReach does, and laneTint how many of the lane's columns"
   " the view holds within its far clip and field, the share of its pixels tinted, and the labels. A perspective view's result gives"
   " its vertical field of view. Liquids draw as they"
   " stand at effect time 0, or at"
@@ -1095,21 +1111,26 @@ async def renderView(
   liquidTime: float | None = None,
   carriedLight: dict | None = None,
   lane: bool = False,
+  bodyGroup: str | None = None,
 ):
   outputPath = newRenderPath()
   zone = await callBridge(context, "getZoneProperties", {})
   carried = viewersCarriedLight(zone, carriedLight)
   viewer = await viewersSpecialAmbient(context, zone, carriedLight)
+  groupName = chosenGroup(bodyGroup, zone.get("builtFor"), playerScale.viewGroup)
+  if ({"standAt", "standOn"} & set(view)) and "bodyGroup" not in view:
+    view = view | {"bodyGroup": groupName}
   laneTint, laneState = None, None
   if lane:
-    reached, description, status, seconds = await sceneLaneOnly(context)
+    lanes, description, status, seconds = await sceneLaneOnly(context)
+    reached = lanes[groupName]
     laneTint = {
       "path": str(await anyio.to_thread.run_sync(playerReach.laneTint, reached)), "origin": reached.origin.tolist(), "cellSize": reached.cellSize,
       "cellHeight": reached.cellHeight, "columnsX": reached.columnsX, "alpha": laneDrawing.tintAlpha,
       "colors": {str(label): [channel / 255 for channel in color] for label, color in laneDrawing.labelColors.items()},
       "slopeReach": [[normalZ, playerReach.seedTolerance(normalZ)] for normalZ in numpy.linspace(0.0, 1.0, laneSlopeSamples).tolist()],
     }
-    laneState = {"lane": status, "seconds": seconds, "laneFile": str(reached.path)} | playerReach.laneTerms(reached, description)
+    laneState = {"lane": status, "seconds": seconds, "bodyGroup": groupName, "laneFile": str(reached.path)} | playerReach.laneTerms(reached, description)
   description = await callBridge(context, "renderView", {
     "view": view, "outputPath": str(outputPath), "figureModel": await scaleFigureModel(zone, view), "shading": shading, "bandHeight": bandHeight,
     "guides": guides, "sky": await zoneSky(zone), "swimVolumes": swimVolumes, "labels": labels, "emitters": await previewEmitterAssets(),
@@ -1724,9 +1745,10 @@ async def sceneArchive(context, short, client):
 
 
 async def verifiedTour(context, zone):
-  """The scene's lane tour (laneTour's), its lane through currentLane as every lane's consumer takes it, its nodes made only when no tour
-  is kept: (tour, "computed" or "reused")."""
-  lane, description, _, _ = await sceneLaneOnly(context)
+  """The scene's lane tour (laneTour's) for the view group of the groups the zone is built for, its lane through currentLanes as every
+  lane's consumer takes it, its nodes made only when no tour is kept: (tour, "computed" or "reused")."""
+  lanes, description, _, _ = await sceneLaneOnly(context)
+  lane = lanes[chosenGroup(None, description["builtFor"], playerScale.viewGroup)]
   far = laneViews.farSight(zone)
   kept, _ = laneViews.keptTour(lane, far)
   if kept is not None:
@@ -1868,7 +1890,7 @@ async def verifyExport(context: Context, path: str):
   checks.append(await anyio.to_thread.run_sync(exportVerification.clientModelsCheck, files["archive"], files["pieces"], files["map"], manifest, zoneSources.resolveClientRoot(), short))
   await step("mapping the lane the server files give")
   checks.append(await anyio.to_thread.run_sync(
-    exportVerification.containmentCheck, files["map"], files["water"], entries, regions, zone.get("underworld"), manifest, toolingRoot, progress,
+    exportVerification.containmentCheck, files["map"], files["water"], entries, regions, zone.get("underworld"), zone.get("builtFor"), manifest, toolingRoot, progress,
   ))
 
   views = [{"name": camera["name"], "source": "review camera", "view": {"camera": camera["name"]}} for camera in cameras]
@@ -2217,22 +2239,29 @@ async def measure(context: Context, points: list[list[float]], snapToSurface: bo
   " bridge, flight, or walkway named `route` (its centerline at deck height, run on 5 past each end that stands on footing), or along a"
   " cave's run (`cave` {objectName, name, run}, run \"main\" unless a branch is named): its centerline at its floor from its first point"
   " to its last, arcs included, a branch's walk starting at the cave's own start and following each run it leaves to its junction; whose"
-  " heights only need to be within a step of the footing (so a route can run over an arch or under it). Judged for the player of"
-  f" playerScale, {playerScale.playerHeight:g} units tall, who walks faces up to {playerScale.steepestWalkableDegrees:.1f} degrees and steps up"
-  f" {playerScale.stepHeight:g} (the steepest face and the highest riser a player was seen to climb in the RoF2 client, so the"
-  " client's own limits lie at or past them; playerScale.sources), in half-unit strides whatever `sampleSpacing`, which sets only the"
-  " profile's rows (give one of `path`, `route`, and `cave`; renderRouteStrip shows the walk in pictures). Returns the length walked, the"
+  " heights only need to be within a step of the footing (so a route can run over an arch or under it). Walked once for each body group"
+  " of playerScale, each with its own height, width, step, and steepest walkable face ("
+  + "; ".join(
+    f"{name}: {body.playerHeight:g} tall, {body.playerWidth:g} wide, steps {body.stepHeight:g}, walks up to {body.steepestWalkableDegrees:.1f} degrees"
+    for name, body in playerScale.groups.items()
+  )
+  + "; each value's source in playerScale), in half-unit strides whatever `sampleSpacing`, which sets only the"
+  " profile's rows (give one of `path`, `route`, and `cave`; renderRouteStrip shows the walk in pictures). Per group (`groups`): the length walked, the"
   " steepest face stood on, the steepest grade climbed or descended between two profile rows (steepestGrade: a stair's level treads"
-  " stand at 0 but climb at its pitch), the narrowest footing (how far it runs to each side before a drop of more than a player's"
-  " height, a wall, a step too high, or a face too steep; null beyond 60), the lowest headroom, the deepest water over the footing;"
-  " `problems`, everything that stops a player, each once over the stretch it covers: blocked (a boundary across the way at half a"
-  f" player's height, where it stands), rise (a wall or step over {playerScale.stepHeight:g} in the way, its height, how far up its face"
-  f" stays steeper than {playerScale.steepestWalkableDegrees:.1f}, a plane's as much as a block's; null past 60), drop (no footing within 60 below), steep (a"
-  f" face over {playerScale.steepestWalkableDegrees:.1f} climbed, its steepest), headroom (under {playerScale.playerHeight:g}, its lowest); after a boundary, a"
-  " rise, or a drop the walk takes up again where the route's own heights find footing (resumesAt, null if never); `oneWay`, ways down a"
-  f" player cannot climb back: ledge (a drop over a step, its height) and steep (a face over {playerScale.steepestWalkableDegrees:.1f} descended); walkable when"
-  " there are no problems; and a profile along the way (each row with the water depth over its footing, or null). Use it on decks,"
-  " ramps, ledges, and the ways into an area."
+  " stand at 0 but climb at its pitch), the narrowest footing (how far it runs to each side before a drop of more than the group's"
+  " height, a wall, a step too high, or a face too steep; null beyond 60), the tightest opening (the least width across the way, at"
+  " half and nearly all of the group's height, between what stands within its width to each side), the lowest headroom, the deepest"
+  " water over the footing; `problems`, everything that stops the group, each once over the stretch it covers: blocked (a boundary"
+  " across the way at half its height, where it stands), rise (a wall or step over its step in the way, its height, how far up its face"
+  " stays steeper than it walks, a plane's as much as a block's; null past 60), drop (no footing within 60 below), steep (a face over"
+  " its steepest climbed, its steepest), headroom (under its height, its lowest), narrow (an opening narrower than its width, its"
+  " narrowest); after a boundary, a rise, or a drop the walk takes up again where the route's own heights find footing (resumesAt, null"
+  " if never); `oneWay`, ways down the group cannot climb back: ledge (a drop over a step, its height) and steep (a face over its"
+  " steepest descended); walkable when there are no problems; and a profile along the way (each row with the water depth over its"
+  " footing, or null). Each problem is judged where it lies against the groups its region (else the zone) is built for (builtFor):"
+  " verdict \"fails\" when the group is one of them, \"finding\" otherwise. The result's verdict is the worst of its problems' (\"passes\""
+  " without any), with passingGroups, the groups that walk it whole, and the measures it was judged by. Use it on decks, ramps, ledges,"
+  " openings, and the ways into an area."
 ))
 async def walkRoute(
   context: Context, path: list[list[float]] | None = None, route: str | None = None, cave: dict | None = None, sampleSpacing: float = 4.0,
@@ -2440,7 +2469,7 @@ async def regradeTerrain(context: Context, objectName: str):
   f" relief raising a wall's foot to within {buildTolerances.wallFootClearance:g} of the lowest trim band or of the top of the walls' straight part (naming the wall and"
   " where); a pad sunk where no rock lies under it; a branch whose first section reaches out of its parent (naming how far and where),"
   " whose floor where it starts lies under its parent's (a hole; off a slope, naming the climb across its width; under a stroke, naming"
-  f" it) or more than a step ({playerScale.stepHeight:g}) over it without overlook, that would cut a trench more than {buildTolerances.trenchTolerance:g} deep through its parent's rubble or pad (naming it), that never leaves its"
+  f" it) or more than a step over it for the body groups its start is built for (the least of their stepHeight, playerScale) without overlook, that would cut a trench more than {buildTolerances.trenchTolerance:g} deep through its parent's rubble or pad (naming it), that never leaves its"
   " parent, named twice or \"main\", or leaving an unknown run; a branch opening into an unknown run, its last section reaching out of the"
   " run it opens into (naming how far), its floor there under that run's, or its end there with no height; two runs closer than"
   " minimumRock away from their junctions, or a run passing"
@@ -2736,24 +2765,31 @@ async def placeEmitters(context: Context, emitters: list[dict], collection: str 
 
 
 @guardedTool()
-async def createRegion(context: Context, name: str, outline: list[list[float]], bottom: float, top: float, intent: str, access: str):
+async def createRegion(
+  context: Context, name: str, outline: list[list[float]], bottom: float, top: float, intent: str, access: str, builtFor: list[str] | None = None,
+):
   """Mark an area of the zone for what it is to become: a vertical prism over `outline` ([[x, y], ...], in order) from `bottom` to
   `top`, kept in the regions collection (seen in Blender, never rendered or exported) with its `intent` ("north guild terrace: packed
   earth, dwellings carved into the back wall") and its `access`, whether players reach it: "play" (they walk or swim there; walking
   against swimming is the swim volumes' decision), "view" (seen but never entered: a backdrop slope, a far shore), or "none" (never
-  reached: behind the rim, rock interiors, under the world). A zone is planned as regions first and each is shaped, surfaced, and
-  dressed for its own intent; the {"region": name} selector confines any tool to one."""
-  return await callBridge(context, "createRegion", {"name": name, "outline": outline, "bottom": bottom, "top": top, "intent": intent, "access": access})
+  reached: behind the rim, rock interiors, under the world). `builtFor`, the body groups (playerScale: small, medium, large) the area
+  is built for when it differs from the zone's (setZoneProperties builtFor, every group unless set): a gnome quarter in a human town
+  ["small"], a giants' hall in a gnome town ["large"]; left out, the region follows the zone. Every check judges a spot by its region's
+  groups, else its zone's: a group it is built for that cannot pass is a failure, any other a finding. A zone is planned as regions
+  first and each is shaped, surfaced, and dressed for its own intent; the {"region": name} selector confines any tool to one."""
+  return await callBridge(context, "createRegion", {"name": name, "outline": outline, "bottom": bottom, "top": top, "intent": intent, "access": access, "builtFor": builtFor})
 
 
 @guardedTool()
 async def editRegion(
   context: Context, name: str, outline: list[list[float]] | None = None, bottom: float | None = None, top: float | None = None, intent: str | None = None,
-  access: str | None = None,
+  access: str | None = None, builtFor: list[str] | str | None = None,
 ):
-  """Change a region's outline, bottom, top, intent, or access (play, view, or none) as the plan changes. Refused, changing nothing,
-  when any of them is invalid."""
-  return await callBridge(context, "editRegion", {"name": name, "outline": outline, "bottom": bottom, "top": top, "intent": intent, "access": access})
+  """Change a region's outline, bottom, top, intent, access (play, view, or none), or builtFor (the body groups it is built for, or
+  "zone" to follow the zone's again) as the plan changes. Refused, changing nothing, when any of them is invalid."""
+  return await callBridge(context, "editRegion", {
+    "name": name, "outline": outline, "bottom": bottom, "top": top, "intent": intent, "access": access, "builtFor": builtFor,
+  })
 
 
 sketchShapeHelp = (
@@ -2795,6 +2831,7 @@ async def getSketch(context: Context, sheet: str | None = None):
 async def renderSketch(
   context: Context, center: list[float], width: float, sheets: list[str] | None = None,
   layers: list[str] = ["regions", "plots", "water", "boundaries", "zoneLines", "entries", "caves"], bandHeight: float = 25.0, spotHeights: bool = True,
+  bodyGroup: str | None = None,
 ):
   """Draw a plan: the zone from straight above in quiet grey relief (lighter higher, a step every bandHeight units, slopes shaded
   from the game's northwest), `width` units across (along y) about `center`, the game's north (+X) up and east (-Y) right as the
@@ -2812,7 +2849,8 @@ async def renderSketch(
   surface runs on tucked under its banks: blue, lava orange), swim (the swim volumes, dashed, cyan water and magenta lava, each
   named inside itself where its name fits clear of the other labels, else by its number; `unnamedSwimVolumes` lists those in the
   drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled),
-  zoneLines (their boxes faintly green, named), and, asked for, lane (where players reach, as mapReach draws it without its problems
+  zoneLines (their boxes faintly green, named), and, asked for, lane (where the body group bodyGroup reaches (else the group with the
+  most clearance of those the zone is built for), as mapReach draws it without its problems
   and regions, over the regions' fills and the caves' pale floors and under the caves' walls: walk green, swim blue, water waded lined
   blue, slide orange, squeeze pink, taken by a zone line yellow, traps hatched orange, walkable floor never reached cross-hatched (alone,
   or over a level reached under it), ledges dark, leak edges magenta, zone lines hatched when reached, swim boxes dashed, seeds as white
@@ -2835,9 +2873,9 @@ async def renderSketch(
   overlays = await callBridge(context, "planOverlays", {"sheets": sheets, "layers": [layer for layer in layers if layer != "lane"], "spots": spots})
   lanePlan, laneState = None, None
   if "lane" in layers:
-    lane, description, status, seconds, analysis = await sceneLane(context)
+    lanes, description, status, seconds, analysis = await sceneLane(context, bodyGroup)
     lanePlan = laneDrawing.LanePlan(analysis, description, None, False)
-    laneState = {"lane": status, "seconds": seconds} | playerReach.laneTerms(lane, description)
+    laneState = {"lane": status, "seconds": seconds, "bodyGroup": analysis["group"]} | playerReach.laneTerms(lanes[analysis["group"]], description)
   outputPath = newRenderPath()
   drawn = await anyio.to_thread.run_sync(planDrawing.drawPlan, basePath, outputPath, center, width, overlays, lanePlan)
   basePath.unlink()
@@ -3029,10 +3067,11 @@ async def fittedLanePlan(context, framing, lanePlan, sky):
 
 
 @guardedTool()
-async def viewFromLane(context: Context, target: str | list[float] | None = None, count: int | None = None):
-  """See the zone as players see it, from the lane (mapReach): eyes stand where players reach, never where only a smaller player fits,
-  on reached walkable floor (eyeHeight over the ground the zone ships at the column's middle, where that ground is the lane's floor as
-  a seed's footing is its node's) or in a swim box's water open to the air where the design player swims, deeper than minimumSwimDepth
+async def viewFromLane(context: Context, target: str | list[float] | None = None, count: int | None = None, bodyGroup: str | None = None):
+  """See the zone as a body group's players see it (bodyGroup, playerScale; else the middle of the groups the zone is built for), from
+  the group's lane (mapReach): eyes stand where the group reaches, never where only a smaller body fits,
+  on reached walkable floor (the group's eyeHeight over the ground the zone ships at the column's middle, where that ground is the lane's floor as
+  a seed's footing is its node's) or in a swim box's water open to the air where the group swims, deeper than its minimumSwimDepth
   (swimming, swimEyeAboveSurface over the box's top, where the water over the floor is deeper than eyeHeight - swimEyeAboveSurface, else
   wading, eyeHeight over the floor, as renderView's standAt views stand a player), and look no farther than the far sight (maxClip, or
   the fog's end when fog is on and nearer). Without a target, a tour: `count` eyes (at most 8, and 8 unless given) from one candidate
@@ -3076,12 +3115,13 @@ async def viewFromLane(context: Context, target: str | list[float] | None = None
   sky = await zoneSky(zone)
   await callBridge(context, "requireViewZone", {"sky": sky})
   far = laneViews.farSight(zone)
-  lane, description, laneStatus, seconds, analysis = await sceneLane(context)
+  lanes, description, laneStatus, seconds, analysis = await sceneLane(context, chosenGroup(bodyGroup, zone.get("builtFor"), playerScale.viewGroup))
   nodes = analysis["nodes"]
+  lane = lanes[analysis["group"]]
   result = playerReach.laneTerms(lane, description)
-  result["constants"] |= laneViews.constantsUsed()
+  result["constants"] |= laneViews.constantsUsed(lane.group)
   result["limits"] += laneViews.limits(far, target is not None)
-  result |= {"lane": laneStatus, "seconds": seconds, "laneFile": str(lane.path), "farSight": far}
+  result |= {"lane": laneStatus, "seconds": seconds, "bodyGroup": lane.group, "laneFile": str(lane.path), "farSight": far}
   if target is None:
     kept, tourPath, tourStatus = await laneTour(context, lane, nodes, description, far)
     eyes = kept["eyes"][:count]
@@ -3111,7 +3151,7 @@ async def viewFromLane(context: Context, target: str | list[float] | None = None
     result |= {"target": laneViews.describeSubject(subject), "candidates": len(candidates["node"])} | judged
     labels = [laneViews.targetLabel(eye) for eye in eyes]
     eyePlan = laneViews.EyePlan(analysis, description, eyes, subject, judged["unseenSectors"], pointSeen)
-    framing = laneViews.planFraming([subject["low"], subject["high"]] + [eye["eye"] for eye in eyes], 0.15, 12 * playerScale.playerHeight)
+    framing = laneViews.planFraming([subject["low"], subject["high"]] + [eye["eye"] for eye in eyes], 0.15, 12 * lane.body.playerHeight)
     planLabel = "the lane plan: the target outlined, each eye numbered as its view and pointing at it"
     outline = await anyio.to_thread.run_sync(laneViews.outlineOnFloor, nodes, subject) if subject["kind"] == "region" else None
     marks = [(subject, seen, outline) for seen in eyeSeen]
@@ -3243,6 +3283,8 @@ def problemText(problem):
     text = "blocked by a boundary"
   elif kind == "steep":
     text = f"steep climb, {problem['steepestDegrees']:g} degrees"
+  elif kind == "narrow":
+    text = f"opening {problem['narrowest']:g} wide"
   else:
     text = f"headroom {problem['lowest']:g}"
   if "resumesAt" in problem:
@@ -3252,27 +3294,31 @@ def problemText(problem):
 
 @guardedTool(description=(
   "walkRoute as a strip of eye-level frames: walks a saved review route or a bridge's, flight's, or walkway's walk line (route), a"
-  " path [[x, y, z], ...], or a cave's run (cave {objectName, name, run}) as walkRoute does, and renders a frame every `spacing` along"
-  " it in plan (from its start) and one where each problem the walk meets starts, each standing where the walk stands there ("
-  f"eye {playerScale.eyeHeight:g} over the footing"
-  "; no scale figure), heading along the route and pitched toward where the walk stands 30 further on, or toward the brink where it"
+  " path [[x, y, z], ...], or a cave's run (cave {objectName, name, run}) as walkRoute does for one body group (bodyGroup, playerScale;"
+  " else the middle of the groups the zone is built for), and renders a frame every `spacing` along"
+  " it in plan (from its start) and one where each problem the walk meets starts, each standing where the walk stands there (the"
+  " group's eyeHeight over the footing; no scale figure), heading along the route and pitched toward where the walk stands 30 further on, or toward the brink where it"
   " stops if sooner (a problem's frame looks past the problem: down past the brink of a drop), laid out on one sheet in order along"
   " the route, each labeled with its distance and any problem (up to 16 frames). Places the walk cannot reach, between a stop and"
-  " where it walks on, get no frame (stationsNotStoodOn); the problem's frame shows why. The result gives the walk (length in plan,"
-  " walkable, problems, oneWay) and each frame's distance, view (renderView renders it, adding the scale figure), problem, and render"
+  " where it walks on, get no frame (stationsNotStoodOn); the problem's frame shows why. The result gives the walk (its body group,"
+  " length in plan, walkable, problems each judged as walkRoute judges it, oneWay) and each frame's distance, view (renderView renders it, adding the scale figure), problem, and render"
   " path."
 ))
-async def renderRouteStrip(context: Context, spacing: float, route: str | None = None, path: list[list[float]] | None = None, cave: dict | None = None):
-  planned = await callBridge(context, "planRouteStrip", {"path": path, "route": route, "cave": cave, "spacing": spacing})
+async def renderRouteStrip(
+  context: Context, spacing: float, route: str | None = None, path: list[list[float]] | None = None, cave: dict | None = None, bodyGroup: str | None = None,
+):
+  zone = await callBridge(context, "getZoneProperties", {})
+  groupName = chosenGroup(bodyGroup, zone.get("builtFor"), playerScale.viewGroup)
+  planned = await callBridge(context, "planRouteStrip", {"path": path, "route": route, "cave": cave, "spacing": spacing, "bodyGroup": groupName})
   frames, problems, length = planned["frames"], len(planned["problems"]), planned["length"]
   if len(frames) > sheetViews:
     room = sheetViews - problems
     advice = f"use a spacing of at least {math.ceil(length / (room - 1))}" if room > 1 else "strip a shorter part of the route"
     raise ToolError(f"{len(frames)} frames ({len(frames) - problems} every {spacing:g} along {length:g} and {problems} at problems) are more than {sheetViews} on a sheet; {advice}")
-  views = [{"standAt": frame["standAt"], "headingDegrees": frame["headingDegrees"], "pitchDegrees": frame["pitchDegrees"]} for frame in frames]
+  views = [{key: frame[key] for key in ("standAt", "headingDegrees", "pitchDegrees", "bodyGroup")} for frame in frames]
   labels = [f"{frame['distance']:g} of {length:g}" + ("" if frame["problem"] is None else f": {problemText(frame['problem'])}") for frame in frames]
-  sheet, size, paths = await renderSheet(context, await callBridge(context, "getZoneProperties", {}), views, labels, "client", None)
-  return [sheet, size | {key: planned[key] for key in ("route", "length", "spacing", "walkable", "problems", "oneWay", "stationsNotStoodOn")} | {
+  sheet, size, paths = await renderSheet(context, zone, views, labels, "client", None)
+  return [sheet, size | {key: planned[key] for key in ("route", "bodyGroup", "length", "spacing", "walkable", "problems", "oneWay", "stationsNotStoodOn")} | {
     "frames": [{"distance": frame["distance"], "view": view, "problem": frame["problem"], "outputPath": path} for frame, view, path in zip(frames, views, paths)],
   }]
 
@@ -3283,7 +3329,7 @@ sectionLayersDefault = ["ground", "water", "swim", "massing", "sketch", "plots",
 @guardedTool()
 async def renderSection(
   context: Context, start: list[float] | None = None, end: list[float] | None = None, path: list[list[float]] | None = None, cave: dict | None = None,
-  bottom: float | None = None, top: float | None = None, layers: list[str] = sectionLayersDefault,
+  bottom: float | None = None, top: float | None = None, layers: list[str] = sectionLayersDefault, bodyGroup: str | None = None,
 ):
   """Draw a section: where the vertical plane through the line from start [x, y] to end [x, y] cuts the zone, seen from the line's right
   so start is on the left; or along a `path` [[x, y], ...], each leg's plane cut and the legs laid out end to end, each bend marked
@@ -3305,15 +3351,18 @@ async def renderSection(
   over the ground and a lid's over a path. Refused: no line, or more than one; a path under two points or with two in one place; an
   unknown cave or run. The result also gives the cuts as numbers (s along the line, z height), closedSpaces (how many closed shapes
   the ground makes in it: rooms and passages cut across, one over another), and at each bend the ground's heights where its two legs
-  meet (groundAtJoins). Asked for, the `lane` layer draws where the line crosses the lane mapReach maps: each reached floor as a bar
+  meet (groundAtJoins). Asked for, the `lane` layer draws where the line crosses the lane mapReach maps for the body group bodyGroup
+  (else the group with the most clearance of those the zone is built for): each reached floor as a bar
   standing just over its height in its label's color (walk green, swim blue for a floor in a swim box, slide orange, squeeze pink,
   taken by a zone line yellow), reached water as a band from its bottom to its top across its swim box in its label's color (water
-  the design player wades shown by the floor under it), walkable floor never reached dashed grey, a floor's ends kept to the block's
+  the group wades shown by the floor under it), walkable floor never reached dashed grey, a floor's ends kept to the block's
   edge where the lane's columns run past it, and leak edges as magenta ticks down from the floor a fall onto nothing or under the
   underworld starts from, each named in the legend band with the section's own layers; its laneState gives whether the lane was computed or reused, the constants, what is not
   modelled, and the limits as mapReach does, the counts of each, and laneCut, a file holding them (s along the line, z height,
   label)."""
-  outputPath, cuts, drawn, laneState = await drawnSection(context, {"start": start, "end": end, "path": path, "cave": cave, "bottom": bottom, "top": top}, layers)
+  outputPath, cuts, drawn, laneState = await drawnSection(
+    context, {"start": start, "end": end, "path": path, "cave": cave, "bottom": bottom, "top": top}, layers, bodyGroup=bodyGroup,
+  )
   summary = {
     "outputPath": str(outputPath), "length": cuts["length"], "bottom": cuts["bottom"], "top": cuts["top"], "bends": cuts["bends"],
     "gridStep": drawn["gridStep"], "heightStep": drawn["heightStep"], "unitsPerPixel": drawn["unitsPerPixel"], "groundSegments": len(cuts["ground"]), "groundAtJoins": cuts["groundAtJoins"],
@@ -3330,10 +3379,11 @@ async def renderSection(
   return [Image(data=outputPath.read_bytes(), format="png"), summary]
 
 
-async def drawnSection(context, line, layers, marks=None, traced=None):
+async def drawnSection(context, line, layers, marks=None, traced=None, bodyGroup=None):
   """A section along line ({start, end, path, cave, bottom, top}) drawn with its layers, the lane's among them when asked for (the open
-  scene's, or traced: a lane already read, as (lane, description, status, seconds, nodes)), with marks on it (laneDrawing.SectionLane),
-  and a legend band under it naming what it draws: (path, cuts, drawn, laneState or None)."""
+  scene's lane of bodyGroup, else of the plan group of the groups the zone is built for; or traced: a lane already read, as (lane,
+  description, status, seconds, nodes)), with marks on it (laneDrawing.SectionLane), and a legend band under it naming what it draws:
+  (path, cuts, drawn, laneState or None)."""
   cuts = await callBridge(context, "sectionCuts", line | {"layers": [layer for layer in layers if layer != "lane"]})
   outputPath = newRenderPath()
   if "lane" not in layers:
@@ -3341,7 +3391,8 @@ async def drawnSection(context, line, layers, marks=None, traced=None):
     await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, laneDrawing.sectionLayerLegend(cuts))
     return outputPath, cuts, drawn, None
   if traced is None:
-    lane, description, status, seconds = await sceneLaneOnly(context)
+    lanes, description, status, seconds = await sceneLaneOnly(context)
+    lane = lanes[chosenGroup(bodyGroup, description["builtFor"], playerScale.planGroup)]
     nodes = await anyio.to_thread.run_sync(playerReach.Nodes, lane)
   else:
     lane, description, status, seconds, nodes = traced
@@ -3351,8 +3402,8 @@ async def drawnSection(context, line, layers, marks=None, traced=None):
   await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, laneSection.legend() + laneDrawing.sectionLayerLegend(cuts))
   cutPath = outputPath.with_suffix(".json")
   cutPath.write_text(json.dumps(cut))
-  laneState = {"lane": status, "seconds": seconds} | playerReach.laneTerms(lane, description) | {
-    "laneCut": str(cutPath), "counts": {kind: len(marks) for kind, marks in cut.items()},
+  laneState = {"lane": status, "seconds": seconds, "bodyGroup": lane.group} | playerReach.laneTerms(lane, description) | {
+    "laneCut": str(cutPath), "counts": {kind: len(marks) for kind, marks in cut.items() if kind != "group"},
   }
   return outputPath, cuts, drawn, laneState
 
@@ -3367,9 +3418,10 @@ async def caveProfile(profileCuts):
 
 @guardedTool()
 async def buildSwimVolumes(context: Context, body: str, area: dict | None = None, replaceEdited: bool = False):
-  """Starting swim volumes for a pool or river: boxes over its grid where its surface covers water deeper than players swim in
-  (playerScale minimumSwimDepth, at the deepest of a cell's middle and corners: in the RoF2 client a player waded shallower water and
-  swam deeper, so those cells are left out and counted in shallowCells), grouped while their tops stay within a unit of the
+  """Starting swim volumes for a pool or river: boxes over its grid where its surface covers water deeper than any body group swims in
+  (the least of the groups' playerScale minimumSwimDepth, at the deepest of a cell's middle and corners: in the RoF2 client a player
+  waded shallower water and swam deeper, so those cells are left out and counted in shallowCells; `groups` gives each group's count of
+  the cells it swims and wades), grouped while their tops stay within a unit of the
   surface, bottoms 4 under the deepest bed below them (stopping a unit over any open space under the bed, a cave below the water). They
   are named for the .zon regions they become (AWT_ water, ALV_ lava) and kept in "swimVolumes" as boxes to look at and adjust by hand
   (transformObjects, duplicateObjects, deleteObjects; placeSwimVolume adds one). area ({"circle": ...} or {"polygon": ...}) builds only
@@ -3493,10 +3545,12 @@ async def placeEntry(
   lines write), or "landing", where a port inside the world lands them (a teleport door, an NPC port). isolated marks an area reached only by its own
   port. at [x, y] takes the highest footing there, [x, y, z] the footing from 3 above z down to 50 below it, as standAt finds it, on
   what the zone ships and the client collides with: reference zones, placed client objects, guides, and what players pass through are
-  no ground. Refused, changing nothing: no footing, footing steeper than players walk or with less headroom than a player's height
-  (playerScale), a zone line or a swim volume reaching into the player's height over the footing (the client tests a player's origin,
-  which stands somewhere in it by race and size: players would zone out at once, or arrive in the water), or footing under the surface
-  of a pool or river whose swimming is undecided (a floating pool over the point, with its basin between, is not over it). Placing an
+  no ground. Judged for each body group (playerScale): footing steeper than the group walks or with less headroom than its height,
+  or a zone line or a swim volume reaching into its height over the footing (the client tests a player's origin, which stands
+  somewhere in it by race and size: players would zone out at once, or arrive in the water). Refused, changing nothing: no footing,
+  footing under the surface of a pool or river whose swimming is undecided (a floating pool over the point, with its basin between,
+  is not over it), or a group the spot's region (else the zone) is built for meeting any of those; what other groups meet is returned
+  as groupFindings, by group. Placing an
   entry's name again replaces it; transformObjects moves it and deleteObjects removes it, and getEntries says when one no longer
   stands on its footing, which a game export refuses. Entries are never exported as geometry. Returns the entry and its arrival view:
   standing on its footing (a standOn view, so reference content there does not lift the eye) facing its heading, in client shading,
@@ -3537,27 +3591,29 @@ problemViewFrame = {"size": [960, 540], "verticalFieldOfViewDegrees": 50.0}
 
 
 async def sceneLaneOnly(context, fromEntry=None):
-  """The open scene's lane (playerReach.currentLane), or the lane seeded at one arrival alone (playerReach.entryLane): (lane,
-  description, status, seconds)."""
+  """The open scene's lanes, one per body group (playerReach.currentLanes), or those seeded at one arrival alone
+  (playerReach.entryLanes): ({group: lane}, description, status, seconds)."""
   status = await callBridge(context, "getStatus", {})
   inputPath = playerReach.reachRoot(toolingRoot) / f"input-{newRenderPath().stem}.npz"
   inputPath.parent.mkdir(parents=True, exist_ok=True)
   try:
     await callBridge(context, "laneInput", {"outputPath": str(inputPath)})
     if fromEntry is None:
-      found = await anyio.to_thread.run_sync(callReportingFailures, playerReach.currentLane, toolingRoot, status["filePath"], inputPath, progressReporter(context))
+      found = await anyio.to_thread.run_sync(callReportingFailures, playerReach.currentLanes, toolingRoot, status["filePath"], inputPath, progressReporter(context))
     else:
-      found = await anyio.to_thread.run_sync(callReportingFailures, playerReach.entryLane, toolingRoot, status["filePath"], inputPath, fromEntry, progressReporter(context))
+      found = await anyio.to_thread.run_sync(callReportingFailures, playerReach.entryLanes, toolingRoot, status["filePath"], inputPath, fromEntry, progressReporter(context))
   finally:
     inputPath.unlink(missing_ok=True)
   return found
 
 
-async def sceneLane(context):
-  """The open scene's lane (playerReach.currentLane) and its analysis: (lane, description, status, seconds, analysis)."""
-  lane, description, laneStatus, seconds = await sceneLaneOnly(context)
-  analysis = await anyio.to_thread.run_sync(playerReach.analyse, lane, description)
-  return lane, description, laneStatus, seconds, analysis
+async def sceneLane(context, bodyGroup=None):
+  """The open scene's lanes (playerReach.currentLanes) and their analysis, its node arrays bodyGroup's (else the plan group of the
+  groups the zone is built for): (lanes, description, status, seconds, analysis)."""
+  lanes, description, laneStatus, seconds = await sceneLaneOnly(context)
+  shown = chosenGroup(bodyGroup, description["builtFor"], playerScale.planGroup)
+  analysis = await anyio.to_thread.run_sync(playerReach.analyse, lanes, description, shown)
+  return lanes, description, laneStatus, seconds, analysis
 
 
 def requireLevel(level):
@@ -3606,20 +3662,25 @@ async def lanePlanRender(context, center, width, lanePlan, layers, sky, spotHeig
 
 
 @guardedTool()
-async def mapReach(context: Context, center: list[float] | None = None, width: float | None = None, level: dict | None = None, problemViews: bool = True):
-  """Where players can go in the zone, as the lane: every place reached from where players arrive (the safe point and the stored zoneIn
-  and landing entries, each on the lane's node at its footing) by walking (floors within the step of each other, faces no steeper than
-  walkable), dropping off ledges, sliding down steeper faces (only down), entering a swim box whose bottom lies within a player's height
-  of the floor (the design player only where the water over the floor, up to the top of the boxes touching over it, is deeper than
-  playerScale minimumSwimDepth, walking the bed of shallower water; containment, for a smaller race that may float in shallower water,
+async def mapReach(
+  context: Context, center: list[float] | None = None, width: float | None = None, level: dict | None = None, problemViews: bool = True,
+  bodyGroup: str | None = None,
+):
+  """Where players can go in the zone, as one lane per body group (playerScale: small, medium, large, each with its own step, height,
+  walkable slope, and swim depth): every place a group reaches from where players arrive (the safe point and the stored zoneIn
+  and landing entries, each on the lane's node at its footing) by walking (floors within the group's step of each other, faces no steeper than
+  its walkable), dropping off ledges, sliding down steeper faces (only down), entering a swim box whose bottom lies within the group's height
+  of the floor (swimming only where the water over the floor, up to the top of the boxes touching over it, is deeper than the group's
+  minimumSwimDepth, walking the bed of shallower water; containment, for a smaller body that may float in shallower water,
   at any depth, what only that reaches being squeeze), swimming between touching boxes, sinking, climbing out onto floor up to the step over a box's top, and being carried by
   a zone line leading back into the zone; a zone line's box takes whoever reaches it, and any move onto floor under the underworld is a
   leak. Computed by the Recast helper over what the zone ships
   (the archive's collision: no reference content, guides, regions, or what players pass through) on a grid of columns (reachGrid), for
-  the whole zone at once, and reused while nothing it depends on changed. Picture 1, the lane plan over renderSketch's relief, `width`
+  the whole zone at once, and reused while nothing it depends on changed. Picture 1, the lane plan of one group (bodyGroup, else the
+  group with the most clearance of those the zone is built for) over renderSketch's relief, `width`
   across about `center` (default: everything the zone ships), with only the nodes whose height lies in `level` {bottom, top} when given
-  (caves, stacked floors): walk green, swim blue, water the design player wades lined blue over its floor's fill, slide orange, squeeze
-  (only a smaller player fits) pink, taken by a zone line yellow, traps (one way in, no way back) hatched orange, walkable floor never
+  (caves, stacked floors): walk green, swim blue, water the group wades lined blue over its floor's fill, slide orange, squeeze
+  (only a body smaller than the group's fits) pink, taken by a zone line yellow, traps (one way in, no way back) hatched orange, walkable floor never
   reached (open space joins it to the lane) cross-hatched dark, alone or over a level reached under it, columns reached at a level under
   a higher one, or under water standing clear of it, dotted (pink where only a smaller player fits under it), ledges (walkable floors
   reached side by side more than the step apart, where the plan resolves columns: a platform's or roof's edge) dark, leak edges (a fall
@@ -3631,14 +3692,18 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   plan.unnamedSwimVolumes the boxes in it too small for their names). Picture 2 (problemViews, when there are
   problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
   its problem (ringed in the middle of the view) from a clear sight framing it, the eye raised no more than it must be and turned from
-  the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives the constants used (value and source),
-  what is not modelled and the lane's limits, reachGrid, whether the lane was computed or reused and the seconds, each entry and
-  whether it is connected (reached from the safe point and reaching back), the reached area by label, per region its access, reached
-  share of its play floor, and unreached play floor (walkable floor open space joins to the lane, never a boundary's top or floor under
-  the underworld), zone lines, plot entrances, and swim boxes reached or not (a box players walk through is reached), and the problems, numbered, each with its kind, center,
-  extent, area or length, and region: leaks (voidEdge, belowUnderworld, noneRegion, outsideRegions), disconnectedEntry, unreachedPlot,
-  trap, viewRegion, unreachedZoneLine, unreachedSwim, unreachedPlayFloor, and undecidedWater (a pool or river without swim boxes whose
-  bed is walked); the largest twenty of a kind are listed, the rest counted in moreProblems. Refused:
+  the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives each group's constants (value and
+  source), what is not modelled and the lanes' limits, reachGrid, whether the lanes were computed or reused and the seconds, the
+  groups the zone is built for and the plan's group, each entry and per group whether it is connected (reached from the safe point and
+  reaching back), per group the reached area by label, per region its access, builtFor, and per group the reached share of its play
+  floor and unreached play floor (walkable floor open space joins to the lane, never a boundary's top or floor under the underworld),
+  the groups that reach each zone line, plot entrance, and swim box (a box players walk through is reached), and the problems,
+  numbered, each with its kind, center, extent, area or length, region, and the groups it concerns: leaks (voidEdge, belowUnderworld,
+  noneRegion, outsideRegions; any group's lane), disconnectedEntry, unreachedPlot, trap, viewRegion, unreachedZoneLine, unreachedSwim,
+  unreachedPlayFloor, and undecidedWater (a pool or river without swim boxes whose bed is walked); a problem some groups pass and others
+  do not is judged against the groups its region (else the zone) is built for: verdict "fails" where a group it is built for fails it
+  (a game export refuses a disconnected entry or an unreached plot so), "finding" where only other groups do, with failingGroups and
+  builtFor; the largest twenty of a kind are listed, the rest counted in moreProblems. Refused:
   no seeds, an entry off its footing, a seed with no lane node at its footing, the helper missing or stale (run syncTooling), no
   collision triangles, and a grid too large for the helper."""
   if center is not None and (len(center) != 2 or not all(math.isfinite(value) for value in center)):
@@ -3646,7 +3711,7 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
   if width is not None and not (math.isfinite(width) and width > 0):
     raise ToolError(f"width is a positive length, got {width}")
   level = requireLevel(level)
-  lane, description, status, seconds, analysis = await sceneLane(context)
+  lanes, description, status, seconds, analysis = await sceneLane(context, bodyGroup)
   bounds = description["bounds"]
   if center is None:
     center = [(bounds["minimum"][axis] + bounds["maximum"][axis]) / 2 for axis in (0, 1)]
@@ -3660,7 +3725,7 @@ async def mapReach(context: Context, center: list[float] | None = None, width: f
     planPath.unlink()
     planWidth = across * base["width"] / base["height"]
     planPath, base, drawn = await lanePlanRender(context, center, planWidth, lanePlan, lanePlanLayers, sky)
-  result = playerReach.report(lane, description, analysis, status, seconds)
+  result = playerReach.report(lanes, description, analysis, status, seconds)
   result["plan"] = {
     "outputPath": str(planPath), "center": center, "width": round(planWidth, 2), "unitsPerPixel": round(planWidth / drawn["size"][0], 4), "level": level,
     "frameSize": drawn["size"], "unnamedSwimVolumes": drawn["unnamedSwimVolumes"],
@@ -3738,24 +3803,25 @@ def separationMark(stop, nearPoint, targetPoint):
   return mark
 
 
-def facingView(near, far, wet):
-  """An eye-level view from a node's place toward a point: standing there, or, in water, floating swimEyeAboveSurface over its top."""
+def facingView(near, far, wet, body):
+  """An eye-level view of a body group's player from a node's place toward a point: standing there, or, in water, floating
+  swimEyeAboveSurface over its top."""
   across = math.hypot(far[0] - near[0], far[1] - near[1])
   heading = 0.0 if across < 1e-6 else math.degrees(math.atan2(far[0] - near[0], far[1] - near[1])) % 360
   if wet:
-    eye = [near[0], near[1], near[2] + playerScale.swimEyeAboveSurface]
+    eye = [near[0], near[1], near[2] + body.swimEyeAboveSurface]
     target = far if across >= 1e-6 or abs(far[2] - eye[2]) > 1e-6 else [eye[0], eye[1] + 1.0, eye[2]]
     return {"eye": playerReach.roundedPoint(eye), "target": playerReach.roundedPoint(target)}
-  pitch = math.degrees(math.atan2(far[2] - (near[2] + playerScale.eyeHeight), max(across, playerReach.reachGrid["cellSize"])))
-  return {"standAt": playerReach.roundedPoint(near, 3), "headingDegrees": round(heading, 2), "pitchDegrees": round(pitch, 2)}
+  pitch = math.degrees(math.atan2(far[2] - (near[2] + body.eyeHeight), max(across, playerReach.reachGrid["cellSize"])))
+  return {"standAt": playerReach.roundedPoint(near, 3), "headingDegrees": round(heading, 2), "pitchDegrees": round(pitch, 2), "bodyGroup": body.name}
 
 
 def asideFigure(nodes, eye, aim, nearPoint):
   """Where a trace view's scale figure stands, so what separates the nearest place from the point shows past her: a quarter column
   from the nearest place's middle toward the eye (a middle can lie on a block's edge, where her footing would fall past it), then
   beside the line of sight from eye to aim, buildTolerances.figureAside of the way from the frame's middle to its edge at her distance,
-  on the view's right, else its left, wherever the lane holds reached floor there within the step of the nearest place's floor, on
-  that floor; None where neither side does."""
+  on the view's right, else its left, wherever the lane holds floor its group reaches there within the step of the nearest place's
+  floor, on that floor; None where neither side does."""
   ahead = numpy.array(aim[:2], dtype=numpy.float64) - eye[:2]
   ahead /= numpy.linalg.norm(ahead)
   near = numpy.array(nearPoint[:2], dtype=numpy.float64)
@@ -3763,16 +3829,19 @@ def asideFigure(nodes, eye, aim, nearPoint):
   aside = buildTolerances.figureAside * float((base - eye[:2]) @ ahead) * math.tan(math.radians(laneViews.viewHalfField))
   for side in (1, -1):
     stand = base + side * aside * numpy.array([ahead[1], -ahead[0]])
-    node = nodes.floorNodeAt([*stand, nearPoint[2]], tolerance=playerScale.stepHeight)
-    if node is not None and nodes.reached[node]:
+    node = nodes.floorNodeAt([*stand, nearPoint[2]], tolerance=nodes.lane.body.stepHeight)
+    if node is not None and nodes.reachedFull[node]:
       return playerReach.roundedPoint([*stand, float(nodes.height[node])], 3)
   return None
 
 
 @guardedTool()
-async def traceReach(context: Context, to: list[float], fromEntry: str | None = None):
-  """How players get to a point, or what keeps them from it, on the lane mapReach maps (from the safe point and every stored entry, or
-  from the arrival `fromEntry` names alone, "safe point" or a stored entry, in a lane of its own). `to` is [x, y] (the highest floor
+async def traceReach(context: Context, to: list[float], fromEntry: str | None = None, bodyGroup: str | None = None):
+  """How a body group's players get to a point, or what keeps them from it, on the group's lane mapReach maps (bodyGroup, playerScale;
+  else the middle of the groups the zone is built for; from the safe point and every stored entry, or from the arrival `fromEntry`
+  names alone, "safe point" or a stored entry, in a lane of its own); reachedBy names every group whose lane reaches it, and where only
+  a smaller body than the group's fits (squeeze), the point is unreached for the group and the gap its height does not pass is named
+  as headroom with what the group needs. `to` is [x, y] (the highest floor
   there) or [x, y, z] (water holding z, else the floor found under z as an entry's footing is). Reached: the route the lane took from
   the arrival whose flood reached it first, as legs, each a run of one move into one label (walk; step, a walk rising more than any
   walkable face rises across a column, a riser, steps with less than a player's height of walking between them one climb run counting
@@ -3812,16 +3881,20 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
   ships; an unknown fromEntry; no reached place beside the point; and mapReach's refusals."""
   if len(to) not in (2, 3) or not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in to):
     raise ToolError(f"to is [x, y] or [x, y, z], got {to}")
-  lane, description, status, seconds = await sceneLaneOnly(context, fromEntry)
+  lanes, description, status, seconds = await sceneLaneOnly(context, fromEntry)
+  lane = lanes[chosenGroup(bodyGroup, description["builtFor"], playerScale.viewGroup)]
   bounds = description["bounds"]
   if not all(bounds["minimum"][axis] <= to[axis] <= bounds["maximum"][axis] for axis in range(len(to))):
     raise ToolError(f"to {to} lies outside what the zone ships, from {bounds['minimum']} to {bounds['maximum']}")
   nodes = await anyio.to_thread.run_sync(playerReach.Nodes, lane)
   target = playerReach.targetNode(nodes, to)
-  result = playerReach.laneTerms(lane, description) | {"reachGrid": playerReach.reachGrid, "lane": status, "seconds": seconds, "laneFile": str(lane.path)}
+  result = playerReach.laneTerms(lane, description) | {
+    "reachGrid": playerReach.reachGrid, "lane": status, "seconds": seconds, "bodyGroup": lane.group, "laneFile": str(lane.path),
+    "reachedBy": [] if target is None else await anyio.to_thread.run_sync(playerReach.groupsReaching, lanes, target),
+  }
   zone = await callBridge(context, "getZoneProperties", {})
   sky = await zoneSky(zone)
-  if target is not None and nodes.reached[target]:
+  if target is not None and nodes.reachedFull[target]:
     chain, moves = await anyio.to_thread.run_sync(playerReach.routeChain, nodes, target)
     points, legs = await anyio.to_thread.run_sync(playerReach.routeLegs, nodes, chain, moves)
     decisive = playerReach.decisiveLegs(legs)
@@ -3893,8 +3966,8 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
     sectionLayersDefault + ["lane"], marks, (lane, description, status, seconds, nodes),
   )
   result["section"] = {"outputPath": str(sectionPath), "start": playerReach.roundedPoint(start), "end": playerReach.roundedPoint(end), "length": cuts["length"], "bottom": cuts["bottom"], "top": cuts["top"], "laneCut": laneState["laneCut"]}
-  view = facingView(backPoint, aimPoint, backWet)
-  figureAt = None if backWet or math.dist(backPoint[:2], nearPoint[:2]) < playerScale.playerHeight else asideFigure(nodes, backPoint, aimPoint, nearPoint)
+  view = facingView(backPoint, aimPoint, backWet, lane.body)
+  figureAt = None if backWet or math.dist(backPoint[:2], nearPoint[:2]) < lane.body.playerHeight else asideFigure(nodes, backPoint, aimPoint, nearPoint)
   standsFigure = figureAt is not None
   if standsFigure:
     view["figureAt"] = figureAt
@@ -3909,8 +3982,9 @@ async def traceReach(context: Context, to: list[float], fromEntry: str | None = 
 
 @guardedTool()
 async def getRegions(context: Context):
-  """Every region with its intent, access, outline, height span, and area: the zone's plan; and under `undecided` the regions made
-  before access was decided, which a game export refuses until editRegion gives each its access."""
+  """Every region with its intent, access, builtFor (its own body groups, or null where it follows the zone's), outline, height span,
+  and area: the zone's plan; and under `undecided` the regions made before access was decided, which a game export refuses until
+  editRegion gives each its access."""
   return await callBridge(context, "getRegions", {})
 
 
@@ -4467,7 +4541,7 @@ async def buildBridge(
   " edges, evenly at most `spacing` apart, from `sink` under the ground up to the rails' height where that side has rails (else to the"
   f" flight's underside), where the flight stands more than {buildTolerances.supportTolerance:g} over the ground or that side has rails." + railsHelp + " A walkway's"
   " stair legs are laid by the same code. Refused: steeper than 45 degrees (naming the run it needs); riser not above 0 or over"
-  f" {playerScale.stepHeight:g} (a step, playerScale); a top not a riser higher than the bottom; a foot or head without footing within {buildTolerances.supportTolerance:g}, or lying under what it stands on"
+  f" a step for the body groups its foot is built for (the least of their stepHeight, playerScale); a top not a riser higher than the bottom; a foot or head without footing within {buildTolerances.supportTolerance:g}, or lying under what it stands on"
   " (naming its top: the treads would lie in it); a head set back on the surface it climbs to, so the top tread would lie inside it"
   f" (set the head at its edge); the treads' underside meeting the ground beyond {buildTolerances.endRest:g} from its ends (naming where); a leg with no"
   " ground within 300; rails without posts. Returns the risers (count and height), run per step, pitch, plan length, the legs and their"

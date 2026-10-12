@@ -7,6 +7,7 @@ import math
 import bpy
 import numpy
 
+import bridgeBodyGroups
 import bridgeExport
 import bridgeKitData
 import bridgeKitGeometry
@@ -14,7 +15,6 @@ import bridgeStructureData
 import bridgeStructures
 from bridgeStructures import requireKeys, requireNonNegative, requirePositive, roundVector, size
 from buildTolerances import groundProbeLift
-from playerScale import eyeHeight
 
 wallKeys = ("kitPath", "path", "frontSide", "sections", "follow", "shearStep", "sink", "maximumBurial", "posts", "variants", "collection")
 follows = ("shear", "step")
@@ -29,7 +29,7 @@ heightTolerance = 1e-4
 steepestShearDegrees = 30.0
 viewOut = 8.0
 # An elevation stands this far in front of a face, takes in a leg from this share of its length out (or this share of the wall's height),
-# its eye at a player's (playerScale), aimed this share of the way up the wall from its foot, so the feet stay in frame.
+# its eye at the view group's of the groups its place is built for (bridgeBodyGroups.viewerAt), aimed this share of the way up the wall from its foot, so the feet stay in frame.
 viewBack = 2.0
 elevationLengthShare = 0.75
 elevationHeightShare = 1.3
@@ -412,7 +412,8 @@ def wallViewSet(definition, groundHeight):
     distance = max(distance, depth / 2 + viewBack)
     eye = middle + legFront * distance
     standing = groundHeight(eye[0], eye[1])
-    eyeZ = (foot if standing is None else standing) + eyeHeight
+    ground = foot if standing is None else standing
+    eyeZ = ground + bridgeBodyGroups.viewerAt([float(eye[0]), float(eye[1]), ground]).eyeHeight
     views[f"front{index}"] = bridgeStructures.lookView((eye[0], eye[1], eyeZ), (middle[0], middle[1], foot + height * elevationAimShare))
   plans = numpy.array([point[:2] for point in points])
   low, high = plans.min(0), plans.max(0)

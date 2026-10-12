@@ -8,11 +8,11 @@ import math
 import mathutils
 import numpy
 
+import bridgeBodyGroups
 import bridgeKitGeometry
 import bridgeStructures
 from bridgeStructures import isNumber, requireKeys, requireNonNegative, requirePoint, requirePositive, requireSides, roundVector, size
 from buildTolerances import endRest, groundProbeLift, supportTolerance
-from playerScale import eyeHeight, stepHeight, steepestWalkableDegrees
 
 bridgeKeys = ("kitPath", "start", "end", "width", "deck", "profile", "posts", "rails", "stringers", "bents", "sink", "maximumDeckDegrees", "collection")
 stairsKeys = ("kitPath", "bottom", "top", "width", "tread", "riser", "stringers", "posts", "rails", "sink", "collection")
@@ -21,7 +21,6 @@ walkwayKeys = (
   "collection",
 )
 steepestFlightDegrees = 45.0
-maximumRiser = stepHeight
 maximumTurnDegrees = 150.0
 # Ground this far over a deck's underside meets it; a flight's end this far under what it stands on is buried in it.
 meetingTolerance = 1e-3
@@ -169,9 +168,13 @@ def requireEnd(laying, label, point):
   found = laying.lookups.footing(point)
   if found is None:
     raise ValueError(f"The {label} {roundVector(point, 2)} has no footing within {supportTolerance:g} below it; set it on the ground or a deck within that (gradeRoute the abutment)")
-  hit = laying.lookups.surfaces.castWithNormal(mathutils.Vector(point) + mathutils.Vector((0.0, 0.0, bridgeStructures.castNudge)), mathutils.Vector((0.0, 0.0, 1.0)), bridgeStructures.playerHeight)
+  clearance = bridgeBodyGroups.strictestAt(list(point))
+  hit = laying.lookups.surfaces.castWithNormal(mathutils.Vector(point) + mathutils.Vector((0.0, 0.0, bridgeStructures.castNudge)), mathutils.Vector((0.0, 0.0, 1.0)), clearance.playerHeight)
   if hit is not None:
-    raise ValueError(f"The {label} {roundVector(point, 2)} has rock over it {hit[0].z - point[2]:.2f} up, within a player's height ({bridgeStructures.playerHeight:g})")
+    raise ValueError(
+      f"The {label} {roundVector(point, 2)} has rock over it {hit[0].z - point[2]:.2f} up, within the height ({clearance.playerHeight:g}) of"
+      f" the tallest body group it is built for ({list(clearance.groups)}, playerScale)"
+    )
   return float(point[2] - found)
 
 
@@ -182,8 +185,12 @@ def layBridge(laying):
   width = requirePositive("width", definition["width"])
   sink = requireNonNegative("sink", definition["sink"])
   maximum = definition["maximumDeckDegrees"]
-  if not isNumber(maximum) or not 0 < maximum <= steepestWalkableDegrees:
-    raise ValueError(f"maximumDeckDegrees runs over 0 up to {steepestWalkableDegrees:.1f} (the steepest face players walk, playerScale), got {maximum!r}")
+  climbing = bridgeBodyGroups.strictestAt(start.tolist())
+  if not isNumber(maximum) or not 0 < maximum <= climbing.steepestWalkableDegrees:
+    raise ValueError(
+      f"maximumDeckDegrees runs over 0 up to {climbing.steepestWalkableDegrees:.1f} (the steepest face every body group the bridge's start"
+      f" is built for walks, {list(climbing.groups)}, playerScale), got {maximum!r}"
+    )
   deck = laying.kit.piece(definition["deck"], ("plank", "floor"), "deck")
   isPlank = deck["record"]["kind"] == "plank"
   endZone = size(deck, 1) if isPlank else size(deck, 2)
@@ -348,7 +355,7 @@ def bridgeViewSet(definition, groundHeight):
   below = middle + profile.left * 0.4 * profile.span
   ground = groundHeight(below[0], below[1])
   if ground is not None:
-    views["below"] = bridgeStructures.lookView((below[0], below[1], ground + eyeHeight), middle)
+    views["below"] = bridgeStructures.lookView((below[0], below[1], ground + bridgeBodyGroups.viewerAt([below[0], below[1], ground]).eyeHeight), middle)
   return views
 
 
@@ -394,9 +401,11 @@ class Flight:
     return {"risers": {"count": self.count, "height": round(self.riserHeight, 6)}, "runPerStep": round(self.tread, 6), "pitchDegrees": round(self.pitch, 3), "planLength": round(self.run, 3)}
 
 
-def requireRiser(riser):
-  if not isNumber(riser) or not 0 < riser <= maximumRiser:
-    raise ValueError(f"riser must be above 0 and at most a step ({maximumRiser:g}), got {riser!r}")
+def requireRiser(riser, point):
+  """A flight's greatest riser: above 0 and at most the step of every body group its foot (point) is built for."""
+  climbing = bridgeBodyGroups.strictestAt(point)
+  if not isNumber(riser) or not 0 < riser <= climbing.stepHeight:
+    raise ValueError(f"riser must be above 0 and at most a step ({climbing.stepHeight:g}) for the body groups it is built for ({list(climbing.groups)}, playerScale), got {riser!r}")
   return float(riser)
 
 
@@ -497,7 +506,7 @@ def layStairs(laying):
   top = numpy.array(requirePoint("top", definition["top"]))
   width = requirePositive("width", definition["width"])
   sink = requireNonNegative("sink", definition["sink"])
-  riser = requireRiser(definition["riser"])
+  riser = requireRiser(definition["riser"], bottom.tolist())
   flight = Flight(bottom, top, riser, "The flight")
   treadData = laying.kit.piece(definition["tread"], ("plank",), "tread")
   stringerData = None if definition["stringers"] is None else laying.kit.piece(definition["stringers"], ("beam",), "stringers")
@@ -564,7 +573,7 @@ def stairsViewSet(definition, groundHeight):
   eyes = [middle + leftOf(direction) * side * reach for side in (1, -1)]
   grounds = [groundHeight(eye[0], eye[1]) for eye in eyes]
   buried = [-math.inf if ground is None else ground - eye[2] for ground, eye in zip(grounds, eyes)]
-  headPitch = -math.degrees(math.atan2(eyeHeight + rise / 2, headBack + run / 2))
+  headPitch = -math.degrees(math.atan2(bridgeBodyGroups.viewerAt(top.tolist()).eyeHeight + rise / 2, headBack + run / 2))
   return {
     "fromFoot": bridgeStructures.standView(bottom - direction * viewBack, bottom, direction, groundHeight, round(math.degrees(math.atan2(rise, run + viewBack)), 2)),
     "fromHead": bridgeStructures.standView(top + direction * headBack, top, -direction, groundHeight, round(headPitch, 2)),
@@ -739,10 +748,14 @@ def layWalkway(laying):
   points = requireWalkwayPoints(definition["points"])
   width = requirePositive("width", definition["width"])
   sink = requireNonNegative("sink", definition["sink"])
-  riser = requireRiser(definition["riser"])
+  riser = requireRiser(definition["riser"], list(points[0]))
   maximum = definition["maximumGradeDegrees"]
-  if not isNumber(maximum) or not 0 < maximum <= steepestWalkableDegrees:
-    raise ValueError(f"maximumGradeDegrees runs over 0 up to {steepestWalkableDegrees:.1f} (the steepest face players walk, playerScale: deck legs are walked), got {maximum!r}")
+  climbing = bridgeBodyGroups.strictestAt(list(points[0]))
+  if not isNumber(maximum) or not 0 < maximum <= climbing.steepestWalkableDegrees:
+    raise ValueError(
+      f"maximumGradeDegrees runs over 0 up to {climbing.steepestWalkableDegrees:.1f} (the steepest face every body group the walkway's start"
+      f" is built for walks, {list(climbing.groups)}, playerScale: deck legs are walked), got {maximum!r}"
+    )
   stairLegs = definition["stairLegs"] or []
   if not isinstance(stairLegs, list) or not all(isinstance(index, int) and not isinstance(index, bool) and 0 <= index < len(points) - 1 for index in stairLegs):
     raise ValueError(f"stairLegs lists leg indices 0 to {len(points) - 2} (leg i runs from point i to point i + 1), got {stairLegs!r}")

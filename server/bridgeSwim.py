@@ -1,6 +1,6 @@
 """Swim volumes: the boxes where the client lets players swim (the .zon's AWT_ water and ALV_ lava regions), designed as objects an
 artist places and adjusts and never derived at export. A generator gives a pool or river starting boxes from its surface and bed, over
-water deep enough to swim in (playerScale.minimumSwimDepth); hand edits are kept, and a body changed since its boxes were accepted is
+water deep enough for any body group to swim in (playerScale minimumSwimDepth); hand edits are kept, and a body changed since its boxes were accepted is
 reported. A box need not match any surface: a floating pool is design. Runs under Blender's Python."""
 import hashlib
 import json
@@ -79,9 +79,12 @@ def liquidOfBody(body):
 
 def bodyCells(body, ground, area=None):
   """The body's grid cells whose middles its surface covers with water over the bed deeper, at the deepest of the cell's middle and
-  corners, than players swim in (playerScale.minimumSwimDepth): (i, j) -> (surface level, box floor, whether a ceiling held the floor
-  up); with how many cells hold shallower water, which players wade, and the cells' spacing. A cell's floor lies volumeFloorMargin under
-  that deepest bed, but stays ceilingClearance above any open space found under it."""
+  corners, than any body group swims in (the least playerScale minimumSwimDepth): (i, j) -> (surface level, box floor, whether a
+  ceiling held the floor up); with how many cells hold shallower water, which every group wades, the cells' spacing, and each body
+  group's count of the cells it swims (deeper than its own minimumSwimDepth) and wades. A cell's floor lies volumeFloorMargin under that
+  deepest bed, but stays ceilingClearance above any open space found under it."""
+  shallowest = min(group.minimumSwimDepth for group in playerScale.groups.values())
+  depths = []
   spacing = bridgeWater.readDefinition(body)["spacing"]
   surface = bridgeMeshAccess.worldTree([body])
   positions, _ = bridgeMeshAccess.readVertexArrays(body)
@@ -101,7 +104,8 @@ def bodyCells(body, ground, area=None):
         continue
       corners = [ground.depth(x + dx * spacing / 2, y + dy * spacing / 2, location.z) for dx in (-1, 1) for dy in (-1, 1)]
       deepest = max([depth] + [corner for corner in corners if corner])
-      if deepest <= playerScale.minimumSwimDepth:
+      depths.append(deepest)
+      if deepest <= shallowest:
         shallow += 1
         continue
       bed = location.z - deepest
@@ -111,7 +115,11 @@ def bodyCells(body, ground, area=None):
       if held:
         floor = below.z + ceilingClearance
       cells[(i, j)] = (location.z, min(floor, location.z - volumeTolerance), held)
-  return cells, shallow, spacing
+  byGroup = {
+    name: {"swimsCells": sum(depth > group.minimumSwimDepth for depth in depths), "wadesCells": sum(depth <= group.minimumSwimDepth for depth in depths), "minimumSwimDepth": group.minimumSwimDepth}
+    for name, group in playerScale.groups.items()
+  }
+  return cells, shallow, spacing, byGroup
 
 
 def bandRectangles(cells):
@@ -190,9 +198,9 @@ def takenNames():
 
 
 def buildSwimVolumes(body, area, replaceEdited):
-  """Starting boxes for a pool or river, or the part of it inside an area, over the water players swim in, leaving out cells shallower
-  than playerScale.minimumSwimDepth, which they wade: its generated boxes there are replaced; boxes edited or placed by hand are kept,
-  and refuse the rebuild unless replaceEdited."""
+  """Starting boxes for a pool or river, or the part of it inside an area, over the water any body group swims in, leaving out cells
+  shallower than every group's playerScale minimumSwimDepth, which all wade: its generated boxes there are replaced; boxes edited or
+  placed by hand are kept, and refuse the rebuild unless replaceEdited. Reports, per group, the cells it swims and wades."""
   bodyObject = requireSwimBody(body)
   definition = bridgeWater.readDefinition(bodyObject)
   if definition.get("swimmable") is False:
@@ -205,11 +213,11 @@ def buildSwimVolumes(body, area, replaceEdited):
   if edited and not replaceEdited:
     raise ValueError(f"Swim volumes {edited} of '{body}' were edited or placed by hand; rebuilding would replace them (give replaceEdited to)")
   ground = bridgeWater.Ground()
-  cells, shallow, spacing = bodyCells(bodyObject, ground, area)
+  cells, shallow, spacing, byGroup = bodyCells(bodyObject, ground, area)
   if not cells:
     where = "" if area is None else f" inside the area {json.dumps(area)}"
     if shallow:
-      deeper = f"deeper than players swim in ({playerScale.minimumSwimDepth:g}, playerScale minimumSwimDepth)"
+      deeper = f"deeper than any body group swims in ({min(group.minimumSwimDepth for group in playerScale.groups.values()):g}, playerScale minimumSwimDepth)"
       if area is None:
         raise ValueError(f"'{body}' has no water over its bed {deeper}: players wade all {shallow} of its cells; mark it not swimmable (editWater swimmable false)")
       raise ValueError(f"'{body}' has no water over its bed{where} {deeper}: players wade all {shallow} of its cells there, which take no swim volume")
@@ -225,7 +233,7 @@ def buildSwimVolumes(body, area, replaceEdited):
     boxObject(name, liquid, body, box["center"], box["halfExtents"], box, fingerprint)
     built.append(name)
   bpy.context.view_layer.update()
-  return {"body": body, "replaced": len(inScope), "built": built, "shallowCells": shallow} | describeBody(bodyObject, ground)
+  return {"body": body, "replaced": len(inScope), "built": built, "shallowCells": shallow, "groups": byGroup} | describeBody(bodyObject, ground)
 
 
 def placeSwimVolume(name, liquid, minimum, maximum, body):
@@ -283,7 +291,7 @@ def describeBody(body, ground):
     return {"state": "notSwimmable", "boxes": [box.name for box in boxes], "findings": []}
   if not boxes:
     return {"state": "undecided", "boxes": [], "findings": []}
-  cells, _, spacing = bodyCells(body, ground)
+  cells, _, spacing, _ = bodyCells(body, ground)
   fingerprint = bodyFingerprint(body, cells)
   state = "boxed" if all(readBox(box)["fingerprint"] == fingerprint for box in boxes) else "changed"
   bounds = [boxBounds(box) for box in boxes]

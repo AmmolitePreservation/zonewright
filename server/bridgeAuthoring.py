@@ -18,9 +18,12 @@ import bridgeObjects
 import bridgePasses
 import bridgeShaping
 import bridgeSurfacing
+import playerScale
 
 regionCollectionName = "regions"
 regionAccess = ("play", "view", "none")
+# A region's builtFor given as this follows its zone's.
+followZone = "zone"
 layerOrderProperty = bridgeMeshAccess.surfaceLayersProperty
 baseAttributeName = "zonewrightSurfaceBase"
 layerAttributePrefix = "zonewrightSurface:"
@@ -80,7 +83,9 @@ def describeRegion(regionObject):
   outline, bottom, top = bridgeMeshAccess.regionShape(regionObject)
   x, y = outline[:, 0], outline[:, 1]
   area = abs(float(numpy.dot(x, numpy.roll(y, -1)) - numpy.dot(y, numpy.roll(x, -1)))) / 2
+  builtFor = regionObject.get(bridgeMeshAccess.regionBuiltForProperty)
   return {"name": regionObject.name, "intent": regionObject[bridgeMeshAccess.regionIntentProperty], "access": regionObject.get(bridgeMeshAccess.regionAccessProperty),
+    "builtFor": None if builtFor is None else list(builtFor),
     "outline": [[round(float(a), 2), round(float(b), 2)] for a, b in outline], "bottom": round(bottom, 2), "top": round(top, 2), "area": round(area)}
 
 
@@ -94,25 +99,36 @@ def requireIntent(intent):
     raise ValueError("A region needs its intent: what the area is to become")
 
 
-def createRegion(name, outline, bottom, top, intent, access):
+def ownBuiltFor(builtFor):
+  """A region's builtFor as given: a list of body groups (playerScale), or "zone" to follow its zone's (None)."""
+  if builtFor == followZone:
+    return None
+  return list(playerScale.checkedGroupNames(builtFor))
+
+
+def createRegion(name, outline, bottom, top, intent, access, builtFor=None):
   bridgeObjects.requireNewName(name)
   requireIntent(intent)
   requireAccess(access)
+  groups = None if builtFor is None else ownBuiltFor(builtFor)
   regionObject = bpy.data.objects.new(name, regionMesh(name, outline, bottom, top))
   regionObject[bridgeMeshAccess.regionIntentProperty] = intent.strip()
   regionObject[bridgeMeshAccess.regionAccessProperty] = access
+  if groups is not None:
+    regionObject[bridgeMeshAccess.regionBuiltForProperty] = groups
   regionObject.display_type = "WIRE"
   regionObject.hide_render = True
   bridgeObjects.targetCollection(regionCollectionName).objects.link(regionObject)
   return describeRegion(regionObject)
 
 
-def editRegion(name, outline, bottom, top, intent, access):
+def editRegion(name, outline, bottom, top, intent, access, builtFor=None):
   regionObject = bridgeMeshAccess.requireRegion(name)
-  if outline is None and bottom is None and top is None and intent is None and access is None:
-    raise ValueError("editRegion needs an outline, bottom, top, intent, or access")
+  if outline is None and bottom is None and top is None and intent is None and access is None and builtFor is None:
+    raise ValueError("editRegion needs an outline, bottom, top, intent, access, or builtFor")
   if access is not None:
     requireAccess(access)
+  groups = None if builtFor is None else ownBuiltFor(builtFor)
   if intent is not None:
     requireIntent(intent)
   mesh = None
@@ -128,6 +144,10 @@ def editRegion(name, outline, bottom, top, intent, access):
     regionObject[bridgeMeshAccess.regionAccessProperty] = access
   if intent is not None:
     regionObject[bridgeMeshAccess.regionIntentProperty] = intent.strip()
+  if builtFor == followZone and bridgeMeshAccess.regionBuiltForProperty in regionObject:
+    del regionObject[bridgeMeshAccess.regionBuiltForProperty]
+  elif groups is not None:
+    regionObject[bridgeMeshAccess.regionBuiltForProperty] = groups
   return describeRegion(regionObject)
 
 

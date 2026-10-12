@@ -11,6 +11,7 @@ import bpy
 import mathutils
 import numpy
 
+import bridgeBodyGroups
 import bridgeBoundaries
 import bridgeExport
 import bridgeKitData
@@ -22,7 +23,6 @@ import bridgeReviewGuides
 import bridgeStructureData
 import bridgeViews
 from buildTolerances import approachGroundReach, groundProbeLift, supportTolerance
-from playerScale import playerHeight, stepHeight
 
 structuresCollectionName = "structures"
 layingSuffix = "Laying"
@@ -510,6 +510,7 @@ def walkLine(collection):
   points = [mathutils.Vector(point) for point in spec.walkLine(record["definition"])]
   surfaces = StructureGround().without(skippedNames(record["order"]))
   def onFooting(point):
+    stepHeight = bridgeBodyGroups.strictestAt(list(point)).stepHeight
     footing = surfaces.footingOn(point + up * (stepHeight + castNudge), 2 * stepHeight + castNudge)
     return footing is not None and abs(point.z - footing.point.z) <= stepHeight
 

@@ -77,6 +77,7 @@ def laneInput(outputPath):
     "entries": entries,
     "notFollowed": listed["notFollowed"],
     "regions": bridgeAuthoring.getRegions()["regions"],
+    "builtFor": zone.get("builtFor"),
     "underworld": zone.get("underworld"),
     "undecidedBodies": [body.name for body in bodies],
   }

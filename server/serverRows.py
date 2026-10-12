@@ -314,10 +314,10 @@ def zoneInEntries(zone, entries):
 def arrivalPoint(entry):
   """Where a ways-in row puts a player arriving on a zoneIn entry's footing, in the server's axes: the server sets a player's origin to
   a zone point's target as to the safe point (zoning.cpp:261-320), and the client stands an origin avatarHeight over the floor (3.75 for
-  the walked human male), so the target is playerHeight over the footing, the top of the space placeEntry keeps clear there, and the
+  the walked human male), so the target is the highest avatarHeight of any playable body (playerScale) over the footing, and every
   player settles onto it rather than arriving with the origin in the floor."""
   x, y, z = entry["at"]
-  return [float(value) for value in eqAxes.serverFromZone([x, y, z + playerScale.playerHeight])]
+  return [float(value) for value in eqAxes.serverFromZone([x, y, z + playerScale.highestOrigin()])]
 
 
 def waysInFile(zone, entries, archiveSHA256):

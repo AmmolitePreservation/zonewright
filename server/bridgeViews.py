@@ -9,6 +9,7 @@ import mathutils
 import numpy
 import OpenImageIO
 
+import bridgeBodyGroups
 import bridgeBoundaries
 import bridgeCaveLight
 import bridgeClientLight
@@ -23,9 +24,9 @@ import bridgeShadings
 import bridgeStructureData
 import bridgeSurfacing
 import bridgeSwim
+import playerScale
 import skyDrawing
 from buildTolerances import groundSearchAbove, groundSearchDistance, laneTintNormalZ
-from playerScale import eyeHeight, stepHeight, swimEyeAboveSurface
 from previewFrame import renderHeight, renderWidth, verticalFieldOfViewDegrees
 
 requiredZoneKeys = (
@@ -440,18 +441,20 @@ def placeCamera(preview, view, figureModel):
     return placeMapCamera(preview, view["map"])
   if viewKeys == {"frame"}:
     return placeFrameCamera(preview, view["frame"])
-  if viewKeys - {"figureAt"} in ({"standAt", "headingDegrees", "pitchDegrees"}, {"standOn", "headingDegrees", "pitchDegrees"}):
+  if viewKeys - {"figureAt", "bodyGroup"} in ({"standAt", "headingDegrees", "pitchDegrees"}, {"standOn", "headingDegrees", "pitchDegrees"}):
     surfaces = bridgeMeshAccess.PlayerSurfaces()
     ground = standingGround(preview, surfaces, view["standAt"], "standAt") if "standAt" in view else footingPoint(view["standOn"])
+    groupName = view["bodyGroup"] if "bodyGroup" in view else playerScale.viewGroup(playerScale.builtForAt(bridgeBodyGroups.zoneBuiltFor(), None))
+    body = playerScale.group(groupName)
     # Where the water stands over the eye, the player swims, eye at the surface.
     waterDepth = bridgeMeshAccess.waterDepthAt(bridgeMeshAccess.swimSurfaces(), surfaces, ground)
-    swimming = waterDepth is not None and waterDepth > eyeHeight - swimEyeAboveSurface
-    eye = ground + mathutils.Vector((0, 0, waterDepth + swimEyeAboveSurface if swimming else eyeHeight))
+    swimming = waterDepth is not None and waterDepth > body.eyeHeight - body.swimEyeAboveSurface
+    eye = ground + mathutils.Vector((0, 0, waterDepth + body.swimEyeAboveSurface if swimming else body.eyeHeight))
     forward = headingPitchForward(view["headingDegrees"], view["pitchDegrees"])
     camera.location, camera.rotation_quaternion = eye, lookRotation(forward)
     description = {
       "eye": list(eye), "forward": list(forward), "ground": list(ground), "waterDepth": None if waterDepth is None else round(waterDepth, 2),
-      "swimming": swimming, "figure": None,
+      "swimming": swimming, "bodyGroup": groupName, "figure": None,
     }
     if figureModel is not None and "figureAt" in view:
       footing = standingGround(preview, surfaces, view["figureAt"], "figureAt")
@@ -464,7 +467,7 @@ def placeCamera(preview, view, figureModel):
     return description
   raise ValueError(
     f"A view is {{camera}}, {{eye, target}}, {{map}}, {{frame}}, {{standAt, headingDegrees, pitchDegrees}}, or {{standOn, headingDegrees,"
-    f" pitchDegrees}}, the last two with an optional figureAt; got keys {sorted(viewKeys)}"
+    f" pitchDegrees}}, the last two with an optional figureAt and bodyGroup; got keys {sorted(viewKeys)}"
   )
 
 
@@ -664,7 +667,8 @@ def placeMapCamera(preview, mapView):
 
 def placeScaleFigure(preview, surfaces, ground, headingDegrees, figureModel):
   """Walk ahead along what players stand on (surfaces, bridgeMeshAccess.PlayerSurfaces), as a player would, until figureDistance or a
-  wall, or a climb or drop over a step (playerScale), stops the walk; then stand the figure there."""
+  wall, or a climb or drop over the step of the figure's body group (playerScale), stops the walk; then stand the figure there."""
+  stepHeight = playerScale.group(figureModel["bodyGroup"]).stepHeight
   heading = math.radians(headingDegrees)
   ahead = mathutils.Vector((math.sin(heading), math.cos(heading), 0))
   side = mathutils.Vector((math.cos(heading), -math.sin(heading), 0))

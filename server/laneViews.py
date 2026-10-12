@@ -95,19 +95,20 @@ def headingOf(dx, dy):
   return numpy.degrees(numpy.arctan2(dx, dy)) % 360
 
 
-def constantsUsed():
-  return {name: {"value": getattr(playerScale, name), "source": playerScale.sources[name]} for name in ("eyeHeight", "swimEyeAboveSurface")}
+def constantsUsed(groupName):
+  body = playerScale.group(groupName)
+  return {"bodyGroup": groupName} | {name: body.measure(name) for name in ("eyeHeight", "swimEyeAboveSurface", "playerHeight")}
 
 
 def limits(far, targeted):
   """What can make the views miss what players see, besides the lane's own limits."""
   stated = [
-    "eyes stand on the lane: on reached walkable floor, eyeHeight over the ground at its column's middle (found as standAt finds it,"
-    " within seedTolerance of the lane's floor as a seed's footing is of its node, so a column whose middle lies off the floor crossing"
-    " it, at a deck's or an arch's edge, holds none), and on reached water open to the air the design player swims in (deeper than"
-    " minimumSwimDepth over the floor), swimming at swimEyeAboveSurface over its box's top where the water over the floor is deeper than"
-    " eyeHeight - swimEyeAboveSurface, else wading at eyeHeight over the floor, as renderView's standAt views stand a player; water"
-    " shallower than minimumSwimDepth is waded, its floor walked; floor only a smaller player reaches holds none",
+    "eyes are the body group's (bodyGroup) and stand on its lane: on walkable floor the group reaches, its eyeHeight over the ground at its"
+    " column's middle (found as standAt finds it, within seedTolerance of the lane's floor as a seed's footing is of its node, so a column"
+    " whose middle lies off the floor crossing it, at a deck's or an arch's edge, holds none), and on reached water open to the air the"
+    " group swims in (deeper than its minimumSwimDepth over the floor), swimming at swimEyeAboveSurface over its box's top where the water"
+    " over the floor is deeper than eyeHeight - swimEyeAboveSurface, else wading at eyeHeight over the floor, as renderView's standAt views"
+    " stand a player; water shallower than minimumSwimDepth is waded, its floor walked; floor only a smaller body reaches holds none",
     f"eyes look no farther than the far sight, {far:g}: maxClip, or the fog's end when fog is on and nearer",
   ]
   if targeted:
@@ -117,7 +118,7 @@ def limits(far, targeted):
       " the zone ships as collision (bridgeLane.clearSights): a boundary blocks a sight though players see through it, and cutout cards,"
       " water, and what players pass through block none",
       f"an object is judged by {surfaceSamples} points spread over its surface by area, each seen only from in front of its face as its mesh"
-      " winds it; a point by the player standing there (playerHeight tall); a region by points on its highest floor in its band",
+      " winds it; a point by a player of the group standing there (its playerHeight tall); a region by points on its highest floor in its band",
     ]
   else:
     stated.append(
@@ -167,9 +168,10 @@ def wetEyes(nodes, description):
   boxTops = numpy.array([box["high"][2] for box in description["swimBoxes"]] + [numpy.nan], dtype=numpy.float64)
   surface = boxTops[nodes.box[wet]]
   floor = nodes.height[safe].astype(numpy.float64)
-  swimming = surface - floor > playerScale.eyeHeight - playerScale.swimEyeAboveSurface
+  body = lane.body
+  swimming = surface - floor > body.eyeHeight - body.swimEyeAboveSurface
   standing = numpy.where(swimming, surface, floor)
-  eye = standing + numpy.where(swimming, playerScale.swimEyeAboveSurface, playerScale.eyeHeight)
+  eye = standing + numpy.where(swimming, body.swimEyeAboveSurface, body.eyeHeight)
   open = sameColumn & (eye <= lane.height(nodes.high[safe]))
   return wet[open], standing[open], swimming[open]
 
@@ -257,7 +259,7 @@ def eyeCandidates(nodes, description, block):
     places.append(numpy.stack([columnZ[first] // across, columnX[first] // across, level[first]], axis=1))
   if not picked:
     return {
-      "node": numpy.zeros(0, dtype=numpy.int64), "label": numpy.zeros(0, dtype=numpy.uint8), "swimming": numpy.zeros(0, dtype=bool),
+      "group": lane.group, "node": numpy.zeros(0, dtype=numpy.int64), "label": numpy.zeros(0, dtype=numpy.uint8), "swimming": numpy.zeros(0, dtype=bool),
       "standing": numpy.zeros((0, 3)), "eye": numpy.zeros((0, 3)), "room": numpy.zeros(0, dtype=numpy.int64),
       "block": numpy.zeros((0, 3), dtype=numpy.int64), "open": opened,
     }
@@ -265,15 +267,16 @@ def eyeCandidates(nodes, description, block):
   planX, planY = nodes.plan(picked)
   standing = numpy.stack([planX, planY, height], axis=1)
   return {
-    "node": picked, "label": nodes.label[picked], "swimming": swimming, "standing": standing, "eye": eyesOver(standing, swimming),
-    "room": numpy.concatenate(rooms), "block": numpy.concatenate(places), "open": opened,
+    "group": lane.group, "node": picked, "label": nodes.label[picked], "swimming": swimming, "standing": standing,
+    "eye": eyesOver(standing, swimming, lane.body), "room": numpy.concatenate(rooms), "block": numpy.concatenate(places), "open": opened,
   }
 
 
 def openest(candidates):
-  """Which candidates no candidate in a block beside theirs (in plan and in height, corners counted) on floor within playerHeight of
-  theirs has more open floor round than: a strip of floor a block's edge cuts off keeps no candidate beside a roomier one."""
+  """Which candidates no candidate in a block beside theirs (in plan and in height, corners counted) on floor within the group's
+  playerHeight of theirs has more open floor round than: a strip of floor a block's edge cuts off keeps no candidate beside a roomier one."""
   block, room, height = candidates["block"], candidates["room"], candidates["standing"][:, 2]
+  playerHeight = playerScale.groups[candidates["group"]].playerHeight
   if not len(room):
     return numpy.zeros(0, dtype=bool)
   low = block.min(axis=0) - 1
@@ -289,15 +292,15 @@ def openest(candidates):
           continue
         neighbor = key + (down * span[1] + across) * span[2] + up
         at = order[numpy.minimum(numpy.searchsorted(sortedKey, neighbor), len(order) - 1)]
-        beside = (key[at] == neighbor) & (numpy.abs(height[at] - height) <= playerScale.playerHeight)
+        beside = (key[at] == neighbor) & (numpy.abs(height[at] - height) <= playerHeight)
         most = numpy.where(beside, numpy.maximum(most, room[at]), most)
   return room >= most
 
 
-def eyesOver(standing, swimming):
-  """The eyes of players standing at points: eyeHeight over the ground, swimEyeAboveSurface over the water for a swimmer."""
+def eyesOver(standing, swimming, body):
+  """The eyes of a body group's players standing at points: eyeHeight over the ground, swimEyeAboveSurface over the water for a swimmer."""
   eye = numpy.array(standing, dtype=numpy.float64)
-  eye[:, 2] += numpy.where(swimming, playerScale.swimEyeAboveSurface, playerScale.eyeHeight)
+  eye[:, 2] += numpy.where(swimming, body.swimEyeAboveSurface, body.eyeHeight)
   return eye
 
 
@@ -323,7 +326,7 @@ def placedEyes(candidates, chosen, grounds):
       stands[at] = False
     else:
       standing[at, 2] = ground[0]
-  return stands, standing, eyesOver(standing, swimming)
+  return stands, standing, eyesOver(standing, swimming, playerScale.groups[candidates["group"]])
 
 
 def worldEnd(nodes, opened, lowest):
@@ -410,10 +413,10 @@ def tourPath(lane):
   return lane.path.parent / f"tour-{lane.path.stem.removeprefix('lane-')}.json"
 
 
-def tourInputs(far):
+def tourInputs(far, body):
   return {
-    "rules": rulesDigest, "farSight": far, "eyeBlock": eyeBlock, "eyes": tourEyes, "eyeHeight": playerScale.eyeHeight,
-    "swimEyeAboveSurface": playerScale.swimEyeAboveSurface, "playerHeight": playerScale.playerHeight,
+    "rules": rulesDigest, "farSight": far, "eyeBlock": eyeBlock, "eyes": tourEyes, "bodyGroup": body.name, "eyeHeight": body.eyeHeight,
+    "swimEyeAboveSurface": body.swimEyeAboveSurface, "playerHeight": body.playerHeight,
     "groundSearch": [buildTolerances.groundSearchAbove, buildTolerances.groundSearchDistance], "viewHalfField": viewHalfField,
   }
 
@@ -428,7 +431,7 @@ def keptTour(lane, far):
   path = tourPath(lane)
   if path.is_file():
     kept = json.loads(path.read_text(encoding="utf-8"))
-    if kept["inputs"] == tourInputs(far):
+    if kept["inputs"] == tourInputs(far, lane.body):
       return kept, path
   return None, path
 
@@ -472,7 +475,7 @@ def finishTour(nodes, description, far, picks, chosen, spacing, placed):
       "run": round(run, 1), "viewRun": round(viewRun, 1), "spacing": round(gap, 2), "view": {"eye": roundedPoint(eye), "target": roundedPoint(ahead)},
     })
   kept = {
-    "inputs": tourInputs(far), "candidates": len(candidates["node"]), "openCandidates": len(picks["roomy"]),
+    "inputs": tourInputs(far, lane.body), "candidates": len(candidates["node"]), "openCandidates": len(picks["roomy"]),
     "arrivals": [{"name": seed["name"], "at": roundedPoint(seed["footing"])} for seed in description["seeds"]],
     "worldEnd": [roundedPoint(point) for point in picks["worldEnd"]], "eyes": eyes,
   }
@@ -518,15 +521,15 @@ def objectSubject(name, surface):
   return subjectOf("object", name, surface["points"], surface["normals"], surface["minimum"], surface["maximum"])
 
 
-def playerSubject(floor):
-  """A player standing at a floor point, playerHeight tall and no wider than a point: sideShares up each of its four sides, each facing
-  out, and its top."""
+def playerSubject(floor, body):
+  """A player of a body group standing at a floor point, its playerHeight tall and no wider than a point: sideShares up each of its four
+  sides, each facing out, and its top."""
   low = numpy.asarray(floor, dtype=numpy.float64)
-  high = low + [0.0, 0.0, playerScale.playerHeight]
+  high = low + [0.0, 0.0, body.playerHeight]
   points, normals = [], []
   for normal in ((1.0, 0.0, 0.0), (-1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, -1.0, 0.0)):
     for share in sideShares:
-      points.append(low + [0.0, 0.0, share * playerScale.playerHeight])
+      points.append(low + [0.0, 0.0, share * body.playerHeight])
       normals.append(normal)
   points.append(high)
   normals.append((0.0, 0.0, 1.0))
@@ -543,7 +546,7 @@ def pointSubject(nodes, point):
   node = nodes.floorNodeAt(point)
   if node is None:
     raise ToolError(f"The lane holds no floor under the target point {point}")
-  return playerSubject([point[0], point[1], float(nodes.height[node])])
+  return playerSubject([point[0], point[1], float(nodes.height[node])], nodes.lane.body)
 
 
 def regionSubject(nodes, region):

@@ -37,6 +37,7 @@ import bridgeWalls  # registers its kind with bridgeStructures
 import bridgeWater
 import eqClientZones
 import eqgFiles
+import playerScale
 import serverRows
 import skyDrawing
 from bridgeState import requireNoUnsavedChanges, state
@@ -45,7 +46,7 @@ zonePropertyName = "zonewrightZone"
 zonePropertyKeys = (
   "ambientColor", "specialAmbientColor", "bounceColor", "sunColor", "sunAzimuthDegrees", "sunElevationDegrees", "fogColor", "fogStart", "fogEnd",
   "fogDensity", "fogOn", "minClip", "maxClip", "newEngineZone", "sky", "safePoint", "underworld", "shortName", "zoneId", "longName", "timeType",
-  "entryGate", "serverTemplate",
+  "entryGate", "serverTemplate", "builtFor",
 )
 # The client raises a lower minimum clip to this (eqgame 0x4c9ee6).
 clientMinimumClip = 50.0
@@ -325,6 +326,8 @@ def setZoneProperties(updates, clientZones=None):
     raise ValueError(f"newEngineZone must be true or false, got {zone['newEngineZone']!r}")
   validateServerRowValues(zone, clientZones)
   validatePlayerValues(zone)
+  if "builtFor" in updates:
+    zone["builtFor"] = list(playerScale.checkedGroupNames(updates["builtFor"]))
   bpy.context.scene[zonePropertyName] = zone
   return {"zone": readZoneProperties(bpy.context.scene), "replacedBySky": replaced}
 

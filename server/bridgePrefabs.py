@@ -426,8 +426,10 @@ def entranceWalk(entrance):
   try:
     walk = bridgeReview.walkRoute(path, walkSampleSpacing)
   except ValueError as refusal:
-    return {"path": path, "walkable": False, "refused": str(refusal)}
-  return {"path": [roundVector(point) for point in path]} | {key: walk[key] for key in ("walkable", "problems", "oneWay", "narrowest", "lowestHeadroom")}
+    return {"path": path, "verdict": "fails", "passingGroups": [], "refused": str(refusal)}
+  return {"path": [roundVector(point) for point in path], "verdict": walk["verdict"], "passingGroups": walk["passingGroups"], "groups": {
+    name: {key: found[key] for key in ("walkable", "problems", "oneWay", "narrowest", "tightestOpening", "lowestHeadroom")} for name, found in walk["groups"].items()
+  }}
 
 
 def finishPrefab(collection, report):

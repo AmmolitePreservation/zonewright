@@ -11,6 +11,7 @@ import bpy
 import mathutils
 import numpy
 
+import bridgeBodyGroups
 import bridgeCaveData
 import bridgeCaves
 import bridgeGrading
@@ -895,7 +896,9 @@ def assessPlot(address):
           for radius in surroundingRadii for angle in numpy.linspace(0, 2 * math.pi, 24, endpoint=False)]
   ring = [height for height in ring if height is not None]
   standsAbove = round(float(center[2] - statistics.median(ring)), 1) if ring else None
-  eye = mathutils.Vector((center[0], center[1], center[2] + playerScale.eyeHeight))
+  # Enclosure and prominence are seen with the eye of the view group of the groups the plot's place is built for.
+  viewer = playerScale.groups[playerScale.viewGroup(bridgeBodyGroups.BuiltFor().at(center.tolist()))]
+  eye = mathutils.Vector((center[0], center[1], center[2] + viewer.eyeHeight))
   blocked = 0
   for angle in numpy.linspace(0, 2 * math.pi, enclosureDirections, endpoint=False):
     for elevation in (0.0, math.radians(15)):
@@ -924,9 +927,9 @@ def assessPlot(address):
           if height is None:
             continue
           inRange += 1
-          viewer = mathutils.Vector((x, y, height + playerScale.eyeHeight))
-          toTarget = target - viewer
-          hit = ground.tree.ray_cast(viewer, toTarget.normalized(), toTarget.length)
+          looker = mathutils.Vector((x, y, height + viewer.eyeHeight))
+          toTarget = target - looker
+          hit = ground.tree.ray_cast(looker, toTarget.normalized(), toTarget.length)
           seen += hit[0] is None or (hit[0] - target).length < 10
     prominence = {"seenFrom": seen, "routeSamplesInRange": inRange, "share": round(seen / inRange, 2) if inRange else None}
   suggested = []
@@ -941,7 +944,7 @@ def assessPlot(address):
   return {
     "address": address, "under": under, "caveFloor": bridgeCaves.strokeUnder(center[0], center[1], center[2]), "sides": sides,
     "entrance": {"point": [round(float(value), 1) for value in entrance], "ground": None if entranceGround is None else round(entranceGround, 2)},
-    "waterDistance": water, "standsAboveSurroundings": standsAbove, "enclosure": enclosure, "overhead": overhead,
+    "waterDistance": water, "standsAboveSurroundings": standsAbove, "enclosure": enclosure, "eyeGroup": viewer.name, "overhead": overhead,
     "nearestPlot": None if nearestPlot is None else round(nearestPlot, 1), "routeDistance": routeDistance, "prominence": prominence,
     "overlaps": overlapsOf(plot), "suggestedFeatures": suggested, "features": spec["tags"],
     "unpricedSuggestions": sorted({entry["feature"] for entry in suggested} - set(housing["pricing"]["featureMultipliers"])),

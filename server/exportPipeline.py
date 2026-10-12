@@ -34,18 +34,24 @@ import zoneSources
 islandsListed = 25
 recordName = "zonePointsWritten.json"
 piecesRecordName = "piecesWritten.json"
-leakKinds = ("voidEdge", "belowUnderworld", "noneRegion", "outsideRegions", "disconnectedEntry", "unreachedPlot")
-laneFindingKinds = ("trap", "viewRegion", "unreachedZoneLine", "unreachedSwim", "unreachedPlayFloor", "undecidedWater")
+laneFindingKinds = (
+  "disconnectedEntry", "unreachedPlot", "trap", "viewRegion", "unreachedZoneLine", "unreachedSwim", "unreachedPlayFloor", "undecidedWater",
+)
 laneFindingMessages = {
+  "disconnectedEntry": "entries some body group the place is not built for cannot pass both ways to and from the safe point",
+  "unreachedPlot": "plot entrances some body group the place is not built for does not reach",
   "trap": "places players reach and cannot leave: no way back to where they arrive or to a zone line",
   "viewRegion": "reach into regions planned only to be seen (access view)",
-  "unreachedZoneLine": "zone lines no player reaches",
-  "unreachedSwim": "swim boxes no player reaches",
-  "unreachedPlayFloor": "walkable floor in play regions that no player reaches",
+  "unreachedZoneLine": "zone lines some body group does not reach",
+  "unreachedSwim": "swim boxes some body group does not reach",
+  "unreachedPlayFloor": "walkable floor in play regions that some body group does not reach",
   "undecidedWater": "pools and rivers without swim boxes whose bed players walk, as the client would",
 }
 testContainment = "not checked for a test export"
-placeKeys = ("number", "center", "extent", "length", "area", "region", "entry", "plot", "zoneLine", "swimBox", "body")
+placeKeys = (
+  "number", "center", "extent", "length", "area", "region", "entry", "plot", "zoneLine", "swimBox", "body", "groups", "verdict", "failingGroups",
+  "builtFor",
+)
 
 
 def serverFilePaths(folder, zone):
@@ -236,10 +242,11 @@ def columnsBetween(low, high, origin, cellSize, count):
 
 
 def islandReach(inspection, nodes):
-  """Whether players reach each NPC island, by its number: whether some reached dry floor of the lane lies within a step
-  (playerScale.stepHeight, so a player there steps onto it) of one of the island's polygons, in a column whose center the polygon holds.
+  """Whether players reach each NPC island, by its number: whether some dry floor any body reaches with the lane's group's moves lies
+  within that group's step (so a player there steps onto it) of one of the island's polygons, in a column whose center the polygon holds.
   The polygon's height there is read off its corners, fanned from its first (Recast's polygons are convex)."""
   lane = nodes.lane
+  step = lane.body.stepHeight
   reached = numpy.zeros(len(inspection["islands"]), dtype=bool)
   standing = numpy.flatnonzero(nodes.reached & ~nodes.wet)
   if not len(reached) or not len(standing):
@@ -275,7 +282,7 @@ def islandReach(inspection, nodes):
       held = ~numpy.isnan(surface)
       if not held.any():
         continue
-      low, high = surface[held] - playerScale.stepHeight - base, surface[held] + playerScale.stepHeight - base
+      low, high = surface[held] - step - base, surface[held] + step - base
       near = (high >= 0) & (low <= extent)
       start = (row[held] * lane.columnsX + column[held])[near] * span
       # A column's keys lie within extent of its start, so a window kept to that range never reads the next column's.
@@ -324,12 +331,17 @@ def leakFailure(problem, underworld, numbered="mapReach problem"):
     ),
     "outsideRegions": f"Players reach {problem.get('area')} of ground outside every region: plan it with a region, or keep players off it",
     "disconnectedEntry": (
-      f"Entry '{problem.get('entry')}' and the safe point do not reach each other both ways: players arriving there cannot reach the rest of the"
-      " zone or come back; an area only its own port reaches is marked isolated (placeEntry)"
+      f"Entry '{problem.get('entry')}' and the safe point do not reach each other both ways for the {problem.get('failingGroups')} body"
+      f" groups, and the place is built for {problem.get('builtFor')}: players arriving there cannot reach the rest of the zone or come back;"
+      " an area only its own port reaches is marked isolated (placeEntry), and a place built for other groups says so (builtFor)"
     ),
-    "unreachedPlot": f"No player reaches the entrance of plot '{problem.get('plot')}'",
+    "unreachedPlot": (
+      f"The {problem.get('failingGroups')} body groups do not reach the entrance of plot '{problem.get('plot')}', and the place is built"
+      f" for {problem.get('builtFor')}"
+    ),
   }[kind]
-  return {"failure": kind} | placeOf(problem) | {"message": f"{said} ({numbered} {number}, at {center})"}
+  groups = f"; groups: {problem['groups']}" if "groups" in problem else ""
+  return {"failure": kind} | placeOf(problem) | {"message": f"{said} ({numbered} {number}, at {center}{groups})"}
 
 
 def laneFindings(lane, description, analysis):
@@ -338,7 +350,7 @@ def laneFindings(lane, description, analysis):
   findings = []
   problems, more = analysis["problems"], analysis["moreProblems"]
   for kind in laneFindingKinds:
-    found = [placeOf(problem) for problem in problems if problem["kind"] == kind]
+    found = [placeOf(problem) for problem in problems if problem["kind"] == kind and not playerReach.isFailure(problem)]
     if found:
       finding = {"finding": kind, "problems": found}
       if kind in more:
@@ -346,16 +358,20 @@ def laneFindings(lane, description, analysis):
       count = len(found) + more.get(kind, {}).get("count", 0)
       findings.append(finding | {"message": f"{laneFindingMessages[kind]}: {count} (mapReach numbers them as here)"})
   nodes = analysis["nodes"]
-  # Water too shallow for the design player to swim in is squeeze too, though he walks its floor; it is no gap to look at.
-  squeezed = (nodes.label == playerReach.squeezeLabel) & ~(nodes.wet & nodes.shallow)
-  if squeezed.any():
+  for name in playerScale.groupNames:
+    # Water too shallow for a group to swim in is squeeze too, though it walks the floor; it is no gap to look at.
+    squeezed = nodes.reached & ~analysis["fullBy"][name] & ~(nodes.wet & nodes.shallow)
+    if not squeezed.any():
+      continue
     places = playerReach.groupedProblems("squeeze", lane, squeezed, nodes, analysis["regionOfNode"], description["regions"])
     places.sort(key=lambda place: -place["area"])
+    body = playerScale.groups[name]
     findings.append({
-      "finding": "squeeze reach", "area": round(float(squeezed.sum()) * lane.cellSize * lane.cellSize, 1), "places": [placeOf(place) for place in places[:playerReach.problemsListed]],
+      "finding": "squeeze reach", "group": name, "area": round(float(squeezed.sum()) * lane.cellSize * lane.cellSize, 1),
+      "places": [placeOf(place) for place in places[:playerReach.problemsListed]],
       "message": (
-        f"Only a player shorter than playerHeight ({playerScale.playerHeight:g}) passes here, through less open space than a player's height;"
-        " containment counts it as reached"
+        f"Bodies smaller than the {name} group's playerHeight ({body.playerHeight:g}) pass here, through less open space than the"
+        f" {name} group needs; containment counts it as reached"
       ),
     })
   for line in description["zoneLines"]:
@@ -397,9 +413,10 @@ def problemCounts(analysis):
 
 
 def containment(inputs, underworld, toolingRoot, reportProgress):
-  """Step 5 of a game export: the scene's lane (playerReach.currentLane, from bridgeLane.laneInput's file), its leaks as failures, and its
-  findings. Without seeds, or when the lane cannot be computed, a failure saying containment was not checked. Returns (summary for the
-  report, failures, findings, the analysis's nodes or None)."""
+  """Step 5 of a game export: the scene's lanes (playerReach.currentLanes, from bridgeLane.laneInput's file), its leaks and what fails a
+  body group a place is built for as failures (playerReach.isFailure), and its findings. Without seeds, or when the lanes cannot be
+  computed, a failure saying containment was not checked. Returns (summary for the report, failures, findings, the analysis's nodes
+  or None)."""
   if not any(entry["kind"] in playerReach.seedKinds for entry in inputs["entries"]):
     message = (
       "containment not checked: no seeds: the lane starts where players arrive, the safe point (setZoneProperties safePoint) and the stored"
@@ -407,19 +424,23 @@ def containment(inputs, underworld, toolingRoot, reportProgress):
     )
     return message, [{"failure": "containment not checked", "message": message}], [], None
   try:
-    lane, description, status, seconds = playerReach.currentLane(toolingRoot, inputs["workFile"], inputs["laneInput"], reportProgress)
+    lanes, description, status, seconds = playerReach.currentLanes(toolingRoot, inputs["workFile"], inputs["laneInput"], reportProgress)
   except ToolError as error:
     message = f"containment not checked: {error}"
     return message, [{"failure": "containment not checked", "message": message}], [], None
-  analysis = playerReach.analyse(lane, description)
-  failures = [leakFailure(problem, underworld) for problem in analysis["problems"] if problem["kind"] in leakKinds]
-  for kind in leakKinds:
+  shown = playerScale.planGroup(playerScale.builtForAt(description["builtFor"], None))
+  analysis = playerReach.analyse(lanes, description, shown)
+  lane = lanes[shown]
+  failures = [leakFailure(problem, underworld) for problem in analysis["problems"] if playerReach.isFailure(problem)]
+  for kind in playerReach.leakKinds:
     if kind in analysis["moreProblems"]:
       rest = analysis["moreProblems"][kind]
       said = f"{rest['count']} more {kind} problems than mapReach lists (the largest {playerReach.problemsListed} of each kind)"
       failures.append({"failure": kind, "more": rest, "message": said})
   summary = {
-    "lane": status, "seconds": seconds, "laneFile": str(lane.path), "laneKey": lane.path.stem.removeprefix("lane-"),
+    "lane": status, "seconds": seconds, "laneFiles": {name: str(found.path) for name, found in lanes.items()},
+    "laneKeys": {name: found.path.stem.removeprefix(f"lane-{name}-") for name, found in lanes.items()},
+    "builtFor": list(playerScale.builtForAt(description["builtFor"], None)),
     "reachGrid": playerReach.reachGrid, "constants": playerReach.constantsReport(), "entries": analysis["entries"],
     "notFollowed": description["notFollowed"], "reachedArea": analysis["reachedArea"], "regions": analysis["regions"],
     "zoneLines": analysis["zoneLines"], "plotEntrances": analysis["plotEntrances"], "swimBoxes": analysis["swimBoxes"], "problems": problemCounts(analysis),
@@ -582,7 +603,7 @@ def manifestRecord(folder, built, files, blendPath, writtenBy):
   no export), the zone's short name, the .blend, every file written (path relative to the folder) with its size and SHA-256, the failure
   and finding counts, and for a game export the zone's identity and template (for its later client registration), the zone_points
   numbers written and deleted, the nav settings, the helper, the nav's islands (each with whether players reach it) and probes, and the
-  lane: its key, grid, constants with their sources, and reached area."""
+  lane: each body group's key, the groups the zone is built for, grid, constants with their sources, and reached area per group."""
   report = built["report"]
   record = {
     "purpose": report["purpose"], "writtenBy": writtenBy, "shortName": built["summary"]["zone"], "blend": blendPath,
@@ -601,7 +622,7 @@ def manifestRecord(folder, built, files, blendPath, writtenBy):
       "pieces": None if built["pieces"] is None else {"doors": built["pieces"]["doorNumbers"], "objects": len(built["pieces"]["objects"])},
       "serverNavSettings": serverNav.serverNavSettings,
       "recastHelper": {"commit": pin["commit"], "fingerprint": recastHelper.helperFingerprint(pin, recastHelper.toolchain()[1])},
-      "lane": {key: lane[key] for key in ("laneKey", "reachGrid", "constants", "reachedArea")} if isinstance(lane, dict) else None,
+      "lane": {key: lane[key] for key in ("laneKeys", "builtFor", "reachGrid", "constants", "reachedArea")} if isinstance(lane, dict) else None,
     }
     inspection = server["inspection"]
     record["nav"] = None if inspection is None else navSummary(inspection, server["navReport"]) | {"islands": inspection["islands"]}
