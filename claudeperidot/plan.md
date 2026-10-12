@@ -6,11 +6,11 @@ claudeperidot is Claude's own EQEmu server: a faithful copy of Peridot on a LAN-
 
 ## In progress
 
-15. Retire the EQBCS route for Claude's work once a claudelink shot matches one of the owner's screenshots; the first shot after the owner restarts the MacroQuest loader shows the spare near 100 fps with the limiter suspended
+16. Experiments through the ledger; close every session as the README says
 
 ## Next
 
-16. Experiments through the ledger; close every session as the README says
+None
 
 ## Steps
 
@@ -31,7 +31,7 @@ Each step is ticked when it is done. A step that names ledger changes in bracket
 - [x] 12. Credential claudeperidot/eqLogin (a client change: its step generates the password and stores it with CredWrite, never on a command line; its check is the credential's existence), and Claude's MacroQuest cfg: MQ2EQBC and mq2netbots unloaded and MQClaudeLink loaded, each with noauto [0012, 0013]
 - [x] 13. First launch through claudelink, without activating the window: injection, focus never stolen, MQ2EQBC behaviour, affinity and CPU; the account, made by the first login (play); a character with Pariator's race and gender, written by the ledger because the link loads only once a character is in the world; GM fixture: that account's status 255 (a row change on account, whose saved rows stay on claudeperidot); MQ2AutoLogin's login.db rows as a client change checked by the persona row, which play writes (2026-10-11): MacroQuest injected the spare 1 to 4 s after start; its window opened on DISPLAY2 and the foreground never moved in three sessions; affinity 0xffff, normal priority, about 2% of one core in game in the background; MQ2EQBC and mq2netbots unloaded by the cfg before their game-state handlers (no TCP connection from the spare); account 86 made by the first login; Claudewright, human male wizard; #goto and #zone answered from the link's command; MQ2ChatWnd's section for the character in the owner's MQ2ChatWnd.ini, recorded after it was written [0014, 0015, 0016, 0017]
 - [x] 14. The rest of the claudelink commands and its MCP tools, with claudelink managing the frame limiter (owner's answer 14); the first calibration shot. Done (2026-10-11, claudelink b7b76c2 to 5b5f672): dump runs MQPeridotEmu's /peridotemu dump and returns the file it announces (the unbuilt ClaudeLinkWriteZoneDump export is gone from claudelink and from MQPeridotEmu's working tree); time waits for the set time, not the hour alone, and ran live; launchClient fingerprints the owner's shared MacroQuest files and closeClient reports which changed (in two sessions only login.db-wal, MQ2AutoLogin's last_seen on Claude's persona and server rows); Claude's character renders in the owner's 2560 by 1417 viewport (0018); the first calibration shot, the owner's EQ000005 in Highpass Hold (MQPeridotEmu dump 2026-10-03 13:06:17), matched from the dump's camera at game time 9:32, in clear weather, wielding Staff of the Wheel (light 14) as Pariator did: walls, rock, railing and post within a level or two, only the waterfall's and pool's animated textures and the mist's particles differ. The frame limiter, by the owner's choice of route (b) (2026-10-11): MQ2Main.dll, built from the MacroQuest tree's local claude branch, exports SetFrameLimiterSuspended, which suspends the limiter in the calling process only, and MQClaudeLink 0.4 suspends it in the spare alone, with its frameLimiter command and around each screenshot [0018, 0019]
-- [ ] 15. Retire the EQBCS route for Claude's work once a claudelink shot matches one of the owner's screenshots; the first shot after the owner restarts the MacroQuest loader shows the spare near 100 fps with the limiter suspended
+- [x] 15. Retire the EQBCS route for Claude's work once a claudelink shot matches one of the owner's screenshots (2026-10-11): after the loader restart the spare shot with the limiter suspended at 186 to 226 fps (the client's own cap of 100 does not hold it there); Highpass Hold EQ000005 retaken at 9:32, weather clear, the dump's camera row: mean absolute difference about 4 levels, and the mist at the falls' foot, missing from the 3 fps shot, matches the owner's. The EQBCS route is retired for Claude's work
 - [ ] 16. Experiments through the ledger; close every session as the README says
 
 ## Baseline
