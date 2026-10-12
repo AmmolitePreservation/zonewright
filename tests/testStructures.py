@@ -1,3 +1,4 @@
+from conftest import walkOf
 import structurePlots
 
 legs = {"piece": "testKitLeg", "spacing": 8}
@@ -89,7 +90,7 @@ def testAStructureStandingOnAnEarlierOneIsStaleWhenThatOneMoves(stageBlenderServ
   assert "plazaDeck" in staleness(before, "deckFlight")["standsOn"]
   assert staleness(raised, "deckFlight")["stale"] and staleness(raised, "deckFlight")["why"] == ["ground"]
   assert not staleness(raised, "plazaDeck")["stale"]
-  assert relaid["footingGaps"]["head"] == 0.0 and relaid["walk"]["walkable"]
+  assert relaid["footingGaps"]["head"] == 0.0 and walkOf(relaid["walk"])["walkable"]
   assert not any(entry["stale"] for entry in after["structures"])
 
 
@@ -178,9 +179,9 @@ def testAStructuresWalkLineIsWalkedByName(stageBlenderServer, tmp_path):
 
   built, walked, notSpan, saved = stageBlenderServer.session(steps)
   assert walked == built["walk"]
-  assert walked["walkable"] and walked["length"] > 80 and walked["profile"][0]["at"][0] == -105.0
+  assert walkOf(walked)["walkable"] and walkOf(walked)["length"] > 80 and walkOf(walked)["profile"][0]["at"][0] == -105.0
   assert "only bridges, flights, and walkways have a walk line" in notSpan
-  assert saved["length"] == 6.0
+  assert walkOf(saved)["length"] == 6.0
 
 
 def testRegradeTerrainNamesStaleStructures(stageBlenderServer, tmp_path):

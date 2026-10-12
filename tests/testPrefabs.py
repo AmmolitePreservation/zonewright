@@ -1,3 +1,4 @@
+from conftest import walkOf
 import structurePlots
 
 prefab = "testKitHouse"
@@ -146,8 +147,8 @@ result = sorted(set(round(value, 2) for s0, z0, s1, z1 in cuts for value in (s0,
   placed, walk, settled, crate, tall = stageBlenderServer.session(steps)
   assert placed["floor"] == 1.0 and placed["plinth"] is None
   assert {part["name"] for part in placed["parts"]} == {"houseExterior", "houseInterior", "houseRoof"}
-  assert walk["walkable"] is True
-  assert {row["at"][2] for row in walk["profile"]} == {1.0}
+  assert walkOf(walk)["walkable"] is True
+  assert {row["at"][2] for row in walkOf(walk)["profile"]} == {1.0}
   assert abs(crate["worldMinimum"][2] - 1.0) <= 0.01, settled
   # The section along y = 0 runs through the west and east walls (their faces at x -30 and -20, 20 and 30) up to their tops at 31.
   assert {30.0, 40.0, 80.0, 90.0} <= set(tall)
@@ -247,8 +248,8 @@ def testAWalkInBuildingIsWalkedIntoThroughEachEntrance(stageBlenderServer, tmp_p
   assert entrance["groundOutside"] == 0.0 and entrance["stepUp"] == 0.0
   walk = entrance["walk"]
   assert walk["path"] == [[28.75, 12.5, 0.0], [8.75, 12.5, 0.0]]
-  assert walk["walkable"] is True, walk["problems"]
-  assert walk["lowestHeadroom"]["headroom"] >= structurePlots.houseDoorHeight - 0.05
+  assert walkOf(walk)["walkable"] is True, walkOf(walk)["problems"]
+  assert walkOf(walk)["lowestHeadroom"]["headroom"] >= structurePlots.houseDoorHeight - 0.05
   assert placed["views"]["entranceFront"] == {"standAt": [43.75, 12.5], "headingDegrees": 270.0, "pitchDegrees": 0.0}
   assert placed["views"]["orbit"] == {"objects": ["innExterior", "innInterior", "innRoof"]}
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy
 from PIL import Image
 
-from conftest import writePNG
+from conftest import writePNG, walkOf
 from testModelsAndDressing import freshScene
 from testReviewViews import crateScene, environment
 
@@ -108,11 +108,13 @@ def testReviewRoutesWalkByNameAndRenderAsAStripOfEyeLevelFrames(stageBlenderServ
   saved, byName, byPath, both, strip, firstView, withFigure, tooMany, exported, deleted, gone = stageBlenderServer.session(steps)
   assert saved == {"name": "offLedge", "path": [[float(value) for value in point] for point in offLedge], "length": 220.0}
   # Walked by name, the route is walked exactly as its points are: off the ledge's sheer side, 70 down, is a drop.
-  assert byName == byPath and [problem["kind"] for problem in byName["problems"]] == ["drop"]
+  assert byName == byPath and [problem["kind"] for problem in walkOf(byName)["problems"]] == ["drop"]
   assert "Give path" in both
   image, planned = strip
   # Frames every 50 along the route where the walk stands, and one where it stops at the drop; all look along the route (west).
   frames = planned["frames"]
+  # The zone is built for every group, so the strip walks and looks as the middle one, the medium group.
+  assert planned["bodyGroup"] == "medium" and all(frame["view"]["bodyGroup"] == "medium" for frame in frames)
   assert [frame["distance"] for frame in frames if frame["problem"] is None] == [0.0, 50.0, 100.0, 150.0, 200.0]
   drop = [frame for frame in frames if frame["problem"] is not None]
   assert len(drop) == 1 and drop[0]["problem"]["kind"] == "drop" and 80 <= drop[0]["distance"] <= 81 and drop[0]["problem"]["resumesAtDistance"] <= 82

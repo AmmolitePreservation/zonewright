@@ -184,6 +184,11 @@ class StagedServer:
     return result.content[0].text
 
 
+def walkOf(result, group="medium"):
+  """One body group's walk from a walkRoute result (or a structure's, a graded route's, a prefab entrance's walk)."""
+  return result["groups"][group]
+
+
 def sha256OfFile(filePath):
   digest = hashlib.sha256()
   with filePath.open("rb") as source:

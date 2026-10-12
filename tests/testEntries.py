@@ -94,9 +94,9 @@ def testPlaceEntryStandsOnShippedFooting(stageBlenderServer, tmp_path):
     return view, placed, dais, underPool, underTerrace, again, refusals, listed
 
   view, placed, dais, underPool, underTerrace, again, refusals, listed = stageBlenderServer.session(steps)
-  assert {key: placed[key] for key in ("name", "kind", "at", "headingDegrees", "fromZone", "fromNumber", "isolated", "state", "replaced")} == {
+  assert {key: placed[key] for key in ("name", "kind", "at", "headingDegrees", "fromZone", "fromNumber", "isolated", "state", "replaced", "groupFindings")} == {
     "name": "fromQeynos", "kind": "zoneIn", "at": [0.0, 0.0, 0.0], "headingDegrees": 90.0, "fromZone": "qeynos2", "fromNumber": 3, "isolated": False,
-    "state": "onFooting", "replaced": False,
+    "state": "onFooting", "replaced": False, "groupFindings": {},
   }
   # Its arrival view stands on the footing at a player's eye, facing its heading, with the scale figure ahead.
   assert placed["arrivalView"]["view"] == {"standOn": [0.0, 0.0, 0.0], "headingDegrees": 90.0, "pitchDegrees": 0.0}
@@ -114,16 +114,20 @@ def testPlaceEntryStandsOnShippedFooting(stageBlenderServer, tmp_path):
   assert again["replaced"] is True and again["at"] == [10.0, 0.0, 0.0] and again["fromNumber"] is None
   assert [entry["name"] for entry in listed["entries"]] == ["daisTop", "fromQeynos", "underSkyPool", "underTerrace"]
   assert "No ground the zone ships lies at [500.0, 500.0]" in refusals["noFooting"]
-  assert f"slopes {steepDegrees:.1f} degrees, steeper than players walk ({steepestWalkableDegrees:.1f}" in refusals["steep"]
-  assert f"has {playerHeight - 1:.2f} of headroom, under a player's height ({playerHeight:g}" in refusals["headroom"]
+  # The zone is built for every body group until set, so a footing any of them cannot arrive on is refused, naming each group it stops.
+  assert "built for ['small', 'medium', 'large']" in refusals["steep"]
+  assert f"slopes {steepDegrees:.1f} degrees, steeper than the medium group walks ({steepestWalkableDegrees:.1f}" in refusals["steep"]
+  # The slab leaves room for the small group's tallest body but not the medium's or the large's.
+  assert f"has {playerHeight - 1:.2f} of headroom, under the medium group's height ({playerHeight:g}" in refusals["headroom"]
+  assert "under the large group's height" in refusals["headroom"] and "small group's height" not in refusals["headroom"]
   assert "under the surface of 'pond', whose swimming is undecided" in refusals["undecided"]
-  # A box reaching into the player's height over the footing refuses it, whether it holds the footing or starts over it: the client
+  # A box reaching into a group's height over the footing refuses it, whether it holds the footing or starts over it: the client
   # tests a player's origin, which stands somewhere in that height.
-  standing = f"({playerHeight:g} tall, playerScale) reaches into"
-  assert f"A player standing on the footing at [30.0, -70.0, 0.0] {standing} swim volume 'AWT_wading': players would arrive in its water" in refusals["swimBox"]
-  assert f"A player standing on the footing at [-20.0, -30.0, 0.0] {standing} swim volume 'AWT_lowPool'" in refusals["swimBoxOverhead"]
-  assert f"A player standing on the footing at [-95.0, 0.0, 0.0] {standing} zone line 'ATP_1_west'" in refusals["zoneLine"]
-  assert f"A player standing on the footing at [30.0, 30.0, 0.0] {standing} zone line 'ATP_5_arch'" in refusals["zoneLineOverhead"]
+  standing = f"a medium player standing there ({playerHeight:g} tall, playerScale) reaches into"
+  assert "The footing at [30.0, -70.0, 0.0]" in refusals["swimBox"] and f"{standing} swim volume 'AWT_wading' and would arrive in its water" in refusals["swimBox"]
+  assert "The footing at [-20.0, -30.0, 0.0]" in refusals["swimBoxOverhead"] and f"{standing} swim volume 'AWT_lowPool'" in refusals["swimBoxOverhead"]
+  assert "The footing at [-95.0, 0.0, 0.0]" in refusals["zoneLine"] and f"{standing} zone line 'ATP_1_west'" in refusals["zoneLine"]
+  assert "The footing at [30.0, 30.0, 0.0]" in refusals["zoneLineOverhead"] and f"{standing} zone line 'ATP_5_arch'" in refusals["zoneLineOverhead"]
   assert "'dais' is the name of 'dais', which is not an entry" in refusals["clash"]
   assert "An entry's kind is one of ['zoneIn', 'landing'], got 'portal'" in refusals["kind"]
   assert "A zoneIn needs fromZone" in refusals["noFromZone"]
@@ -438,3 +442,30 @@ def testRenderSketchDrawsEntriesAndAccess(stageBlenderServer, tmp_path):
   red, green, blue = planPixel([0, 150], 180, 8)
   assert red - blue > 80 and red > green > blue, (red, green, blue)
   assert drawn["width"] == sketchView["width"]
+
+
+def testARegionBuiltForSmallerBodiesTurnsAnEntryRefusalIntoAFinding(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await groundGrid(session, tmp_path)
+    await session.expectSuccess("setZoneProperties", environment)
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "slab", "size": [20, 20, 1], "location": [-60, 60, playerHeight - 1]})
+    refused = await session.expectError("placeEntry", entryArguments("underTheSlab", [-60, 60, 0]))
+    await session.expectSuccess("createRegion", {
+      "name": "gnomeQuarter", "outline": [[-80, 40], [-40, 40], [-40, 80], [-80, 80]], "bottom": -10, "top": 30, "intent": "a quarter for small folk",
+      "access": "play", "builtFor": ["small"],
+    })
+    _, placed = await session.expectImage("placeEntry", entryArguments("underTheSlab", [-60, 60, 0]))
+    regions = await session.expectSuccess("getRegions", {})
+    await session.expectSuccess("editRegion", {"name": "gnomeQuarter", "builtFor": "zone"})
+    followed = await session.expectSuccess("getRegions", {})
+    again = await session.expectError("placeEntry", entryArguments("underTheSlabAgain", [-60, 60, 0]))
+    return refused, placed, regions, followed, again
+
+  refused, placed, regions, followed, again = stageBlenderServer.session(steps)
+  assert "built for ['small', 'medium', 'large']" in refused and "under the medium group's height" in refused
+  # In a region built for the small group, the slab stops only groups it is not built for: findings, the entry placed.
+  assert placed["at"] == [-60.0, 60.0, 0.0] and sorted(placed["groupFindings"]) == ["large", "medium"]
+  assert f"under the medium group's height ({playerHeight:g}" in placed["groupFindings"]["medium"]
+  assert regions["regions"][0]["builtFor"] == ["small"] and followed["regions"][0]["builtFor"] is None
+  assert "built for ['small', 'medium', 'large']" in again

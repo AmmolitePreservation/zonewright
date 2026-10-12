@@ -17,7 +17,7 @@ import playerScale
 # The medium body group, which holds the walked human male, is the one these tests size their courses by.
 medium = playerScale.groups["medium"]
 stepHeight = medium.stepHeight
-from conftest import writePNG
+from conftest import writePNG, walkOf
 from testCaves import caveCanyon, checkCave, borderEdges
 
 caveMaterials = {"wallMaterial": "caveRock", "floorMaterial": "caveFloor", "worldUnitsPerRepeat": 48}
@@ -417,7 +417,7 @@ def testAPlotOnAPadMeasuresThePad(stageBlenderServer, tmp_path):
   stroke = {"object": "ground", "cave": "room", "run": "main", "stroke": "plotPad", "kind": "pad", "height": 5.0}
   assert placed["caveFloor"] == stroke and assessed["caveFloor"] == stroke
   assert abs(assessed["under"]["lowest"] - 5) <= 0.01 and abs(assessed["under"]["highest"] - 5) <= 0.01
-  assert walk["walkable"] is True and walk["problems"] == []
+  assert walkOf(walk)["walkable"] is True and walkOf(walk)["problems"] == []
 
 
 # The room with a branch leaving its east wall at 200 (along 260) for a blind alcove, and one leaving its west wall at 160.
@@ -445,9 +445,11 @@ def testABranchIsCutWithItsParentSealedAndWalkedThroughItsJunction(stageBlenderS
   cut, checked, vertices, walk, unbroken = stageBlenderServer.session(steps)
   # Sealed: no edge on three or more faces and no open edge but the grid's border.
   assert checked["edgesOnThreeOrMoreFaces"] == 0 and checked["openEdges"] == borderEdges and checked["largestLiningMove"] == 0.0
-  # The junction is where the branch leaves the room's east wall, framed facing back into the room.
+  # The junction is where the branch leaves the room's east wall, framed facing back into the room; level with the room's floor, every
+  # body group steps through it.
   assert cut["junctions"] == [{
     "branch": "side", "from": "main", "start": [0.0, 200.0, 2.0], "rise": 0.0, "overlook": False,
+    "steppedUpBy": ["small", "medium", "large"], "builtFor": ["small", "medium", "large"],
     "frame": {"center": [60.0, 200.0, 2.0], "facingDegrees": 270.0, "width": 30.0, "height": 30.0},
   }]
   assert [(end["run"], end["end"], end["kind"]) for end in cut["ends"]] == [("main", "start", "open"), ("main", "end", "blind"), ("side", "start", "junction"), ("side", "end", "blind")]
@@ -461,7 +463,7 @@ def testABranchIsCutWithItsParentSealedAndWalkedThroughItsJunction(stageBlenderS
   distances = numpy.linalg.norm(vertices[nearOpening][:, None, :] - unbroken[None, :, :], axis=2).min(axis=1)
   assert nearOpening.sum() >= 10 and distances.max() <= 1e-4
   # Walked from the cave's mouth through the junction to the branch's end.
-  assert walk["walkable"] is True and walk["problems"] == [] and walk["length"] > 260 + 150 - 1
+  assert walkOf(walk)["walkable"] is True and walkOf(walk)["problems"] == [] and walkOf(walk)["length"] > 260 + 150 - 1
 
 
 def testEditingOneBranchLeavesTheOtherRunsAsCut(stageBlenderServer, tmp_path):
@@ -526,7 +528,7 @@ def testBranchRefusals(stageBlenderServer, tmp_path):
   assert "Branch 'side' starts at [80.0, 200.0, 2.0] with its first section reaching 20.7 out of its parent 'main''s walls (at [80.0, 200.0, 32.0])" in outside
   assert "Branch 'side''s floor where it starts" in hole and "lies 3.00 under its parent 'main''s floor there" in hole
   # Started 1.5 higher than a player steps over the parent's floor, it is refused unless an overlook.
-  assert f"Branch 'side' starts {stepHeight + 1.5:.1f} over its parent 'main''s floor, more than a step ({stepHeight:g})" in raised and "overlook" in raised
+  assert f"Branch 'side' starts {stepHeight + 1.5:.1f} over its parent 'main''s floor, more than a step ({stepHeight:g}) for the body groups it is built for (['small', 'medium', 'large'], playerScale)" in raised and "overlook" in raised
   assert "Two branches are named 'side'" in twice
   assert "Branch 'side' leaves 'nowhere', which is not the main run or a branch named before it (['main'])" in unknown
   assert detail["caves"] == []
@@ -562,7 +564,7 @@ def testABranchLeavesThroughItsParentsStrokesOnlyAsTheAuthorDrewIt(stageBlenderS
   # Through a pad 3 high, less than a step but a trench deeper than buildTolerances.trenchTolerance, it is refused too.
   assert "Branch 'side' leaves its parent 'main' through its floor stroke(s) ['dais'], standing 3.0 over the branch's floor" in throughPad
   # Over a threshold the author drew, it leaves cleanly and is walked from the mouth.
-  assert [junction["rise"] for junction in throughThreshold["junctions"]] == [0.0] and walked["walkable"] is True and walked["problems"] == []
+  assert [junction["rise"] for junction in throughThreshold["junctions"]] == [0.0] and walkOf(walked)["walkable"] is True and walkOf(walked)["problems"] == []
   # Started without a height on a dais, it takes the dais's top and stands on it, no step over its parent's floor there.
   assert onDais["runs"]["side"]["floors"][0] == 5.0 and onDais["junctions"][0]["rise"] == 0.0
   # Off a ramp's slope it would leave a hole; refused with advice that works: a level stretch, which then cuts.
@@ -830,8 +832,8 @@ def testASpiralExportsAndBothLevelsAreWalkedAfterImport(stageBlenderServer, tmp_
   assert imported["triangles"] == exported["terrainTriangles"]
   # Imported, the room under and the passage over the tunnel are both walked from the mouth.
   for walk in walks:
-    assert walk["walkable"] is True and walk["problems"] == []
-  assert walks[1]["profile"][-1]["at"][2] > 55
+    assert walkOf(walk)["walkable"] is True and walkOf(walk)["problems"] == []
+  assert walkOf(walks[1])["profile"][-1]["at"][2] > 55
 
 
 def testACaveCutBeforeTheExtrasIsReadByEveryTool(stageBlenderServer, tmp_path):
@@ -863,7 +865,7 @@ result = sorted(known['room'])
   kept, placed, sketch, section, walk = stageBlenderServer.session(steps)
   assert kept == ["definition", "paint", "plug"]
   assert placed["caveFloor"] is None
-  assert [entry["cave"] for entry in section["caves"]] == ["room"] and walk["walkable"] is True
+  assert [entry["cave"] for entry in section["caves"]] == ["room"] and walkOf(walk)["walkable"] is True
 
 
 def testACutIsRefusedWholeWhenItsProfileCannotBeDrawnAndAnEditDrawsTheRunsItChanged(stageBlenderServer, tmp_path):
@@ -1142,7 +1144,7 @@ def testALandingTurnsLevelAndItsStraightsTakeTheGrade(stageBlenderServer, tmp_pa
   assert numpy.isclose(main["segments"][1]["gradeDegrees"], math.degrees(math.atan2(28, 90)), atol=0.01)
   assert main["segments"][1]["run"] == 90.0 and main["segments"][2]["run"] == 40.0
   # Walked along the run from its mouth to its blind end, never steeper than the floor's maximum.
-  assert walk["walkable"] is True and walk["problems"] == [] and walk["steepestGrade"]["degrees"] <= 30
+  assert walkOf(walk)["walkable"] is True and walkOf(walk)["problems"] == [] and walkOf(walk)["steepestGrade"]["degrees"] <= 30
 
 
 def testGradeRefusals(stageBlenderServer, tmp_path):

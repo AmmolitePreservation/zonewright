@@ -1,7 +1,7 @@
 import numpy
 
 import structurePlots
-from conftest import writePNG
+from conftest import writePNG, walkOf
 
 # A hall 24 wide and 20 tall from the plaza in front of the test plot's cliff (its foot at y 12) 50 into it, ending blind.
 hall = {
@@ -117,7 +117,7 @@ def testAHallHasStraightWallsAFlatCeilingAndAFlatBlindEnd(stageBlenderServer, tm
   assert all(min(abs(corner[0] - 48), abs(corner[0] - 72)) <= 0.01 for face in sides for corner in face["corners"])
   assert end and all(abs(corner[1] - 50) <= 0.01 for face in end for corner in face["corners"])
   assert max(vertex[1] for vertex in lining["liningVertices"]) <= 50.01
-  assert walk["walkable"] is True and walk["problems"] == [] and walk["lowestHeadroom"]["headroom"] == 20.0
+  assert walkOf(walk)["walkable"] is True and walkOf(walk)["problems"] == [] and walkOf(walk)["lowestHeadroom"]["headroom"] == 20.0
 
 
 def testTrimBandsRunAtTheirHeightsInEveryRow(stageBlenderServer, tmp_path):
@@ -235,7 +235,7 @@ def testAFacadeDressesTheCliffIntoAFlatFaceAndTheHallOpensOnIt(stageBlenderServe
   assert len(apron) and numpy.abs(apron[:, 2]).max() <= 0.01
   assert [(cave["name"], cave["stale"]) for cave in detail["caves"]] == [("hall", False)]
   assert [(entry["facade"], entry["stale"]) for entry in detail["definedPasses"]] == [("hall start", False)]
-  assert walk["walkable"] is True and walk["problems"] == []
+  assert walkOf(walk)["walkable"] is True and walkOf(walk)["problems"] == []
 
 
 def testRegradeReplaysAFacadeAndRefitsTheHall(stageBlenderServer, tmp_path):

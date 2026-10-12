@@ -180,6 +180,9 @@ def testBuildSwimVolumesLeavesOutShallowCells(stageBlenderServer, tmp_path):
   # corners stand over the deeper water; nor are they reported uncovered. The boxes fill the rest, tops at the surface.
   assert [planExtent(volumes)[index] for index in (0, 2, 3)] == [west, south, north] and planExtent(volumes)[1] == 16
   assert planArea(volumes) == (16 - west) * (north - south) and built["shallowCells"] == (east - 16) / 8 * (north - south) / 8
+  # Every group swims in water as deep as the walked human did until walks measure the others, so each wades the same shallow cells.
+  assert all(group["wadesCells"] == built["shallowCells"] and group["minimumSwimDepth"] == minimumSwimDepth for group in built["groups"].values())
+  assert sorted(built["groups"]) == ["large", "medium", "small"] and len({group["swimsCells"] for group in built["groups"].values()}) == 1
   assert built["findings"] == [] and built["state"] == "boxed" and all(volume["maximum"][2] == minimumSwimDepth + depthMargin for volume in volumes)
   # In section, the boxes run to the column over the shelf's edge (x 16, 24 along the cut from x -8) and stop there, one box over each
   # cell the cut runs through, every box from 4 under the bed to the surface; the heights are marked every unit, so the water's depth
@@ -192,11 +195,11 @@ def testBuildSwimVolumesLeavesOutShallowCells(stageBlenderServer, tmp_path):
   assert sectionPicture.width == planDrawing.sectionSize[0] and sectionPicture.height > planDrawing.sectionSize[1]
   # Only the shelf lies inside the area, all of it shallow: the area's rebuild is refused, naming the area and not advising the whole body
   # be marked not swimmable, and leaves the boxes as they were.
-  assert f"inside the area {json.dumps(shelfArea)} deeper than players swim in" in shelfOnly and "players wade all" in shelfOnly
+  assert f"inside the area {json.dumps(shelfArea)} deeper than any body group swims in" in shelfOnly and "players wade all" in shelfOnly
   assert "swimmable false" not in shelfOnly and afterArea == volumes
   # Shallower than players swim in everywhere, the water is waded, not swum: the rebuild is refused, naming the depth, and leaves the
   # boxes as they were.
-  assert f"deeper than players swim in ({minimumSwimDepth:g}, playerScale minimumSwimDepth): players wade all" in waded and "editWater swimmable false" in waded
+  assert f"deeper than any body group swims in ({minimumSwimDepth:g}, playerScale minimumSwimDepth): players wade all" in waded and "editWater swimmable false" in waded
   assert kept == deepVolumes
 
 

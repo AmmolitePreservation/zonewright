@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy
 
-from conftest import writePNG
+from conftest import writePNG, walkOf
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import playerScale
@@ -181,8 +181,8 @@ def testACaveIsCutSealedWalkableAndSurfacedAndItsLiningStrokesComeBack(stageBlen
   assert [(stretch["points"], stretch["width"], stretch["length"], stretch["floor"]) for stretch in cut["levelStretches"]] == [([2, 3], 40.0, 40.0, 8.0), ([3, 4], 120.0, 120.0, 8.0)]
   # Walked from the mouth to the middle of the room: headroom no lower than the tunnel's height less the breakup and a unit, and no
   # face steeper than the floor's maximum.
-  assert walk["walkable"] is True and walk["problems"] == []
-  assert walk["lowestHeadroom"]["headroom"] >= 45 - 5 - 1 and walk["steepest"]["slopeDegrees"] <= 30
+  assert walkOf(walk)["walkable"] is True and walkOf(walk)["problems"] == []
+  assert walkOf(walk)["lowestHeadroom"]["headroom"] >= 45 - 5 - 1 and walkOf(walk)["steepest"]["slopeDegrees"] <= 30
   # Floor faces carry the floor's material and the rest the wall's; every lining triangle is mapped; the ground the cut split keeps
   # its own material.
   assert surfacing["floor"] == ["caveFloor"] and surfacing["walls"] == ["caveRock"] and surfacing["floorFaces"] > 0 and surfacing["wallFaces"] > 0
@@ -412,8 +412,8 @@ def testCaveRefusals(stageBlenderServer, tmp_path):
   assert "rises 58.0 from point 0 to point 1 over a run of 60.0" in steep and "needs a run of 100.5" in steep
   assert "tighter than half its width" in tight
   assert "reaches the edge of 'ground'" in border
-  # A cave's floor is walked, so its grade limit runs up to the steepest face players walk (playerScale).
-  assert f"maximumFloorDegrees is above 0 and at most {steepestWalkableDegrees:.1f} (the steepest face players walk, playerScale), got 75" in overWalkable
+  # A cave's floor is walked, so its grade limit runs up to the steepest face every group its start is built for walks (playerScale).
+  assert f"maximumFloorDegrees is above 0 and at most {steepestWalkableDegrees:.1f} (the steepest face every body group the cave's start is built for walks, ['small', 'medium', 'large'], playerScale), got 75" in overWalkable
   assert "Cave 'beside' would reach the mouth of cave(s) ['hall']" in overlap
   # A refused edit leaves the cave as it was.
   assert "rises 58.0" in edited and after == before and detail["caves"][0]["from"] == hall["path"][0]
@@ -464,8 +464,8 @@ def testATracedGalleryIsEvenlyGradedInsideTheRockByItsShareLevelAcrossAndWalkedU
   assert all(outer is not None and inner is not None for outer, inner in across)
   assert max(numpy.degrees(numpy.arctan2(abs(outer - inner), 18)) for outer, inner in across) <= 2
   # Walked from foot to top, under rock for at least half the way.
-  assert walk["walkable"] is True and walk["problems"] == []
-  covered = [row["headroom"] is not None for row in walk["profile"]]
+  assert walkOf(walk)["walkable"] is True and walkOf(walk)["problems"] == []
+  covered = [row["headroom"] is not None for row in walkOf(walk)["profile"]]
   assert 2 * sum(covered) >= len(covered)
 
 
@@ -529,4 +529,4 @@ def testACaveExportsAndIsWalkedAfterImport(stageBlenderServer, tmp_path):
 
   exported, imported, walk = stageBlenderServer.session(steps)
   assert imported["triangles"] == exported["terrainTriangles"]
-  assert walk["walkable"] is True and walk["problems"] == [] and walk["lowestHeadroom"]["headroom"] >= 45 - 5 - 1
+  assert walkOf(walk)["walkable"] is True and walkOf(walk)["problems"] == [] and walkOf(walk)["lowestHeadroom"]["headroom"] >= 45 - 5 - 1

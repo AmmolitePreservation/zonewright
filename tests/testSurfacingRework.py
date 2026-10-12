@@ -590,12 +590,15 @@ def testRegionEditsAreValidated(stageBlenderServer):
       await session.expectError("editRegion", {"name": "camp", "access": "walk", "intent": "a moved camp", "bottom": -20}),
       await session.expectError("createRegion", {"name": "camp", "outline": [[0, 0], [10, 0], [10, 10]], "bottom": -10, "top": 10, "intent": "again", "access": "play"}),
       await session.expectError("createRegion", {"name": "field", "outline": [[0, 0], [10, 0], [10, 10]], "bottom": -10, "top": 10, "intent": "  ", "access": "play"}),
+      await session.expectError("editRegion", {"name": "camp", "builtFor": ["giant"], "intent": "a moved camp"}),
+      await session.expectError("editRegion", {"name": "camp", "builtFor": [], "access": "none"}),
     ]
     after = await session.expectSuccess("getRegions", {})
     return before, refusals, after
 
-  before, (empty, inverted, blankIntent, twoPoints, badAccess, duplicate, blank), after = stageBlenderServer.session(steps)
-  assert "editRegion needs an outline, bottom, top, intent, or access" in empty
+  before, (empty, inverted, blankIntent, twoPoints, badAccess, duplicate, blank, unknownGroup, noGroup), after = stageBlenderServer.session(steps)
+  assert "builtFor names no body group ['giant']" in unknownGroup and "builtFor is a list of one or more of" in noGroup
+  assert "editRegion needs an outline, bottom, top, intent, access, or builtFor" in empty
   assert "A region's bottom must lie below its top, got 10.0 and 10.0" in inverted
   assert "A region needs its intent" in blankIntent
   assert "A region outline is at least three [x, y] points" in twoPoints

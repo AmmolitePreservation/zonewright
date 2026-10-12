@@ -2,7 +2,7 @@ import math
 import sys
 from pathlib import Path
 
-from conftest import writePNG
+from conftest import writePNG, walkOf
 import structurePlots
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
@@ -230,8 +230,8 @@ result = {'faces': len(framed), 'front': max(ys), 'back': min(ys), 'others': max
   assert abs(repeats(piece)["testKitStone"] - 12.5) <= 0.01
   assert abs(repeats(piece)["testKitFrame"] - 2.5) <= 0.01
   assert piece["openings"] == [{"kind": "door", "along": 0.0, "width": 10.0, "height": 16.0, "sill": 0.0, "archRise": None, "archSegments": 8, "frame": doorFrame}]
-  assert walk["walkable"] is True, walk["problems"]
-  assert abs(walk["lowestHeadroom"]["headroom"] - 16.0) <= 0.05
+  assert walkOf(walk)["walkable"] is True, walkOf(walk)["problems"]
+  assert abs(walkOf(walk)["lowestHeadroom"]["headroom"] - 16.0) <= 0.05
 
 
 def testAnArchedWindowRisesToItsArchAndOverlapsAreRefused(stageBlenderServer, tmp_path):
@@ -506,11 +506,11 @@ def testARailPieceIsPassableToWalks(stageBlenderServer, tmp_path):
 
   walks = stageBlenderServer.session(steps)
   railWalk, rail = walks["testKitTallRail"]
-  assert rail["passable"] is True and railWalk["walkable"] is True
+  assert rail["passable"] is True and walkOf(railWalk)["walkable"] is True
   for piece, height in (("testKitTallBeam", barHeight), (wallPiece, 30.0)):
     walk, detail = walks[piece]
     assert detail["passable"] is False
-    assert [problem["kind"] for problem in walk["problems"]] == ["rise"] and walk["problems"][0]["height"] == height, (piece, walk["problems"])
+    assert [problem["kind"] for problem in walkOf(walk)["problems"]] == ["rise"] and walkOf(walk)["problems"][0]["height"] == height, (piece, walkOf(walk)["problems"])
 
 
 async def hallPlot(session, folder):

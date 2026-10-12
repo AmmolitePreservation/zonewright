@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy
 
-from conftest import writePNG
+from conftest import writePNG, walkOf
 from testModelsAndDressing import readShapedMesh
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
@@ -82,9 +82,9 @@ def testASwitchbackUpTheHillsideIsBenchedOnItsGradeAndWalked(stageBlenderServer,
   assert [landing["point"] for landing in graded["landings"]] == [1, 2] and all(landing["turnDegrees"] > 90 for landing in graded["landings"])
   assert graded["pass"] == "route switchback" and graded["foldedFaces"] == 0
   walk = graded["walk"]
-  assert walk["walkable"] is True and walk["problems"] == []
-  assert walk["steepest"]["slopeDegrees"] <= 26 + 1
-  assert walk["narrowest"]["width"] >= switchback["width"] - 1
+  assert walkOf(walk)["walkable"] is True and walkOf(walk)["problems"] == []
+  assert walkOf(walk)["steepest"]["slopeDegrees"] <= 26 + 1
+  assert walkOf(walk)["narrowest"]["width"] >= switchback["width"] - 1
 
 
 def testRefusalsNameTheRunTheClashAndTheLedgeSpan(stageBlenderServer, tmp_path):
@@ -106,7 +106,7 @@ def testRefusalsNameTheRunTheClashAndTheLedgeSpan(stageBlenderServer, tmp_path):
   assert "rises 70.0 from point 0 to point 1 over a run of 100.0, 35.0 degrees, steeper than 26" in steep
   assert f"needs a run of {70 / math.tan(math.radians(26)):.1f}" in steep
   # A route is walked, so its grade limit runs up to the steepest face players walk (playerScale).
-  assert f"maximumGradeDegrees is above 0 and at most {steepestWalkableDegrees:.1f} (the steepest face players walk, playerScale), got 75" in overWalkable
+  assert f"maximumGradeDegrees is above 0 and at most {steepestWalkableDegrees:.1f} (the steepest face every body group the route's start is built for walks, ['small', 'medium', 'large'], playerScale), got 75" in overWalkable
   found = re.search(r"stands (-?[\d.]+) high and at \[[^\]]*\], ([\d.]+) away in plan, (-?[\d.]+);.*need ([\d.]+) between them", clash)
   assert "clashes with itself" in clash and found is not None
   first, apart, second, needed = (float(value) for value in found.groups())
@@ -134,7 +134,7 @@ def testARouteIsGradedAsSteeplyAsPlayersWalk(stageBlenderServer, tmp_path):
   # A ramp past 60 degrees, under the steepest face players walk (playerScale), is graded and walked.
   grade = math.degrees(math.atan2(rise, run))
   assert grade > 60 and abs(graded["segments"][0]["gradeDegrees"] - grade) <= 0.05
-  assert graded["walk"]["walkable"] and graded["walk"]["problems"] == [] and abs(graded["walk"]["steepest"]["slopeDegrees"] - grade) <= 0.1
+  assert walkOf(graded["walk"])["walkable"] and walkOf(graded["walk"])["problems"] == [] and abs(walkOf(graded["walk"])["steepest"]["slopeDegrees"] - grade) <= 0.1
 
 
 def testARegradePutsTheBenchBackAfterOtherShapingAndRemovingThePassTakesItBack(stageBlenderServer, tmp_path):

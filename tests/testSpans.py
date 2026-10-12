@@ -1,5 +1,7 @@
 import math
 import sys
+
+from conftest import walkOf
 from pathlib import Path
 
 import structurePlots
@@ -48,8 +50,8 @@ def testARopeBridgeSagsBetweenItsAnchorsCoveredEdgeToEdgeAndWalkedAcross(stageBl
     lowest = min(point[2] for point in structurePlots.pointsNear(found, at[0], at[1], 1.5))
     assert abs(lowest - (structurePlots.gorgeHeight(at[0]) - 2.0)) <= 0.05, (at, lowest)
   walk = built["walk"]
-  assert walk["walkable"], walk["problems"]
-  assert walk["narrowest"]["width"] == 8.0, [(row["at"], row["left"], row["right"]) for row in walk["profile"]]
+  assert walkOf(walk)["walkable"], walkOf(walk)["problems"]
+  assert walkOf(walk)["narrowest"]["width"] == 8.0, [(row["at"], row["left"], row["right"]) for row in walkOf(walk)["profile"]]
   assert [part["name"] for part in built["parts"]] == ["gorgeBridge"] and built["parts"][0]["model"] == "obj_gorgebridge.mod"
   assert "gorgeBridge" in [entry["name"] for entry in summary["objects"]]
   # The rope's cards hang plumb along the sag: every corner has its partner straight above or below it.
@@ -91,9 +93,9 @@ def testRopesAndRailsArePassableAndNothingElse(stageBlenderServer, tmp_path):
   assert sum(face["material"] == "testKitRope" for face in ropeFaces) > 0
   barsLaid = sum(len([post for post in railed["posts"] if post["side"] == side]) - 1 for side in ("left", "right"))
   assert sum(face["passable"] for face in railFaces) == 6 * barsLaid
-  assert passableWalk["problems"] == [] and [(step["kind"], step["height"]) for step in passableWalk["oneWay"]] == [("ledge", 40.0)]
+  assert walkOf(passableWalk)["problems"] == [] and [(step["kind"], step["height"]) for step in walkOf(passableWalk)["oneWay"]] == [("ledge", 40.0)]
   assert stale["structures"][0]["stale"] and stale["structures"][0]["kitChanged"] == ["testKitRail"]
-  assert solidWalk["problems"][0]["kind"] == "rise"
+  assert walkOf(solidWalk)["problems"][0]["kind"] == "rise"
 
 
 def testBridgeRefusals(stageBlenderServer, tmp_path):
@@ -121,7 +123,7 @@ def testBridgeRefusals(stageBlenderServer, tmp_path):
   fits = (bridgeSpan * math.tan(math.radians(30))) / 4
   assert "the largest sag that fits is" in refusals["tooSteep"] and f"{fits:.2f}" in refusals["tooSteep"]
   # A deck is walked, so its grade limit runs up to the steepest face players walk (playerScale).
-  assert f"maximumDeckDegrees runs over 0 up to {steepestWalkableDegrees:.1f} (the steepest face players walk, playerScale), got 75" in refusals["overWalkable"]
+  assert f"maximumDeckDegrees runs over 0 up to {steepestWalkableDegrees:.1f} (the steepest face every body group the bridge's start is built for walks, ['small', 'medium', 'large'], playerScale), got 75" in refusals["overWalkable"]
   assert "Rails run from post to post" in refusals["railsWithoutPosts"]
   assert "Bent station 100" in refusals["stationPast"]
   assert "deck 'testKitBeam' is a beam piece; deck takes a plank or floor piece" in refusals["wrongKind"]
@@ -142,7 +144,7 @@ def testADeckRisesAsSteeplyAsPlayersWalk(stageBlenderServer, tmp_path):
   # An arch whose ends rise past 60 degrees, under the steepest face players walk (playerScale), is built and walked.
   steepest = math.degrees(math.atan(4 * arch / bridgeSpan))
   assert steepest > 60 and abs(built["steepest"]["degrees"] - steepest) <= 0.1
-  assert built["walk"]["walkable"] and built["walk"]["problems"] == [] and built["walk"]["steepest"]["slopeDegrees"] > 60
+  assert walkOf(built["walk"])["walkable"] and walkOf(built["walk"])["problems"] == [] and walkOf(built["walk"])["steepest"]["slopeDegrees"] > 60
 
 
 def testATrestleStandsItsBentsOnTheGround(stageBlenderServer, tmp_path):
@@ -205,9 +207,9 @@ def testAFlightHasEqualRisersAtMostTheRiserAndWalksFootToHead(stageBlenderServer
   run = (head[0] - foot[0]) / 40
   assert all(any(abs(end - (foot[0] + step * run)) < 1e-4 for end in ends) for step in range(41))
   assert built["legs"] and all(abs(leg["bottom"] - (structurePlots.gorgeHeight(leg["at"][0]) - 2.0)) <= 0.05 for leg in built["legs"])
-  assert built["walk"]["walkable"], built["walk"]["problems"]
+  assert walkOf(built["walk"])["walkable"], walkOf(built["walk"])["problems"]
   assert "needs a run of at least 40.00" in steep
-  assert "riser must be above 0 and at most a step" in tall
+  assert f"riser must be above 0 and at most a step ({stepHeight:g}) for the body groups it is built for (['small', 'medium', 'large'], playerScale)" in tall
 
 
 def testAWalkwayHoldsLevelLandingsGradesItsLegsAndLaysListedFlights(stageBlenderServer, tmp_path):
@@ -235,7 +237,7 @@ def testAWalkwayHoldsLevelLandingsGradesItsLegsAndLaysListedFlights(stageBlender
     assert bracket["at"][1] == 8.0
   legZeroPosts = [post for post in built["posts"]["each"] if 72 < post["at"][0] <= 110 and abs(post["at"][1] - 6) < 4]
   assert legZeroPosts and {post["side"] for post in legZeroPosts} == {"left"}
-  assert built["walk"]["walkable"], built["walk"]["problems"]
+  assert walkOf(built["walk"])["walkable"], walkOf(built["walk"])["problems"]
 
 
 def testABracketReachesTheRockBesideIt(stageBlenderServer, tmp_path):
@@ -299,7 +301,7 @@ def testWalkwayRefusals(stageBlenderServer, tmp_path):
   assert "turns 169.8 degrees at point 1" in refusals["turn"]
   assert f"Leg 0's underside meets the ground {structurePlots.slopeHeight(-44) - 0.5:.2f} deep at [50.0, -44.0, 0.5] (4.0 along)" in refusals["dug"]
   # A deck leg is walked, so its grade limit runs up to the steepest face players walk (playerScale), past 60 degrees.
-  assert f"maximumGradeDegrees runs over 0 up to {steepestWalkableDegrees:.1f} (the steepest face players walk, playerScale: deck legs are walked), got 75" in refusals["overWalkable"]
+  assert f"maximumGradeDegrees runs over 0 up to {steepestWalkableDegrees:.1f} (the steepest face every body group the walkway's start is built for walks, ['small', 'medium', 'large'], playerScale: deck legs are walked), got 75" in refusals["overWalkable"]
   assert steepDeck["legs"][0]["laid"] == "deck" and abs(steepDeck["legs"][0]["gradeDegrees"] - math.degrees(math.atan2(steepRise, 10))) <= 0.05
 
 
@@ -314,7 +316,7 @@ def testAWalkwayMayEndOffTheGroundAndReportsEachEndsFooting(stageBlenderServer, 
   built = stageBlenderServer.session(steps)
   assert built["endFootingGaps"] == {"start": 0.0, "end": None}
   assert built["posts"]["longest"] > 40
-  assert built["walk"]["walkable"]
+  assert walkOf(built["walk"])["walkable"]
   # Past the open end there is only air: its view stands on the deck just inside the end, looking back along it.
   assert built["views"]["fromEnd"] == {"standAt": [-48.0, -90.0, 0.0], "headingDegrees": 90.0, "pitchDegrees": -5.0}
 
@@ -387,7 +389,7 @@ def testAFlightIsRailedHeadToFootAndRefusesAHeadInOrOnWhatItLandsOn(stageBlender
     stations = sorted(post["at"][0] for post in built["legs"] if post["side"] == side)
     assert stations[0] == foot[0] and stations[-1] == head[0], (side, stations)
   assert abs(built["rails"]["length"] - 2 * math.hypot(run, rise)) <= 0.01
-  assert abs(built["walk"]["steepestGrade"]["degrees"] - math.degrees(math.atan2(rise, run))) <= 3 and built["walk"]["steepest"]["slopeDegrees"] == 0.0
+  assert abs(walkOf(built["walk"])["steepestGrade"]["degrees"] - math.degrees(math.atan2(rise, run))) <= 3 and walkOf(built["walk"])["steepest"]["slopeDegrees"] == 0.0
   assert built["views"]["fromHead"] == {"standAt": [-17.0, -60.0, 0.0], "headingDegrees": 270.0, "pitchDegrees": round(-math.degrees(math.atan2(eyeHeight + rise / 2, 3 + run / 2)), 2)}
   assert "The flight's head [-20.0, -100.0, -2.0] lies 2.00 under what it stands on there (the top of 'ground' at 0.00)" in refusals["buried"]
   assert "The flight's top tread would lie inside what its head stands on ('ground', its top at 0.00)" in refusals["onto"]

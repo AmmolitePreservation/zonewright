@@ -38,7 +38,8 @@ def testRegionsConfineToolsAndKeepTheirIntent(stageBlenderServer):
     return created, moved, above, notRegion, regions, summary
 
   created, moved, above, notRegion, regions, summary = stageBlenderServer.session(steps)
-  assert created == {"name": "plaza", "intent": "packed earth plaza", "access": "play", "outline": [[-20, -20], [20, -20], [20, 20], [-20, 20]], "bottom": -10, "top": 10, "area": 1600}
+  # A region made without builtFor follows its zone's.
+  assert created == {"name": "plaza", "intent": "packed earth plaza", "access": "play", "builtFor": None, "outline": [[-20, -20], [20, -20], [20, 20], [-20, 20]], "bottom": -10, "top": 10, "area": 1600}
   # The 5 by 5 grid vertices from -16 to 16 lie inside; raised to 5, they are above the edited top of 3.
   assert moved["movedVertices"] == 25 and "matches no vertices" in above and "is not a region" in notRegion
   assert regions == {"regions": [created | {"top": 3}], "undecided": []}
