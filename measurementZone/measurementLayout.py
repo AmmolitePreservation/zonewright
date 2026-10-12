@@ -31,7 +31,9 @@ poolWidth = 30.0
 poolStartY = featureStartY
 poolLength = 100.0
 poolDeepest = 10.0
-poolLabelDepths = [float(depth) for depth in range(1, 11)]
+# The water stands half a unit under the floor, so a flood stays in its basin; depths are the water's over the bed.
+poolSurfaceZ = floorZ - 0.5
+poolLabelDepths = [float(depth) for depth in range(1, 10)]
 corridorSectionLength = 5.0
 ceilingCenterX = 350.0
 ceilingInnerWidth = 16.0
@@ -80,12 +82,18 @@ def ramps():
   return found
 
 
+def poolY(depth):
+  """Where the water over the pool's bed is a depth deep."""
+  return poolStartY + (depth + floorZ - poolSurfaceZ) * poolLength / poolDeepest
+
+
 def pool():
-  """Its bed falls evenly from the start of the pool's floor to poolDeepest at its far end; the water's top stands at the floor."""
-  return lane("pool", "pool, bed sloping 0 to 10 deep", poolCenterX, None, poolStartY + poolLength - 2.0, {
+  """Its bed falls evenly from the floor at the start of the pool to poolDeepest under it at its far end; the water's top stands at
+  poolSurfaceZ, so the water over the bed at y is (y - start) * depthPerUnit - (floor - surface) deep."""
+  return lane("pool", "pool, bed sloping 0 to 10 down", poolCenterX, None, poolStartY + poolLength - 2.0, {
     "bedFrom": [poolCenterX, poolStartY, floorZ], "bedTo": [poolCenterX, poolStartY + poolLength, floorZ - poolDeepest], "width": poolWidth,
-    "surfaceZ": floorZ, "depthPerUnit": poolDeepest / poolLength,
-    "labels": [{"depth": depth, "y": poolStartY + depth * poolLength / poolDeepest} for depth in poolLabelDepths],
+    "surfaceZ": poolSurfaceZ, "depthPerUnit": poolDeepest / poolLength, "waterStartsY": poolY(0.0),
+    "labels": [{"depth": depth, "y": poolY(depth)} for depth in poolLabelDepths],
   })
 
 
