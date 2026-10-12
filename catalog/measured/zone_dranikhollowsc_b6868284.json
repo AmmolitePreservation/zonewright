@@ -69,18 +69,18 @@
    "count": 90,
    "examplePositions": [
     [
-     69.0,
      572.9,
+     -69.0,
      -17.2
     ],
     [
-     -1619.3,
      398.7,
+     1619.3,
      79.1
     ],
     [
-     -3942.8,
      -229.0,
+     3942.8,
      144.5
     ]
    ],
@@ -116,18 +116,18 @@
    "count": 17,
    "examplePositions": [
     [
-     -3903.3,
      -251.3,
+     3903.3,
      139.0
     ],
     [
-     -2794.7,
      1307.1,
+     2794.7,
      131.7
     ],
     [
-     -2329.8,
      276.4,
+     2329.8,
      85.2
     ]
    ],
@@ -160,18 +160,18 @@
    "count": 4,
    "examplePositions": [
     [
-     -2511.4,
      1233.6,
+     2511.4,
      119.8
     ],
     [
-     -2350.5,
      1223.8,
+     2350.5,
      120.0
     ],
     [
-     -2271.8,
      1120.3,
+     2271.8,
      74.6
     ]
    ],
@@ -203,18 +203,18 @@
    "count": 20,
    "examplePositions": [
     [
-     -3869.0,
      -243.7,
+     3869.0,
      141.3
     ],
     [
-     -3751.5,
      -282.3,
+     3751.5,
      142.2
     ],
     [
-     -3281.1,
      186.5,
+     3281.1,
      192.9
     ]
    ],
@@ -235,9 +235,41 @@
   },
   "model/obj_brazier.mod@c52cd526": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_hotsprngb.mod": 1,
+    "obj_mantlesnest01.mod": 1,
+    "obj_rock02_00.mod": 2,
+    "obj_rock04_00.mod": 4,
+    "obj_rock05_00.mod": 4
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -6.84,
+     -64.45,
+     -12.74
+    ],
+    [
+     46.84,
+     46.17,
+     12.68
+    ]
+   ],
+   "bytes": 54635,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 0.969
+    },
+    {
+     "color": "red",
+     "share": 0.031
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brazier_metal",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_metalaged00_c.dds",
@@ -245,6 +277,7 @@
      }
     },
     {
+     "name": "embers",
      "shader": "Opaque_MaxCBSG1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_embers_c.dds",
@@ -252,26 +285,67 @@
      }
     }
    ],
+   "entry": "obj_brazier.mod",
+   "footprint": 5938.8,
+   "kind": "model",
    "name": "obj_brazier.mod",
+   "origin": "offset",
    "placements": 21,
    "scaleRange": [
     0.049,
     0.049
    ],
    "sha256": "c52cd526c029ce18e36adaccb6c0a4aaaaa2ebd2069e983b7685a976efae7e4c",
+   "sits": {
+    "tilted": 21
+   },
    "size": [
-    53.7,
-    110.6,
-    25.4
+    53.69,
+    110.62,
+    25.42
    ],
    "skinned": false,
+   "textureShares": {
+    "kl_embers_c.dds": 0.031,
+    "kl_metalaged00_c.dds": 0.969
+   },
+   "textures": [
+    "kl_embers_c.dds",
+    "kl_embers_n.dds",
+    "kl_metalaged00_c.dds",
+    "kl_metalaged00_n.dds"
+   ],
    "triangles": 1358
   },
   "model/obj_crate_00.mod@383647ba": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rock03_00.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.99,
+     -2.8,
+     -1.87
+    ],
+    [
+     1.99,
+     2.8,
+     1.87
+    ]
+   ],
+   "bytes": 1179,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -279,26 +353,64 @@
      }
     }
    ],
+   "entry": "obj_crate_00.mod",
+   "footprint": 22.3,
+   "kind": "model",
    "name": "obj_crate_00.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "383647ba0bef8b1c176ea5331ee2662ed7879cac146573173cdbb12184616af8",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.0,
-    5.6,
-    3.7
+    3.98,
+    5.61,
+    3.74
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 12
   },
   "model/obj_crate_06.mod@258071b3": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rockset01_00.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.99,
+     -2.8,
+     -1.87
+    ],
+    [
+     1.99,
+     2.8,
+     1.87
+    ]
+   ],
+   "bytes": 1179,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -306,26 +418,62 @@
      }
     }
    ],
+   "entry": "obj_crate_06.mod",
+   "footprint": 22.3,
+   "kind": "model",
    "name": "obj_crate_06.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "258071b3e0cc9dc60ea19de6c0d6cc174981d92c515397c065e3d604242fad7d",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.0,
-    5.6,
-    3.7
+    3.98,
+    5.61,
+    3.74
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 12
   },
   "model/obj_crate_10.mod@58c9b48c": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -1.99,
+     -2.8,
+     -1.87
+    ],
+    [
+     1.99,
+     2.8,
+     1.87
+    ]
+   ],
+   "bytes": 1179,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -333,26 +481,62 @@
      }
     }
    ],
+   "entry": "obj_crate_10.mod",
+   "footprint": 22.3,
+   "kind": "model",
    "name": "obj_crate_10.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "58c9b48ccca1672712e0b3f77005bd22678dd8e87a12a49b8a460fb7fbf8e6a3",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.0,
-    5.6,
-    3.7
+    3.98,
+    5.61,
+    3.74
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 12
   },
   "model/obj_crate_14.mod@e55f97cf": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -1.99,
+     -2.8,
+     -1.87
+    ],
+    [
+     1.99,
+     2.8,
+     1.87
+    ]
+   ],
+   "bytes": 1179,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -360,26 +544,64 @@
      }
     }
    ],
+   "entry": "obj_crate_14.mod",
+   "footprint": 22.3,
+   "kind": "model",
    "name": "obj_crate_14.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "e55f97cf2c9d269b668ca0c974c3caeae1b204e14b5377b05a48096871237777",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.0,
-    5.6,
-    3.7
+    3.98,
+    5.61,
+    3.74
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 12
   },
   "model/obj_crate_17.mod@489f5016": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rock03_00.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.99,
+     -2.8,
+     -1.87
+    ],
+    [
+     1.99,
+     2.8,
+     1.87
+    ]
+   ],
+   "bytes": 1179,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -387,26 +609,64 @@
      }
     }
    ],
+   "entry": "obj_crate_17.mod",
+   "footprint": 22.3,
+   "kind": "model",
    "name": "obj_crate_17.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "489f5016147a2762472d84f274dd52bd0a67064a3fd0837cfe8298acce288b3a",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.0,
-    5.6,
-    3.7
+    3.98,
+    5.61,
+    3.74
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 12
   },
   "model/obj_crate_20.mod@14b405d9": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rock03_00.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.99,
+     -2.8,
+     -1.87
+    ],
+    [
+     1.99,
+     2.8,
+     1.87
+    ]
+   ],
+   "bytes": 1179,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -414,26 +674,64 @@
      }
     }
    ],
+   "entry": "obj_crate_20.mod",
+   "footprint": 22.3,
+   "kind": "model",
    "name": "obj_crate_20.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "14b405d91ea3d6348e675df7cc7eac8e841a3329e57f0cb5fc8a830c67c82dd9",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.0,
-    5.6,
-    3.7
+    3.98,
+    5.61,
+    3.74
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 12
   },
   "model/obj_crate_24.mod@cc76dec7": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rock05_00.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.99,
+     -2.8,
+     -1.87
+    ],
+    [
+     1.99,
+     2.8,
+     1.87
+    ]
+   ],
+   "bytes": 1179,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -441,26 +739,64 @@
      }
     }
    ],
+   "entry": "obj_crate_24.mod",
+   "footprint": 22.3,
+   "kind": "model",
    "name": "obj_crate_24.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "cc76dec7452a1a1ae8bf9af6f74653311c42832582fb140443a2c301468980b4",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.0,
-    5.6,
-    3.7
+    3.98,
+    5.61,
+    3.74
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 12
   },
   "model/obj_crate_27.mod@54e8c279": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rock03_00.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.99,
+     -2.8,
+     -1.87
+    ],
+    [
+     1.99,
+     2.8,
+     1.87
+    ]
+   ],
+   "bytes": 1179,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -468,26 +804,64 @@
      }
     }
    ],
+   "entry": "obj_crate_27.mod",
+   "footprint": 22.3,
+   "kind": "model",
    "name": "obj_crate_27.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "54e8c27929b5a2492869fd79af75c3db345fa2ff710923a3dbe6dbb6f9311d5f",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.0,
-    5.6,
-    3.7
+    3.98,
+    5.61,
+    3.74
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 12
   },
   "model/obj_crate_28.mod@d635f008": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_poolb.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.99,
+     -2.8,
+     -1.87
+    ],
+    [
+     1.99,
+     2.8,
+     1.87
+    ]
+   ],
+   "bytes": 1179,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -495,26 +869,64 @@
      }
     }
    ],
+   "entry": "obj_crate_28.mod",
+   "footprint": 22.3,
+   "kind": "model",
    "name": "obj_crate_28.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "d635f008743d824f172341fd408b00a4b75e4715759757e5635f273907d91adf",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    4.0,
-    5.6,
-    3.7
+    3.98,
+    5.61,
+    3.74
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 12
   },
   "model/obj_crate_29.mod@ab3b4229": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mantlesnest01.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.99,
+     -2.8,
+     -1.87
+    ],
+    [
+     1.99,
+     2.8,
+     1.87
+    ]
+   ],
+   "bytes": 1179,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -522,26 +934,66 @@
      }
     }
    ],
+   "entry": "obj_crate_29.mod",
+   "footprint": 22.3,
+   "kind": "model",
    "name": "obj_crate_29.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "ab3b42290578bc2508bbf810ecb8ea311f72e6299cd0818a73da9c050023d9ea",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    4.0,
-    5.6,
-    3.7
+    3.98,
+    5.61,
+    3.74
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 12
   },
   "model/obj_cratebroken_00.mod@27a9bfae": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rock01_00.mod": 3,
+    "obj_rock02_00.mod": 1,
+    "obj_walltorchsm01.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -16.6,
+     -25.33,
+     -0.0
+    ],
+    [
+     27.03,
+     23.37,
+     10.75
+    ]
+   ],
+   "bytes": 10578,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cratewd_broken",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_cratewd01_c.dds",
@@ -549,42 +1001,66 @@
      }
     }
    ],
+   "entry": "obj_cratebroken_00.mod",
+   "footprint": 2124.8,
+   "kind": "model",
    "name": "obj_cratebroken_00.mod",
+   "origin": "base",
    "placements": 13,
    "scaleRange": [
     0.319,
     0.319
    ],
    "sha256": "27a9bfae0372e113c16401c3c28cd96da3da3b397555c32ddd0ad782b39315ba",
+   "sits": {
+    "upright": 13
+   },
    "size": [
-    43.6,
+    43.63,
     48.7,
-    10.7
+    10.75
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cratewd01_c.dds": 1.0
+   },
+   "textures": [
+    "ew_cratewd01_c.dds",
+    "ew_cratewd01a_n.dds"
+   ],
    "triangles": 120
   },
   "model/obj_deco.mod@5518620a": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_hotsprngb.mod": 1,
+    "obj_pbouldrb.mod": 1,
+    "obj_poold.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.83,
+     -2.33,
+     -12.2
+    ],
+    [
+     3.83,
+     2.33,
+     12.2
+    ]
+   ],
+   "bytes": 10379,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
+     "name": "caverock",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
@@ -593,106 +1069,80 @@
      }
     },
     {
+     "name": "firepittrim",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
       "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
       "e_TextureSecond0": "rc_erosion_detail_tile.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall_c.dds",
-      "e_TextureNormal0": "rc_hivewall_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall2_c.dds",
-      "e_TextureNormal0": "rc_hivewall2_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_deco.mod",
+   "footprint": 35.7,
+   "kind": "model",
    "name": "obj_deco.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "5518620ac3bd6d72545bdf84ec293f27e85588ff8a12155c5102db989d8ed0ef",
+   "sits": {
+    "upright": 3
+   },
    "size": [
-    7.7,
-    4.7,
-    24.4
+    7.66,
+    4.66,
+    24.39
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_cave_firepit_trim_c.dds": 0.148,
+    "rc_cave_rock01_c.dds": 0.852
+   },
+   "textures": [
+    "rc_cave_firepit_trim_c.dds",
+    "rc_cave_firepit_trim_n.dds",
+    "rc_cave_rock01_c.dds",
+    "rc_cave_rock01_n.dds",
+    "rc_erosion_detail_tile.dds",
+    "rc_erosion_detail_vert.dds"
+   ],
    "triangles": 120
   },
   "model/obj_hotsprnga.mod@0cb25fa8": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_hotsprngb.mod": 2,
+    "obj_pbouldrc.mod": 1,
+    "obj_poolwallc.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.37,
+     -9.6,
+     -7.35
+    ],
+    [
+     8.37,
+     9.6,
+     7.35
+    ]
+   ],
+   "bytes": 13979,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
+     "name": "hivewall",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall_c.dds",
@@ -701,6 +1151,7 @@
      }
     },
     {
+     "name": "hivewallb",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall2_c.dds",
@@ -709,6 +1160,7 @@
      }
     },
     {
+     "name": "poolbottom",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_poolbttm_c.dds",
@@ -717,66 +1169,75 @@
      }
     }
    ],
+   "entry": "obj_hotsprnga.mod",
+   "footprint": 321.5,
+   "kind": "model",
    "name": "obj_hotsprnga.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "0cb25fa877d9c78682a28a49f06e098560fda7937162b1b85ee315bc137618cf",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    16.7,
+    16.75,
     19.2,
-    14.7
+    14.69
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_hivewall2_c.dds": 0.15,
+    "rc_hivewall_c.dds": 0.845,
+    "rc_poolbttm_c.dds": 0.005
+   },
+   "textures": [
+    "rc_boulder_n.dds",
+    "rc_erosion_detail_tile.dds",
+    "rc_hivewall2_c.dds",
+    "rc_hivewall2_n.dds",
+    "rc_hivewall_c.dds",
+    "rc_hivewall_n.dds",
+    "rc_poolbttm_c.dds"
+   ],
    "triangles": 232
   },
   "model/obj_hotsprngb.mod@8748bc2a": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier.mod": 1,
+    "obj_deco.mod": 1,
+    "obj_hotsprnga.mod": 2,
+    "obj_mantlesnest01.mod": 1,
+    "obj_pbouldrc.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -7.59,
+     -8.24,
+     -10.54
+    ],
+    [
+     7.59,
+     8.24,
+     10.54
+    ]
+   ],
+   "bytes": 8219,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 0.999
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
+     "name": "hivewall",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall_c.dds",
@@ -785,6 +1246,7 @@
      }
     },
     {
+     "name": "hivewallb",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall2_c.dds",
@@ -793,6 +1255,7 @@
      }
     },
     {
+     "name": "poolbottom",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_poolbttm_c.dds",
@@ -801,66 +1264,69 @@
      }
     }
    ],
+   "entry": "obj_hotsprngb.mod",
+   "footprint": 250.1,
+   "kind": "model",
    "name": "obj_hotsprngb.mod",
+   "origin": "center",
    "placements": 5,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "8748bc2a3c4e1e0c2721ddabb4a318c4a7510b991bf7cf4da737fb0ede325e37",
+   "sits": {
+    "upright": 5
+   },
    "size": [
-    15.2,
-    16.5,
-    21.1
+    15.18,
+    16.48,
+    21.07
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_hivewall2_c.dds": 0.148,
+    "rc_hivewall_c.dds": 0.843,
+    "rc_poolbttm_c.dds": 0.008
+   },
+   "textures": [
+    "rc_boulder_n.dds",
+    "rc_erosion_detail_tile.dds",
+    "rc_hivewall2_c.dds",
+    "rc_hivewall2_n.dds",
+    "rc_hivewall_c.dds",
+    "rc_hivewall_n.dds",
+    "rc_poolbttm_c.dds"
+   ],
    "triangles": 130
   },
   "model/obj_hotsprngc.mod@db9a04f9": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -18.91,
+     -16.43,
+     -17.69
+    ],
+    [
+     18.91,
+     16.43,
+     17.69
+    ]
+   ],
+   "bytes": 16399,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.001
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
+     "name": "hivewall",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall_c.dds",
@@ -869,6 +1335,7 @@
      }
     },
     {
+     "name": "hivewallb",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall2_c.dds",
@@ -877,6 +1344,7 @@
      }
     },
     {
+     "name": "poolbottom",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_poolbttm_c.dds",
@@ -885,26 +1353,73 @@
      }
     }
    ],
+   "entry": "obj_hotsprngc.mod",
+   "footprint": 1242.9,
+   "kind": "model",
    "name": "obj_hotsprngc.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "db9a04f9fe5d64eb61c53760958e22996c4237a11d827fcc6e6165c67bc7ff2f",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    37.8,
-    32.9,
-    35.4
+    37.82,
+    32.87,
+    35.38
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_hivewall2_c.dds": 0.16,
+    "rc_hivewall_c.dds": 0.832,
+    "rc_poolbttm_c.dds": 0.009
+   },
+   "textures": [
+    "rc_boulder_n.dds",
+    "rc_erosion_detail_tile.dds",
+    "rc_hivewall2_c.dds",
+    "rc_hivewall2_n.dds",
+    "rc_hivewall_c.dds",
+    "rc_hivewall_n.dds",
+    "rc_poolbttm_c.dds"
+   ],
    "triangles": 279
   },
   "model/obj_mantlesnest.mod@e8aab6ee": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_nestground.mod": 1,
+    "obj_pbouldrb.mod": 1,
+    "obj_poola.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -133.27,
+     -136.09,
+     -99.81
+    ],
+    [
+     137.61,
+     134.79,
+     128.95
+    ]
+   ],
+   "bytes": 59953,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rockbase",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock20b_c.dds",
@@ -912,6 +1427,7 @@
      }
     },
     {
+     "name": "rockbody",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock20a_c.dds",
@@ -919,6 +1435,7 @@
      }
     },
     {
+     "name": "rocktop",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock21_c.dds",
@@ -926,26 +1443,74 @@
      }
     }
    ],
+   "entry": "obj_mantlesnest.mod",
+   "footprint": 73376.8,
+   "kind": "model",
    "name": "obj_mantlesnest.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     0.075,
     0.075
    ],
    "sha256": "e8aab6ee5de38635bb874ef898fb0de30698402b8222632b8e4598f2ae7e492f",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    270.9,
-    270.9,
-    228.8
+    270.88,
+    270.88,
+    228.76
    ],
    "skinned": false,
+   "textureShares": {
+    "av_rock20a_c.dds": 0.22,
+    "av_rock20b_c.dds": 0.563,
+    "av_rock21_c.dds": 0.217
+   },
+   "textures": [
+    "av_cliff02_n.dds",
+    "av_rock19_n.dds",
+    "av_rock20a_c.dds",
+    "av_rock20b_c.dds",
+    "av_rock21_c.dds",
+    "av_rock21_n.dds"
+   ],
    "triangles": 1368
   },
   "model/obj_mantlesnest01.mod@a76e8b30": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier.mod": 1,
+    "obj_crate_29.mod": 1,
+    "obj_mantlesnest03.mod": 3,
+    "obj_poolb.mod": 3,
+    "obj_poolc.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -5.51,
+     -5.51,
+     -4.65
+    ],
+    [
+     5.51,
+     5.51,
+     4.65
+    ]
+   ],
+   "bytes": 59953,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rockbase",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock20b_c.dds",
@@ -953,6 +1518,7 @@
      }
     },
     {
+     "name": "rockbody",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock20a_c.dds",
@@ -960,6 +1526,7 @@
      }
     },
     {
+     "name": "rocktop",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock21_c.dds",
@@ -967,26 +1534,74 @@
      }
     }
    ],
+   "entry": "obj_mantlesnest01.mod",
+   "footprint": 121.4,
+   "kind": "model",
    "name": "obj_mantlesnest01.mod",
+   "origin": "center",
    "placements": 5,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "a76e8b305ec11da644a2440ce543f60c464c56b7b653e1eaf808c48bdc7144f2",
+   "sits": {
+    "upright": 5
+   },
    "size": [
-    11.0,
-    11.0,
+    11.02,
+    11.02,
     9.3
    ],
    "skinned": false,
+   "textureShares": {
+    "av_rock20a_c.dds": 0.22,
+    "av_rock20b_c.dds": 0.563,
+    "av_rock21_c.dds": 0.217
+   },
+   "textures": [
+    "av_cliff02_n.dds",
+    "av_rock19_n.dds",
+    "av_rock20a_c.dds",
+    "av_rock20b_c.dds",
+    "av_rock21_c.dds",
+    "av_rock21_n.dds"
+   ],
    "triangles": 1368
   },
   "model/obj_mantlesnest03.mod@ef0f5073": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mantlesnest01.mod": 3,
+    "obj_pbouldrb.mod": 1,
+    "obj_poolb.mod": 1,
+    "obj_poolc.mod": 1,
+    "obj_rock05_00.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.51,
+     -4.51,
+     -3.81
+    ],
+    [
+     4.51,
+     4.51,
+     3.81
+    ]
+   ],
+   "bytes": 59953,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rockbase",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock20b_c.dds",
@@ -994,6 +1609,7 @@
      }
     },
     {
+     "name": "rockbody",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock20a_c.dds",
@@ -1001,6 +1617,7 @@
      }
     },
     {
+     "name": "rocktop",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock21_c.dds",
@@ -1008,359 +1625,348 @@
      }
     }
    ],
+   "entry": "obj_mantlesnest03.mod",
+   "footprint": 81.2,
+   "kind": "model",
    "name": "obj_mantlesnest03.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "ef0f507387192dd50cb23e05baeb15d8eb9182a2935cd868794cb53132bdf2ab",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    9.0,
-    9.0,
-    7.6
+    9.01,
+    9.01,
+    7.61
    ],
    "skinned": false,
+   "textureShares": {
+    "av_rock20a_c.dds": 0.22,
+    "av_rock20b_c.dds": 0.563,
+    "av_rock21_c.dds": 0.217
+   },
+   "textures": [
+    "av_cliff02_n.dds",
+    "av_rock19_n.dds",
+    "av_rock20a_c.dds",
+    "av_rock20b_c.dds",
+    "av_rock21_c.dds",
+    "av_rock21_n.dds"
+   ],
    "triangles": 1368
   },
   "model/obj_nestground.mod@d18a1f50": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mantlesnest.mod": 1,
+    "obj_pbouldrb.mod": 1,
+    "obj_poola.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -349.75,
+     -358.86,
+     19.59
+    ],
+    [
+     350.92,
+     357.71,
+     84.88
+    ]
+   ],
+   "bytes": 9905,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rockbase",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock20b_c.dds",
       "e_TextureNormal0": "av_cliff02_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "av_rock20a_c.dds",
-      "e_TextureNormal0": "av_rock19_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "av_rock21_c.dds",
-      "e_TextureNormal0": "av_rock21_n.dds"
-     }
     }
    ],
+   "entry": "obj_nestground.mod",
+   "footprint": 502077.2,
+   "kind": "model",
    "name": "obj_nestground.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     0.071,
     0.071
    ],
    "sha256": "d18a1f50ee53d47a8c6e09099d3866c77c0796fb7ad0dd678c0733e38d9ffa31",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    700.7,
-    716.6,
-    65.3
+    700.67,
+    716.57,
+    65.29
    ],
    "skinned": false,
+   "textureShares": {
+    "av_rock20b_c.dds": 1.0
+   },
+   "textures": [
+    "av_cliff02_n.dds",
+    "av_rock20b_c.dds"
+   ],
    "triangles": 216
   },
   "model/obj_pbouldra.mod@6af770e2": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_poold.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -6.89,
+     -6.64,
+     -4.41
+    ],
+    [
+     6.89,
+     6.64,
+     4.41
+    ]
+   ],
+   "bytes": 3899,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
+     "name": "cboulder",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_boulder_c.dds",
       "e_TextureNormal0": "rc_boulder_n.dds",
       "e_TextureSecond0": "rc_rock_ov.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall_c.dds",
-      "e_TextureNormal0": "rc_hivewall_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall2_c.dds",
-      "e_TextureNormal0": "rc_hivewall2_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_pbouldra.mod",
+   "footprint": 182.9,
+   "kind": "model",
    "name": "obj_pbouldra.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "6af770e288012735c861bb4ee27bfaed025dd2d528cd65ea4890fe491a5d1c2b",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    13.8,
-    13.3,
-    8.8
+    13.77,
+    13.28,
+    8.81
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_boulder_c.dds": 1.0
+   },
+   "textures": [
+    "rc_boulder_c.dds",
+    "rc_boulder_n.dds",
+    "rc_rock_ov.dds"
+   ],
    "triangles": 50
   },
   "model/obj_pbouldrb.mod@76d34f49": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_deco.mod": 1,
+    "obj_mantlesnest.mod": 1,
+    "obj_mantlesnest01.mod": 1,
+    "obj_mantlesnest03.mod": 1,
+    "obj_pbouldrc.mod": 4
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.63,
+     -4.45,
+     -2.88
+    ],
+    [
+     4.63,
+     4.45,
+     2.88
+    ]
+   ],
+   "bytes": 3899,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
+     "name": "cboulder",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_boulder_c.dds",
       "e_TextureNormal0": "rc_boulder_n.dds",
       "e_TextureSecond0": "rc_rock_ov.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall_c.dds",
-      "e_TextureNormal0": "rc_hivewall_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall2_c.dds",
-      "e_TextureNormal0": "rc_hivewall2_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_pbouldrb.mod",
+   "footprint": 82.3,
+   "kind": "model",
    "name": "obj_pbouldrb.mod",
+   "origin": "center",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "76d34f492a1a9418b818a9d4fd0e2d01de3d511fe53507c9a6e00abdf857cad2",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    9.3,
+    9.25,
     8.9,
-    5.8
+    5.76
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_boulder_c.dds": 1.0
+   },
+   "textures": [
+    "rc_boulder_c.dds",
+    "rc_boulder_n.dds",
+    "rc_rock_ov.dds"
+   ],
    "triangles": 50
   },
   "model/obj_pbouldrc.mod@c09a4c2e": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier.mod": 1,
+    "obj_hotsprnga.mod": 1,
+    "obj_hotsprngb.mod": 2,
+    "obj_pbouldrb.mod": 4,
+    "obj_poold.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -6.84,
+     -7.24,
+     -4.41
+    ],
+    [
+     6.84,
+     7.24,
+     4.41
+    ]
+   ],
+   "bytes": 3899,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
+     "name": "cboulder",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_boulder_c.dds",
       "e_TextureNormal0": "rc_boulder_n.dds",
       "e_TextureSecond0": "rc_rock_ov.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall_c.dds",
-      "e_TextureNormal0": "rc_hivewall_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall2_c.dds",
-      "e_TextureNormal0": "rc_hivewall2_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_pbouldrc.mod",
+   "footprint": 198.0,
+   "kind": "model",
    "name": "obj_pbouldrc.mod",
+   "origin": "center",
    "placements": 7,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "c09a4c2eae1ce312379b81c0b0d035e7e86b1a79eeb5170fb46b7b4fad270344",
+   "sits": {
+    "upright": 7
+   },
    "size": [
-    13.7,
-    14.5,
-    8.8
+    13.67,
+    14.48,
+    8.81
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_boulder_c.dds": 1.0
+   },
+   "textures": [
+    "rc_boulder_c.dds",
+    "rc_boulder_n.dds",
+    "rc_rock_ov.dds"
+   ],
    "triangles": 50
   },
   "model/obj_poola.mod@0d0d2902": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mantlesnest.mod": 1,
+    "obj_nestground.mod": 1,
+    "obj_pbouldrb.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -68.1,
+     -48.64,
+     -6.52
+    ],
+    [
+     68.1,
+     48.64,
+     6.52
+    ]
+   ],
+   "bytes": 46639,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 0.999
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
+     "name": "hivewall",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall_c.dds",
@@ -1369,6 +1975,7 @@
      }
     },
     {
+     "name": "hivewallb",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall2_c.dds",
@@ -1377,6 +1984,7 @@
      }
     },
     {
+     "name": "poolbottom",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_poolbttm_c.dds",
@@ -1385,66 +1993,75 @@
      }
     }
    ],
+   "entry": "obj_poola.mod",
+   "footprint": 13249.2,
+   "kind": "model",
    "name": "obj_poola.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "0d0d2902a3b4a0a097f5cc909949fd280d48f22206d130f279fdfc1c7e563309",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     136.2,
-    97.3,
-    13.0
+    97.28,
+    13.04
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_hivewall2_c.dds": 0.259,
+    "rc_hivewall_c.dds": 0.317,
+    "rc_poolbttm_c.dds": 0.423
+   },
+   "textures": [
+    "rc_boulder_n.dds",
+    "rc_erosion_detail_tile.dds",
+    "rc_hivewall2_c.dds",
+    "rc_hivewall2_n.dds",
+    "rc_hivewall_c.dds",
+    "rc_hivewall_n.dds",
+    "rc_poolbttm_c.dds"
+   ],
    "triangles": 915
   },
   "model/obj_poolb.mod@15fd1498": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier.mod": 1,
+    "obj_crate_28.mod": 1,
+    "obj_hotsprngb.mod": 1,
+    "obj_mantlesnest01.mod": 3,
+    "obj_mantlesnest03.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -18.24,
+     -22.86,
+     -5.94
+    ],
+    [
+     18.24,
+     22.86,
+     4.7
+    ]
+   ],
+   "bytes": 16359,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 0.999
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
+     "name": "hivewall",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall_c.dds",
@@ -1453,6 +2070,7 @@
      }
     },
     {
+     "name": "hivewallb",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall2_c.dds",
@@ -1461,6 +2079,7 @@
      }
     },
     {
+     "name": "poolbottom",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_poolbttm_c.dds",
@@ -1469,66 +2088,73 @@
      }
     }
    ],
+   "entry": "obj_poolb.mod",
+   "footprint": 1667.6,
+   "kind": "model",
    "name": "obj_poolb.mod",
+   "origin": "center",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "15fd149855993d83e22dc0ec8fb563b3d4b7b1500d9ea3c564931e628ccf80c1",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    36.5,
-    45.7,
-    10.6
+    36.48,
+    45.71,
+    10.64
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_hivewall2_c.dds": 0.304,
+    "rc_hivewall_c.dds": 0.481,
+    "rc_poolbttm_c.dds": 0.214
+   },
+   "textures": [
+    "rc_boulder_n.dds",
+    "rc_erosion_detail_tile.dds",
+    "rc_hivewall2_c.dds",
+    "rc_hivewall2_n.dds",
+    "rc_hivewall_c.dds",
+    "rc_hivewall_n.dds",
+    "rc_poolbttm_c.dds"
+   ],
    "triangles": 297
   },
   "model/obj_poolc.mod@6102c163": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mantlesnest01.mod": 2,
+    "obj_mantlesnest03.mod": 1,
+    "obj_pbouldrb.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -35.03,
+     -32.65,
+     -4.41
+    ],
+    [
+     35.03,
+     32.65,
+     4.41
+    ]
+   ],
+   "bytes": 25459,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
+     "name": "hivewall",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall_c.dds",
@@ -1537,6 +2163,7 @@
      }
     },
     {
+     "name": "hivewallb",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall2_c.dds",
@@ -1545,6 +2172,7 @@
      }
     },
     {
+     "name": "poolbottom",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_poolbttm_c.dds",
@@ -1553,66 +2181,75 @@
      }
     }
    ],
+   "entry": "obj_poolc.mod",
+   "footprint": 4575.7,
+   "kind": "model",
    "name": "obj_poolc.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "6102c1631dedf4e929a183c3c761148888ec723556c4f51dbc4ba0acb44dd89a",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    70.1,
-    65.3,
-    8.8
+    70.07,
+    65.31,
+    8.81
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_hivewall2_c.dds": 0.292,
+    "rc_hivewall_c.dds": 0.357,
+    "rc_poolbttm_c.dds": 0.351
+   },
+   "textures": [
+    "rc_boulder_n.dds",
+    "rc_erosion_detail_tile.dds",
+    "rc_hivewall2_c.dds",
+    "rc_hivewall2_n.dds",
+    "rc_hivewall_c.dds",
+    "rc_hivewall_n.dds",
+    "rc_poolbttm_c.dds"
+   ],
    "triangles": 480
   },
   "model/obj_poold.mod@4ede199c": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_deco.mod": 5,
+    "obj_pbouldra.mod": 2,
+    "obj_pbouldrc.mod": 3,
+    "obj_rock01_00.mod": 2,
+    "obj_rock03_00.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -7.46,
+     -4.6,
+     -2.91
+    ],
+    [
+     7.46,
+     4.6,
+     2.91
+    ]
+   ],
+   "bytes": 3579,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
+     "name": "hivewall",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall_c.dds",
@@ -1621,82 +2258,78 @@
      }
     },
     {
+     "name": "hivewallb",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall2_c.dds",
       "e_TextureNormal0": "rc_hivewall2_n.dds",
       "e_TextureSecond0": "rc_erosion_detail_tile.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_poold.mod",
+   "footprint": 137.2,
+   "kind": "model",
    "name": "obj_poold.mod",
+   "origin": "center",
    "placements": 10,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "4ede199cf64764fa89d63c33fe1ae5d6aba1df14f832a7eb383d406d9865cb35",
+   "sits": {
+    "tilted": 1,
+    "upright": 9
+   },
    "size": [
-    14.9,
+    14.91,
     9.2,
-    5.8
+    5.82
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_hivewall2_c.dds": 0.264,
+    "rc_hivewall_c.dds": 0.736
+   },
+   "textures": [
+    "rc_erosion_detail_tile.dds",
+    "rc_hivewall2_c.dds",
+    "rc_hivewall2_n.dds",
+    "rc_hivewall_c.dds",
+    "rc_hivewall_n.dds"
+   ],
    "triangles": 34
   },
   "model/obj_poolwallb.mod@3693c9cf": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_poolwallc.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -25.75,
+     -28.64,
+     -30.32
+    ],
+    [
+     25.75,
+     28.64,
+     30.32
+    ]
+   ],
+   "bytes": 5539,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
+     "name": "hivewall",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall_c.dds",
@@ -1705,82 +2338,78 @@
      }
     },
     {
+     "name": "hivewallb",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall2_c.dds",
       "e_TextureNormal0": "rc_hivewall2_n.dds",
       "e_TextureSecond0": "rc_erosion_detail_tile.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_poolwallb.mod",
+   "footprint": 2950.2,
+   "kind": "model",
    "name": "obj_poolwallb.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "3693c9cf305f2eeccbda9907949b65e0ea1297fcb5e9febbf352b31322c921fc",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    51.5,
-    57.3,
-    60.6
+    51.51,
+    57.27,
+    60.64
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_hivewall2_c.dds": 0.331,
+    "rc_hivewall_c.dds": 0.669
+   },
+   "textures": [
+    "rc_erosion_detail_tile.dds",
+    "rc_hivewall2_c.dds",
+    "rc_hivewall2_n.dds",
+    "rc_hivewall_c.dds",
+    "rc_hivewall_n.dds"
+   ],
    "triangles": 78
   },
   "model/obj_poolwallc.mod@ad872ca9": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_hotsprnga.mod": 1,
+    "obj_poolwallb.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -21.14,
+     -19.54,
+     -23.38
+    ],
+    [
+     21.14,
+     19.54,
+     23.38
+    ]
+   ],
+   "bytes": 5539,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
+     "name": "hivewall",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall_c.dds",
@@ -1789,82 +2418,75 @@
      }
     },
     {
+     "name": "hivewallb",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall2_c.dds",
       "e_TextureNormal0": "rc_hivewall2_n.dds",
       "e_TextureSecond0": "rc_erosion_detail_tile.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_poolwallc.mod",
+   "footprint": 1652.2,
+   "kind": "model",
    "name": "obj_poolwallc.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "ad872ca9c9f7646e6c0ad0f9616b3b7d00c25cfcc2eb3a68fd1cab46010cb63d",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    42.3,
-    39.1,
-    46.8
+    42.28,
+    39.08,
+    46.75
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_hivewall2_c.dds": 0.362,
+    "rc_hivewall_c.dds": 0.638
+   },
+   "textures": [
+    "rc_erosion_detail_tile.dds",
+    "rc_hivewall2_c.dds",
+    "rc_hivewall2_n.dds",
+    "rc_hivewall_c.dds",
+    "rc_hivewall_n.dds"
+   ],
    "triangles": 78
   },
   "model/obj_poolwalld.mod@fa98efc5": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -26.44,
+     -36.45,
+     -22.98
+    ],
+    [
+     26.44,
+     36.45,
+     22.98
+    ]
+   ],
+   "bytes": 5539,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
-      "e_TextureNormal0": "rc_cave_stone_rough_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
-      "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
+     "name": "hivewall",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall_c.dds",
@@ -1873,42 +2495,80 @@
      }
     },
     {
+     "name": "hivewallb",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_hivewall2_c.dds",
       "e_TextureNormal0": "rc_hivewall2_n.dds",
       "e_TextureSecond0": "rc_erosion_detail_tile.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_poolwalld.mod",
+   "footprint": 3854.3,
+   "kind": "model",
    "name": "obj_poolwalld.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "fa98efc59f6adbb7f8620edd708deeaff969b2ff6cf588ee97df8d87c1da3fcf",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    52.9,
-    72.9,
-    46.0
+    52.88,
+    72.89,
+    45.96
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_hivewall2_c.dds": 0.407,
+    "rc_hivewall_c.dds": 0.593
+   },
+   "textures": [
+    "rc_erosion_detail_tile.dds",
+    "rc_hivewall2_c.dds",
+    "rc_hivewall2_n.dds",
+    "rc_hivewall_c.dds",
+    "rc_hivewall_n.dds"
+   ],
    "triangles": 78
   },
   "model/obj_rock01_00.mod@79dfdbe6": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cratebroken_00.mod": 3,
+    "obj_poold.mod": 2,
+    "obj_rockset04_00.mod": 1,
+    "obj_walltorchsm01.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.7,
+     -3.08,
+     -0.93
+    ],
+    [
+     0.77,
+     -0.86,
+     1.17
+    ]
+   ],
+   "bytes": 19652,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rocks01",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_rock01_c.dds",
@@ -1916,26 +2576,68 @@
      }
     }
    ],
+   "entry": "obj_rock01_00.mod",
+   "footprint": 5.5,
+   "kind": "model",
    "name": "obj_rock01_00.mod",
+   "origin": "offset",
    "placements": 16,
    "scaleRange": [
     2.718,
     2.718
    ],
    "sha256": "79dfdbe6321743afb3b54d8827d425e10d1bbd35f6f7ed33f455ab3c886e295c",
+   "sits": {
+    "tilted": 16
+   },
    "size": [
-    2.5,
-    2.2,
+    2.47,
+    2.22,
     2.1
    ],
    "skinned": false,
+   "textureShares": {
+    "di_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_rock01_c.dds",
+    "di_rock01_n.dds"
+   ],
    "triangles": 168
   },
   "model/obj_rock02_00.mod@0f1f539e": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier.mod": 2,
+    "obj_rock03_00.mod": 2,
+    "obj_rock04_00.mod": 7,
+    "obj_rock05_00.mod": 9,
+    "obj_rockset04_00.mod": 18
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.88,
+     -1.47,
+     -0.69
+    ],
+    [
+     1.16,
+     -0.02,
+     0.74
+    ]
+   ],
+   "bytes": 19768,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rocks01",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_rock01_c.dds",
@@ -1943,26 +2645,68 @@
      }
     }
    ],
+   "entry": "obj_rock02_00.mod",
+   "footprint": 3.0,
+   "kind": "model",
    "name": "obj_rock02_00.mod",
+   "origin": "wallBack",
    "placements": 26,
    "scaleRange": [
     3.219,
     3.219
    ],
    "sha256": "0f1f539e6c617d07df4cdabe8b90148b513d7063a8e9217134e1de6e6f7a9ce2",
+   "sits": {
+    "tilted": 26
+   },
    "size": [
-    2.0,
-    1.4,
-    1.4
+    2.05,
+    1.45,
+    1.43
    ],
    "skinned": false,
+   "textureShares": {
+    "di_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_rock01_c.dds",
+    "di_rock01_n.dds"
+   ],
    "triangles": 169
   },
   "model/obj_rock03_00.mod@4bd05582": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_poold.mod": 2,
+    "obj_rock02_00.mod": 2,
+    "obj_rock04_00.mod": 3,
+    "obj_rock05_00.mod": 8,
+    "obj_walltorchsm01.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.91,
+     -1.49,
+     -1.17
+    ],
+    [
+     1.09,
+     -0.15,
+     0.25
+    ]
+   ],
+   "bytes": 13620,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rocks01",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_rock01_c.dds",
@@ -1970,26 +2714,68 @@
      }
     }
    ],
+   "entry": "obj_rock03_00.mod",
+   "footprint": 2.7,
+   "kind": "model",
    "name": "obj_rock03_00.mod",
+   "origin": "offset",
    "placements": 23,
    "scaleRange": [
     2.35,
     2.35
    ],
    "sha256": "4bd0558220c2c01ca0341dfc1751968059a02195dc15f3009b11ea7b940c7695",
+   "sits": {
+    "tilted": 23
+   },
    "size": [
-    2.0,
-    1.3,
-    1.4
+    1.99,
+    1.34,
+    1.42
    ],
    "skinned": false,
+   "textureShares": {
+    "di_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_rock01_c.dds",
+    "di_rock01_n.dds"
+   ],
    "triangles": 116
   },
   "model/obj_rock04_00.mod@7f63be90": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier.mod": 4,
+    "obj_poold.mod": 1,
+    "obj_rock02_00.mod": 7,
+    "obj_rock03_00.mod": 3,
+    "obj_rock05_00.mod": 25
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.97,
+     -0.92,
+     -0.72
+    ],
+    [
+     1.12,
+     0.79,
+     0.34
+    ]
+   ],
+   "bytes": 14548,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rocks01",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_rock01_c.dds",
@@ -1997,26 +2783,68 @@
      }
     }
    ],
+   "entry": "obj_rock04_00.mod",
+   "footprint": 3.6,
+   "kind": "model",
    "name": "obj_rock04_00.mod",
+   "origin": "offset",
    "placements": 27,
    "scaleRange": [
     2.418,
     2.418
    ],
    "sha256": "7f63be90f7a13cbb280b8e6a24b9443f3115bb89cc891e75853292e8cb93a809",
+   "sits": {
+    "upright": 27
+   },
    "size": [
-    2.1,
-    1.7,
-    1.1
+    2.09,
+    1.71,
+    1.07
    ],
    "skinned": false,
+   "textureShares": {
+    "di_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_rock01_c.dds",
+    "di_rock01_n.dds"
+   ],
    "triangles": 124
   },
   "model/obj_rock05_00.mod@f1dbc71d": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier.mod": 4,
+    "obj_rock02_00.mod": 9,
+    "obj_rock03_00.mod": 8,
+    "obj_rock04_00.mod": 25,
+    "obj_rockset04_00.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.28,
+     -1.62,
+     -1.57
+    ],
+    [
+     1.29,
+     1.59,
+     1.57
+    ]
+   ],
+   "bytes": 19188,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rocks01",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_rock01_c.dds",
@@ -2024,26 +2852,64 @@
      }
     }
    ],
+   "entry": "obj_rock05_00.mod",
+   "footprint": 8.3,
+   "kind": "model",
    "name": "obj_rock05_00.mod",
+   "origin": "center",
    "placements": 27,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "f1dbc71dfddc85a7fae48679c0d63e884ac9c14f85d06e3343290c31151bbb65",
+   "sits": {
+    "upright": 27
+   },
    "size": [
-    2.6,
-    3.2,
-    3.1
+    2.57,
+    3.21,
+    3.14
    ],
    "skinned": false,
+   "textureShares": {
+    "di_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_rock01_c.dds",
+    "di_rock01_n.dds"
+   ],
    "triangles": 164
   },
   "model/obj_rockset01_00.mod@c4db340d": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_06.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -42.02,
+     -18.26,
+     -4.06
+    ],
+    [
+     -16.88,
+     4.81,
+     10.11
+    ]
+   ],
+   "bytes": 140661,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rc_rock02",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ngercks1f_c.dds",
@@ -2051,6 +2917,7 @@
      }
     },
     {
+     "name": "rc_rock03",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_rocks01_c.dds",
@@ -2058,26 +2925,67 @@
      }
     }
    ],
+   "entry": "obj_rockset01_00.mod",
+   "footprint": 580.1,
+   "kind": "model",
    "name": "obj_rockset01_00.mod",
+   "origin": "offset",
    "placements": 8,
    "scaleRange": [
     0.748,
     0.748
    ],
    "sha256": "c4db340d320267f00faf55bec5dd5a2856eaa8b0a5e5d8004de36bb5c1e431e1",
+   "sits": {
+    "upright": 8
+   },
    "size": [
-    25.1,
-    23.1,
-    14.2
+    25.14,
+    23.07,
+    14.17
    ],
    "skinned": false,
+   "textureShares": {
+    "ngercks1f_c.dds": 0.117,
+    "rc_rocks01_c.dds": 0.883
+   },
+   "textures": [
+    "ngercks1_n.dds",
+    "ngercks1f_c.dds",
+    "rc_rocks01_c.dds",
+    "rc_rocks01_n.dds"
+   ],
    "triangles": 1210
   },
   "model/obj_rockset02_00.mod@32e980a8": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rock04_00.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -42.02,
+     -16.74,
+     -4.06
+    ],
+    [
+     -20.07,
+     4.94,
+     10.74
+    ]
+   ],
+   "bytes": 121173,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rc_rock02",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ngercks1f_c.dds",
@@ -2085,6 +2993,7 @@
      }
     },
     {
+     "name": "rc_rock03",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_rocks01_c.dds",
@@ -2092,33 +3001,69 @@
      }
     }
    ],
+   "entry": "obj_rockset02_00.mod",
+   "footprint": 475.9,
+   "kind": "model",
    "name": "obj_rockset02_00.mod",
+   "origin": "offset",
    "placements": 16,
    "scaleRange": [
     0.637,
     0.637
    ],
    "sha256": "32e980a891a4fb5fff00b794a3cadc38b6e917948f7e05e0ecd0b5ca7f601a39",
+   "sits": {
+    "upright": 16
+   },
    "size": [
-    21.9,
-    21.7,
+    21.95,
+    21.68,
     14.8
    ],
    "skinned": false,
+   "textureShares": {
+    "ngercks1f_c.dds": 0.139,
+    "rc_rocks01_c.dds": 0.861
+   },
+   "textures": [
+    "ngercks1_n.dds",
+    "ngercks1f_c.dds",
+    "rc_rocks01_c.dds",
+    "rc_rocks01_n.dds"
+   ],
    "triangles": 1042
   },
   "model/obj_rockset03_00.mod@e63b7490": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_pbouldrc.mod": 1,
+    "obj_rockset04_00.mod": 1,
+    "obj_walltorchsm01.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -43.33,
+     -19.13,
+     -4.33
+    ],
+    [
+     -19.8,
+     7.46,
+     9.82
+    ]
+   ],
+   "bytes": 132425,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ngercks1f_c.dds",
-      "e_TextureNormal0": "ngercks1_n.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "rc_rock03",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_rocks01_c.dds",
@@ -2126,26 +3071,68 @@
      }
     }
    ],
+   "entry": "obj_rockset03_00.mod",
+   "footprint": 625.9,
+   "kind": "model",
    "name": "obj_rockset03_00.mod",
+   "origin": "offset",
    "placements": 19,
    "scaleRange": [
     0.637,
     0.637
    ],
    "sha256": "e63b7490d4db301be35f0e3884ab2c7b8805945add01e279e7dd1fe952ffb8ab",
+   "sits": {
+    "upright": 19
+   },
    "size": [
-    23.5,
-    26.6,
-    14.1
+    23.53,
+    26.59,
+    14.14
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_rocks01_c.dds": 1.0
+   },
+   "textures": [
+    "rc_rocks01_c.dds",
+    "rc_rocks01_n.dds"
+   ],
    "triangles": 1139
   },
   "model/obj_rockset04_00.mod@58d25955": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier.mod": 1,
+    "obj_rock01_00.mod": 1,
+    "obj_rock02_00.mod": 18,
+    "obj_rock04_00.mod": 1,
+    "obj_rock05_00.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -43.08,
+     -17.36,
+     -4.06
+    ],
+    [
+     -20.07,
+     6.04,
+     10.04
+    ]
+   ],
+   "bytes": 121173,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rc_rock02",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ngercks1f_c.dds",
@@ -2153,6 +3140,7 @@
      }
     },
     {
+     "name": "rc_rock03",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_rocks01_c.dds",
@@ -2160,26 +3148,67 @@
      }
     }
    ],
+   "entry": "obj_rockset04_00.mod",
+   "footprint": 538.5,
+   "kind": "model",
    "name": "obj_rockset04_00.mod",
+   "origin": "offset",
    "placements": 18,
    "scaleRange": [
     0.637,
     0.637
    ],
    "sha256": "58d2595563c8a36a5f28c79884ba02b6fd94c1b4d0c050a00b5e580acf18a415",
+   "sits": {
+    "upright": 18
+   },
    "size": [
-    23.0,
+    23.01,
     23.4,
-    14.1
+    14.11
    ],
    "skinned": false,
+   "textureShares": {
+    "ngercks1f_c.dds": 0.127,
+    "rc_rocks01_c.dds": 0.873
+   },
+   "textures": [
+    "ngercks1_n.dds",
+    "ngercks1f_c.dds",
+    "rc_rocks01_c.dds",
+    "rc_rocks01_n.dds"
+   ],
    "triangles": 1042
   },
   "model/obj_stnblocka.mod@c4bb3aa2": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_stnblockb.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.8,
+     -2.98,
+     -1.84
+    ],
+    [
+     8.8,
+     2.98,
+     1.84
+    ]
+   ],
+   "bytes": 12419,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "stonerough",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
@@ -2188,82 +3217,78 @@
      }
     },
     {
+     "name": "stoneblock",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
       "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
       "e_TextureSecond0": "rc_erosion_detail_tile.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall_c.dds",
-      "e_TextureNormal0": "rc_hivewall_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall2_c.dds",
-      "e_TextureNormal0": "rc_hivewall2_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_stnblocka.mod",
+   "footprint": 104.7,
+   "kind": "model",
    "name": "obj_stnblocka.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "c4bb3aa28daabaf60d28448556c5e24d6344d387b5765d55d963d499e8853fc3",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     17.6,
-    6.0,
-    3.7
+    5.95,
+    3.67
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_cave_stone_rough_c.dds": 0.074,
+    "rc_cave_stoneblock_c.dds": 0.926
+   },
+   "textures": [
+    "rc_cave_stone_rough_c.dds",
+    "rc_cave_stone_rough_n.dds",
+    "rc_cave_stoneblock_c.dds",
+    "rc_cave_stoneblock_n.dds",
+    "rc_erosion_detail_tile.dds"
+   ],
    "triangles": 178
   },
   "model/obj_stnblockb.mod@5dcd9cff": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_stnblocka.mod": 1,
+    "obj_stnblockc.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.74,
+     -2.97,
+     -1.8
+    ],
+    [
+     8.74,
+     2.97,
+     1.8
+    ]
+   ],
+   "bytes": 11059,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "stonerough",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
@@ -2272,82 +3297,79 @@
      }
     },
     {
+     "name": "stoneblock",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
       "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
       "e_TextureSecond0": "rc_erosion_detail_tile.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall_c.dds",
-      "e_TextureNormal0": "rc_hivewall_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall2_c.dds",
-      "e_TextureNormal0": "rc_hivewall2_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_stnblockb.mod",
+   "footprint": 103.9,
+   "kind": "model",
    "name": "obj_stnblockb.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "5dcd9cff30a4ce3ca538a79a7d11a68868459c44bd516eca6762dc2ded70e522",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    17.5,
-    5.9,
-    3.6
+    17.48,
+    5.95,
+    3.59
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_cave_stone_rough_c.dds": 0.351,
+    "rc_cave_stoneblock_c.dds": 0.649
+   },
+   "textures": [
+    "rc_cave_stone_rough_c.dds",
+    "rc_cave_stone_rough_n.dds",
+    "rc_cave_stoneblock_c.dds",
+    "rc_cave_stoneblock_n.dds",
+    "rc_erosion_detail_tile.dds"
+   ],
    "triangles": 136
   },
   "model/obj_stnblockc.mod@91d72faa": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_stnblockb.mod": 1,
+    "obj_stnblockd.mod": 1,
+    "obj_stnblocke.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.79,
+     -2.97,
+     -1.8
+    ],
+    [
+     4.79,
+     2.97,
+     1.8
+    ]
+   ],
+   "bytes": 8379,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "stonerough",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
@@ -2356,82 +3378,78 @@
      }
     },
     {
+     "name": "stoneblock",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
       "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
       "e_TextureSecond0": "rc_erosion_detail_tile.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall_c.dds",
-      "e_TextureNormal0": "rc_hivewall_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall2_c.dds",
-      "e_TextureNormal0": "rc_hivewall2_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_stnblockc.mod",
+   "footprint": 56.9,
+   "kind": "model",
    "name": "obj_stnblockc.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "91d72faa3b069e749c9e4b101e548abb2aa2e8719825b013c84e65ef5993001e",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    9.6,
-    5.9,
-    3.6
+    9.57,
+    5.95,
+    3.59
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_cave_stone_rough_c.dds": 0.272,
+    "rc_cave_stoneblock_c.dds": 0.728
+   },
+   "textures": [
+    "rc_cave_stone_rough_c.dds",
+    "rc_cave_stone_rough_n.dds",
+    "rc_cave_stoneblock_c.dds",
+    "rc_cave_stoneblock_n.dds",
+    "rc_erosion_detail_tile.dds"
+   ],
    "triangles": 106
   },
   "model/obj_stnblockd.mod@ff6d3e25": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_stnblockc.mod": 1,
+    "obj_stnblocke.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -6.5,
+     -2.97,
+     -1.8
+    ],
+    [
+     6.5,
+     2.97,
+     1.8
+    ]
+   ],
+   "bytes": 10259,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "stonerough",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
@@ -2440,82 +3458,79 @@
      }
     },
     {
+     "name": "stoneblock",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
       "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
       "e_TextureSecond0": "rc_erosion_detail_tile.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall_c.dds",
-      "e_TextureNormal0": "rc_hivewall_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall2_c.dds",
-      "e_TextureNormal0": "rc_hivewall2_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_stnblockd.mod",
+   "footprint": 77.0,
+   "kind": "model",
    "name": "obj_stnblockd.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "ff6d3e253df7cbae3892012d6630f5f2fb4ee2b6eb9214537aaa0faa7058cefe",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    13.0,
-    5.9,
-    3.6
+    12.99,
+    5.93,
+    3.59
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_cave_stone_rough_c.dds": 0.159,
+    "rc_cave_stoneblock_c.dds": 0.841
+   },
+   "textures": [
+    "rc_cave_stone_rough_c.dds",
+    "rc_cave_stone_rough_n.dds",
+    "rc_cave_stoneblock_c.dds",
+    "rc_cave_stoneblock_n.dds",
+    "rc_erosion_detail_tile.dds"
+   ],
    "triangles": 126
   },
   "model/obj_stnblocke.mod@1927e0e5": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rock05_00.mod": 1,
+    "obj_stnblockc.mod": 1,
+    "obj_stnblockd.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.98,
+     -1.84,
+     -8.51
+    ],
+    [
+     2.98,
+     1.84,
+     8.51
+    ]
+   ],
+   "bytes": 10219,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "stonerough",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_stone_rough_c.dds",
@@ -2524,82 +3539,85 @@
      }
     },
     {
+     "name": "stoneblock",
      "shader": "Opaque_MaxCB1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cave_stoneblock_c.dds",
       "e_TextureNormal0": "rc_cave_stoneblock_n.dds",
       "e_TextureSecond0": "rc_erosion_detail_tile.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_rock01_c.dds",
-      "e_TextureNormal0": "rc_cave_rock01_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_vert.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_cave_firepit_trim_c.dds",
-      "e_TextureNormal0": "rc_cave_firepit_trim_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_boulder_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_rock_ov.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall_c.dds",
-      "e_TextureNormal0": "rc_hivewall_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_hivewall2_c.dds",
-      "e_TextureNormal0": "rc_hivewall2_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "rc_poolbttm_c.dds",
-      "e_TextureNormal0": "rc_boulder_n.dds",
-      "e_TextureSecond0": "rc_erosion_detail_tile.dds"
-     }
     }
    ],
+   "entry": "obj_stnblocke.mod",
+   "footprint": 21.9,
+   "kind": "model",
    "name": "obj_stnblocke.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "1927e0e597fd37d4beb33d25a41a49f9facc1839b78ad514bda69f76fbcc84e7",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    6.0,
-    3.7,
-    17.0
+    5.95,
+    3.67,
+    17.02
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_cave_stone_rough_c.dds": 0.126,
+    "rc_cave_stoneblock_c.dds": 0.874
+   },
+   "textures": [
+    "rc_cave_stone_rough_c.dds",
+    "rc_cave_stone_rough_n.dds",
+    "rc_cave_stoneblock_c.dds",
+    "rc_cave_stoneblock_n.dds",
+    "rc_erosion_detail_tile.dds"
+   ],
    "triangles": 138
   },
   "model/obj_walltorch.mod@01bbcb9c": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rock04_00.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.53,
+     -29.92,
+     -44.89
+    ],
+    [
+     43.2,
+     87.2,
+     14.82
+    ]
+   ],
+   "bytes": 32333,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.852
+    },
+    {
+     "color": "brown",
+     "share": 0.144
+    },
+    {
+     "color": "red",
+     "share": 0.005
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brazier_metal",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_metalaged00_c.dds",
@@ -2607,6 +3625,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_concrete_c.dds",
@@ -2614,6 +3633,7 @@
      }
     },
     {
+     "name": "wood",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_wood_c.dds",
@@ -2621,6 +3641,7 @@
      }
     },
     {
+     "name": "embers",
      "shader": "Opaque_MaxCBSG1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_embers_c.dds",
@@ -2628,26 +3649,79 @@
      }
     }
    ],
+   "entry": "obj_walltorch.mod",
+   "footprint": 6058.9,
+   "kind": "model",
    "name": "obj_walltorch.mod",
+   "origin": "offset",
    "placements": 4,
    "scaleRange": [
     0.066,
     0.066
    ],
    "sha256": "01bbcb9cf4dd1d3778dd92d8d59f6ffd5e43bcca8ddfd1bf13bece1af10b5a7b",
+   "sits": {
+    "tilted": 4
+   },
    "size": [
-    51.7,
-    117.1,
-    59.7
+    51.73,
+    117.12,
+    59.71
    ],
    "skinned": false,
+   "textureShares": {
+    "kl_concrete_c.dds": 0.852,
+    "kl_embers_c.dds": 0.005,
+    "kl_metalaged00_c.dds": 0.132,
+    "kl_wood_c.dds": 0.012
+   },
+   "textures": [
+    "kl_concrete_c.dds",
+    "kl_concrete_n.dds",
+    "kl_embers_c.dds",
+    "kl_embers_n.dds",
+    "kl_metalaged00_c.dds",
+    "kl_metalaged00_n.dds",
+    "kl_wood_c.dds",
+    "kl_wood_n.dds"
+   ],
    "triangles": 529
   },
   "model/obj_walltorchsm.mod@40697fa5": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     11.23,
+     30.19,
+     -20.86
+    ],
+    [
+     24.25,
+     72.13,
+     14.82
+    ]
+   ],
+   "bytes": 18329,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.58
+    },
+    {
+     "color": "brown",
+     "share": 0.37
+    },
+    {
+     "color": "red",
+     "share": 0.05
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brazier_metal",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_metalaged00_c.dds",
@@ -2655,6 +3729,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_concrete_c.dds",
@@ -2662,6 +3737,7 @@
      }
     },
     {
+     "name": "wood",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_wood_c.dds",
@@ -2669,6 +3745,7 @@
      }
     },
     {
+     "name": "embers",
      "shader": "Opaque_MaxCBSG1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_embers_c.dds",
@@ -2676,26 +3753,85 @@
      }
     }
    ],
+   "entry": "obj_walltorchsm.mod",
+   "footprint": 546.3,
+   "kind": "model",
    "name": "obj_walltorchsm.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     0.066,
     0.066
    ],
    "sha256": "40697fa595eeaf0097cc0b11549d78f2dc48b12e2e99df27e848984ed2674a4a",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    13.0,
-    41.9,
-    35.7
+    13.03,
+    41.94,
+    35.68
    ],
    "skinned": false,
+   "textureShares": {
+    "kl_concrete_c.dds": 0.58,
+    "kl_embers_c.dds": 0.05,
+    "kl_metalaged00_c.dds": 0.251,
+    "kl_wood_c.dds": 0.119
+   },
+   "textures": [
+    "kl_concrete_c.dds",
+    "kl_concrete_n.dds",
+    "kl_embers_c.dds",
+    "kl_embers_n.dds",
+    "kl_metalaged00_c.dds",
+    "kl_metalaged00_n.dds",
+    "kl_wood_c.dds",
+    "kl_wood_n.dds"
+   ],
    "triangles": 352
   },
   "model/obj_walltorchsm01.mod@c33bb081": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cratebroken_00.mod": 2,
+    "obj_rock01_00.mod": 1,
+    "obj_rock03_00.mod": 2,
+    "obj_rock04_00.mod": 1,
+    "obj_rock05_00.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     11.23,
+     30.19,
+     -20.86
+    ],
+    [
+     24.25,
+     72.13,
+     14.82
+    ]
+   ],
+   "bytes": 18329,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.58
+    },
+    {
+     "color": "brown",
+     "share": 0.37
+    },
+    {
+     "color": "red",
+     "share": 0.05
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brazier_metal",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_metalaged00_c.dds",
@@ -2703,6 +3839,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_concrete_c.dds",
@@ -2710,6 +3847,7 @@
      }
     },
     {
+     "name": "wood",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_wood_c.dds",
@@ -2717,6 +3855,7 @@
      }
     },
     {
+     "name": "embers",
      "shader": "Opaque_MaxCBSG1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_embers_c.dds",
@@ -2724,26 +3863,79 @@
      }
     }
    ],
+   "entry": "obj_walltorchsm01.mod",
+   "footprint": 546.3,
+   "kind": "model",
    "name": "obj_walltorchsm01.mod",
+   "origin": "offset",
    "placements": 17,
    "scaleRange": [
     0.066,
     0.066
    ],
    "sha256": "c33bb081a00def86ce1afb23af8e8f7bf890870fca2b4a1c573483d65560325c",
+   "sits": {
+    "tilted": 17
+   },
    "size": [
-    13.0,
-    41.9,
-    35.7
+    13.03,
+    41.94,
+    35.68
    ],
    "skinned": false,
+   "textureShares": {
+    "kl_concrete_c.dds": 0.58,
+    "kl_embers_c.dds": 0.05,
+    "kl_metalaged00_c.dds": 0.251,
+    "kl_wood_c.dds": 0.119
+   },
+   "textures": [
+    "kl_concrete_c.dds",
+    "kl_concrete_n.dds",
+    "kl_embers_c.dds",
+    "kl_embers_n.dds",
+    "kl_metalaged00_c.dds",
+    "kl_metalaged00_n.dds",
+    "kl_wood_c.dds",
+    "kl_wood_n.dds"
+   ],
    "triangles": 352
   },
   "model/obj_walltorchsm02.mod@a1c317f9": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     11.23,
+     30.19,
+     -20.86
+    ],
+    [
+     24.25,
+     72.13,
+     14.82
+    ]
+   ],
+   "bytes": 18329,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.58
+    },
+    {
+     "color": "brown",
+     "share": 0.37
+    },
+    {
+     "color": "red",
+     "share": 0.05
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brazier_metal",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_metalaged00_c.dds",
@@ -2751,6 +3943,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_concrete_c.dds",
@@ -2758,6 +3951,7 @@
      }
     },
     {
+     "name": "wood",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_wood_c.dds",
@@ -2765,6 +3959,7 @@
      }
     },
     {
+     "name": "embers",
      "shader": "Opaque_MaxCBSG1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_embers_c.dds",
@@ -2772,26 +3967,79 @@
      }
     }
    ],
+   "entry": "obj_walltorchsm02.mod",
+   "footprint": 546.3,
+   "kind": "model",
    "name": "obj_walltorchsm02.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     0.066,
     0.066
    ],
    "sha256": "a1c317f94a194987cc69ef4c5a02549a3278d16401f25e45c9ba27cc6ce734c4",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    13.0,
-    41.9,
-    35.7
+    13.03,
+    41.94,
+    35.68
    ],
    "skinned": false,
+   "textureShares": {
+    "kl_concrete_c.dds": 0.58,
+    "kl_embers_c.dds": 0.05,
+    "kl_metalaged00_c.dds": 0.251,
+    "kl_wood_c.dds": 0.119
+   },
+   "textures": [
+    "kl_concrete_c.dds",
+    "kl_concrete_n.dds",
+    "kl_embers_c.dds",
+    "kl_embers_n.dds",
+    "kl_metalaged00_c.dds",
+    "kl_metalaged00_n.dds",
+    "kl_wood_c.dds",
+    "kl_wood_n.dds"
+   ],
    "triangles": 352
   },
   "model/obj_walltorchsm03.mod@dc669279": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     11.23,
+     30.19,
+     -20.86
+    ],
+    [
+     24.25,
+     72.13,
+     14.82
+    ]
+   ],
+   "bytes": 18329,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.58
+    },
+    {
+     "color": "brown",
+     "share": 0.37
+    },
+    {
+     "color": "red",
+     "share": 0.05
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brazier_metal",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_metalaged00_c.dds",
@@ -2799,6 +4047,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_concrete_c.dds",
@@ -2806,6 +4055,7 @@
      }
     },
     {
+     "name": "wood",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_wood_c.dds",
@@ -2813,6 +4063,7 @@
      }
     },
     {
+     "name": "embers",
      "shader": "Opaque_MaxCBSG1.fx",
      "textures": {
       "e_TextureDiffuse0": "kl_embers_c.dds",
@@ -2820,26 +4071,79 @@
      }
     }
    ],
+   "entry": "obj_walltorchsm03.mod",
+   "footprint": 546.3,
+   "kind": "model",
    "name": "obj_walltorchsm03.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     0.066,
     0.066
    ],
    "sha256": "dc66927968fd1cc4c37c1fc9fbbae8a12fc1829dfd213001e54fb6c426722cfa",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    13.0,
-    41.9,
-    35.7
+    13.03,
+    41.94,
+    35.68
    ],
    "skinned": false,
+   "textureShares": {
+    "kl_concrete_c.dds": 0.58,
+    "kl_embers_c.dds": 0.05,
+    "kl_metalaged00_c.dds": 0.251,
+    "kl_wood_c.dds": 0.119
+   },
+   "textures": [
+    "kl_concrete_c.dds",
+    "kl_concrete_n.dds",
+    "kl_embers_c.dds",
+    "kl_embers_n.dds",
+    "kl_metalaged00_c.dds",
+    "kl_metalaged00_n.dds",
+    "kl_wood_c.dds",
+    "kl_wood_n.dds"
+   ],
    "triangles": 352
   },
   "model/ter_cavec.ter@b4494675": {
    "archive": "dranikhollowsc.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -302.72,
+     -145.45,
+     -53.61
+    ],
+    [
+     1431.16,
+     3995.03,
+     342.45
+    ]
+   ],
+   "bytes": 5391340,
+   "collisionShare": 0.994,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 0.987
+    },
+    {
+     "color": "tan",
+     "share": 0.008
+    },
+    {
+     "color": "teal",
+     "share": 0.003
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "tunnel01",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "sp_tunn04.dds",
@@ -2847,6 +4151,7 @@
      }
     },
     {
+     "name": "tunnel02",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "tunn05.dds",
@@ -2854,6 +4159,7 @@
      }
     },
     {
+     "name": "tunnel03",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "sp_tunn06.dds",
@@ -2861,6 +4167,7 @@
      }
     },
     {
+     "name": "tunnel07",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "tunn07.dds",
@@ -2868,6 +4175,7 @@
      }
     },
     {
+     "name": "ceiling",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_ceiling01_c.dds",
@@ -2875,6 +4183,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_concrete01_c.dds",
@@ -2882,6 +4191,7 @@
      }
     },
     {
+     "name": "wallUp",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_wall01_upper_c.dds",
@@ -2889,6 +4199,7 @@
      }
     },
     {
+     "name": "connector",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_wall_stucco_connector01_c.dds",
@@ -2896,6 +4207,7 @@
      }
     },
     {
+     "name": "metal",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_metal01_c.dds",
@@ -2903,6 +4215,7 @@
      }
     },
     {
+     "name": "wallLow",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_wall01_lower_c.dds",
@@ -2910,6 +4223,7 @@
      }
     },
     {
+     "name": "broken",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_wall_crumble01_c.dds",
@@ -2917,6 +4231,7 @@
      }
     },
     {
+     "name": "stairs",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_stairstone_c.dds",
@@ -2924,6 +4239,7 @@
      }
     },
     {
+     "name": "floor",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_floor01_c.dds",
@@ -2931,6 +4247,7 @@
      }
     },
     {
+     "name": "caved",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "di_wall_crumble02_c.dds",
@@ -2938,6 +4255,7 @@
      }
     },
     {
+     "name": "cavewater",
      "shader": "Opaque_MaxWater.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cavewater_c.dds",
@@ -2946,19 +4264,75 @@
      }
     }
    ],
+   "entry": "ter_cavec.ter",
+   "footprint": 7179091.9,
+   "kind": "model",
    "name": "ter_cavec.ter",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "b4494675358bf7be07ff5623deafd0ecc5f3dd6076ba5c5745cfced5e18f5559",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    1733.9,
-    4140.5,
-    396.1
+    1733.88,
+    4140.48,
+    396.06
    ],
    "skinned": false,
+   "textureShares": {
+    "di_ceiling01_c.dds": 0.007,
+    "di_concrete01_c.dds": 0.002,
+    "di_floor01_c.dds": 0.007,
+    "di_metal01_c.dds": 0.001,
+    "di_stairstone_c.dds": 0.001,
+    "di_wall01_lower_c.dds": 0.003,
+    "di_wall01_upper_c.dds": 0.005,
+    "di_wall_crumble01_c.dds": 0.002,
+    "di_wall_crumble02_c.dds": 0.004,
+    "di_wall_stucco_connector01_c.dds": 0.001,
+    "rc_cavewater_c.dds": 0.003,
+    "sp_tunn04.dds": 0.239,
+    "sp_tunn06.dds": 0.181,
+    "tunn05.dds": 0.373,
+    "tunn07.dds": 0.171
+   },
+   "textures": [
+    "di_ceiling01_c.dds",
+    "di_ceiling01_n.dds",
+    "di_concrete01_c.dds",
+    "di_concrete01_n.dds",
+    "di_floor01_c.dds",
+    "di_floor01_n.dds",
+    "di_metal01_c.dds",
+    "di_rc_metal01_n.dds",
+    "di_stairstone_c.dds",
+    "di_stairstone_n.dds",
+    "di_wall01_lower_c.dds",
+    "di_wall01_n.dds",
+    "di_wall01_upper_c.dds",
+    "di_wall_crumble01_c.dds",
+    "di_wall_crumble01_n.dds",
+    "di_wall_crumble02_c.dds",
+    "di_wall_crumble02_n.dds",
+    "di_wall_stucco_connector01_c.dds",
+    "di_wall_stucco_connector01_n.dds",
+    "ra_watertest_e_01.dds",
+    "rc_cavewater_c.dds",
+    "rc_cavewater_n.dds",
+    "sp_tunn04.dds",
+    "sp_tunn04_n.dds",
+    "sp_tunn06.dds",
+    "tunn05.dds",
+    "tunn05_n.dds",
+    "tunn06_n.dds",
+    "tunn07.dds",
+    "tunn07_n.dds"
+   ],
    "triangles": 106585
   },
   "texture/ab_brewbarrel01_c.dds@ab253f64": {
@@ -4073,17 +5447,16 @@
     "models": {
      "obj_mantlesnest.mod": 1,
      "obj_mantlesnest01.mod": 5,
-     "obj_mantlesnest03.mod": 2,
-     "obj_nestground.mod": 1
+     "obj_mantlesnest03.mod": 2
     },
     "partners": {
-     "av_rock20a_c.dds": 4
+     "av_rock20a_c.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MaxCB1.fx": 4
+     "Opaque_MaxCB1.fx": 3
     }
    },
    "meanColor": [
@@ -4120,17 +5493,16 @@
     "models": {
      "obj_mantlesnest.mod": 1,
      "obj_mantlesnest01.mod": 5,
-     "obj_mantlesnest03.mod": 2,
-     "obj_nestground.mod": 1
+     "obj_mantlesnest03.mod": 2
     },
     "partners": {
-     "av_rock19_n.dds": 4
+     "av_rock19_n.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MaxCB1.fx": 4
+     "Opaque_MaxCB1.fx": 3
     }
    },
    "meanColor": [
@@ -4244,17 +5616,16 @@
     "models": {
      "obj_mantlesnest.mod": 1,
      "obj_mantlesnest01.mod": 5,
-     "obj_mantlesnest03.mod": 2,
-     "obj_nestground.mod": 1
+     "obj_mantlesnest03.mod": 2
     },
     "partners": {
-     "av_rock21_n.dds": 4
+     "av_rock21_n.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MaxCB1.fx": 4
+     "Opaque_MaxCB1.fx": 3
     }
    },
    "meanColor": [
@@ -4306,17 +5677,16 @@
     "models": {
      "obj_mantlesnest.mod": 1,
      "obj_mantlesnest01.mod": 5,
-     "obj_mantlesnest03.mod": 2,
-     "obj_nestground.mod": 1
+     "obj_mantlesnest03.mod": 2
     },
     "partners": {
-     "av_rock21_c.dds": 4
+     "av_rock21_c.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MaxCB1.fx": 4
+     "Opaque_MaxCB1.fx": 3
     }
    },
    "meanColor": [
@@ -7956,17 +9326,16 @@
     "models": {
      "obj_rockset01_00.mod": 8,
      "obj_rockset02_00.mod": 16,
-     "obj_rockset03_00.mod": 19,
      "obj_rockset04_00.mod": 18
     },
     "partners": {
-     "ngercks1f_c.dds": 4
+     "ngercks1f_c.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MaxCB1.fx": 4
+     "Opaque_MaxCB1.fx": 3
     }
    },
    "meanColor": [
@@ -8003,17 +9372,16 @@
     "models": {
      "obj_rockset01_00.mod": 8,
      "obj_rockset02_00.mod": 16,
-     "obj_rockset03_00.mod": 19,
      "obj_rockset04_00.mod": 18
     },
     "partners": {
-     "ngercks1_n.dds": 4
+     "ngercks1_n.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MaxCB1.fx": 4
+     "Opaque_MaxCB1.fx": 3
     }
    },
    "meanColor": [
@@ -8108,21 +9476,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
+     "obj_pbouldra.mod": 1,
      "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_pbouldrc.mod": 7
     },
     "partners": {
-     "rc_boulder_n.dds": 19,
-     "rc_rock_ov.dds": 19
+     "rc_boulder_n.dds": 3,
+     "rc_rock_ov.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 19
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 3
     }
    },
    "meanColor": [
@@ -8172,23 +9538,23 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 10,
-     "obj_pbouldrb.mod": 8,
-     "obj_pbouldrc.mod": 14,
-     "obj_poolb.mod": 8,
-     "obj_poold.mod": 20
+     "obj_hotsprnga.mod": 2,
+     "obj_hotsprngb.mod": 5,
+     "obj_pbouldrb.mod": 4,
+     "obj_pbouldrc.mod": 7,
+     "obj_poolb.mod": 4
     },
     "partners": {
-     "rc_boulder_c.dds": 19,
-     "rc_erosion_detail_tile.dds": 19,
-     "rc_poolbttm_c.dds": 19,
-     "rc_rock_ov.dds": 19
+     "rc_boulder_c.dds": 3,
+     "rc_erosion_detail_tile.dds": 6,
+     "rc_poolbttm_c.dds": 6,
+     "rc_rock_ov.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 38
+     "e_TextureNormal0": 9
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 38
+     "Opaque_MaxCB1_2UV.fx": 9
     }
    },
    "meanColor": [
@@ -8373,21 +9739,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_deco.mod": 3
     },
     "partners": {
-     "rc_cave_firepit_trim_n.dds": 19,
-     "rc_erosion_detail_tile.dds": 19
+     "rc_cave_firepit_trim_n.dds": 1,
+     "rc_erosion_detail_tile.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 19
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 1
     }
    },
    "meanColor": [
@@ -8437,21 +9799,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_deco.mod": 3
     },
     "partners": {
-     "rc_cave_firepit_trim_c.dds": 19,
-     "rc_erosion_detail_tile.dds": 19
+     "rc_cave_firepit_trim_c.dds": 1,
+     "rc_erosion_detail_tile.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 19
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 1
     }
    },
    "meanColor": [
@@ -8486,21 +9844,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_deco.mod": 3
     },
     "partners": {
-     "rc_cave_rock01_n.dds": 19,
-     "rc_erosion_detail_vert.dds": 19
+     "rc_cave_rock01_n.dds": 1,
+     "rc_erosion_detail_vert.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 19
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 1
     }
    },
    "meanColor": [
@@ -8550,21 +9904,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_deco.mod": 3
     },
     "partners": {
-     "rc_cave_rock01_c.dds": 19,
-     "rc_erosion_detail_vert.dds": 19
+     "rc_cave_rock01_c.dds": 1,
+     "rc_erosion_detail_vert.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 19
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 1
     }
    },
    "meanColor": [
@@ -8599,21 +9949,21 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_stnblocka.mod": 1,
+     "obj_stnblockb.mod": 1,
+     "obj_stnblockc.mod": 1,
+     "obj_stnblockd.mod": 1,
+     "obj_stnblocke.mod": 1
     },
     "partners": {
-     "rc_cave_stone_rough_n.dds": 19,
-     "rc_erosion_detail_tile.dds": 19
+     "rc_cave_stone_rough_n.dds": 5,
+     "rc_erosion_detail_tile.dds": 5
     },
     "roles": {
-     "e_TextureDiffuse0": 19
+     "e_TextureDiffuse0": 5
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 5
     }
    },
    "meanColor": [
@@ -8663,21 +10013,21 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_stnblocka.mod": 1,
+     "obj_stnblockb.mod": 1,
+     "obj_stnblockc.mod": 1,
+     "obj_stnblockd.mod": 1,
+     "obj_stnblocke.mod": 1
     },
     "partners": {
-     "rc_cave_stone_rough_c.dds": 19,
-     "rc_erosion_detail_tile.dds": 19
+     "rc_cave_stone_rough_c.dds": 5,
+     "rc_erosion_detail_tile.dds": 5
     },
     "roles": {
-     "e_TextureNormal0": 19
+     "e_TextureNormal0": 5
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 5
     }
    },
    "meanColor": [
@@ -8712,21 +10062,21 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_stnblocka.mod": 1,
+     "obj_stnblockb.mod": 1,
+     "obj_stnblockc.mod": 1,
+     "obj_stnblockd.mod": 1,
+     "obj_stnblocke.mod": 1
     },
     "partners": {
-     "rc_cave_stoneblock_n.dds": 19,
-     "rc_erosion_detail_tile.dds": 19
+     "rc_cave_stoneblock_n.dds": 5,
+     "rc_erosion_detail_tile.dds": 5
     },
     "roles": {
-     "e_TextureDiffuse0": 19
+     "e_TextureDiffuse0": 5
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 5
     }
    },
    "meanColor": [
@@ -8776,21 +10126,21 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_stnblocka.mod": 1,
+     "obj_stnblockb.mod": 1,
+     "obj_stnblockc.mod": 1,
+     "obj_stnblockd.mod": 1,
+     "obj_stnblocke.mod": 1
     },
     "partners": {
-     "rc_cave_stoneblock_c.dds": 19,
-     "rc_erosion_detail_tile.dds": 19
+     "rc_cave_stoneblock_c.dds": 5,
+     "rc_erosion_detail_tile.dds": 5
     },
     "roles": {
-     "e_TextureNormal0": 19
+     "e_TextureNormal0": 5
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 5
     }
    },
    "meanColor": [
@@ -8930,24 +10280,24 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 30,
-     "obj_pbouldrb.mod": 24,
-     "obj_pbouldrc.mod": 42,
-     "obj_poolb.mod": 24,
-     "obj_poold.mod": 60
+     "obj_hotsprnga.mod": 6,
+     "obj_hotsprngb.mod": 15,
+     "obj_poolb.mod": 12,
+     "obj_poold.mod": 20,
+     "obj_poolwallc.mod": 4
     },
     "partners": {
-     "rc_cave_firepit_trim_c.dds": 19,
-     "rc_cave_stone_rough_c.dds": 19,
-     "rc_cave_stone_rough_n.dds": 19,
-     "rc_cave_stoneblock_c.dds": 19,
-     "rc_cave_stoneblock_n.dds": 19
+     "rc_hivewall2_c.dds": 10,
+     "rc_hivewall2_n.dds": 10,
+     "rc_hivewall_c.dds": 10,
+     "rc_hivewall_n.dds": 10,
+     "rc_poolbttm_c.dds": 6
     },
     "roles": {
-     "e_TextureSecond0": 114
+     "e_TextureSecond0": 37
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 114
+     "Opaque_MaxCB1_2UV.fx": 37
     }
    },
    "meanColor": [
@@ -8982,21 +10332,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_deco.mod": 3
     },
     "partners": {
-     "rc_cave_rock01_c.dds": 19,
-     "rc_cave_rock01_n.dds": 19
+     "rc_cave_rock01_c.dds": 1,
+     "rc_cave_rock01_n.dds": 1
     },
     "roles": {
-     "e_TextureSecond0": 19
+     "e_TextureSecond0": 1
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 1
     }
    },
    "meanColor": [
@@ -9031,21 +10377,21 @@
    "kind": "texture",
    "materials": {
     "models": {
+     "obj_hotsprnga.mod": 2,
      "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
      "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_poold.mod": 10,
+     "obj_poolwallc.mod": 2
     },
     "partners": {
-     "rc_erosion_detail_tile.dds": 19,
-     "rc_hivewall2_n.dds": 19
+     "rc_erosion_detail_tile.dds": 10,
+     "rc_hivewall2_n.dds": 10
     },
     "roles": {
-     "e_TextureDiffuse0": 19
+     "e_TextureDiffuse0": 10
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 10
     }
    },
    "meanColor": [
@@ -9095,21 +10441,21 @@
    "kind": "texture",
    "materials": {
     "models": {
+     "obj_hotsprnga.mod": 2,
      "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
      "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_poold.mod": 10,
+     "obj_poolwallc.mod": 2
     },
     "partners": {
-     "rc_erosion_detail_tile.dds": 19,
-     "rc_hivewall2_c.dds": 19
+     "rc_erosion_detail_tile.dds": 10,
+     "rc_hivewall2_c.dds": 10
     },
     "roles": {
-     "e_TextureNormal0": 19
+     "e_TextureNormal0": 10
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 10
     }
    },
    "meanColor": [
@@ -9144,21 +10490,21 @@
    "kind": "texture",
    "materials": {
     "models": {
+     "obj_hotsprnga.mod": 2,
      "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
      "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_poold.mod": 10,
+     "obj_poolwallc.mod": 2
     },
     "partners": {
-     "rc_erosion_detail_tile.dds": 19,
-     "rc_hivewall_n.dds": 19
+     "rc_erosion_detail_tile.dds": 10,
+     "rc_hivewall_n.dds": 10
     },
     "roles": {
-     "e_TextureDiffuse0": 19
+     "e_TextureDiffuse0": 10
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 10
     }
    },
    "meanColor": [
@@ -9208,21 +10554,21 @@
    "kind": "texture",
    "materials": {
     "models": {
+     "obj_hotsprnga.mod": 2,
      "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
      "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_poold.mod": 10,
+     "obj_poolwallc.mod": 2
     },
     "partners": {
-     "rc_erosion_detail_tile.dds": 19,
-     "rc_hivewall_c.dds": 19
+     "rc_erosion_detail_tile.dds": 10,
+     "rc_hivewall_c.dds": 10
     },
     "roles": {
-     "e_TextureNormal0": 19
+     "e_TextureNormal0": 10
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 10
     }
    },
    "meanColor": [
@@ -9317,21 +10663,21 @@
    "kind": "texture",
    "materials": {
     "models": {
+     "obj_hotsprnga.mod": 2,
      "obj_hotsprngb.mod": 5,
-     "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
+     "obj_poola.mod": 1,
      "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_poolc.mod": 1
     },
     "partners": {
-     "rc_boulder_n.dds": 19,
-     "rc_erosion_detail_tile.dds": 19
+     "rc_boulder_n.dds": 6,
+     "rc_erosion_detail_tile.dds": 6
     },
     "roles": {
-     "e_TextureDiffuse0": 19
+     "e_TextureDiffuse0": 6
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 6
     }
    },
    "meanColor": [
@@ -9381,21 +10727,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_hotsprngb.mod": 5,
+     "obj_pbouldra.mod": 1,
      "obj_pbouldrb.mod": 4,
-     "obj_pbouldrc.mod": 7,
-     "obj_poolb.mod": 4,
-     "obj_poold.mod": 10
+     "obj_pbouldrc.mod": 7
     },
     "partners": {
-     "rc_boulder_c.dds": 19,
-     "rc_boulder_n.dds": 19
+     "rc_boulder_c.dds": 3,
+     "rc_boulder_n.dds": 3
     },
     "roles": {
-     "e_TextureSecond0": 19
+     "e_TextureSecond0": 3
     },
     "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 19
+     "Opaque_MaxCB1_2UV.fx": 3
     }
    },
    "meanColor": [
@@ -10306,6 +11650,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:dranikhollowsc",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "dranikhollowsc"
 }

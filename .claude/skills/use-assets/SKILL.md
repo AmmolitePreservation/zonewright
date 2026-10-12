@@ -23,6 +23,16 @@ Work from the catalog (`docs/assetCatalog.md`), not from guesses about file name
 - Judge in the client's light: `renderView` with the default client shading at eye height, not only in layout shading.
 - Block out with `createMaterial` greys made with `blockout: true`, so a game export refuses any left on exported faces. Before handing work off, read `checkExport` (purpose `test`) beside `renderView` with `shading: "coverage"`: they show where the base material shows, borders lack a transition strip, textures stretch or collapse, and blockout remains.
 
+## Placing client models
+
+A client model placed with `placeObject` or `placeDoor` ships with the zone: the export copies its model and textures into the zone's archive byte for byte (README, Client models in a zone), so pick models for what they are, not for where they live.
+
+- Find them by need: `findAssets` with `kind` `model`, `categories`, `tags`, and `text`, across client zones and object archives (`source` names a zone or an archive such as `crystals.eqg`). Look before placing: `viewModels` with `views`.
+- Place by the catalog's measured use: its `size` against the 6-unit player, its `origin` (a `base` model stands on the ground at its origin; a `wallBack` one hangs on a wall), the scale range and how it `sits` in the client's zones, and what it stands `beside`.
+- Scenery is the default for objects. Make a piece `interactive` only where EQ itself makes it server-side, as its `role` shows: a door that opens (`openType` as the client's own doors of it use), a door that teleports (`destination`), a tradeskill container (`objectType`, such as `potteryKiln`, `forge`, `brewBarrel`). An interactive piece turns about Z only, and an object stands on the ground the zone ships (the server stands it there as it boots).
+- Never edit a client model: it moves, turns, and scales; a changed model is a new asset, which this toolset does not make. Only EQG models (`.mod`, not skinned) ship.
+- Use only models found through the client's links (the catalog and placement do so); `placeDump` places a dump for reference, which never ships.
+
 ## Lights and emitters
 
 - `placeLights` takes the colors and radii of a described light style that fits (`findAssets` kind `light`, category `torch`, `brazier`, ...). Space them as the style's zone did.

@@ -5,7 +5,7 @@ description: Place and render EverQuest ground objects in a zonewright Blender s
 
 # Render objects
 
-`placeObject` puts a ground object's model into the open scene, with its model origin at the object's position, as the server places it. The model is found the way the client finds it (see "Client models" in the README; `findModel` shows the search), built once, and cached under the tooling root.
+`placeObject` puts a ground object's model into the open scene, with its model origin at the object's position, as the server places it. The model is found the way the client finds it (see "Client models" in the README; `findModel` shows the search), built once, and cached under the tooling root. The placed object ships with the zone (README, Client models in a zone): scenery the `.zon` places by default, or an object row with `interactive`. It is the client's mesh: it moves, turns, and scales, and no tool edits it.
 
 ## placeObject
 
@@ -18,12 +18,17 @@ description: Place and render EverQuest ground objects in a zonewright Blender s
 | `scale` | The object's scale, as the dumps give it (default 1) |
 | `source` | `"archive"` or `"archive:entry"` to take a definition other than the first the client loads |
 | `name`, `collection` | Object name and collection |
+| `interactive` | false (default): scenery, placed by the `.zon`; true: a row of EQ's `object` table naming the model's copy in the archive |
+| `objectType` | An interactive object's type: a tradeskill container's kind (`potteryWheel`, `potteryKiln`, `forge`, `brewBarrel`, `tailoring`, `jewelcrafting`, `fletching`, `baking2`, ...) or `staticUnlocked` for a plain clickable object; the catalog's `role` shows what the server's own rows give the model |
+| `displayName` | An interactive object's display name |
+
+An interactive object turns about Z only and is scaled 0.01 to 49.99; the server stands it on the zone's collision as it boots, so export refuses one standing off the ground the zone ships.
 
 Objects are not snapped to the ground: the server's z is the model origin.
 
 ## From a claudelink dump
 
-`placeDump` places every ground item and placed object of a claudelink zone dump (with its spawns and doors) at its actor's position, heading, and scale. One whose actor is tilted (pitch or roll not 0) is listed, not placed, as placement turns only about Z. To place one by hand, a dump's `groundItems` or `placedObjects` row maps to `placeObject`: its actor's `definition` (or the row's `name`) is `model`, `y`, `x`, `z`, and `heading` the same names, and `scale` the same.
+`placeDump` places every ground item and placed object of a claudelink zone dump (with its spawns and doors) at its actor's position, heading, and scale, as reference: they never ship. One whose actor is tilted (pitch or roll not 0) is listed, not placed, as placement turns only about Z. To place one by hand, a dump's `groundItems` or `placedObjects` row maps to `placeObject`: its actor's `definition` (or the row's `name`) is `model`, `y`, `x`, `z`, and `heading` the same names, and `scale` the same.
 
 ## From a live dump
 

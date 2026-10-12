@@ -41,25 +41,31 @@
   },
   "model/obj_crypt_beam.mod@6a9b0034": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -208.64,
+     -180.46,
+     -64.55
+    ],
+    [
+     208.64,
+     180.46,
+     64.55
+    ]
+   ],
+   "bytes": 28487,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_wall_c.dds",
-      "e_TextureNormal0": "dragoncrypt_wall_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -68,181 +74,148 @@
      }
     },
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "temp_metal_grate.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metaltrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "dragoncrypt_metaltrim.dds",
       "e_TextureNormal0": "dragoncrypt_metaltrim_ns.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "metal_plate_c.dds",
-      "e_TextureNormal0": "metal_plate_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_column.dds",
-      "e_TextureNormal0": "dragoncrypt_column_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "blood_wood_plank.dds",
-      "e_TextureNormal0": "blood_wood_plank_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "obj_crypt_beam.mod",
+   "footprint": 150601.9,
+   "kind": "model",
    "name": "obj_crypt_beam.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "6a9b0034dd1dd65ee03f5902af88710c13c3441a715f05ba2ad9d0d6565a73e1",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    417.3,
-    360.9,
+    417.27,
+    360.92,
     129.1
    ],
    "skinned": false,
+   "textureShares": {
+    "dragoncrypt_metaltrim.dds": 0.175,
+    "metal02_c.dds": 0.825
+   },
+   "textures": [
+    "dragoncrypt_metaltrim.dds",
+    "dragoncrypt_metaltrim_ns.dds",
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 360
   },
   "model/obj_crypt_coinpile.mod@af9652dd": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crypt_gold_bowl.mod": 3,
+    "obj_crypt_gold_goblet.mod": 3,
+    "obj_crypt_gold_vase.mod": 3,
+    "obp_crypt_coinedge.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.39,
+     -4.73,
+     -0.54
+    ],
+    [
+     4.39,
+     4.73,
+     0.54
+    ]
+   ],
+   "bytes": 4577,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "coinpile",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "dragoncrypt_coins_c.dds",
       "e_TextureNormal0": "dragoncrypt_coins_ng.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_coins_blnd.dds",
-      "e_TextureFallback0": "dragoncrypt_coins_blnd.dds",
-      "e_TextureNormal0": "dragoncrypt_coins_blnd_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "gold_goblet_c.dds",
-      "e_TextureNormal0": "gold_goblet_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragongold_plain_c.dds",
-      "e_TextureNormal0": "dragongold_plain_ns.dds"
-     }
     }
    ],
+   "entry": "obj_crypt_coinpile.mod",
+   "footprint": 83.1,
+   "kind": "model",
    "name": "obj_crypt_coinpile.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "af9652dd029a5dc7b76bca0efcd9e0d02cc0cfd1346dd6ba00656580ea0262a0",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    8.8,
-    9.5,
-    1.1
+    8.78,
+    9.46,
+    1.08
    ],
    "skinned": false,
+   "textureShares": {
+    "dragoncrypt_coins_c.dds": 1.0
+   },
+   "textures": [
+    "dragoncrypt_coins_c.dds",
+    "dragoncrypt_coins_ng.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 70
   },
   "model/obj_crypt_doorway.mod@54e4f07e": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cryptroom.mod": 3,
+    "obj_dragoncrypt_door.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.2,
+     -2.49,
+     -0.19
+    ],
+    [
+     4.25,
+     0.54,
+     14.43
+    ]
+   ],
+   "bytes": 29079,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_wall_c.dds",
-      "e_TextureNormal0": "dragoncrypt_wall_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.001
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -251,36 +224,7 @@
      }
     },
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "temp_metal_grate.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metaltrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -289,144 +233,153 @@
      }
     },
     {
+     "name": "dragoncrypt_panel",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "metal_plate_c.dds",
       "e_TextureNormal0": "metal_plate_ns.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_column.dds",
-      "e_TextureNormal0": "dragoncrypt_column_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "blood_wood_plank.dds",
-      "e_TextureNormal0": "blood_wood_plank_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "obj_crypt_doorway.mod",
+   "footprint": 25.6,
+   "kind": "model",
    "name": "obj_crypt_doorway.mod",
+   "origin": "base",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "54e4f07e45b25f2c177b4142bba19fdf77dd698711e2333006e4008b79ae8574",
+   "sits": {
+    "upright": 3
+   },
    "size": [
-    8.5,
-    3.0,
-    14.6
+    8.45,
+    3.03,
+    14.61
    ],
    "skinned": false,
+   "textureShares": {
+    "dragoncrypt_metaltrim.dds": 0.157,
+    "metal02_c.dds": 0.664,
+    "metal_plate_c.dds": 0.18
+   },
+   "textures": [
+    "dragoncrypt_metaltrim.dds",
+    "dragoncrypt_metaltrim_ns.dds",
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "metal_plate_c.dds",
+    "metal_plate_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 284
   },
   "model/obj_crypt_gold_bowl.mod@12e5c3a0": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crypt_coinpile.mod": 3,
+    "obj_crypt_gold_goblet.mod": 9,
+    "obj_crypt_gold_vase.mod": 9,
+    "obp_crypt_coinedge.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.0,
+     -1.0,
+     -0.5
+    ],
+    [
+     1.0,
+     1.0,
+     0.5
+    ]
+   ],
+   "bytes": 6605,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_coins_c.dds",
-      "e_TextureNormal0": "dragoncrypt_coins_ng.dds"
-     }
-    },
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_coins_blnd.dds",
-      "e_TextureFallback0": "dragoncrypt_coins_blnd.dds",
-      "e_TextureNormal0": "dragoncrypt_coins_blnd_n.dds"
-     }
-    },
-    {
+     "name": "gold_goblet",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "gold_goblet_c.dds",
       "e_TextureNormal0": "gold_goblet_ns.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragongold_plain_c.dds",
-      "e_TextureNormal0": "dragongold_plain_ns.dds"
-     }
     }
    ],
+   "entry": "obj_crypt_gold_bowl.mod",
+   "footprint": 4.0,
+   "kind": "model",
    "name": "obj_crypt_gold_bowl.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "12e5c3a0d1dfea5328092418939bd8062c2de8f58a3787a4ee4bbe2beb0c6f13",
+   "sits": {
+    "tilted": 3
+   },
    "size": [
     2.0,
     2.0,
     1.0
    ],
    "skinned": false,
+   "textureShares": {
+    "gold_goblet_c.dds": 1.0
+   },
+   "textures": [
+    "gold_goblet_c.dds",
+    "gold_goblet_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 112
   },
   "model/obj_crypt_gold_goblet.mod@d5d00aa0": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crypt_coinpile.mod": 3,
+    "obj_crypt_gold_bowl.mod": 9,
+    "obj_crypt_gold_vase.mod": 9,
+    "obp_crypt_coinedge.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.48,
+     -0.48,
+     -0.66
+    ],
+    [
+     0.48,
+     0.48,
+     0.66
+    ]
+   ],
+   "bytes": 9733,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_coins_c.dds",
-      "e_TextureNormal0": "dragoncrypt_coins_ng.dds"
-     }
-    },
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_coins_blnd.dds",
-      "e_TextureFallback0": "dragoncrypt_coins_blnd.dds",
-      "e_TextureNormal0": "dragoncrypt_coins_blnd_n.dds"
-     }
-    },
-    {
+     "name": "gold_goblet",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -435,6 +388,7 @@
      }
     },
     {
+     "name": "crypt_gold",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -443,43 +397,72 @@
      }
     }
    ],
+   "entry": "obj_crypt_gold_goblet.mod",
+   "footprint": 0.9,
+   "kind": "model",
    "name": "obj_crypt_gold_goblet.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "d5d00aa060324a21345397ca41e4351b6f2d8c746ff98adad83c9c5e6157bddf",
+   "sits": {
+    "tilted": 2,
+    "upright": 1
+   },
    "size": [
-    1.0,
-    1.0,
-    1.3
+    0.96,
+    0.96,
+    1.31
    ],
    "skinned": false,
+   "textureShares": {
+    "dragongold_plain_c.dds": 0.358,
+    "gold_goblet_c.dds": 0.642
+   },
+   "textures": [
+    "dragongold_plain_c.dds",
+    "dragongold_plain_ns.dds",
+    "gold_goblet_c.dds",
+    "gold_goblet_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 176
   },
   "model/obj_crypt_gold_vase.mod@eca4e0b9": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crypt_coinpile.mod": 3,
+    "obj_crypt_gold_bowl.mod": 9,
+    "obj_crypt_gold_goblet.mod": 9,
+    "obp_crypt_coinedge.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.0,
+     -1.0,
+     -0.91
+    ],
+    [
+     1.0,
+     1.0,
+     0.91
+    ]
+   ],
+   "bytes": 9633,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_coins_c.dds",
-      "e_TextureNormal0": "dragoncrypt_coins_ng.dds"
-     }
-    },
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_coins_blnd.dds",
-      "e_TextureFallback0": "dragoncrypt_coins_blnd.dds",
-      "e_TextureNormal0": "dragoncrypt_coins_blnd_n.dds"
-     }
-    },
-    {
+     "name": "gold_goblet",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -488,6 +471,7 @@
      }
     },
     {
+     "name": "crypt_gold",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -496,26 +480,74 @@
      }
     }
    ],
+   "entry": "obj_crypt_gold_vase.mod",
+   "footprint": 4.0,
+   "kind": "model",
    "name": "obj_crypt_gold_vase.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "eca4e0b9518eb7dec3c18a1629e0af8302c5c07f1984b588f50181c9c1c5e258",
+   "sits": {
+    "tilted": 2,
+    "upright": 1
+   },
    "size": [
     2.0,
     2.0,
-    1.8
+    1.82
    ],
    "skinned": false,
+   "textureShares": {
+    "dragongold_plain_c.dds": 0.508,
+    "gold_goblet_c.dds": 0.492
+   },
+   "textures": [
+    "dragongold_plain_c.dds",
+    "dragongold_plain_ns.dds",
+    "gold_goblet_c.dds",
+    "gold_goblet_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 160
   },
   "model/obj_cryptroom.mod@cad813d8": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crypt_doorway.mod": 3,
+    "obj_dragoncrypt_door.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -11.48,
+     -29.74,
+     -0.1
+    ],
+    [
+     11.48,
+     1.84,
+     23.7
+    ]
+   ],
+   "bytes": 70159,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.798
+    },
+    {
+     "color": "brown",
+     "share": 0.203
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "drgncrypt_wall",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -524,14 +556,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -540,28 +565,7 @@
      }
     },
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "temp_metal_grate.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_stonefloor",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -570,6 +574,7 @@
      }
     },
     {
+     "name": "dragoncrypt_metaltrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -578,6 +583,7 @@
      }
     },
     {
+     "name": "dragoncrypt_panel",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -586,82 +592,90 @@
      }
     },
     {
+     "name": "dragoncrypt_column",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "dragoncrypt_column.dds",
       "e_TextureNormal0": "dragoncrypt_column_ns.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "blood_wood_plank.dds",
-      "e_TextureNormal0": "blood_wood_plank_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "obj_cryptroom.mod",
+   "footprint": 725.1,
+   "kind": "model",
    "name": "obj_cryptroom.mod",
+   "origin": "base",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "cad813d8f7cfd00abe22623d071397d9fd98e65eb6040e7c3c60d81c41031fd4",
+   "sits": {
+    "upright": 3
+   },
    "size": [
-    23.0,
-    31.6,
+    22.96,
+    31.58,
     23.8
    ],
    "skinned": false,
+   "textureShares": {
+    "dragoncrypt_column.dds": 0.208,
+    "dragoncrypt_metaltrim.dds": 0.039,
+    "dragoncrypt_stonefloor_c.dds": 0.11,
+    "dragoncrypt_wall_c.dds": 0.48,
+    "metal02_c.dds": 0.117,
+    "metal_plate_c.dds": 0.047
+   },
+   "textures": [
+    "dragoncrypt_column.dds",
+    "dragoncrypt_column_ns.dds",
+    "dragoncrypt_metaltrim.dds",
+    "dragoncrypt_metaltrim_ns.dds",
+    "dragoncrypt_stonefloor_c.dds",
+    "dragoncrypt_stonefloor_n.dds",
+    "dragoncrypt_wall_c.dds",
+    "dragoncrypt_wall_n.dds",
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "metal_plate_c.dds",
+    "metal_plate_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 1150
   },
   "model/obj_dragonarch.mod@f8cf3876": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_dragongate_main.mod": 1,
+    "obj_hallblock.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.87,
+     -17.35,
+     -0.86
+    ],
+    [
+     0.75,
+     17.35,
+     47.04
+    ]
+   ],
+   "bytes": 23751,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_wall_c.dds",
-      "e_TextureNormal0": "dragoncrypt_wall_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 0.999
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -670,36 +684,7 @@
      }
     },
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "temp_metal_grate.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metaltrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -708,90 +693,81 @@
      }
     },
     {
+     "name": "dragoncrypt_panel",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "metal_plate_c.dds",
       "e_TextureNormal0": "metal_plate_ns.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_column.dds",
-      "e_TextureNormal0": "dragoncrypt_column_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "blood_wood_plank.dds",
-      "e_TextureNormal0": "blood_wood_plank_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "obj_dragonarch.mod",
+   "footprint": 194.8,
+   "kind": "model",
    "name": "obj_dragonarch.mod",
+   "origin": "base",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "f8cf3876815362308e504d71dc7490762af4e2f941ba5d9177dd25720f41491f",
+   "sits": {
+    "upright": 3
+   },
    "size": [
-    5.6,
-    34.7,
+    5.62,
+    34.69,
     47.9
    ],
    "skinned": false,
+   "textureShares": {
+    "dragoncrypt_metaltrim.dds": 0.135,
+    "metal02_c.dds": 0.465,
+    "metal_plate_c.dds": 0.399
+   },
+   "textures": [
+    "dragoncrypt_metaltrim.dds",
+    "dragoncrypt_metaltrim_ns.dds",
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "metal_plate_c.dds",
+    "metal_plate_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 242
   },
   "model/obj_dragoncrypt_door.mod@3946299b": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crypt_doorway.mod": 1,
+    "obj_cryptroom.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.32,
+     -0.35,
+     0.0
+    ],
+    [
+     5.36,
+     0.35,
+     8.97
+    ]
+   ],
+   "bytes": 19315,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_wall_c.dds",
-      "e_TextureNormal0": "dragoncrypt_wall_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.001
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -800,44 +776,7 @@
      }
     },
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "temp_metal_grate.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_metaltrim.dds",
-      "e_TextureNormal0": "dragoncrypt_metaltrim_ns.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_panel",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -846,82 +785,82 @@
      }
     },
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_column.dds",
-      "e_TextureNormal0": "dragoncrypt_column_ns.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_planks",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "blood_wood_plank.dds",
       "e_TextureNormal0": "blood_wood_plank_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "obj_dragoncrypt_door.mod",
+   "footprint": 4.0,
+   "kind": "model",
    "name": "obj_dragoncrypt_door.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "3946299baedf863c0e238ad8ef947532bc368d930950167f45ec180777e8d3e6",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    5.7,
-    0.7,
-    9.0
+    5.68,
+    0.71,
+    8.97
    ],
    "skinned": false,
+   "textureShares": {
+    "blood_wood_plank.dds": 0.378,
+    "metal02_c.dds": 0.575,
+    "metal_plate_c.dds": 0.048
+   },
+   "textures": [
+    "blood_wood_plank.dds",
+    "blood_wood_plank_n.dds",
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "metal_plate_c.dds",
+    "metal_plate_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 194
   },
   "model/obj_dragoncrypt_hallframe.mod@ccf0b3ec": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -150.81,
+     -30.35,
+     -15.73
+    ],
+    [
+     150.81,
+     30.35,
+     15.73
+    ]
+   ],
+   "bytes": 76239,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_wall_c.dds",
-      "e_TextureNormal0": "dragoncrypt_wall_n.dds"
-     }
+     "color": "brown",
+     "share": 0.673
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
-    },
+     "color": "grey",
+     "share": 0.328
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -930,36 +869,7 @@
      }
     },
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "temp_metal_grate.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metaltrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -968,6 +878,7 @@
      }
     },
     {
+     "name": "dragoncrypt_panel",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -976,82 +887,81 @@
      }
     },
     {
+     "name": "dragoncrypt_column",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "dragoncrypt_column.dds",
       "e_TextureNormal0": "dragoncrypt_column_ns.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "blood_wood_plank.dds",
-      "e_TextureNormal0": "blood_wood_plank_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "obj_dragoncrypt_hallframe.mod",
+   "footprint": 18305.3,
+   "kind": "model",
    "name": "obj_dragoncrypt_hallframe.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "ccf0b3ec09041d5703acd1d913ce5ee2319abace779b636cbd8a20ec9ba0d794",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    301.6,
-    60.7,
-    31.5
+    301.62,
+    60.69,
+    31.46
    ],
    "skinned": false,
+   "textureShares": {
+    "dragoncrypt_column.dds": 0.328,
+    "dragoncrypt_metaltrim.dds": 0.143,
+    "metal02_c.dds": 0.443,
+    "metal_plate_c.dds": 0.087
+   },
+   "textures": [
+    "dragoncrypt_column.dds",
+    "dragoncrypt_column_ns.dds",
+    "dragoncrypt_metaltrim.dds",
+    "dragoncrypt_metaltrim_ns.dds",
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "metal_plate_c.dds",
+    "metal_plate_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 948
   },
   "model/obj_dragongate_human.mod@0a680b56": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -0.35,
+     -2.84,
+     -4.49
+    ],
+    [
+     0.35,
+     2.84,
+     4.49
+    ]
+   ],
+   "bytes": 17411,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_wall_c.dds",
-      "e_TextureNormal0": "dragoncrypt_wall_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1060,128 +970,94 @@
      }
     },
     {
+     "name": "dragoncrypt_gate",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "temp_metal_grate.dds"
      }
     },
     {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_metaltrim.dds",
-      "e_TextureNormal0": "dragoncrypt_metaltrim_ns.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_panel",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "metal_plate_c.dds",
       "e_TextureNormal0": "metal_plate_ns.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_column.dds",
-      "e_TextureNormal0": "dragoncrypt_column_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "blood_wood_plank.dds",
-      "e_TextureNormal0": "blood_wood_plank_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "obj_dragongate_human.mod",
+   "footprint": 4.0,
+   "kind": "model",
    "name": "obj_dragongate_human.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "0a680b56b29e25adc52d6a5a42ba066701dd10362253c6131a580d94aede6e42",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    0.7,
-    5.7,
-    9.0
+    0.71,
+    5.68,
+    8.97
    ],
    "skinned": false,
+   "textureShares": {
+    "metal02_c.dds": 0.489,
+    "metal_plate_c.dds": 0.044,
+    "temp_metal_grate.dds": 0.467
+   },
+   "textures": [
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "metal_plate_c.dds",
+    "metal_plate_ns.dds",
+    "nek_erosion_ov_4tile.dds",
+    "temp_metal_grate.dds"
+   ],
    "triangles": 178
   },
   "model/obj_dragongate_main.mod@ebbc671a": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_dragonarch.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.37,
+     -12.64,
+     -21.89
+    ],
+    [
+     2.37,
+     12.64,
+     21.89
+    ]
+   ],
+   "bytes": 104731,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_wall_c.dds",
-      "e_TextureNormal0": "dragoncrypt_wall_n.dds"
-     }
+     "color": "brown",
+     "share": 0.99
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
+     "color": "grey",
+     "share": 0.009
     },
     {
+     "color": "teal",
+     "share": 0.001
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1190,36 +1066,14 @@
      }
     },
     {
+     "name": "dragoncrypt_gate",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "temp_metal_grate.dds"
      }
     },
     {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metaltrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1228,6 +1082,7 @@
      }
     },
     {
+     "name": "dragoncrypt_panel",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1236,6 +1091,7 @@
      }
     },
     {
+     "name": "dragoncrypt_column",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1244,22 +1100,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "blood_wood_plank.dds",
-      "e_TextureNormal0": "blood_wood_plank_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
+     "name": "crypt_gem",
      "shader": "Opaque_MPLGB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1268,6 +1109,7 @@
      }
     },
     {
+     "name": "gatelock",
      "shader": "Opaque_MPLGB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1276,42 +1118,88 @@
      }
     }
    ],
+   "entry": "obj_dragongate_main.mod",
+   "footprint": 119.8,
+   "kind": "model",
    "name": "obj_dragongate_main.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "ebbc671a775972f91c7f06335d9e3e1e2aab369885fb6ae73b3dee35fab0243b",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.7,
-    25.3,
-    43.8
+    4.74,
+    25.28,
+    43.77
    ],
    "skinned": false,
+   "textureShares": {
+    "dragon_gatelock.dds": 0.035,
+    "dragoncrypt_column.dds": 0.009,
+    "dragoncrypt_metaltrim.dds": 0.372,
+    "metal02_c.dds": 0.304,
+    "metal_plate_c.dds": 0.003,
+    "newcrystal.dds": 0.001,
+    "temp_metal_grate.dds": 0.276
+   },
+   "textures": [
+    "dragon_gatelock.dds",
+    "dragon_gatelock_ng.dds",
+    "dragoncrypt_column.dds",
+    "dragoncrypt_column_ns.dds",
+    "dragoncrypt_metaltrim.dds",
+    "dragoncrypt_metaltrim_ns.dds",
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "metal_plate_c.dds",
+    "metal_plate_ns.dds",
+    "nek_erosion_ov_4tile.dds",
+    "newcrystal.dds",
+    "newcrystal_ng.dds",
+    "temp_metal_grate.dds"
+   ],
    "triangles": 1343
   },
   "model/obj_drgncrypt_torch.mod@5c6a063c": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -0.52,
+     -0.39,
+     -1.17
+    ],
+    [
+     0.52,
+     1.88,
+     1.17
+    ]
+   ],
+   "bytes": 19715,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_wall_c.dds",
-      "e_TextureNormal0": "dragoncrypt_wall_n.dds"
-     }
+     "color": "brown",
+     "share": 0.76
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
+     "color": "grey",
+     "share": 0.22
     },
     {
+     "color": "red",
+     "share": 0.02
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1320,36 +1208,7 @@
      }
     },
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "temp_metal_grate.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metaltrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1358,14 +1217,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "metal_plate_c.dds",
-      "e_TextureNormal0": "metal_plate_ns.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_column",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1374,74 +1226,84 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "blood_wood_plank.dds",
-      "e_TextureNormal0": "blood_wood_plank_n.dds"
-     }
-    },
-    {
+     "name": "crypt_hotcoals",
      "shader": "Opaque_MPLGB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "ew_coals_hot_c.dds",
       "e_TextureNormal0": "ew_coals_hot_ng.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "obj_drgncrypt_torch.mod",
+   "footprint": 2.4,
+   "kind": "model",
    "name": "obj_drgncrypt_torch.mod",
+   "origin": "offset",
    "placements": 12,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "5c6a063c37eeae937910927edf3e17db5ddac4563a540c8bf7bf16450020e0f7",
+   "sits": {
+    "tilted": 4,
+    "upright": 8
+   },
    "size": [
-    1.0,
-    2.3,
-    2.3
+    1.04,
+    2.26,
+    2.33
    ],
    "skinned": false,
+   "textureShares": {
+    "dragoncrypt_column.dds": 0.22,
+    "dragoncrypt_metaltrim.dds": 0.307,
+    "ew_coals_hot_c.dds": 0.02,
+    "metal02_c.dds": 0.453
+   },
+   "textures": [
+    "dragoncrypt_column.dds",
+    "dragoncrypt_column_ns.dds",
+    "dragoncrypt_metaltrim.dds",
+    "dragoncrypt_metaltrim_ns.dds",
+    "ew_coals_hot_c.dds",
+    "ew_coals_hot_ng.dds",
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 170
   },
   "model/obj_hallblock.mod@52566803": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_dragonarch.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.33,
+     -12.29,
+     -21.67
+    ],
+    [
+     0.33,
+     12.29,
+     21.67
+    ]
+   ],
+   "bytes": 21351,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_wall_c.dds",
-      "e_TextureNormal0": "dragoncrypt_wall_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.001
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1450,36 +1312,7 @@
      }
     },
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "temp_metal_grate.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_metaltrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1488,6 +1321,7 @@
      }
     },
     {
+     "name": "dragoncrypt_panel",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1496,74 +1330,86 @@
      }
     },
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_column.dds",
-      "e_TextureNormal0": "dragoncrypt_column_ns.dds"
-     }
-    },
-    {
+     "name": "dragoncrypt_planks",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "blood_wood_plank.dds",
       "e_TextureNormal0": "blood_wood_plank_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "obj_hallblock.mod",
+   "footprint": 16.4,
+   "kind": "model",
    "name": "obj_hallblock.mod",
+   "origin": "wallBack",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "525668031aa1070de45f347d679ae30f2edb3dfee77b2a1020071bf3a1bbf38c",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    0.7,
-    24.6,
-    43.3
+    0.67,
+    24.57,
+    43.33
    ],
    "skinned": false,
+   "textureShares": {
+    "blood_wood_plank.dds": 0.651,
+    "dragoncrypt_metaltrim.dds": 0.156,
+    "metal02_c.dds": 0.184,
+    "metal_plate_c.dds": 0.01
+   },
+   "textures": [
+    "blood_wood_plank.dds",
+    "blood_wood_plank_n.dds",
+    "dragoncrypt_metaltrim.dds",
+    "dragoncrypt_metaltrim_ns.dds",
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "metal_plate_c.dds",
+    "metal_plate_ns.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 232
   },
   "model/obp_crypt_coinedge.mod@d7dfeab1": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crypt_coinpile.mod": 1,
+    "obj_crypt_gold_bowl.mod": 3,
+    "obj_crypt_gold_goblet.mod": 3,
+    "obj_crypt_gold_vase.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -5.93,
+     -9.75,
+     -0.22
+    ],
+    [
+     5.93,
+     6.31,
+     0.24
+    ]
+   ],
+   "bytes": 6561,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_coins_c.dds",
-      "e_TextureNormal0": "dragoncrypt_coins_ng.dds"
-     }
-    },
+     "color": "orange",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "coin_border",
      "shader": "Chroma_MPLBumpAT.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1571,174 +1417,138 @@
       "e_TextureFallback0": "dragoncrypt_coins_blnd.dds",
       "e_TextureNormal0": "dragoncrypt_coins_blnd_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "gold_goblet_c.dds",
-      "e_TextureNormal0": "gold_goblet_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragongold_plain_c.dds",
-      "e_TextureNormal0": "dragongold_plain_ns.dds"
-     }
     }
    ],
+   "entry": "obp_crypt_coinedge.mod",
+   "footprint": 190.6,
+   "kind": "model",
    "name": "obp_crypt_coinedge.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "d7dfeab12ef5cf1ec78c7c0cab4184ecd90c1b8e998ba2bc3e45500e319cfce6",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    11.9,
-    16.1,
-    0.5
+    11.87,
+    16.06,
+    0.45
    ],
    "skinned": false,
+   "textureShares": {
+    "dragoncrypt_coins_blnd.dds": 1.0
+   },
+   "textures": [
+    "dragoncrypt_coins_blnd.dds",
+    "dragoncrypt_coins_blnd_n.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 68
   },
   "model/obp_dragoncypt_venthole.mod@1446a46f": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -46.31,
+     -42.48,
+     -45.18
+    ],
+    [
+     46.31,
+     42.48,
+     45.18
+    ]
+   ],
+   "bytes": 17455,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "drgncrypt_wall",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "dragoncrypt_wall_c.dds",
       "e_TextureNormal0": "dragoncrypt_wall_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_ground_c.dds",
-      "e_TextureNormal0": "dragoncrypt_ground_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "metal02_c.dds",
-      "e_TextureNormal0": "metal03_ns.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "temp_metal_grate.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "lic_loadstone_dias.dds",
-      "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_metaltrim.dds",
-      "e_TextureNormal0": "dragoncrypt_metaltrim_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "metal_plate_c.dds",
-      "e_TextureNormal0": "metal_plate_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_column.dds",
-      "e_TextureNormal0": "dragoncrypt_column_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "blood_wood_plank.dds",
-      "e_TextureNormal0": "blood_wood_plank_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "obp_dragoncypt_venthole.mod",
+   "footprint": 7868.7,
+   "kind": "model",
    "name": "obp_dragoncypt_venthole.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "1446a46f5b858716223f52752d64f8e26a76dc7b9ec3120e3f7a67bf08eb3785",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    92.6,
-    85.0,
-    90.4
+    92.62,
+    84.95,
+    90.36
    ],
    "skinned": false,
+   "textureShares": {
+    "dragoncrypt_wall_c.dds": 1.0
+   },
+   "textures": [
+    "dragoncrypt_wall_c.dds",
+    "dragoncrypt_wall_n.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 288
   },
   "model/ter_dragoncrypt.ter@fa59a066": {
    "archive": "dragoncrypt.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -227.68,
+     -22.64,
+     -1.4
+    ],
+    [
+     226.54,
+     760.96,
+     129.97
+    ]
+   ],
+   "bytes": 280395,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.595
+    },
+    {
+     "color": "tan",
+     "share": 0.389
+    },
+    {
+     "color": "brown",
+     "share": 0.017
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "drgncrypt_wall",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1747,6 +1557,7 @@
      }
     },
     {
+     "name": "dragoncrypt_ground",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1755,6 +1566,7 @@
      }
     },
     {
+     "name": "dragoncrypt_metal",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1763,106 +1575,62 @@
      }
     },
     {
+     "name": "dragoncrypt_gate",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "temp_metal_grate.dds"
      }
     },
     {
+     "name": "dragoncrypt_trim",
      "shader": "Opaque_MPLGB.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "lic_loadstone_dias.dds",
       "e_TextureNormal0": "lic_loadstone_dias_ng.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "old_timber.tga",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_stonefloor_c.dds",
-      "e_TextureNormal0": "dragoncrypt_stonefloor_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_metaltrim.dds",
-      "e_TextureNormal0": "dragoncrypt_metaltrim_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "metal_plate_c.dds",
-      "e_TextureNormal0": "metal_plate_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragoncrypt_column.dds",
-      "e_TextureNormal0": "dragoncrypt_column_ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "blood_wood_plank.dds",
-      "e_TextureNormal0": "blood_wood_plank_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "ew_coals_hot_c.dds",
-      "e_TextureNormal0": "ew_coals_hot_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "newcrystal.dds",
-      "e_TextureNormal0": "newcrystal_ng.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureDiffuse0": "dragon_gatelock.dds",
-      "e_TextureNormal0": "dragon_gatelock_ng.dds"
-     }
     }
    ],
+   "entry": "ter_dragoncrypt.ter",
+   "footprint": 355924.6,
+   "kind": "model",
    "name": "ter_dragoncrypt.ter",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "fa59a0662a16f2a657262a697d93e2c26a62ba9d9f9aa38b99b93b218fabaebb",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    469.3,
-    1016.0,
-    260.5
+    454.22,
+    783.6,
+    131.36
    ],
    "skinned": false,
-   "triangles": 5887
+   "textureShares": {
+    "dragoncrypt_ground_c.dds": 0.389,
+    "dragoncrypt_wall_c.dds": 0.588,
+    "lic_loadstone_dias.dds": 0.007,
+    "metal02_c.dds": 0.007,
+    "temp_metal_grate.dds": 0.01
+   },
+   "textures": [
+    "dragoncrypt_ground_c.dds",
+    "dragoncrypt_ground_n.dds",
+    "dragoncrypt_wall_c.dds",
+    "dragoncrypt_wall_n.dds",
+    "lic_loadstone_dias.dds",
+    "lic_loadstone_dias_ng.dds",
+    "metal02_c.dds",
+    "metal03_ns.dds",
+    "nek_erosion_ov_4tile.dds",
+    "temp_metal_grate.dds"
+   ],
+   "triangles": 5875
   },
   "texture/blood_wood_plank.dds@4f4306ce": {
    "archives": [
@@ -1877,21 +1645,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_dragoncrypt_door.mod": 1,
+     "obj_hallblock.mod": 1
     },
     "partners": {
-     "blood_wood_plank_n.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "blood_wood_plank_n.dds": 2,
+     "nek_erosion_ov_4tile.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 12
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -1941,21 +1706,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_dragoncrypt_door.mod": 1,
+     "obj_hallblock.mod": 1
     },
     "partners": {
-     "blood_wood_plank.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "blood_wood_plank.dds": 2,
+     "nek_erosion_ov_4tile.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 12
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -2140,21 +1902,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_dragongate_main.mod": 1
     },
     "partners": {
-     "dragon_gatelock_ng.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragon_gatelock_ng.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLGB.fx": 12
+     "Opaque_MPLGB.fx": 1
     }
    },
    "meanColor": [
@@ -2204,21 +1962,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_dragongate_main.mod": 1
     },
     "partners": {
-     "dragon_gatelock.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragon_gatelock.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLGB.fx": 12
+     "Opaque_MPLGB.fx": 1
     }
    },
    "meanColor": [
@@ -2253,22 +2007,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_coinpile.mod": 2,
-     "obj_crypt_gold_bowl.mod": 6,
-     "obj_crypt_gold_goblet.mod": 6,
-     "obj_crypt_gold_vase.mod": 6,
      "obp_crypt_coinedge.mod": 2
     },
     "partners": {
-     "dragoncrypt_coins_blnd_n.dds": 10,
-     "nek_erosion_ov_4tile.dds": 10
+     "dragoncrypt_coins_blnd_n.dds": 2,
+     "nek_erosion_ov_4tile.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 5,
-     "e_TextureFallback0": 5
+     "e_TextureDiffuse0": 1,
+     "e_TextureFallback0": 1
     },
     "shaders": {
-     "Chroma_MPLBumpAT.fx": 10
+     "Chroma_MPLBumpAT.fx": 2
     }
    },
    "meanColor": [
@@ -2318,21 +2068,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_coinpile.mod": 1,
-     "obj_crypt_gold_bowl.mod": 3,
-     "obj_crypt_gold_goblet.mod": 3,
-     "obj_crypt_gold_vase.mod": 3,
      "obp_crypt_coinedge.mod": 1
     },
     "partners": {
-     "dragoncrypt_coins_blnd.dds": 10,
-     "nek_erosion_ov_4tile.dds": 5
+     "dragoncrypt_coins_blnd.dds": 2,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 5
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Chroma_MPLBumpAT.fx": 5
+     "Chroma_MPLBumpAT.fx": 1
     }
    },
    "meanColor": [
@@ -2367,21 +2113,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_coinpile.mod": 1,
-     "obj_crypt_gold_bowl.mod": 3,
-     "obj_crypt_gold_goblet.mod": 3,
-     "obj_crypt_gold_vase.mod": 3,
-     "obp_crypt_coinedge.mod": 1
+     "obj_crypt_coinpile.mod": 1
     },
     "partners": {
-     "dragoncrypt_coins_ng.dds": 5,
-     "nek_erosion_ov_4tile.dds": 5
+     "dragoncrypt_coins_ng.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 5
+     "Opaque_MPLSB.fx": 1
     }
    },
    "meanColor": [
@@ -2431,21 +2173,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_coinpile.mod": 1,
-     "obj_crypt_gold_bowl.mod": 3,
-     "obj_crypt_gold_goblet.mod": 3,
-     "obj_crypt_gold_vase.mod": 3,
-     "obp_crypt_coinedge.mod": 1
+     "obj_crypt_coinpile.mod": 1
     },
     "partners": {
-     "dragoncrypt_coins_c.dds": 5,
-     "nek_erosion_ov_4tile.dds": 5
+     "dragoncrypt_coins_c.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 5
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 5
+     "Opaque_MPLSB.fx": 1
     }
    },
    "meanColor": [
@@ -2480,21 +2218,20 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
      "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_dragoncrypt_hallframe.mod": 1,
+     "obj_dragongate_main.mod": 1,
+     "obj_drgncrypt_torch.mod": 12
     },
     "partners": {
-     "dragoncrypt_column_ns.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragoncrypt_column_ns.dds": 4,
+     "nek_erosion_ov_4tile.dds": 4
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 4
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 12
+     "Opaque_MPLSB.fx": 4
     }
    },
    "meanColor": [
@@ -2544,21 +2281,20 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
      "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_dragoncrypt_hallframe.mod": 1,
+     "obj_dragongate_main.mod": 1,
+     "obj_drgncrypt_torch.mod": 12
     },
     "partners": {
-     "dragoncrypt_column.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragoncrypt_column.dds": 4,
+     "nek_erosion_ov_4tile.dds": 4
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 4
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 12
+     "Opaque_MPLSB.fx": 4
     }
    },
    "meanColor": [
@@ -2683,21 +2419,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
      "ter_dragoncrypt.ter": 1
     },
     "partners": {
-     "dragoncrypt_ground_n.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragoncrypt_ground_n.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 12
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2747,21 +2479,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
      "ter_dragoncrypt.ter": 1
     },
     "partners": {
-     "dragoncrypt_ground_c.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragoncrypt_ground_c.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 12
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2796,21 +2524,21 @@
    "kind": "texture",
    "materials": {
     "models": {
+     "obj_crypt_beam.mod": 1,
      "obj_crypt_doorway.mod": 3,
      "obj_cryptroom.mod": 3,
      "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_drgncrypt_torch.mod": 12
     },
     "partners": {
-     "dragoncrypt_metaltrim_ns.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragoncrypt_metaltrim_ns.dds": 8,
+     "nek_erosion_ov_4tile.dds": 8
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 8
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 12
+     "Opaque_MPLSB.fx": 8
     }
    },
    "meanColor": [
@@ -2860,21 +2588,21 @@
    "kind": "texture",
    "materials": {
     "models": {
+     "obj_crypt_beam.mod": 1,
      "obj_crypt_doorway.mod": 3,
      "obj_cryptroom.mod": 3,
      "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_drgncrypt_torch.mod": 12
     },
     "partners": {
-     "dragoncrypt_metaltrim.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragoncrypt_metaltrim.dds": 8,
+     "nek_erosion_ov_4tile.dds": 8
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 8
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 12
+     "Opaque_MPLSB.fx": 8
     }
    },
    "meanColor": [
@@ -2909,21 +2637,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_cryptroom.mod": 3
     },
     "partners": {
-     "dragoncrypt_stonefloor_n.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragoncrypt_stonefloor_n.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 12
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2973,21 +2697,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_cryptroom.mod": 3
     },
     "partners": {
-     "dragoncrypt_stonefloor_c.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragoncrypt_stonefloor_c.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 12
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -3022,21 +2742,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
      "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
+     "obp_dragoncypt_venthole.mod": 1,
      "ter_dragoncrypt.ter": 1
     },
     "partners": {
-     "dragoncrypt_wall_n.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragoncrypt_wall_n.dds": 3,
+     "nek_erosion_ov_4tile.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 12
+     "Opaque_MPLBump.fx": 3
     }
    },
    "meanColor": [
@@ -3087,21 +2805,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
      "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
+     "obp_dragoncypt_venthole.mod": 1,
      "ter_dragoncrypt.ter": 1
     },
     "partners": {
-     "dragoncrypt_wall_c.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "dragoncrypt_wall_c.dds": 3,
+     "nek_erosion_ov_4tile.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 12
+     "Opaque_MPLBump.fx": 3
     }
    },
    "meanColor": [
@@ -3136,21 +2852,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_coinpile.mod": 1,
-     "obj_crypt_gold_bowl.mod": 3,
      "obj_crypt_gold_goblet.mod": 3,
-     "obj_crypt_gold_vase.mod": 3,
-     "obp_crypt_coinedge.mod": 1
+     "obj_crypt_gold_vase.mod": 3
     },
     "partners": {
-     "dragongold_plain_ns.dds": 5,
-     "nek_erosion_ov_4tile.dds": 5
+     "dragongold_plain_ns.dds": 2,
+     "nek_erosion_ov_4tile.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 5
+     "Opaque_MPLSB.fx": 2
     }
    },
    "meanColor": [
@@ -3200,21 +2913,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_coinpile.mod": 1,
-     "obj_crypt_gold_bowl.mod": 3,
      "obj_crypt_gold_goblet.mod": 3,
-     "obj_crypt_gold_vase.mod": 3,
-     "obp_crypt_coinedge.mod": 1
+     "obj_crypt_gold_vase.mod": 3
     },
     "partners": {
-     "dragongold_plain_c.dds": 5,
-     "nek_erosion_ov_4tile.dds": 5
+     "dragongold_plain_c.dds": 2,
+     "nek_erosion_ov_4tile.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 5
+     "e_TextureNormal0": 2
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 5
+     "Opaque_MPLSB.fx": 2
     }
    },
    "meanColor": [
@@ -3249,21 +2959,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_drgncrypt_torch.mod": 12
     },
     "partners": {
-     "ew_coals_hot_ng.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "ew_coals_hot_ng.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLGB.fx": 12
+     "Opaque_MPLGB.fx": 1
     }
    },
    "meanColor": [
@@ -3343,21 +3049,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_drgncrypt_torch.mod": 12
     },
     "partners": {
-     "ew_coals_hot_c.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "ew_coals_hot_c.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLGB.fx": 12
+     "Opaque_MPLGB.fx": 1
     }
    },
    "meanColor": [
@@ -3392,21 +3094,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_coinpile.mod": 1,
      "obj_crypt_gold_bowl.mod": 3,
      "obj_crypt_gold_goblet.mod": 3,
-     "obj_crypt_gold_vase.mod": 3,
-     "obp_crypt_coinedge.mod": 1
+     "obj_crypt_gold_vase.mod": 3
     },
     "partners": {
-     "gold_goblet_ns.dds": 5,
-     "nek_erosion_ov_4tile.dds": 5
+     "gold_goblet_ns.dds": 3,
+     "nek_erosion_ov_4tile.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 5
+     "Opaque_MPLSB.fx": 3
     }
    },
    "meanColor": [
@@ -3456,21 +3156,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_coinpile.mod": 1,
      "obj_crypt_gold_bowl.mod": 3,
      "obj_crypt_gold_goblet.mod": 3,
-     "obj_crypt_gold_vase.mod": 3,
-     "obp_crypt_coinedge.mod": 1
+     "obj_crypt_gold_vase.mod": 3
     },
     "partners": {
-     "gold_goblet_c.dds": 5,
-     "nek_erosion_ov_4tile.dds": 5
+     "gold_goblet_c.dds": 3,
+     "nek_erosion_ov_4tile.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 5
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 5
+     "Opaque_MPLSB.fx": 3
     }
    },
    "meanColor": [
@@ -3505,21 +3203,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
      "ter_dragoncrypt.ter": 1
     },
     "partners": {
-     "lic_loadstone_dias_ng.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "lic_loadstone_dias_ng.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLGB.fx": 12
+     "Opaque_MPLGB.fx": 1
     }
    },
    "meanColor": [
@@ -3569,21 +3263,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
      "ter_dragoncrypt.ter": 1
     },
     "partners": {
-     "lic_loadstone_dias.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "lic_loadstone_dias.dds": 1,
+     "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLGB.fx": 12
+     "Opaque_MPLGB.fx": 1
     }
    },
    "meanColor": [
@@ -3715,14 +3405,14 @@
      "ter_dragoncrypt.ter": 1
     },
     "partners": {
-     "metal03_ns.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "metal03_ns.dds": 11,
+     "nek_erosion_ov_4tile.dds": 11
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 11
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 12
+     "Opaque_MPLSB.fx": 11
     }
    },
    "meanColor": [
@@ -3809,14 +3499,14 @@
      "ter_dragoncrypt.ter": 1
     },
     "partners": {
-     "metal02_c.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "metal02_c.dds": 11,
+     "nek_erosion_ov_4tile.dds": 11
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 11
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 12
+     "Opaque_MPLSB.fx": 11
     }
    },
    "meanColor": [
@@ -3854,18 +3544,18 @@
      "obj_crypt_doorway.mod": 3,
      "obj_cryptroom.mod": 3,
      "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_dragoncrypt_hallframe.mod": 1,
+     "obj_hallblock.mod": 1
     },
     "partners": {
-     "metal_plate_ns.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "metal_plate_ns.dds": 8,
+     "nek_erosion_ov_4tile.dds": 8
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 8
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 12
+     "Opaque_MPLSB.fx": 8
     }
    },
    "meanColor": [
@@ -3918,18 +3608,18 @@
      "obj_crypt_doorway.mod": 3,
      "obj_cryptroom.mod": 3,
      "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_dragoncrypt_hallframe.mod": 1,
+     "obj_hallblock.mod": 1
     },
     "partners": {
-     "metal_plate_c.dds": 12,
-     "nek_erosion_ov_4tile.dds": 12
+     "metal_plate_c.dds": 8,
+     "nek_erosion_ov_4tile.dds": 8
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 8
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 12
+     "Opaque_MPLSB.fx": 8
     }
    },
    "meanColor": [
@@ -3964,27 +3654,27 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 39,
-     "obj_cryptroom.mod": 39,
-     "obj_dragonarch.mod": 39,
-     "obj_drgncrypt_torch.mod": 156,
-     "ter_dragoncrypt.ter": 13
+     "obj_crypt_doorway.mod": 9,
+     "obj_cryptroom.mod": 18,
+     "obj_dragonarch.mod": 9,
+     "obj_dragongate_main.mod": 6,
+     "obj_drgncrypt_torch.mod": 48
     },
     "partners": {
-     "dragoncrypt_ground_c.dds": 12,
-     "dragoncrypt_ground_n.dds": 12,
-     "dragoncrypt_wall_c.dds": 12,
-     "dragoncrypt_wall_n.dds": 12,
-     "metal02_c.dds": 12
+     "dragoncrypt_metaltrim.dds": 8,
+     "dragoncrypt_metaltrim_ns.dds": 8,
+     "metal02_c.dds": 11,
+     "metal03_ns.dds": 11,
+     "metal_plate_c.dds": 8
     },
     "roles": {
-     "e_TextureCoverage0": 176
+     "e_TextureCoverage0": 49
     },
     "shaders": {
-     "Chroma_MPLBumpAT.fx": 5,
-     "Opaque_MPLBump.fx": 60,
-     "Opaque_MPLGB.fx": 48,
-     "Opaque_MPLSB.fx": 63
+     "Chroma_MPLBumpAT.fx": 1,
+     "Opaque_MPLBump.fx": 7,
+     "Opaque_MPLGB.fx": 4,
+     "Opaque_MPLSB.fx": 37
     }
    },
    "meanColor": [
@@ -4019,21 +3709,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_dragongate_main.mod": 1
     },
     "partners": {
-     "nek_erosion_ov_4tile.dds": 12,
-     "newcrystal_ng.dds": 12
+     "nek_erosion_ov_4tile.dds": 1,
+     "newcrystal_ng.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLGB.fx": 12
+     "Opaque_MPLGB.fx": 1
     }
    },
    "meanColor": [
@@ -4083,21 +3769,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
+     "obj_dragongate_main.mod": 1
     },
     "partners": {
-     "nek_erosion_ov_4tile.dds": 12,
-     "newcrystal.dds": 12
+     "nek_erosion_ov_4tile.dds": 1,
+     "newcrystal.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLGB.fx": 12
+     "Opaque_MPLGB.fx": 1
     }
    },
    "meanColor": [
@@ -4130,25 +3812,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
-     "ter_dragoncrypt.ter": 1
-    },
-    "partners": {
-     "nek_erosion_ov_4tile.dds": 12,
-     "old_timber.tga": 12
-    },
-    "roles": {
-     "e_TextureNormal0": 12
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 12
-    }
-   },
    "meanColor": [
     129,
     129,
@@ -4211,18 +3874,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crypt_doorway.mod": 3,
-     "obj_cryptroom.mod": 3,
-     "obj_dragonarch.mod": 3,
-     "obj_drgncrypt_torch.mod": 12,
+     "obj_dragongate_human.mod": 1,
+     "obj_dragongate_main.mod": 1,
      "ter_dragoncrypt.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Chroma_MPLBasicAT.fx": 12
+     "Chroma_MPLBasicAT.fx": 3
     }
    },
    "meanColor": [
@@ -4268,6 +3929,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:dragoncrypt",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "dragoncrypt"
 }

@@ -9,6 +9,7 @@ A source is surveyed with `surveyAssets`:
 | Source | Key | Holds |
 |---|---|---|
 | A client zone | `zone:<name>` | The textures of the archives the client loads for the zone's own geometry and objects (its zone links less character archives, in load order), its placed models, its light styles, its emitters, and, for an EQ terrain zone, its ecosystems |
+| A client object, on-demand, or startup archive | `archive:<name>` | Every model (`.mod`) and texture of an EQG archive the client links that is no zone's: loaded at startup (`equipment-01.eqg`), named in `Resources/OnDemandResources.txt` (houses, furniture), or named in some zone's `<zone>_assets.txt` (`crystals.eqg`, `tradeskill_objects.eqg`), with how it links |
 | A client image folder | `folder:<folder>` | The loose images in `Resources/Sky`, `Resources/WaterSwap`, `Resources/Precipitation`, or `EnvEmitterEffects` |
 | An EQG zone archive | `file:<path>` | An archive outside the client, such as one `exportZone` wrote, with the emitter list beside it |
 
@@ -19,7 +20,7 @@ A zone that ships both a classic and an EQG version is surveyed as the EQG one, 
 | Kind | Id | One asset is |
 |---|---|---|
 | texture | `texture/<name>@<hash>` | One image's content; the same image in many archives and zones is one asset |
-| model | `model/<name>@<hash>` (EQG) or `model/<actor>@<archive>` (classic) | One model definition |
+| model | `model/<name>@<hash>`: an EQG model's entry and its bytes' hash, a classic actor's name and a hash of the fragments it draws | One model definition |
 | light | `light/<zone>/<style>` | The lights a zone places under one name stem; classic lights, whose names say nothing, are grouped by radius and color |
 | emitter | `emitter/<definition>` | One client emitter definition, with the names every zone places it under |
 | ecosystem | `ecosystem/<zone>/<name>` | An EQ terrain zone's ground recipe |
@@ -51,18 +52,32 @@ Each texture carries:
 - **EQ terrain recipes:** the ecosystem layers that use it, with their slope and height ranges and how many world units each repeat spans (the terrain tile's side over the layer's repeat count).
 - **Files:** a readable copy under `catalog/textures/<hash>/` (used by materials and export) and a thumbnail under `catalog/thumbnails/`.
 
-Models carry their archive, triangle count, size, skinning, placement count and scale range, and their materials. Light styles carry counts, colors, radii, names, flicker frames, and example positions. Emitters carry per zone the count, names, lifespans, and example positions. Ecosystems carry their layers.
+Models carry (`server/modelMeasures.py`):
+
+- **The model:** size (across x, along y, up z) and footprint over its drawn vertices, its bounds, where its origin sits (`base`: it stands on it; `hanging`: it hangs from it; `wallBack`: on one of its sides, a wall piece; `center`; `offset`), drawn triangles, the share of them players collide with, skinning and bones, its drawn materials with their shaders and textures, each diffuse texture's share of its drawn area, and its dominant colors (those textures' measured colors, weighed by area). A classic actor carries its archive and kind.
+- **Its use in each client zone that places it:** how often, the scale range, how its placements sit (upright, or tilted about a horizontal axis), and the models most often placed within 30 units of it.
+- **Its archive's links** (archive sources): startup, on-demand, and the zones whose `_assets.txt` names it.
+- **Its in-game role** (`role`), as the server's own tables hold it: the `doors` rows naming it (open types, how many teleport, need a key, or trigger another door, and their zones) and the `object` rows (their types by name: a tradeskill container's kind, or a plain clickable object), with its `kinds` (`door`, `teleportDoor`, `tradeskillContainer`, `clickableObject`, or `scenery` when no row names it). It comes from `catalog/serverRoles.json`, an extract of claudeperidot's copy of Peridot's database (`server/serverRoleExtract.py` holds the read-only query and turns its output into the file), never written by hand.
+- **Its views:** `viewModels` with `views` renders the front (toward its +X front), side, top, and three-quarter views once per model content, kept under the tooling root. Light styles carry counts, colors, radii, names, flicker frames, and example positions. Emitters carry per zone the count, names, lifespans, and example positions. Ecosystems carry their layers.
 
 ## The interpreted lane
 
 `describeAssets` writes, for each asset:
 
 - `category`: one of the kind's categories;
-- `tags`: `{group: [terms]}` from the shared tag groups (material, color, tone, biome, style, use, pattern, condition, scale, quality);
+- `tags`: `{group: [terms]}` from the shared tag groups (material, color, tone, biome, style, use, pattern, condition, scale, quality, and for models form, finish, era, mood, sceneRole, function);
 - `description`: what it shows and how it reads;
 - `usage`: where and how to use it;
 - `worldUnitsPerRepeat`: for textures;
-- `pairsWith`: the ids of related assets.
+- `plainName` and `dressingNotes` (how the client's artists used it): for models;
+- `pairsWith`: the ids of related assets (a model's set and variants).
+
+Descriptions are written once and last (`server/assetCatalog.py`):
+
+- **Field by field.** A field fills only where the asset lacks it; a different value for a field already written is refused unless the description names it in `rewrite`, to correct a wrong one. A model's tag groups are each a field of their own.
+- **By content.** An asset's id carries its content's hash, so a description follows its asset into every zone and archive that ships it, and a changed asset is a new one; a description is never dropped.
+- **What remains.** `describeQueue` lists the assets of a kind missing a field (or any), so describing goes only where something is missing.
+- **What it was judged from.** Each field written records the views it was judged from (a texture's thumbnail, a model's views) by their images' SHA-256 and the measured facts by their values (`judgedFrom`); when a later survey or render changes one, `describeQueue` and `getAsset` list the fields resting on it for review (`review`).
 
 Every word is checked against the vocabulary (`server/assetVocabulary.py`, plus terms added with `extendAssetVocabulary`), so descriptions stay searchable in one language. The `describe-assets` skill gives the procedure, and `use-assets` covers turning descriptions into a zone.
 
@@ -75,7 +90,9 @@ What is worth keeping and sharing is committed in the repository's `catalog/` fo
 | `measured/<source>.json` | Repository | A client zone's or image folder's measured lane, identified by its files' SHA-256 and free of machine paths, so it reads the same on every machine with the same client |
 | `interpreted.json` | Repository | The descriptions |
 | `vocabulary.json` | Repository | Terms added to the vocabulary |
+| `serverRoles.json` | Repository | Each model name's in-game role from the server's doors and object tables |
 | `textures/`, `thumbnails/` | Tooling root | Extracted images, by content hash; a survey re-extracts them when they are missing |
+| `modelViews/` | Tooling root | Each model's rendered views, by content hash |
 | `measured/<source>.json` | Tooling root | Measurements of zone archives outside the client, such as exports |
 
 ## Lights and emitters in Blender

@@ -34,11 +34,11 @@ A game export writes what players' clients load (the `.eqg` and its side files) 
     - the zone (`shortName`, `zoneId`, `longName`), the staging folder, and each file with its SHA-256 from the manifest;
     - `<short>.eqg` and its client side files (`<short>_EnvironmentEmitters.txt`, `<short>_assets.txt`, where the zone has them) go into each player's client folder; `<short>_export.json`, `<short>_housing.json` (the plots for the server's housing), and `server\` do not;
     - `server\maps` mirrors the server's own `maps` folder (`base`, `water`, `nav`) and is copied into it whole;
-    - `server\sql\<short>.sql` is applied with the `mariadb` client; `<short>_waysIn.sql` only if the neighbours' rows are to change, since it rewrites another zone's `zone_points` rows; the ways in without a neighbour row (`waysInToAdd`) are to be added on the server; every guard in the files refuses and rolls back rather than overwrite a row that is not zonewright's;
+    - `server\sql\<short>.sql` is applied with the `mariadb` client; `<short>_waysIn.sql` only if the neighbours' rows are to change, since it rewrites another zone's `zone_points` rows; `<short>_pieces.sql`, where the zone has interactive pieces, with them (its doors and object rows name the copies in the archive); the ways in without a neighbour row (`waysInToAdd`) are to be added on the server; every guard in the files refuses and rolls back rather than overwrite a row that is not zonewright's;
     - world reads the zone table when it boots, and a zone process loads its maps and zone points when it boots, so world and the zone processes are restarted after applying;
     - the entry gate, and for a zone flag that each character needs the flag granted;
     - the template whose row the new zone row copies its other columns from;
     - whether the client needs a registration entry for the id, and, for a reused slot, that its server maps and rows are replaced for every instance of it;
-    - the findings accepted in step 10, each with its reason, and that `verifyExport` passed all ten checks, with the paths of its pictures.
+    - the findings accepted in step 10, each with its reason, and that `verifyExport` passed all eleven checks, with the paths of its pictures.
 
     Claude never applies anything to Peridot and never copies into a client folder; the owner applies the hand-off.

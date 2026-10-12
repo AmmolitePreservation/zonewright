@@ -17,8 +17,8 @@
    "count": 1,
    "examplePositions": [
     [
-     -6.6,
      -7.6,
+     6.6,
      -524.0
     ]
    ],
@@ -48,8 +48,8 @@
    "count": 1,
    "examplePositions": [
     [
-     -6.6,
      -7.6,
+     6.6,
      -652.8
     ]
    ],
@@ -79,18 +79,18 @@
    "count": 4,
    "examplePositions": [
     [
-     -6.6,
      -7.6,
+     6.6,
      -736.0
     ],
     [
-     -4.0,
      83.0,
+     4.0,
      -736.4
     ],
     [
-     -52.9,
      -67.2,
+     52.9,
      -736.0
     ]
    ],
@@ -122,18 +122,18 @@
    "count": 20,
    "examplePositions": [
     [
-     42.0,
      -91.8,
+     -42.0,
      -692.9
     ],
     [
-     -22.4,
      -105.8,
+     22.4,
      -706.7
     ],
     [
-     19.5,
      -114.2,
+     -19.5,
      -739.1
     ]
    ],
@@ -165,18 +165,18 @@
    "count": 14,
    "examplePositions": [
     [
-     -34.5,
      -13.5,
+     34.5,
      -734.9
     ],
     [
-     -92.1,
      -23.8,
+     92.1,
      -743.6
     ],
     [
-     -15.5,
      -50.6,
+     15.5,
      -751.0
     ]
    ],
@@ -208,8 +208,8 @@
    "count": 1,
    "examplePositions": [
     [
-     631.0,
      -845.8,
+     -631.0,
      -743.1
     ]
    ],
@@ -227,15 +227,41 @@
   },
   "model/obj_cocoon_a.mod@f2d6e35b": {
    "archive": "drachnidhivec.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_corps_humnb_hive_.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.46,
+     -17.94,
+     -12.9
+    ],
+    [
+     11.48,
+     15.21,
+     15.3
+    ]
+   ],
+   "bytes": 52612,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "tan",
+     "share": 0.837
     },
     {
+     "color": "yellow",
+     "share": 0.139
+    },
+    {
+     "color": "brown",
+     "share": 0.024
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "wholeweb",
      "shader": "Opaque_MPLBasic.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_web_hive_c.dds",
@@ -243,25 +269,14 @@
      }
     },
     {
-     "shader": "Alpha_MPLBasicA.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_web2_hive_c.dds",
-      "e_TextureNormal0": "ew_web2_hive_n.dds"
-     }
-    },
-    {
+     "name": "Material #32",
      "shader": "Opaque_MPLBasic.fx",
      "textures": {
       "e_TextureDiffuse0": "di_hive_struc_walk_plain01.dds"
      }
     },
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "hive_cacoon01_c.dds"
-     }
-    },
-    {
+     "name": "Material #36",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -270,32 +285,73 @@
      }
     }
    ],
+   "entry": "obj_cocoon_a.mod",
+   "footprint": 661.0,
+   "kind": "model",
    "name": "obj_cocoon_a.mod",
+   "origin": "center",
    "placements": 5,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "f2d6e35bbc205990d6572487b6e7f7b590e6a630f80540500d08938935017413",
+   "sits": {
+    "tilted": 2,
+    "upright": 3
+   },
    "size": [
-    19.9,
-    33.1,
+    19.94,
+    33.15,
     28.2
    ],
    "skinned": false,
+   "textureShares": {
+    "di_hive_struc_walk_plain01.dds": 0.139,
+    "di_hive_struc_wall_hcomb01.dds": 0.837,
+    "ew_web_hive_c.dds": 0.024
+   },
+   "textures": [
+    "coverage.dds",
+    "di_hive_struc_walk_plain01.dds",
+    "di_hive_struc_wall_hcomb01.dds",
+    "di_hive_struc_wall_hcomb01_16n.dds",
+    "ew_web_hive_c.dds",
+    "ew_web_hive_n.dds"
+   ],
    "triangles": 344
   },
   "model/obj_corps_humn_hive_.mod@fc28888c": {
    "archive": "drachnidhivec.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -2.98,
+     -2.85,
+     -1.36
+    ],
+    [
+     2.27,
+     3.71,
+     1.22
+    ]
+   ],
+   "bytes": 66499,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "tan",
+     "share": 0.592
     },
     {
+     "color": "brown",
+     "share": 0.408
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "web",
      "shader": "Alpha_MPLBasicA.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -303,6 +359,7 @@
      }
     },
     {
+     "name": "corpse",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -311,6 +368,7 @@
      }
     },
     {
+     "name": "cocoon",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -319,32 +377,74 @@
      }
     }
    ],
+   "entry": "obj_corps_humn_hive_.mod",
+   "footprint": 34.4,
+   "kind": "model",
    "name": "obj_corps_humn_hive_.mod",
+   "origin": "center",
    "placements": 6,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "fc28888cb40c346aecd3d9c9ce8bbcecd7739c5a3de0256e0b00c2ab4e028e31",
+   "sits": {
+    "upright": 6
+   },
    "size": [
-    5.2,
-    6.6,
-    2.6
+    5.25,
+    6.55,
+    2.58
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cocoon_humn_hve_c.dds": 0.486,
+    "ew_cocoon_humn_hve_skin2_c.dds": 0.106,
+    "ew_cocoon_humn_hve_web_c.dds": 0.408
+   },
+   "textures": [
+    "coverage.dds",
+    "ew_cocoon_humn_hve_c.dds",
+    "ew_cocoon_humn_hve_skin2_c.dds",
+    "ew_cocoon_humn_hve_web_c.dds",
+    "ew_corpseskin_n.dds",
+    "ew_corpseweb_n.dds"
+   ],
    "triangles": 1040
   },
   "model/obj_corps_humnb_hive_.mod@5faeaec9": {
    "archive": "drachnidhivec.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cocoon_a.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.52,
+     -1.67,
+     -11.62
+    ],
+    [
+     1.52,
+     1.67,
+     11.62
+    ]
+   ],
+   "bytes": 139159,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "tan",
+     "share": 0.581
     },
     {
+     "color": "brown",
+     "share": 0.419
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "web",
      "shader": "Alpha_MPLBasicA.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -352,6 +452,7 @@
      }
     },
     {
+     "name": "corpse",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -360,6 +461,7 @@
      }
     },
     {
+     "name": "cocoon",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -368,32 +470,76 @@
      }
     }
    ],
+   "entry": "obj_corps_humnb_hive_.mod",
+   "footprint": 10.2,
+   "kind": "model",
    "name": "obj_corps_humnb_hive_.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "5faeaec983420e3a560fd9e6d67bf9d3d00449161b96aa1f2d949518b41cb40a",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    3.0,
-    3.3,
-    23.2
+    3.04,
+    3.34,
+    23.24
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_cocoon_humn_hve_c.dds": 0.511,
+    "ew_cocoon_humn_hve_skin2_c.dds": 0.07,
+    "ew_cocoon_humn_hve_web_c.dds": 0.419
+   },
+   "textures": [
+    "coverage.dds",
+    "ew_cocoon_humn_hve_c.dds",
+    "ew_cocoon_humn_hve_skin2_c.dds",
+    "ew_cocoon_humn_hve_web_c.dds",
+    "ew_corpseskin_n.dds",
+    "ew_corpseweb_n.dds"
+   ],
    "triangles": 2077
   },
   "model/obj_wizard.mod@b1efa839": {
    "archive": "drachnidhivec.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -6.19,
+     -6.25,
+     -1.17
+    ],
+    [
+     6.19,
+     6.25,
+     1.17
+    ]
+   ],
+   "bytes": 73045,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "grey",
+     "share": 0.835
     },
     {
+     "color": "brown",
+     "share": 0.088
+    },
+    {
+     "color": "tan",
+     "share": 0.077
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "newbonepile01",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "ra_newbones_o_01.dds",
@@ -402,6 +548,7 @@
      }
     },
     {
+     "name": "newbonepile02",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -410,6 +557,7 @@
      }
     },
     {
+     "name": "robe",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "ra_supptable_01_o_a.dds",
@@ -418,6 +566,7 @@
      }
     },
     {
+     "name": "staff",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -426,32 +575,74 @@
      }
     }
    ],
+   "entry": "obj_wizard.mod",
+   "footprint": 154.6,
+   "kind": "model",
    "name": "obj_wizard.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "b1efa83913cf40de2890e5fbeb54c89d13e390040d5379f3906f3eee360f6cff",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    12.4,
-    12.5,
-    2.3
+    12.38,
+    12.49,
+    2.34
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_pillow_c.dds": 0.835,
+    "fortwoodcracked.dds": 0.088,
+    "ra_newbones_c_01.dds": 0.058,
+    "ra_newbones_c_02.dds": 0.019
+   },
+   "textures": [
+    "coverage.dds",
+    "ew_pillow_c.dds",
+    "fortwoodcracked.dds",
+    "fortwoodcracked_n_6.dds",
+    "nek_erosion_ov_4tile.dds",
+    "ra_bones_n_01.dds",
+    "ra_newbones_c_01.dds",
+    "ra_newbones_c_02.dds",
+    "ra_newbones_o_01.dds",
+    "ra_supptable_01_o_a.dds",
+    "sheet_ilsalin_02_n.dds"
+   ],
    "triangles": 1025
   },
   "model/obp_funneltrap_hive_.mod@0c018d29": {
    "archive": "drachnidhivec.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -149.39,
+     -147.12,
+     -471.16
+    ],
+    [
+     149.39,
+     147.12,
+     50.28
+    ]
+   ],
+   "bytes": 85707,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "trapweb",
      "shader": "Alpha_MPLBasicA.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_di_web_funneltrap2_c.dds",
@@ -459,38 +650,70 @@
      }
     }
    ],
+   "entry": "obp_funneltrap_hive_.mod",
+   "footprint": 87916.0,
+   "kind": "model",
    "name": "obp_funneltrap_hive_.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     0.31,
     0.31
    ],
    "sha256": "0c018d299ee3a631ec5302839f8c5c1517baee7c3b216951b23c36168efe0a5a",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    298.8,
-    294.2,
-    521.4
+    298.78,
+    294.25,
+    521.44
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_di_web_funneltrap2_c.dds": 1.0
+   },
+   "textures": [
+    "ew_di_web_funneltrap2_c.dds",
+    "ew_di_web_funneltrap_n.dds"
+   ],
    "triangles": 1008
   },
   "model/ter_queenhive.ter@48127ade": {
    "archive": "drachnidhivec.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -129.38,
+     -115.41,
+     -763.36
+    ],
+    [
+     114.09,
+     128.67,
+     -486.79
+    ]
+   ],
+   "bytes": 568224,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "brown",
+     "share": 0.846
     },
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "uvmap.dds"
-     }
+     "color": "tan",
+     "share": 0.128
     },
     {
+     "color": "blue",
+     "share": 0.026
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "honey comb",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -499,161 +722,7 @@
      }
     },
     {
-     "shader": "Opaque_MaxWater.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ra_watertest_c_01.dds",
-      "e_TextureEnvironment0": "water_e.dds",
-      "e_TextureNormal0": "water_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxWater.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ra_watertest_c_01.dds",
-      "e_TextureEnvironment0": "water_e.dds",
-      "e_TextureNormal0": "water_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {}
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_struc_web_facade01.dds",
-      "e_TextureNormal0": "di_hive_struc_web_facade01_10n.dds"
-     }
-    },
-    {
-     "shader": "Alpha_MPLBumpA.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "kl_hive_struc_walk_web01_opacity.dds",
-      "e_TextureFallback0": "kl_hive_struc_walk_web01_opacity.dds",
-      "e_TextureNormal0": "di_hive_struc_walk_web01_12n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_struc_chitinweb_trap01.dds",
-      "e_TextureNormal0": "di_hive_struc_chitinweb_trap01_10n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxLava.fx",
-     "textures": {
-      "e_TextureDiffuse0": "kl_chitin_animated_top.dds",
-      "e_TextureDiffuse1": "kl_chitin_animated_bottom.dds",
-      "e_TextureNormal0": "kl_chitin_animated_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_int_bronze_trim01.dds",
-      "e_TextureNormal0": "di_hive_int_bronze01_4sn.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_int_stonewall_plain01.dds",
-      "e_TextureNormal0": "di_hive_ext_stonearch_plain_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "marble_white01.dds",
-      "e_TextureNormal0": "di_hive_ext_stonearch_plain_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_int_bronze01.dds",
-      "e_TextureNormal0": "di_hive_int_bronze01_4sn.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "di_hive_int_floor01.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_int_stonewall01.dds",
-      "e_TextureNormal0": "di_hive_int_stonewall01_12n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_int_ceiling01.dds",
-      "e_TextureNormal0": "di_hive_int_ceiling01_12n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_cave_floor01.dds",
-      "e_TextureNormal0": "di_hive_cave_floor01_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_cave_wall02.dds",
-      "e_TextureNormal0": "di_hive_cave_wall01_12n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_cave_ceiling01.dds",
-      "e_TextureNormal0": "di_hive_cave_ceiling01_16n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_struc_chitinweb_trap01.dds",
-      "e_TextureNormal0": "di_hive_struc_chitinweb_trap01_10n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_struc_web_facade01.dds",
-      "e_TextureNormal0": "di_hive_struc_web_facade01_10n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_struc_ceiling_web01.dds",
-      "e_TextureNormal0": "di_hive_struc_ceiling_web01_12n.dds"
-     }
-    },
-    {
+     "name": "hive wall",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -662,22 +731,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_struc_floor_web01.dds",
-      "e_TextureNormal0": "di_hive_struc_floor_web01_12n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "kl_hive_struc_walk_web01_opacity.dds",
-      "e_TextureNormal0": "di_hive_struc_walk_web01_12n.dds"
-     }
-    },
-    {
+     "name": "ground primary",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -686,22 +740,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_korlach_cave_wall01.dds",
-      "e_TextureNormal0": "cavefloor_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "jail_ov.dds",
-      "e_TextureDiffuse0": "di_hive_struc_web_facade01.dds",
-      "e_TextureNormal0": "di_hive_struc_web_facade01_10n.dds"
-     }
-    },
-    {
+     "name": "cocoon walls",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -710,115 +749,54 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_struc_floor_web01.dds",
-      "e_TextureNormal0": "di_hive_struc_floor_web01_12n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_struc_walk_web01.dds",
-      "e_TextureNormal0": "di_hive_struc_walk_web01_12n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_hive_struc_chitinweb_trap01.dds",
-      "e_TextureNormal0": "di_hive_struc_chitinweb_trap01_10n.dds"
-     }
-    },
-    {
+     "name": "rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "ab_rocktest05_ov.dds",
       "e_TextureDiffuse0": "tower_rock02_c.dds",
       "e_TextureNormal0": "di_hive_ext_stonearch_plain_6n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "tower_brick02_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "tower01_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "tower02_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "tower03_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "ab_korlach_purpgreen_c_ov.dds",
-      "e_TextureDiffuse0": "di_korlach_cave_wall01.dds",
-      "e_TextureNormal0": "di_hive_int_stonewall_plain01_12n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "jail_ov.dds",
-      "e_TextureDiffuse0": "di_hive_ext_stonewall01.dds",
-      "e_TextureNormal0": "di_hive_ext_stonewall01_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "jail_ov.dds",
-      "e_TextureDiffuse0": "di_hive_ext_stonearch_plain.dds",
-      "e_TextureNormal0": "di_hive_ext_stonearch_plain_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "kl_hive_struc_walk_web01_opacity.dds",
-      "e_TextureNormal0": "di_hive_struc_walk_web01_12n.dds"
-     }
-    },
-    {
-     "shader": "Alpha_MPLBasicA.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_web_hive_c.dds",
-      "e_TextureNormal0": "ew_web_hive_n.dds"
-     }
     }
    ],
+   "entry": "ter_queenhive.ter",
+   "footprint": 59424.3,
+   "kind": "model",
    "name": "ter_queenhive.ter",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     0.248,
     0.248
    ],
    "sha256": "48127ade977abeb03d28d4c0c9b4dae56d758901550300ffa72403b4ac9abf9b",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    243.5,
-    244.1,
-    276.6
+    243.46,
+    244.08,
+    276.57
    ],
    "skinned": false,
-   "triangles": 8483
+   "textureShares": {
+    "di_hive_ext_ground01.dds": 0.199,
+    "di_hive_struc_wall_hcomb01.dds": 0.128,
+    "di_hive_struc_wall_web01.dds": 0.647,
+    "tower_rock02_c.dds": 0.026
+   },
+   "textures": [
+    "ab_rocktest05_ov.dds",
+    "coverage.dds",
+    "di_hive_ext_ground01.dds",
+    "di_hive_ext_ground01_10n.dds",
+    "di_hive_ext_stonearch_plain_6n.dds",
+    "di_hive_struc_wall_hcomb01.dds",
+    "di_hive_struc_wall_hcomb01_16n.dds",
+    "di_hive_struc_wall_web01.dds",
+    "di_hive_struc_wall_web01_12n.dds",
+    "tower_rock02_c.dds"
+   ],
+   "triangles": 8481
   },
   "texture/ab_korlach_purpgreen_c_ov.dds@2d641f41": {
    "archives": [
@@ -831,21 +809,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "di_hive_int_stonewall_plain01_12n.dds": 1,
-     "di_korlach_cave_wall01.dds": 1
-    },
-    "roles": {
-     "e_TextureCoverage0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     83,
     120,
@@ -921,21 +884,6 @@
    "format": "XRGB24",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_korlach_cave_wall01.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -1062,22 +1010,21 @@
      "obj_corps_humn_hive_.mod": 18,
      "obj_corps_humnb_hive_.mod": 6,
      "obj_wizard.mod": 1,
-     "ter_queenhive.ter": 26
+     "ter_queenhive.ter": 4
     },
     "partners": {
-     "di_hive_struc_chitinweb_trap01.dds": 3,
-     "di_hive_struc_chitinweb_trap01_10n.dds": 3,
-     "di_hive_struc_walk_web01_12n.dds": 4,
      "di_hive_struc_wall_hcomb01.dds": 2,
-     "kl_hive_struc_walk_web01_opacity.dds": 4
+     "di_hive_struc_wall_hcomb01_16n.dds": 2,
+     "di_hive_struc_wall_web01.dds": 2,
+     "di_hive_struc_wall_web01_12n.dds": 2,
+     "ew_cocoon_humn_hve_c.dds": 2
     },
     "roles": {
-     "e_TextureCoverage0": 34
+     "e_TextureCoverage0": 12
     },
     "shaders": {
      "Alpha_MPLBasicA.fx": 2,
-     "Alpha_MPLBumpA.fx": 1,
-     "Opaque_MPLBump.fx": 30,
+     "Opaque_MPLBump.fx": 9,
      "Opaque_MPLBump2UV.fx": 1
     }
    },
@@ -1111,21 +1058,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_cave_ceiling01_16n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     107,
     102,
@@ -1156,21 +1088,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_cave_ceiling01.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     127,
     128,
@@ -1201,21 +1118,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_cave_floor01_6n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     94,
     92,
@@ -1246,21 +1148,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_cave_floor01.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -1291,21 +1178,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_cave_wall02.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     129,
     128,
@@ -1336,21 +1208,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_cave_wall01_12n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     84,
     81,
@@ -1486,21 +1343,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "di_hive_ext_stonearch_plain_6n.dds": 1,
-     "jail_ov.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     121,
     118,
@@ -1533,20 +1375,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_queenhive.ter": 4
+     "ter_queenhive.ter": 1
     },
     "partners": {
      "ab_rocktest05_ov.dds": 1,
-     "coverage.dds": 2,
-     "di_hive_int_stonewall_plain01.dds": 1,
-     "marble_white01.dds": 1,
      "tower_rock02_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -1579,21 +1418,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "di_hive_ext_stonewall01_6n.dds": 1,
-     "jail_ov.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     126,
     116,
@@ -1624,21 +1448,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "di_hive_ext_stonewall01.dds": 1,
-     "jail_ov.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -1669,21 +1478,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_int_bronze01_4sn.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     105,
     70,
@@ -1714,22 +1508,6 @@
    "format": "DXT3",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 2
-    },
-    "partners": {
-     "coverage.dds": 2,
-     "di_hive_int_bronze01.dds": 1,
-     "di_hive_int_bronze_trim01.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 2
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 2
-    }
-   },
    "meanColor": [
     128,
     129,
@@ -1760,21 +1538,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_int_bronze01_4sn.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     111,
     84,
@@ -1805,21 +1568,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_int_ceiling01_12n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     78,
     55,
@@ -1850,21 +1598,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_int_ceiling01.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -1895,18 +1628,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBasic.fx": 1
-    }
-   },
    "meanColor": [
     73,
     67,
@@ -1937,21 +1658,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_int_stonewall01_12n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     102,
     79,
@@ -1982,21 +1688,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_int_stonewall01.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -2027,21 +1718,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_ext_stonearch_plain_6n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     111,
     85,
@@ -2072,21 +1748,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "ab_korlach_purpgreen_c_ov.dds": 1,
-     "di_korlach_cave_wall01.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -2117,21 +1778,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_struc_ceiling_web01_12n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     114,
     104,
@@ -2162,21 +1808,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_struc_ceiling_web01.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -2207,21 +1838,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 3
-    },
-    "partners": {
-     "coverage.dds": 3,
-     "di_hive_struc_chitinweb_trap01_10n.dds": 3
-    },
-    "roles": {
-     "e_TextureDiffuse0": 3
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 3
-    }
-   },
    "meanColor": [
     131,
     121,
@@ -2252,21 +1868,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 3
-    },
-    "partners": {
-     "coverage.dds": 3,
-     "di_hive_struc_chitinweb_trap01.dds": 3
-    },
-    "roles": {
-     "e_TextureNormal0": 3
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 3
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -2297,21 +1898,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 2
-    },
-    "partners": {
-     "coverage.dds": 2,
-     "di_hive_struc_floor_web01_12n.dds": 2
-    },
-    "roles": {
-     "e_TextureDiffuse0": 2
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 2
-    }
-   },
    "meanColor": [
     99,
     94,
@@ -2342,21 +1928,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 2
-    },
-    "partners": {
-     "coverage.dds": 2,
-     "di_hive_struc_floor_web01.dds": 2
-    },
-    "roles": {
-     "e_TextureNormal0": 2
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 2
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -2444,21 +2015,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_struc_walk_web01_12n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     80,
     66,
@@ -2489,23 +2045,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 4
-    },
-    "partners": {
-     "coverage.dds": 4,
-     "di_hive_struc_walk_web01.dds": 1,
-     "kl_hive_struc_walk_web01_opacity.dds": 4
-    },
-    "roles": {
-     "e_TextureNormal0": 4
-    },
-    "shaders": {
-     "Alpha_MPLBumpA.fx": 1,
-     "Opaque_MPLBump.fx": 3
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -2748,22 +2287,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 3
-    },
-    "partners": {
-     "coverage.dds": 2,
-     "di_hive_struc_web_facade01_10n.dds": 3,
-     "jail_ov.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 3
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 3
-    }
-   },
    "meanColor": [
     136,
     130,
@@ -2794,22 +2317,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 3
-    },
-    "partners": {
-     "coverage.dds": 2,
-     "di_hive_struc_web_facade01.dds": 3,
-     "jail_ov.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 3
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 3
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -2840,23 +2347,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 2
-    },
-    "partners": {
-     "ab_korlach_purpgreen_c_ov.dds": 1,
-     "cavefloor_n.dds": 1,
-     "coverage.dds": 1,
-     "di_hive_int_stonewall_plain01_12n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 2
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 2
-    }
-   },
    "meanColor": [
     49,
     52,
@@ -3354,20 +2844,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_cocoon_a.mod": 5
-    },
-    "partners": {
-     "ew_web2_hive_n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Alpha_MPLBasicA.fx": 1
-    }
-   },
    "meanColor": [
     95,
     81,
@@ -3398,20 +2874,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_cocoon_a.mod": 5
-    },
-    "partners": {
-     "ew_web2_hive_c.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Alpha_MPLBasicA.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -3444,17 +2906,15 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cocoon_a.mod": 5,
-     "ter_queenhive.ter": 1
+     "obj_cocoon_a.mod": 5
     },
     "partners": {
-     "ew_web_hive_n.dds": 2
+     "ew_web_hive_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Alpha_MPLBasicA.fx": 1,
      "Opaque_MPLBasic.fx": 1
     }
    },
@@ -3505,17 +2965,15 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cocoon_a.mod": 5,
-     "ter_queenhive.ter": 1
+     "obj_cocoon_a.mod": 5
     },
     "partners": {
-     "ew_web_hive_c.dds": 2
+     "ew_web_hive_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 2
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Alpha_MPLBasicA.fx": 1,
      "Opaque_MPLBasic.fx": 1
     }
    },
@@ -3654,18 +3112,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_cocoon_a.mod": 5
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBasic.fx": 1
-    }
-   },
    "meanColor": [
     52,
     40,
@@ -3816,24 +3262,6 @@
    "format": "DXT3",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 3
-    },
-    "partners": {
-     "di_hive_ext_stonearch_plain.dds": 1,
-     "di_hive_ext_stonewall01.dds": 1,
-     "di_hive_ext_stonewall01_6n.dds": 1,
-     "di_hive_struc_web_facade01.dds": 1,
-     "di_hive_struc_web_facade01_10n.dds": 1
-    },
-    "roles": {
-     "e_TextureCoverage0": 3
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 3
-    }
-   },
    "meanColor": [
     116,
     112,
@@ -3864,21 +3292,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "kl_chitin_animated_n.dds": 1,
-     "kl_chitin_animated_top.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse1": 1
-    },
-    "shaders": {
-     "Opaque_MaxLava.fx": 1
-    }
-   },
    "meanColor": [
     7,
     4,
@@ -3909,21 +3322,6 @@
    "format": "ARGB32",
    "height": 128,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "kl_chitin_animated_bottom.dds": 1,
-     "kl_chitin_animated_top.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MaxLava.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -3954,21 +3352,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "kl_chitin_animated_bottom.dds": 1,
-     "kl_chitin_animated_n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MaxLava.fx": 1
-    }
-   },
    "meanColor": [
     83,
     99,
@@ -3999,23 +3382,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 4
-    },
-    "partners": {
-     "coverage.dds": 4,
-     "di_hive_struc_walk_web01_12n.dds": 4
-    },
-    "roles": {
-     "e_TextureDiffuse0": 3,
-     "e_TextureFallback0": 1
-    },
-    "shaders": {
-     "Alpha_MPLBumpA.fx": 2,
-     "Opaque_MPLBump.fx": 2
-    }
-   },
    "meanColor": [
     101,
     89,
@@ -4046,21 +3412,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_hive_ext_stonearch_plain_6n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     246,
     233,
@@ -4393,21 +3744,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 2
-    },
-    "partners": {
-     "water_e.dds": 2,
-     "water_n.dds": 2
-    },
-    "roles": {
-     "e_TextureDiffuse0": 2
-    },
-    "shaders": {
-     "Opaque_MaxWater.fx": 2
-    }
-   },
    "meanColor": [
     154,
     148,
@@ -4603,18 +3939,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBasic.fx": 1
-    }
-   },
    "meanColor": [
     24,
     26,
@@ -4645,18 +3969,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBasic.fx": 1
-    }
-   },
    "meanColor": [
     29,
     27,
@@ -4687,18 +3999,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBasic.fx": 1
-    }
-   },
    "meanColor": [
     33,
     30,
@@ -4729,18 +4029,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBasic.fx": 1
-    }
-   },
    "meanColor": [
     28,
     26,
@@ -4831,18 +4119,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBasic.fx": 1
-    }
-   },
    "meanColor": [
     122,
     121,
@@ -4933,21 +4209,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 2
-    },
-    "partners": {
-     "ra_watertest_c_01.dds": 2,
-     "water_n.dds": 2
-    },
-    "roles": {
-     "e_TextureEnvironment0": 2
-    },
-    "shaders": {
-     "Opaque_MaxWater.fx": 2
-    }
-   },
    "meanColor": [
     132,
     117,
@@ -4978,21 +4239,6 @@
    "format": "ARGB16",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_queenhive.ter": 2
-    },
-    "partners": {
-     "ra_watertest_c_01.dds": 2,
-     "water_e.dds": 2
-    },
-    "roles": {
-     "e_TextureNormal0": 2
-    },
-    "shaders": {
-     "Opaque_MaxWater.fx": 2
-    }
-   },
    "meanColor": [
     113,
     112,
@@ -5020,6 +4266,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:drachnidhivec",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "drachnidhivec"
 }
