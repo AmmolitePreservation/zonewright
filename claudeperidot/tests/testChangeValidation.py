@@ -41,7 +41,8 @@ def configFields(**overrides):
 def test_theTemplateAndTheRecordedChangesAreValid():
   changes = ledger.loadChanges(realLedger)
   assert [change.identifier[:4] for change in changes] == [f"{number:04}" for number in range(1, len(changes) + 1)]
-  assert {(change.fields["disposition"], change.fields["production"]) for change in changes} == {("fixture", "none")}
+  assert {(change.fields["disposition"], change.fields["production"]) for change in changes} <= {("fixture", "none"), ("exploration", "none")}
+  assert all(ledger.validateChangeFields(change.fields) == [] for change in changes)
   template = realLedger / "changes" / "template"
   assert ledger.validateChangeFields(ledger.readYAML(template / "change.yaml")) == []
   assert [ledger.firstKeyword(statement) for statement in ledger.splitStatements((template / "apply.sql").read_text())] == [
