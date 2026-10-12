@@ -9,7 +9,11 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import planDrawing
 from conftest import writePNG
-from playerScale import minimumSwimDepth
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+minimumSwimDepth = medium.minimumSwimDepth
 from testModelsAndDressing import freshScene
 from testWater import basin, environment, liquidMaterials, meshOf
 

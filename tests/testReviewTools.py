@@ -12,7 +12,11 @@ from testReviewViews import crateScene, environment
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import viewSheets
-from playerScale import eyeHeight
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+eyeHeight = medium.eyeHeight
 
 longNote = "The crate from the south, low over the ground: does it sit on the grass, and does the grass run on behind it to the edge"
 

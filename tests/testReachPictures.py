@@ -13,7 +13,11 @@ import buildTolerances
 import laneDrawing
 import planDrawing
 import playerReach
-from playerScale import playerHeight, stepHeight
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+playerHeight, stepHeight = medium.playerHeight, medium.stepHeight
 from testCaves import caveCanyon, hall
 from testModelsAndDressing import freshScene
 from testReach import cellHeight, cellSize, cube, heightMargin, reachCourse

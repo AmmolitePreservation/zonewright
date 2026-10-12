@@ -10,7 +10,11 @@ import eqgFiles
 import playerReach
 import serverMapFiles
 import structurePlots
-from playerScale import minimumSwimDepth, playerHeight, steepestWalkableDegrees, stepHeight
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+minimumSwimDepth, playerHeight, steepestWalkableDegrees, stepHeight = medium.minimumSwimDepth, medium.playerHeight, medium.steepestWalkableDegrees, medium.stepHeight
 from testHousing import decision
 from testWalkRoute import rampArguments
 from testModelsAndDressing import freshScene

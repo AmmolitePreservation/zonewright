@@ -52,7 +52,7 @@ bodyRows = (
   (522, 1, "DKF", 5.7, 7.47, 2.54, 1.58, 3.859375),
 )
 # No archive the client links at startup holds a froglok's stand (P01, nor a borrowed one), so it stands in its bind pose, arms held out:
-# its width is no standing width, and it never sets a group's.
+# its size is no standing size, and it never limits a group.
 bindPoseCodes = frozenset(("FRM", "FRF"))
 bodiesSource = (
   "derived: each playable race and gender (eqLooks.playerRaces) from the client's data: the spawn height is the server's"
@@ -152,12 +152,14 @@ measureNames = ("playerHeight", "playerWidth", "stepHeight", "walkableNormalZ", 
 
 def bodyGroup(name):
   members = tuple(body for body in bodies if body.race in groupRaces[name])
-  tallest = max(members, key=lambda body: body.modelHeight)
-  widest = max((body for body in members if body.code not in bindPoseCodes), key=lambda body: body.width)
-  smallest = min(members, key=lambda body: (body.spawnHeight, body.modelHeight))
+  standing = [body for body in members if body.code not in bindPoseCodes]
+  tallest = max(standing, key=lambda body: body.modelHeight)
+  widest = max(standing, key=lambda body: body.width)
+  smallest = min(standing, key=lambda body: (body.spawnHeight, body.modelHeight))
   walkedHere = name == "medium"
   climbing = (
-    f"measured on a human male, a medium body ({rof2Walk}), and taken for every medium body"
+    f"measured: on a human male, a medium body, taken for every medium body until the measurement zone's walk of the {smallest.name} (the"
+    " group's smallest, whose climbing sets the group's if climbing scales with size) measures the group"
     if walkedHere else
     f"unmeasured: the medium group's value, walked by a human male, until the measurement zone's walk of the {smallest.name} (the group's"
     " smallest, whose climbing sets the group's if climbing scales with size) measures it; whether the client's limits scale with size is unproven"
@@ -165,11 +167,11 @@ def bodyGroup(name):
   eyeHeight = designEyeHeight * tallest.avatarHeight / walkedAvatarHeight
   sources = {
     "playerHeight": (
-      f"unmeasured as clearance: the {tallest.name}'s model height, the group's tallest body ({bodiesSource}); the open space the client"
+      f"unmeasured: as clearance, the {tallest.name}'s model height, the group's tallest body ({bodiesSource}); the open space the client"
       " lets a player through is what the measurement zone's stepped ceilings measure"
     ),
     "playerWidth": (
-      f"unmeasured as clearance: the {widest.name}'s model width side to side, the group's widest standing body ({bodiesSource});"
+      f"unmeasured: as clearance, the {widest.name}'s model width side to side, the group's widest standing body ({bodiesSource});"
       " the opening the client lets a player through is what the measurement zone's narrowing openings measure"
     ),
     "stepHeight": f"{climbing}: {walkedStepSource}",

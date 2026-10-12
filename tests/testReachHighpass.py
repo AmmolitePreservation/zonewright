@@ -12,7 +12,11 @@ import laneDrawing
 import playerReach
 import serverMapFiles
 import serverNav
-from playerScale import minimumSwimDepth, stepHeight
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+minimumSwimDepth, stepHeight = medium.minimumSwimDepth, medium.stepHeight
 
 pytestmark = pytest.mark.clientData("serverMaps")
 # Peridot's zone row gives the safe point in server axes.

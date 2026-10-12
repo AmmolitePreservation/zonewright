@@ -13,7 +13,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import laneViews
 import playerReach
 import viewSheets
-from playerScale import eyeHeight, minimumSwimDepth, playerHeight, swimEyeAboveSurface, walkableNormalZ
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+eyeHeight, minimumSwimDepth, playerHeight, swimEyeAboveSurface, walkableNormalZ = medium.eyeHeight, medium.minimumSwimDepth, medium.playerHeight, medium.swimEyeAboveSurface, medium.walkableNormalZ
 from testModelsAndDressing import freshScene
 from testReach import cellHeight, cube, reachCourse
 from testWater import environment

@@ -15,7 +15,11 @@ import eqgFiles
 import eqgWriter
 import previewFrame
 from conftest import writeCubeDDS, writePNG
-from playerScale import minimumSwimDepth
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+minimumSwimDepth = medium.minimumSwimDepth
 from testModelsAndDressing import freshScene, readShapedMesh
 
 environment = {

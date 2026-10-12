@@ -12,7 +12,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import eqArchive
 import eqgFiles
 from buildTolerances import wallFootClearance
-from playerScale import stepHeight
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+stepHeight = medium.stepHeight
 from conftest import writePNG
 from testCaves import caveCanyon, checkCave, borderEdges
 

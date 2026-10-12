@@ -6,7 +6,11 @@ from conftest import writePNG
 import structurePlots
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
-from playerScale import stepHeight
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+stepHeight = medium.stepHeight
 
 wallPiece = "testKitWall25"
 doorFrame = {"width": 1.5, "depth": 0.5, "material": "testKitFrame", "worldUnitsPerRepeat": 2.5}

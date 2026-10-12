@@ -49,17 +49,19 @@ def testFrameConvertersKeepFloat32():
     assert converted.dtype == numpy.float32 and converted.shape == corners.shape, convert.__name__
 
 
-def testPlayerScaleNamesASourceForEveryConstant():
-  constants = {name for name, value in vars(playerScale).items() if not name.startswith("_") and isinstance(value, float)}
-  assert {"playerHeight", "walkableNormalZ", "steepestWalkableDegrees", "stepHeight", "eyeHeight", "swimEyeAboveSurface"} <= constants
-  assert set(playerScale.sources) == constants
-  for name, source in playerScale.sources.items():
-    assert source.startswith(("measured: ", "unmeasured: ", "derived: ")), name
-  # The steepest walkable angle is walkableNormalZ's, not a second value to keep in step with it.
-  assert playerScale.sources["steepestWalkableDegrees"].startswith("derived: walkableNormalZ")
-  assert abs(math.cos(math.radians(playerScale.steepestWalkableDegrees)) - playerScale.walkableNormalZ) < 1e-12
-  # A measured limit's source states the value taken from it.
-  assert f"(normal z {playerScale.walkableNormalZ:g})" in playerScale.sources["walkableNormalZ"]
-  assert f"to {playerScale.stepHeight:.2f}" in playerScale.sources["stepHeight"]
-  assert "(3.74, 4.59]" in playerScale.sources["minimumSwimDepth"] and f"is his avatarHeight, {playerScale.minimumSwimDepth:.2f}," in playerScale.sources["minimumSwimDepth"]
-  assert 3.74 < playerScale.minimumSwimDepth <= 4.59
+def testPlayerScaleNamesASourceForEveryGroupMeasure():
+  for name in playerScale.groupNames:
+    body = playerScale.groups[name]
+    assert set(body.sources) == set(playerScale.measureNames), name
+    for measure, source in body.sources.items():
+      assert source.startswith(("measured: ", "unmeasured: ", "derived: ")), (name, measure)
+    # The steepest walkable angle is walkableNormalZ's, not a second value to keep in step with it.
+    assert body.sources["steepestWalkableDegrees"].startswith("derived: walkableNormalZ")
+    assert abs(math.cos(math.radians(body.steepestWalkableDegrees)) - body.walkableNormalZ) < 1e-12
+    # A measured limit's source states the value taken from it.
+    assert f"(normal z {body.walkableNormalZ:g})" in body.sources["walkableNormalZ"]
+    assert f"to {body.stepHeight:.2f}" in body.sources["stepHeight"]
+    assert "(3.74, 4.59]" in body.sources["minimumSwimDepth"] and f"is his avatarHeight, {body.minimumSwimDepth:.2f}," in body.sources["minimumSwimDepth"]
+    assert 3.74 < body.minimumSwimDepth <= 4.59
+  # Only the medium group holds the walked human male, so only its climbing is measured.
+  assert [name for name in playerScale.groupNames if playerScale.groups[name].sources["stepHeight"].startswith("measured: ")] == ["medium"]

@@ -8,7 +8,11 @@ import numpy
 from conftest import writePNG
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
-from playerScale import steepestWalkableDegrees
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+steepestWalkableDegrees = medium.steepestWalkableDegrees
 
 # A tunnel 40 wide and 45 tall from the cliff foot, rising to a room 120 wide and 70 tall that ends blind.
 hall = {

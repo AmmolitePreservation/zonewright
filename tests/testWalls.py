@@ -7,7 +7,11 @@ from conftest import writePNG
 import structurePlots
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
-from playerScale import eyeHeight
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+eyeHeight = medium.eyeHeight
 
 turnPost = {"piece": "testKitPost", "at": "turns"}
 

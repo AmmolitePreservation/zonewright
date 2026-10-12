@@ -7,7 +7,15 @@ from testModelsAndDressing import freshScene
 from testWater import basin, liquidMaterials
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
-from playerScale import eyeHeight, playerHeight, stepHeight, steepestWalkableDegrees
+import playerScale
+
+medium = playerScale.groups["medium"]
+eyeHeight, playerHeight, stepHeight, steepestWalkableDegrees = medium.eyeHeight, medium.playerHeight, medium.stepHeight, medium.steepestWalkableDegrees
+
+
+def walkOf(result, group="medium"):
+  """A walkRoute result's walk for one body group."""
+  return result["groups"][group]
 
 
 def near(point, x, tolerance=0.6):
@@ -26,7 +34,12 @@ def testWalkRouteCrossesADeckAndFindsDropsAndLowCeilings(stageBlenderServer):
     under = await session.expectSuccess("walkRoute", {"path": [[-190, 70, 0], [-100, 70, 0]]})
     return across, beside, under
 
-  across, beside, under = stageBlenderServer.session(steps)
+  results = stageBlenderServer.session(steps)
+  across, beside, under = (walkOf(result) for result in results)
+  # Every group walks the deck; the ledge's 5 of headroom stops even the small group's 5.22, a failure where every group is built for.
+  assert results[0]["verdict"] == "passes" and results[0]["passingGroups"] == list(playerScale.groupNames)
+  assert results[2]["verdict"] == "fails" and results[2]["passingGroups"] == []
+  assert all(problem["verdict"] == "fails" and problem["builtFor"] == list(playerScale.groupNames) for problem in walkOf(results[2], "small")["problems"])
   # Over the chasm the footing is the 24-wide deck, half a unit below the ground it runs under at each end.
   assert across["walkable"] and across["problems"] == [] and across["oneWay"] == [] and across["lowestHeadroom"] is None
   assert abs(across["length"] - 300) < 1 and across["steepest"]["slopeDegrees"] < 10
@@ -35,7 +48,7 @@ def testWalkRouteCrossesADeckAndFindsDropsAndLowCeilings(stageBlenderServer):
   assert not beside["walkable"] and [problem["kind"] for problem in beside["problems"]] == ["drop"]
   assert near(beside["problems"][0]["at"], -64) and near(beside["problems"][0]["resumesAt"], 64.5)
   assert abs(beside["length"] - 171.5) < 1
-  # Under the ledge, whose underside is 5 above the ground, there is not room for a player 6 tall: one stretch, not one line a sample.
+  # Under the ledge, whose underside is 5 above the ground, there is not room for a medium player: one stretch, not one line a sample.
   assert not under["walkable"] and under["lowestHeadroom"]["headroom"] == 5.0
   assert len(under["problems"]) == 1 and under["problems"][0]["kind"] == "headroom" and under["problems"][0]["lowest"] == 5.0
   assert near(under["problems"][0]["from"], -180) and near(under["problems"][0]["to"], -110)
@@ -64,7 +77,11 @@ def testWalkRouteStopsAtEveryBlockAlikeAtAnySpacing(stageBlenderServer):
     insideRock = await session.expectError("measure", {"points": [[-90, 0, 5]], "snapToSurface": True})
     return coarse, fine, offLedge, underDeck, insideRock
 
-  coarse, fine, offLedge, underDeck, insideRock = stageBlenderServer.session(steps)
+  coarseResult, fineResult, offLedgeResult, underDeckResult, insideRock = stageBlenderServer.session(steps)
+  coarse, fine, offLedge, underDeck = (walkOf(result) for result in (coarseResult, fineResult, offLedgeResult, underDeckResult))
+  # The deck's 9 of headroom passes the small and medium groups and stops the large, whose tallest body stands 11.65.
+  assert underDeckResult["passingGroups"] == ["small", "medium"]
+  assert [(problem["kind"], problem["lowest"]) for problem in walkOf(underDeckResult, "large")["problems"]] == [("headroom", 9.0)]
   # Every block on the course stops a player, each listed once, and the walk takes up again on the ground beyond it: the 1-thick slab
   # leaves its height of headroom, the rock sunk 2 into the ground stands 10 above it, the steps their heights, and the chasm has no
   # floor.
@@ -116,7 +133,7 @@ def testWalkRouteClimbsWhatTheRoF2ClientClimbs(stageBlenderServer):
       walks[name] = await session.expectSuccess("walkRoute", {"path": [[0, y, 0], [21, y, 6]]})
     return walks
 
-  walks = stageBlenderServer.session(steps)
+  walks = {name: walkOf(result) for name, result in stageBlenderServer.session(steps).items()}
   # Half a unit under the step players climb (playerScale) is walked up and down; half a unit over it stops them.
   assert walks["lowRiser"]["walkable"] and walks["lowRiser"]["problems"] == [] and walks["lowRiser"]["oneWay"] == []
   assert max(row["at"][2] for row in walks["lowRiser"]["profile"]) == stepHeight - 0.5
@@ -154,7 +171,8 @@ def testWalkRouteGoesUnderOneSidedCoverAndMeasuresPlaneWalls(stageBlenderServer)
     inside = await session.expectSuccess("measure", {"points": [[0, 78, 5]], "snapToSurface": True})
     return walked, inside
 
-  walked, inside = stageBlenderServer.session(steps)
+  results, inside = stageBlenderServer.session(steps)
+  walked = {name: walkOf(result) for name, result in results.items()}
   # One-sided surfaces facing up overhead (a gable roof of two planes, a plane deck 10 up, a client tree's leaf cards) cover open
   # ground: it is footing, walked under with the headroom they leave, and the ground under the deck runs on to either side.
   house, wall, deck, fence, tree = (walked[name] for name in coverRoutes)
@@ -163,9 +181,10 @@ def testWalkRouteGoesUnderOneSidedCoverAndMeasuresPlaneWalls(stageBlenderServer)
   assert all(row["left"] is None and row["right"] is None for row in deck["profile"])
   assert tree["walkable"] and tree["problems"] == [] and tree["lowestHeadroom"]["headroom"] == 15.7
   # Into the house's wall under its eave is a rise the height of the wall, and the walk takes up again inside.
-  assert wall["problems"] == [{"kind": "rise", "at": [-15.7, 72.0, 0.0], "height": 10.0, "resumesAt": [-14.7, 72.0, 0.0]}]
+  judged = {"builtFor": list(playerScale.groupNames), "verdict": "fails"}
+  assert wall["problems"] == [{"kind": "rise", "at": [-15.7, 72.0, 0.0], "height": 10.0, "resumesAt": [-14.7, 72.0, 0.0]} | judged]
   # A plane standing 15 tall, with no top to stand on, is a rise of 15.
-  assert fence["problems"] == [{"kind": "rise", "at": [-120.0, 0.0, 0.0], "height": 15.0, "resumesAt": [-119.0, 0.0, 0.0]}]
+  assert fence["problems"] == [{"kind": "rise", "at": [-120.0, 0.0, 0.0], "height": 15.0, "resumesAt": [-119.0, 0.0, 0.0]} | judged]
   assert inside["points"] == [[0.0, 78.0, 0.0]]
 
 
@@ -209,7 +228,8 @@ def testPlayersStandOnTheBedUnderWaterAndOnInstancesButNotOnGuides(stageBlenderS
     _, shallow = await session.expectImage("renderView", {"view": {"standAt": [70, 0], "headingDegrees": 90, "pitchDegrees": 0}, "guides": False})
     return across, overStep, offStep, deep, shallow
 
-  across, overStep, offStep, deep, shallow = stageBlenderServer.session(steps)
+  acrossResult, overStepResult, offStepResult, deep, shallow = stageBlenderServer.session(steps)
+  across, overStep, offStep = (walkOf(result) for result in (acrossResult, overStepResult, offStepResult))
   # The route starts under the guide board at 2 and keeps to the ground at 0; through the pool its footing is the bed, which falls 20
   # in 100 to the middle: the samples 2 either side of it stand 19.6 down under 14.6 of water.
   assert across["profile"][0]["at"][2] == 0.0
@@ -254,7 +274,8 @@ def testEveryLookupForGroundPassesThroughACanopyAndWhatIsMarkedPassable(stageBle
     _, bareSection = await session.expectImage("renderSection", {"start": [-50, 0], "end": [50, 0], "bottom": -10, "top": 40})
     return under, mossy, measured, sketched, placed, settled, nested, walked, section, bareSection
 
-  under, mossy, measured, sketched, placed, settled, nested, walked, section, bareSection = stageBlenderServer.session(steps)
+  under, mossy, measured, sketched, placed, settled, nested, walkedResult, section, bareSection = stageBlenderServer.session(steps)
+  walked = walkOf(walkedResult)
   # The cutout canopy 20 up and the crate marked passable are passed through by every lookup for the ground, as walkRoute passes them:
   # the views stand on the ground under them, and the stones land and settle on it.
   assert under["ground"] == [0.0, 0.0, 0.0] and under["eye"] == [0.0, 0.0, eyeHeight] and under["figure"] == [10.0, 0.0, 0.0]
@@ -267,3 +288,33 @@ def testEveryLookupForGroundPassesThroughACanopyAndWhatIsMarkedPassable(stageBle
   assert nested["placements"][0]["location"] == [-10.0, 10.0, 20.0] and nested["placements"][0]["surface"] == "canopy"
   assert walked["walkable"] and walked["lowestHeadroom"] is None and all(row["at"][2] == 0.0 for row in walked["profile"])
   assert section["groundSegments"] == bareSection["groundSegments"]
+
+
+def testWalkRouteJudgesEachGroupsWidthAgainstWhatItsPlaceIsBuiltFor(stageBlenderServer):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 100], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
+    # A gap 3.3 wide between two posts: wider than the small group's widest body (3.10), narrower than the medium's (3.61).
+    for name, y in (("postLeft", 3.3 / 2 + 1), ("postRight", -3.3 / 2 - 1)):
+      await session.expectSuccess("createPrimitive", {"kind": "cube", "name": name, "size": [4, 2, 20], "location": [0, y, 0]})
+    everyGroup = await session.expectSuccess("walkRoute", {"path": [[-40, 0, 0], [40, 0, 0]]})
+    await session.expectSuccess("setZoneProperties", {"builtFor": ["small"]})
+    smallZone = await session.expectSuccess("walkRoute", {"path": [[-40, 0, 0], [40, 0, 0]]})
+    await session.expectSuccess("createRegion", {
+      "name": "hall", "outline": [[-10, -20], [10, -20], [10, 20], [-10, 20]], "bottom": -10, "top": 30, "intent": "a hall for every body",
+      "access": "play", "builtFor": ["small", "medium", "large"],
+    })
+    hall = await session.expectSuccess("walkRoute", {"path": [[-40, 0, 0], [40, 0, 0]]})
+    return everyGroup, smallZone, hall
+
+  everyGroup, smallZone, hall = stageBlenderServer.session(steps)
+  # Only the small group fits between the posts; the zone is built for every group until set, so the gap fails it.
+  assert everyGroup["passingGroups"] == ["small"] and everyGroup["verdict"] == "fails"
+  narrow = walkOf(everyGroup, "medium")["problems"]
+  assert [problem["kind"] for problem in narrow] == ["narrow"] and abs(narrow[0]["narrowest"] - 3.3) <= 0.1
+  assert near(narrow[0]["from"], 0, 2.5) and near(narrow[0]["to"], 0, 2.5)
+  assert walkOf(everyGroup, "small")["problems"] == [] and abs(walkOf(everyGroup, "small")["tightestOpening"]["width"] - 3.3) <= 0.1
+  # Built only for the small group, the zone's gap is a finding for the others; a region built for every group fails it again.
+  assert smallZone["verdict"] == "finding"
+  assert all(problem["verdict"] == "finding" and problem["builtFor"] == ["small"] for name in ("medium", "large") for problem in walkOf(smallZone, name)["problems"])
+  assert hall["verdict"] == "fails" and walkOf(hall, "large")["problems"][0]["builtFor"] == list(playerScale.groupNames)

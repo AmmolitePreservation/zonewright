@@ -14,7 +14,11 @@ import eqAxes
 import eqClientZones
 import eqgFiles
 import serverRows
-from playerScale import playerHeight
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+playerHeight = medium.playerHeight
 from testEntries import entryArguments, groundGrid
 from testModelsAndDressing import freshScene
 from testWater import environment

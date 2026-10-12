@@ -29,7 +29,11 @@ import serverMapDrawing
 import serverMapFiles
 import serverNav
 import serverRows
-from playerScale import playerHeight, stepHeight
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+playerHeight, stepHeight = medium.playerHeight, medium.stepHeight
 from testModelsAndDressing import freshScene
 from testReach import cube, rectangle, region
 

@@ -9,7 +9,11 @@ from conftest import writePNG
 from testModelsAndDressing import readShapedMesh
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
-from playerScale import steepestWalkableDegrees
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+steepestWalkableDegrees = medium.steepestWalkableDegrees
 
 # A three-leg switchback climbing 100 up caveCanyon's 45-degree hillside to the entrance of a plot on the rim: legs 24 degrees off the
 # contour, two hairpins, its ends fixed (an end left free takes the ground there each time it is graded, and moves with it).
