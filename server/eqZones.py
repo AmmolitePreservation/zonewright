@@ -737,7 +737,9 @@ def buildZoneFile(clientRoot, cacheRoot, archivePath):
   label = f"Zone file '{archivePath.name}'"
   parts, details = eqgZoneParts(clientRoot, library, eqgFiles.parseZone(archive.read(zoneFiles[0]), zoneFiles[0]), archive, label)
   zoneFolder.mkdir(parents=True, exist_ok=True)
-  written = eqModels.writePartsCache(zoneFolder, parts, [archive], label)
+  # An exported zone draws as the surfaces it was built from do, both sides; whether to cull authored surfaces is open (renderingWorklist.md,
+  # Validation).
+  written = eqModels.writePartsCache(zoneFolder, parts, [archive], label, twoSided=True)
   details = stamp | {"zone": zoneName, "file": str(archivePath)} | details | written
   stampPath.write_text(json.dumps(details, indent=1), encoding="utf-8")
   return zoneFolder, details

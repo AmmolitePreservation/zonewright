@@ -24,7 +24,7 @@ import machineProfile
 import zoneSources
 
 indexFormat = 11
-modelCacheFormat = 22
+modelCacheFormat = 23
 actorTrailingBytes = 4
 staticKinds = ("wldStatic",)
 defaultAppearance = {
@@ -980,10 +980,10 @@ def buildModel(clientRoot, cacheRoot, modelName, zoneName, source=None, appearan
   return modelFolder, details
 
 
-def writePartsCache(modelFolder, parts, textureHolders, label):
+def writePartsCache(modelFolder, parts, textureHolders, label, twoSided=False):
   """Write parts as one mesh (model.npz) with its textures into a cache folder; returns where each texture came from, the missing
   ones, dropped triangles, and bounds. Lighting is written when every part carries it, and which triangles players pass through when
-  any does."""
+  any does. A client mesh draws its faces from the front only; twoSided draws both, as authored surfaces still draw."""
   vertexChunks, triangleChunks, uvChunks, textures, alphaModes, tints, liquids, mpls, passableChunks = [], [], [], [], [], [], [], [], []
   offset = 0
   for part in parts:
@@ -1090,6 +1090,7 @@ def writePartsCache(modelFolder, parts, textureHolders, label):
     **lightChoice,
     **({"trianglePassable": passable} if passable.any() else {}),
     **heightsWithoutParked,
+    twoSided=numpy.array(twoSided),
   )
   return {
     "textureSources": textureSources, "missingTextures": missingTextures, "environmentMapsNotCube": notCube,
