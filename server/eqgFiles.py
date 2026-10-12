@@ -16,7 +16,8 @@ modelVertexTypes = {
   2: numpy.dtype([("position", "<f4", 3), ("normal", "<f4", 3), ("uv", "<f4", 2)]),
   3: numpy.dtype([("position", "<f4", 3), ("normal", "<f4", 3), ("color", "<u4"), ("uv", "<f4", 2), ("secondUV", "<f4", 2)]),
 }
-modelTriangleType = numpy.dtype([("indices", "<u4", 3), ("material", "<i4"), ("flags", "<u4")])
+unstoredVertexColor = 0xFF808080
+modelTriangleType =numpy.dtype([("indices", "<u4", 3), ("material", "<i4"), ("flags", "<u4")])
 # A triangle's flags: 0x1 lets players through it (the client's collision tests skip it, EQGraphicsDX9.dll 0x100c6bfd), as the
 # client's own zones flag liquid surfaces and cutout cards. Material -1 is no material: never drawn (the draw batches skip it,
 # 0x100621a3) but still collided with, an invisible wall.
@@ -105,10 +106,13 @@ def parseModel(modelBytes, sourceName):
     triangleMaterials = numpy.full(triangleCount, noMaterial, dtype=numpy.int64)
   if triangleCount and not (noMaterial <= int(triangleMaterials.min()) and int(triangleMaterials.max()) < materialCount):
     raise ValueError(f"{sourceName}: triangle materials span {int(triangleMaterials.min())}..{int(triangleMaterials.max())} with {materialCount} materials")
+  # A version 1 or 2 model stores no vertex color of its own, and the client gives its vertices 0xFF808080 (EQGraphicsDX9.dll 0x100624e0).
   return {
     "vertices": vertices["position"].astype(numpy.float64),
     "normals": vertices["normal"].astype(numpy.float64),
     "uvs": vertices["uv"].astype(numpy.float64),
+    "vertexColors": vertices["color"].astype(numpy.uint32) if version == 3 else numpy.full(vertexCount, unstoredVertexColor, dtype=numpy.uint32),
+    "secondUVs": vertices["secondUV"].astype(numpy.float64) if version == 3 else None,
     "triangles": triangles["indices"].astype(numpy.int64),
     "triangleMaterials": triangleMaterials,
     "triangleFlags": triangles["flags"],

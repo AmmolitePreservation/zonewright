@@ -315,7 +315,7 @@ def placedEQGPart(model, transform, position, colors, mesh, posed=None):
   uvs = eqModels.staticEQGUVs(model["uvs"]) if posed is None else model["uvs"]
   return eqModels.meshPart(vertices @ transform.T + position, model["triangles"], uvs, textures, alphaModes,
     {"normals": normals, "colors": colors}, eqModels.eqgLiquids(model["materials"], model["triangleMaterials"], mesh), model["triangleFlags"] & eqgFiles.passableFlag,
-    eqModels.eqgTriangleStandIns(model["materials"], model["triangleMaterials"]))
+    eqModels.eqgTriangleStandIns(model["materials"], model["triangleMaterials"]), eqModels.eqgMPLDrawing(model) if posed is None else None)
 
 
 def defaultAnimation(modelName):

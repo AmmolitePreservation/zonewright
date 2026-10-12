@@ -79,21 +79,53 @@ def testClientWaterMaterialsReadAsLiquids():
 
 
 def testTrianglesDrawnByAStandInAreCountedByStandIn(tmp_path):
-  # Highpass Hold's terrain draws 73,069 triangles with Opaque_MPLBump2UV materials, which the preview draws by their diffuse alone,
-  # and its 2,996 water triangles opaque; its 204 waterfall triangles draw as the client draws them, and 496 name no material.
+  # Highpass Hold's terrain draws 73,069 triangles with Opaque_MPLBump2UV materials, which the preview draws with their coverage but
+  # takes point light 0 through the vertex light, and its 2,996 water triangles opaque; its 204 waterfall triangles draw as the client
+  # draws them, and 496 name no material.
   archive = eqArchive.EQArchive(everquestClient / "highpasshold.eqg")
   model = eqgFiles.parseModel(archive.read("ter_highpass05.ter"), "ter_highpass05.ter")
   colors = numpy.tile(numpy.array(eqZones.unlitColor, dtype=numpy.uint8), (len(model["vertices"]), 1))
   part = eqZones.placedEQGPart(model, numpy.identity(3), numpy.zeros(3), colors, "terrain")
   written = eqModels.writePartsCache(tmp_path, [part], [archive], "Highpass Hold's terrain")
   assert len(model["triangles"]) == 76765 and len(part["triangles"]) == 76765 - 496
-  assert written["drawnOtherwise"] == {"mplByDiffuseAlone": 73069, "waterOpaque": 2996}
+  assert written["drawnOtherwise"] == {"mplPointLight0ByVertex": 73069, "waterOpaque": 2996}
   archive = eqArchive.EQArchive(everquestClient / "brellsrest.eqg")
   model = eqgFiles.parseModel(archive.read("ter_brellsrest.ter"), "ter_brellsrest.ter")
   colors = numpy.tile(numpy.array(eqZones.unlitColor, dtype=numpy.uint8), (len(model["vertices"]), 1))
   part = eqZones.placedEQGPart(model, numpy.identity(3), numpy.zeros(3), colors, "terrain")
   written = eqModels.writePartsCache(tmp_path / "brellsrest", [part], [archive], "Brell's Rest's terrain")
-  assert written["drawnOtherwise"] == {"lavaPointLightByVertex": 1829, "mplByDiffuseAlone": 101153, "waterOpaque": 1588}
+  # Its 8,367 MPLBasic triangles still draw by their diffuse alone (a fixed-function technique, not read).
+  assert written["drawnOtherwise"] == {"lavaPointLightByVertex": 1829, "mplByDiffuseAlone": 8367, "mplPointLight0ByVertex": 92786, "waterOpaque": 1588}
+
+
+def testMPLMaterialsCarryTheirCoverageAndTheModelsOwnVertexColor(tmp_path):
+  # The client's MPL pixel shader multiplies the diffuse by the coverage map and the vertex buffer's second color, the model's own
+  # (Highpass Hold's terrain stores three, mostly 0xFF808080; Brell's Rest's grays down to black); a _2UV shader reads the coverage
+  # at the second texture coordinates, an MPLBump one at the first times e_fCoverageScale0.
+  cached = {}
+  for archiveName, terrainName in (("highpasshold.eqg", "ter_highpass05.ter"), ("brellsrest.eqg", "ter_brellsrest.ter")):
+    archive = eqArchive.EQArchive(everquestClient / archiveName)
+    model = eqgFiles.parseModel(archive.read(terrainName), terrainName)
+    colors = numpy.tile(numpy.array(eqZones.unlitColor, dtype=numpy.uint8), (len(model["vertices"]), 1))
+    part = eqZones.placedEQGPart(model, numpy.identity(3), numpy.zeros(3), colors, "terrain")
+    eqModels.writePartsCache(tmp_path / archiveName, [part], [archive], terrainName)
+    cached[archiveName] = (model, numpy.load(tmp_path / archiveName / "model.npz"))
+  model, data = cached["highpasshold.eqg"]
+  assert numpy.array_equal(numpy.unique(data["vertexSecondColors"], axis=0), [[54, 64, 0, 255], [128, 128, 128, 255], [255, 255, 255, 255]])
+  mpls = [json.loads(str(value)) for value in data["materialMPLs"] if str(value)]
+  assert len(mpls) == 13 and {mpl["coverage"] for mpl in mpls} >= {"coveragero.dds"} and all(mpl["secondUV"] and not mpl["coverageMissing"] for mpl in mpls)
+  # The second texture coordinates are flipped as the first are (v up from a texture's bottom).
+  used = numpy.unique(model["triangles"][model["triangleMaterials"] >= 0])
+  assert numpy.allclose(data["secondUVs"][0], model["secondUVs"][used[0]] * (1, -1) + (0, 1))
+  model, data = cached["brellsrest.eqg"]
+  shades = numpy.unique(data["vertexSecondColors"][:, 0])
+  assert shades[0] == 0 and shades[-1] == 255 and len(shades) > 200
+  bump = eqModels.eqgMPL({"name": "rock", "shader": "Opaque_MPLBump.fx", "properties": {"e_TextureCoverage0": "Coverage.dds", "e_fCoverageScale0": 0.05}}, None)
+  assert bump == {"coverage": "coverage.dds", "coverageScale": 0.05}
+  assert eqModels.eqgMPL({"name": "metal", "shader": "Opaque_MPLSB.fx", "properties": {"e_fCoverageScale0": 0.05}}, None) == {"coverage": None, "coverageScale": 0.05}
+  assert eqModels.eqgMPL({"name": "plain", "shader": "Opaque_MPLBasic.fx", "properties": {}}, None) is None
+  with pytest.raises(ValueError, match="second texture coordinates its model does not store"):
+    eqModels.eqgMPL({"name": "ground", "shader": "Opaque_MPLBump2UV.fx", "properties": {"e_TextureCoverage0": "c.dds"}}, None)
 
 
 @pytest.mark.clientData("clientFiles")

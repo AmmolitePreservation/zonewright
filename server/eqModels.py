@@ -387,17 +387,52 @@ def eqgLiquids(materials, triangleMaterials, mesh):
   return [eqgLiquid(materials[index], mesh) if index >= 0 else None for index in triangleMaterials]
 
 
+def isMPLCoverage(shader):
+  """Whether an MPL shader draws with a coverage map: every MPL family but Basic and Blend, whose DX8 pixel shaders (SPL\\Region_Bump,
+  _Full, _SB, _RB, _GB and their SModel and _2UV forms, ps_1_1) all multiply the diffuse by the coverage and the vertex's second color."""
+  shader = shader.lower()
+  return "_mpl" in shader and "basic" not in shader and "blend" not in shader
+
+
+def eqgMPL(material, secondUVs):
+  """An MPL material's coverage as its DX8 pixel shader reads it (docs/clientRendering.md, MPL materials): the coverage map, and either
+  the scale its texture coordinates are multiplied by (e_fCoverageScale0) or, for a _2UV shader, the model's second texture
+  coordinates; None for any other material."""
+  shader = material["shader"].lower()
+  if not isMPLCoverage(shader):
+    return None
+  properties = material["properties"]
+  # A material naming no coverage map binds no texture to the sampler, which reads black, as a map no archive holds does.
+  coverage = (properties.get("e_TextureCoverage0") or "").lower() or None
+  if "2uv" in shader:
+    if secondUVs is None:
+      raise ValueError(f"MPL material '{material['name']}' ({material['shader']}) reads second texture coordinates its model does not store")
+    return {"coverage": coverage, "secondUV": True}
+  if "e_fCoverageScale0" not in properties:
+    raise ValueError(f"MPL material '{material['name']}' ({material['shader']}) has no e_fCoverageScale0")
+  return {"coverage": coverage, "coverageScale": float(properties["e_fCoverageScale0"])}
+
+
+def eqgMPLs(materials, triangleMaterials, secondUVs):
+  return [eqgMPL(materials[index], secondUVs) if index >= 0 else None for index in triangleMaterials]
+
+
 def eqgStandIns(material):
   """What the preview draws in place of what the client draws for an EQG material, by name (docs/clientRendering.md, EQG zones):
-  mplByDiffuseAlone, an MPL material by its diffuse alone, without its coverage map, the vertex buffer's second color, or point light 0
-  through its normal map; additiveDrawnOpaque, an AddAlpha material opaque; waterOpaque, water opaque where the client's alpha follows
-  its fresnel, and without point light 0 by its normal; lavaPointLightByVertex, lava taking point light 0 through the vertex light with
-  falloff, where the client lights its crust through the normal maps without falloff and brightens an object's glow by it."""
+  mplByDiffuseAlone, an MPL Basic or Blend material by its diffuse alone; mplPointLight0ByVertex, an MPL material taking point light 0
+  through the vertex light with falloff, where the client lights it through the normal map; mplGlowNotDrawn, an MPL GB material without
+  the glow its normal map's alpha adds to the light; mplCoverageNotNamed, an MPL material naming no coverage map, drawn black as an
+  empty sampler reads (not checked in game); additiveDrawnOpaque, an AddAlpha material opaque; waterOpaque, water opaque where
+  the client's alpha follows its fresnel, and without point light 0 by its normal; lavaPointLightByVertex, lava taking point light 0
+  through the vertex light with falloff, where the client lights its crust through the normal maps without falloff and brightens an
+  object's glow by it."""
   shader = material["shader"].lower()
   liquid = liquidShaders.get(shader)
   return tuple(label for label, applies in (
-    ("mplByDiffuseAlone", "_mpl" in shader), ("additiveDrawnOpaque", "addalpha" in shader), ("waterOpaque", liquid == "water"),
-    ("lavaPointLightByVertex", liquid == "lava"),
+    ("mplByDiffuseAlone", "_mpl" in shader and not isMPLCoverage(shader)), ("mplPointLight0ByVertex", isMPLCoverage(shader)),
+    ("mplGlowNotDrawn", isMPLCoverage(shader) and "_mplgb" in shader),
+    ("mplCoverageNotNamed", isMPLCoverage(shader) and not material["properties"].get("e_TextureCoverage0")), ("additiveDrawnOpaque", "addalpha" in shader),
+    ("waterOpaque", liquid == "water"), ("lavaPointLightByVertex", liquid == "lava"),
   ) if applies)
 
 
@@ -412,20 +447,40 @@ def staticEQGUVs(uvs):
   return uvs * (1, -1) + (0, 1)
 
 
-def meshPart(vertices, triangles, uvs, textures, alphaModes, lighting=None, liquids=None, passable=None, standIns=None):
+def meshPart(vertices, triangles, uvs, textures, alphaModes, lighting=None, liquids=None, passable=None, standIns=None, mpl=None):
   """Drawn triangles only; triangles with non-finite vertices are dropped and counted. lighting is the file's per-vertex normals and
   RGBA colors as the client lights them ({normals, colors}), or None for a mesh lit without them; liquids, each triangle's liquid
   (eqgLiquid) or None; passable, whether the file lets players through each triangle, or None for a model that does not say;
-  standIns, each triangle's stand-ins (eqgStandIns), or None for a mesh drawn as the client draws it."""
+  standIns, each triangle's stand-ins (eqgStandIns), or None for a mesh drawn as the client draws it; mpl, the model's own vertex
+  colors (RGBA bytes), its second texture coordinates as Blender counts them (or None), and each triangle's MPL coverage (eqgMPL) or
+  None, or None for a mesh with no MPL material."""
   finite = triangleKeep(vertices, triangles)
   keep = numpy.array([texture is not None for texture in textures], dtype=bool) & finite
   keptTextures = [texture for texture, kept in zip(textures, keep) if kept]
-  return {
+  part = {
     "vertices": vertices, "triangles": triangles[keep], "uvs": uvs, "textures": keptTextures, "alphaModes": [mode for mode, kept in zip(alphaModes, keep) if kept],
     "tints": [eqLooks.untinted] * len(keptTextures), "dropped": int((~finite).sum()), "lighting": lighting,
     "liquids": [None] * len(keptTextures) if liquids is None else [liquid for liquid, kept in zip(liquids, keep) if kept],
     "passable": None if passable is None else numpy.asarray(passable, dtype=bool)[keep],
     "standIns": [()] * len(keptTextures) if standIns is None else [labels for labels, kept in zip(standIns, keep) if kept],
+    "mpl": [None] * len(keptTextures),
+  }
+  if mpl is not None:
+    part["mpl"] = [coverage for coverage, kept in zip(mpl["triangles"], keep) if kept]
+    if any(coverage is not None for coverage in part["mpl"]):
+      part["vertexSecondColors"] = mpl["vertexColors"]
+      part["secondUVs"] = mpl["secondUVs"] if mpl["secondUVs"] is not None else numpy.zeros((len(vertices), 2))
+  return part
+
+
+def eqgMPLDrawing(model):
+  """What meshPart needs to draw a static EQG model's MPL materials: its own vertex colors as RGBA bytes, its second texture
+  coordinates flipped as staticEQGUVs flips the first, and each triangle's coverage."""
+  colors = model["vertexColors"]
+  return {
+    "vertexColors": numpy.stack([(colors >> 16) & 0xFF, (colors >> 8) & 0xFF, colors & 0xFF, colors >> 24], axis=-1).astype(numpy.uint8),
+    "secondUVs": None if model["secondUVs"] is None else staticEQGUVs(model["secondUVs"]),
+    "triangles": eqgMPLs(model["materials"], model["triangleMaterials"], model["secondUVs"]),
   }
 
 
@@ -576,7 +631,7 @@ def eqgModelParts(archive, definition, appearance, context):
     lighting = {"normals": model["normals"], "colors": numpy.tile(numpy.array(sceneLitColor, dtype=numpy.uint8), (len(model["vertices"]), 1))}
     return {"parts": [meshPart(
       model["vertices"], model["triangles"], staticEQGUVs(model["uvs"]), *eqgMaterialTextures(model["materials"], model["triangleMaterials"], {}),
-      lighting, standIns=eqgTriangleStandIns(model["materials"], model["triangleMaterials"]),
+      lighting, standIns=eqgTriangleStandIns(model["materials"], model["triangleMaterials"]), mpl=eqgMPLDrawing(model),
     )], "pose": {"static": True}}
   code = definition["model"].upper()
   if eqLooks.isEQGPlayerModel(code):
@@ -929,7 +984,7 @@ def writePartsCache(modelFolder, parts, textureHolders, label):
   """Write parts as one mesh (model.npz) with its textures into a cache folder; returns where each texture came from, the missing
   ones, dropped triangles, and bounds. Lighting is written when every part carries it, and which triangles players pass through when
   any does."""
-  vertexChunks, triangleChunks, uvChunks, textures, alphaModes, tints, liquids, passableChunks = [], [], [], [], [], [], [], []
+  vertexChunks, triangleChunks, uvChunks, textures, alphaModes, tints, liquids, mpls, passableChunks = [], [], [], [], [], [], [], [], []
   offset = 0
   for part in parts:
     vertexChunks.append(part["vertices"])
@@ -940,6 +995,7 @@ def writePartsCache(modelFolder, parts, textureHolders, label):
     alphaModes += part["alphaModes"]
     tints += part["tints"]
     liquids += part.get("liquids") or [None] * len(part["textures"])
+    mpls += part.get("mpl") or [None] * len(part["textures"])
     offset += len(part["vertices"])
   triangles = numpy.concatenate(triangleChunks)
   if len(triangles) == 0:
@@ -967,11 +1023,19 @@ def writePartsCache(modelFolder, parts, textureHolders, label):
       key: numpy.concatenate([part[key] if key in part else numpy.zeros((len(part["vertices"]), width), dtype=dataType) for part in parts])[used]
       for key, width, dataType in (("detailUVs", 2, numpy.float64), ("vertexTints", 4, numpy.uint8))
     }
+  # MPL materials read the model's own vertex color and, for _2UV shaders, its second texture coordinates; only they read them.
+  mplAttributes = {}
+  if any("vertexSecondColors" in part for part in parts):
+    mplAttributes = {
+      key: numpy.concatenate([part[key] if key in part else numpy.zeros((len(part["vertices"]), width), dtype=dataType) for part in parts])[used]
+      for key, width, dataType in (("vertexSecondColors", 4, numpy.uint8), ("secondUVs", 2, numpy.float64))
+    }
   textureSources = {}
   # A texture absent from every linked archive is absent for the client too; its faces are drawn as missing and reported.
   missingTextures = []
   environmentNames = {liquid["textures"]["environment"] for liquid in liquids if liquid is not None and "environment" in liquid["textures"]}
   drawnNames = set(textures) | {name for liquid in liquids if liquid is not None for key, name in liquid["textures"].items() if key != "environment"}
+  drawnNames |= {mpl["coverage"] for mpl in mpls if mpl is not None and mpl["coverage"] is not None}
   for textureName in sorted(drawnNames | environmentNames):
     if textureName.startswith("terrain:"):
       continue
@@ -1002,20 +1066,27 @@ def writePartsCache(modelFolder, parts, textureHolders, label):
     found = {key: (lookupNames if key == "environment" else fileNames).get(name) for key, name in liquid["textures"].items()}
     return json.dumps(liquid | {"textures": {key: name for key, name in found.items() if name is not None}}, sort_keys=True)
 
+  # An MPL material names its coverage map by its cached file, or by its name when no linked archive holds it (an empty sampler).
+  def mplKey(mpl):
+    if mpl is None:
+      return ""
+    return json.dumps(mpl | {"coverage": fileNames.get(mpl["coverage"], mpl["coverage"]), "coverageMissing": mpl["coverage"] is None or mpl["coverage"] in missingTextures}, sort_keys=True)
+
   passable = numpy.concatenate(passableChunks)
   drawnOtherwise = collections.Counter(label for part in parts for labels in part.get("standIns") or () for label in labels)
   # Views band heights over the zone without the objects it parks far below itself.
   parked = numpy.concatenate([numpy.full(len(part["vertices"]), part.get("parked", False)) for part in parts])[used]
   heightsWithoutParked = {"heightsWithoutParked": numpy.array([vertices[~parked, 2].min(), vertices[~parked, 2].max()], dtype=numpy.float32)} if parked.any() else {}
   palette, triangleMaterials = {}, numpy.empty(len(textures), dtype=numpy.int32)
-  for index, key in enumerate(zip(textures, alphaModes, tints, (liquidKey(liquid) for liquid in liquids))):
+  for index, key in enumerate(zip(textures, alphaModes, tints, (liquidKey(liquid) for liquid in liquids), (mplKey(mpl) for mpl in mpls))):
     triangleMaterials[index] = palette.setdefault(key, len(palette))
   numpy.savez(
     modelFolder / "model.npz", vertices=vertices.astype(numpy.float32), triangles=triangles.astype(numpy.int32), uvs=uvs.astype(numpy.float32),
-    materialTextures=numpy.array([fileNames.get(texture, texture) for texture, _, _, _ in palette]), materialAlphaModes=numpy.array([alphaMode for _, alphaMode, _, _ in palette]),
-    materialTints=numpy.array([tint for _, _, tint, _ in palette], dtype=numpy.uint32), materialLiquids=numpy.array([liquid for _, _, _, liquid in palette], dtype=str),
+    materialTextures=numpy.array([fileNames.get(texture, texture) for texture, *_ in palette]), materialAlphaModes=numpy.array([alphaMode for _, alphaMode, *_ in palette]),
+    materialTints=numpy.array([tint for _, _, tint, *_ in palette], dtype=numpy.uint32), materialLiquids=numpy.array([liquid for _, _, _, liquid, _ in palette], dtype=str),
+    materialMPLs=numpy.array([mpl for *_, mpl in palette], dtype=str),
     triangleMaterials=triangleMaterials, missingTextures=numpy.array(missingTextures, dtype=str),
-    **{key: value.astype(numpy.float32) if value.dtype == numpy.float64 else value for key, value in (lighting | terrainAttributes).items()},
+    **{key: value.astype(numpy.float32) if value.dtype == numpy.float64 else value for key, value in (lighting | terrainAttributes | mplAttributes).items()},
     **lightChoice,
     **({"trianglePassable": passable} if passable.any() else {}),
     **heightsWithoutParked,

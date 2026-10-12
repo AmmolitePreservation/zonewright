@@ -18,6 +18,9 @@ alphaThreshold = 0.5
 emptySamplerColor = (0.0, 0.0, 0.0, 1.0)
 untinted = 0xFFFFFF
 liquidKeyProperty = "eqLiquidKey"
+mplKeyProperty = "eqMPLKey"
+secondColorAttribute = "eqSecondColor"
+secondUVMap = "eqSecondUV"
 
 
 def missingTextureMaterial(textureName, lit):
@@ -61,6 +64,69 @@ def modelMaterial(folder, textureName, alphaMode, tint, lit):
     material.node_tree.links.new(diffuse.outputs["Color"], colorInputs[0])
     colorInputs[1].default_value = (*(((tint >> shift) & 0xFF) / 255 for shift in (16, 8, 0)), 1.0)
     baseColor = next(socket for socket in multiply.outputs if socket.type == "RGBA")
+  bridgeClientLight.surfaceOutput(material, baseColor, diffuse.outputs["Alpha"], alphaMode, lit, alphaThreshold)
+  return material
+
+
+def mplModelMaterial(folder, textureName, alphaMode, mpl, lit):
+  """An MPL material as its DX8 pixel shader draws it (SPL\\Region_Bump.fxo ps_1_1 at 0x1b88, the same in every MPL family with a
+  coverage map): saturate(2 * saturate(2 * diffuse * coverage) * vertex color) as the color the light multiplies, the coverage read at
+  the texture coordinates times the material's coverage scale or at the model's second texture coordinates, the vertex color the
+  model's own (its second color, times an instance tint of white). A coverage map no linked archive holds is an empty sampler, which
+  reads black."""
+  key = json.dumps({"folder": folder, "texture": textureName, "alphaMode": alphaMode, "mpl": mpl, "lit": lit}, sort_keys=True)
+  materialName = f"eq_{os.path.basename(folder)}_{textureName}_mpl_{hashlib.sha256(key.encode()).hexdigest()[:8]}{'_lit' if lit else ''}"
+  material = bpy.data.materials.get(materialName)
+  if material is not None and material.get(mplKeyProperty) == key:
+    return material
+  material = bpy.data.materials.new(materialName)
+  material[mplKeyProperty] = key
+  material.use_nodes = True
+  tree = material.node_tree
+  nodes, links = tree.nodes, tree.links
+
+  def vectorMath(operation, first, second):
+    node = nodes.new("ShaderNodeVectorMath")
+    node.operation = operation
+    links.new(first, node.inputs[0])
+    if operation == "SCALE":
+      node.inputs["Scale"].default_value = second
+    elif isinstance(second, tuple):
+      node.inputs[1].default_value = second
+    else:
+      links.new(second, node.inputs[1])
+    return node.outputs["Vector"]
+
+  def saturated(vector):
+    return vectorMath("MINIMUM", vectorMath("MAXIMUM", vector, (0.0, 0.0, 0.0)), (1.0, 1.0, 1.0))
+
+  diffuse = nodes.new("ShaderNodeTexImage")
+  diffuse.name = "eqDiffuse"
+  diffuse.image = dataImage(os.path.join(folder, textureName))
+  if mpl["coverageMissing"]:
+    coverageColor = nodes.new("ShaderNodeRGB")
+    coverageColor.outputs["Color"].default_value = emptySamplerColor
+    coverage = coverageColor.outputs["Color"]
+  else:
+    coverageTexture = nodes.new("ShaderNodeTexImage")
+    coverageTexture.image = dataImage(os.path.join(folder, mpl["coverage"]))
+    coordinates = nodes.new("ShaderNodeUVMap")
+    if mpl.get("secondUV"):
+      coordinates.uv_map = secondUVMap
+      links.new(coordinates.outputs["UV"], coverageTexture.inputs["Vector"])
+    else:
+      # The client reads the coverage at its own coordinates (v down from a texture's top) times the scale; in Blender's flipped
+      # coordinates that is u * scale, 1 - (1 - v) * scale.
+      scale = mpl["coverageScale"]
+      coordinates.uv_map = "UVMap"
+      scaled = vectorMath("ADD", vectorMath("MULTIPLY", coordinates.outputs["UV"], (scale, scale, 1.0)), (0.0, 1.0 - scale, 0.0))
+      links.new(scaled, coverageTexture.inputs["Vector"])
+    coverage = coverageTexture.outputs["Color"]
+  vertexColor = nodes.new("ShaderNodeAttribute")
+  vertexColor.attribute_type = "GEOMETRY"
+  vertexColor.attribute_name = secondColorAttribute
+  covered = saturated(vectorMath("SCALE", vectorMath("MULTIPLY", diffuse.outputs["Color"], coverage), 2.0))
+  baseColor = saturated(vectorMath("SCALE", vectorMath("MULTIPLY", covered, vertexColor.outputs["Color"]), 2.0))
   bridgeClientLight.surfaceOutput(material, baseColor, diffuse.outputs["Alpha"], alphaMode, lit, alphaThreshold)
   return material
 
@@ -179,8 +245,13 @@ def buildModelMesh(folder, meshName):
     detailLayer.data.foreach_set("uv", data["detailUVs"][triangles.ravel()].astype(numpy.float32).ravel())
     tints = mesh.color_attributes.new(bridgeClientLight.tintAttribute, "FLOAT_COLOR", "POINT")
     tints.data.foreach_set("color", (data["vertexTints"].astype(numpy.float32) / 255).ravel())
+  if "vertexSecondColors" in data:
+    secondColors = mesh.color_attributes.new(secondColorAttribute, "FLOAT_COLOR", "POINT")
+    secondColors.data.foreach_set("color", (data["vertexSecondColors"].astype(numpy.float32) / 255).ravel())
+    secondLayer = mesh.uv_layers.new(name=secondUVMap)
+    secondLayer.data.foreach_set("uv", data["secondUVs"][triangles.ravel()].astype(numpy.float32).ravel())
   missing = {str(name) for name in data["missingTextures"]}
-  for textureName, alphaMode, tint, liquid in zip(data["materialTextures"], data["materialAlphaModes"], data["materialTints"], data["materialLiquids"]):
+  for textureName, alphaMode, tint, liquid, mpl in zip(data["materialTextures"], data["materialAlphaModes"], data["materialTints"], data["materialLiquids"], data["materialMPLs"]):
     key = (str(textureName), str(alphaMode), int(tint), lit)
     if key[0].startswith("terrain:"):
       mesh.materials.append(terrainMaterial(folder, int(key[0].split(":")[1])))
@@ -188,6 +259,8 @@ def buildModelMesh(folder, meshName):
       mesh.materials.append(missingTextureMaterial(key[0], lit))
     elif str(liquid):
       mesh.materials.append(liquidModelMaterial(folder, key[0], json.loads(str(liquid)), lit))
+    elif str(mpl):
+      mesh.materials.append(mplModelMaterial(folder, key[0], str(alphaMode), json.loads(str(mpl)), lit))
     else:
       mesh.materials.append(modelMaterial(folder, *key))
   mesh.polygons.foreach_set("material_index", data["triangleMaterials"].astype(numpy.int32))
