@@ -10,7 +10,7 @@ claudeperidot is Claude's own EQEmu server: a faithful copy of Peridot on a LAN-
 
 ## Next
 
-None
+None.
 
 ## Steps
 
