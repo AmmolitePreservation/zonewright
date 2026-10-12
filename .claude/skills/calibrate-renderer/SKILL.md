@@ -1,40 +1,57 @@
 ---
 name: calibrate-renderer
-description: Check and tune zonewright's EQ preview against live client screenshots, so renders look like the client. Use when a new calibration screenshot arrives, after changing the renderer (bridgeClientLight, bridgeViews, zone or model reading), or when a render and the client disagree.
+description: Check zonewright's EQ preview against shots of Claude's spare RoF2 client taken through claudelink, so renders look like the client. Use when a calibration shot is wanted or arrives, after changing the renderer (bridgeClientLight, bridgeViews, zone or model reading), or when a render and the client disagree.
 ---
 
 # Calibrate the renderer
 
-The preview draws what the client draws (`docs\clientRendering.md`): unlit surfaces emitting texture times the light the client's vertex shader computes, fogged exponentially squared, through a camera measured against screenshots. `calibrateShot` measures how far a render is from a real screenshot and tracks it.
+The preview draws what the client draws (`docs\clientRendering.md`): unlit surfaces emitting texture times the light the client's vertex shader computes, fogged exponentially squared, through the RoF2 client's own camera. `calibrateShot` predicts a shot of the client from the dump taken with it and measures how far the prediction is from the shot.
 
-## Screenshots
+Calibration takes only claudelink shots of the spare RoF2 client. Older shots (the owner's live Steam screenshots, the Peridot client's `EQ0000xx` shots taken through EQBCS) are not used.
 
-The owner keeps live client screenshots in `C:\Games\Steam\steamapps\common\Everquest F2P\Screenshots`, named `<zone>,<loc y>,<loc x>,<loc z>,<heading>,<pitch>.jpg`:
+## Taking a shot
 
-- `<zone>` is the owner's best name for the zone, not always the client's file name. Map it to the client zone: `ewastes` is `eastwastes`; `neighborhood` is the EQ terrain zone `neighborhood` (header fog 1500-6000, color 200, 200, 200, `NewEngineZone` 1); `pallatialguildhall` (server `guildhalllrg_int`) has no interior in this client, so it cannot be calibrated against zone geometry.
-- `/loc` order is EQ y, x, z: the scene's x, y, z.
-- `<heading>` is compass degrees clockwise from north (the scene's +X); `<pitch>` is in 512ths of a turn, positive up.
-- A name without all six fields is not ready yet. Check the folder now and then, not often.
+The spare client runs through the claudelink MCP (`C:\Users\Toshiro\git\github\PhoenixCampfire\claudelink`, its README). Keep the spare's viewport as its UI file sets it; `calibrateShot` crops to it.
+
+1. `launchClient` with the spare's character, then `state` to see where it stands.
+2. `zone` to the zone, `teleport` to the spot (`/loc` order, y x z) with the heading, and `face` for the pitch.
+3. `command` `#set weather 0`: weather is not read from the client, so every calibration shot is taken clear, and runs record that condition.
+4. `time` to the hour (and minute) the shot is for.
+5. `screenshot` to a path under `%LOCALAPPDATA%\claudelink\screenshots`, with the UI hidden. It writes the PNG, its sidecar `<shot>.json`, and the zone dump read in the same frame, at 100 fps with MacroQuest's frame limiter suspended.
+6. `calibrateShot` with the PNG's path.
+
+Plan shots as a set before tuning anything: several zones, times, and spots per question, each settled by more than one shot.
 
 ## calibrateShot
 
 | Argument | Meaning |
 |---|---|
-| `screenshotPath` | The screenshot's full path |
-| `zone` | The client zone file name (`poknowledge`, `eastwastes`) |
-| `newEngineZone` | The zone header's `NewEngineZone` (the live dumps' `fields\zoneHeaders.tsv`) |
-| `fogColor`, `fogStart`, `fogEnd`, `fogDensity` | The zone header's fog: the first of `zoneHeaders.tsv`'s four fog sets, `fogDensity` 0 when its `FogOnOff` is 0, else the client's 0.33. Give all four or none: with none (a zone the dumps lack, like Eastern Wastes), the fog is fitted with the light |
-| `recordingPath`, `liveDumpsPath` | A live behavior recording of the zone that was running when the screenshot was taken (`mqLive\build\bin\release\Logs\peridotLiveBehavior_<server>_<zone>_<instance>_<character>_<start>.txt`) and the live dumps' `master` folder: NPCs, doors, ground items, and placed objects within 1000 units of the camera are placed as they stood at the screenshot's file time (see `placeRecording`). Give both or neither |
+| `screenshotPath` | The shot's PNG; its sidecar sits beside it and names its dump |
+| `fitLight` | Also fit the ambient, sun, and bounce colors and sun direction that best explain the shot, beside the sky's prediction (a diagnostic) |
 | `discardUnsavedChanges` | It opens a new file; this discards the open one's unsaved changes |
 
-It imports the zone, renders the screenshot's view as passes, fits the scene light (ambient, sun, bounce, sun direction, and the fog when not given) that best explains the screenshot, renders with it, and returns the screenshot beside the render. The result gives the fit, its `residual` (the root mean square color error it could not explain, 0-1), and `meanPixelDifference` (0-255 over drawn pixels). Each run is kept under `%LOCALAPPDATA%\zonewright\calibration\<screenshot>\<time>` with its passes, comparison, and `result.json`; `getToolingStatus` lists every screenshot's latest run, so a renderer change shows as a better or worse difference.
+It refuses a shot whose sidecar and dump do not pair (paths and capture time), one taken under 100 fps or with MacroQuest's frame limiter throttling, and one whose PNG is not the client area the sidecar records.
+
+From the dump it takes, with nothing fitted:
+
+- the zone, imported as `importZone` does (lights, emitters, zone lines);
+- the camera exactly: eye, heading, and pitch, and a frame at the viewport's aspect whose field of view the camera's half view angle and `viewAngleRatio` give, checked against the projection scales the client computed (a rolled camera is refused);
+- the sky at the dump's game time, and the zone header's first fog set, density, fog switch, clips, `newEngineZone`, short name, and id (a zone without a sky, a zone type whose ambient is a fixed gray, or a clip slider short of its maximum is refused: previews do not draw those yet);
+- the light the viewer carries, its type's color and reach at the position the client put it;
+- the viewer's special ambient, from its actor's share of scene light (a race with infravision or ultravision is refused);
+- every spawn but the viewer, visible door, ground item, and placed object that could show in the frame, at its actor's position, heading, and scale (`placeDump`).
+
+It returns a sheet: the shot cropped to the viewport beside the render, over their difference amplified 4 times and a map of the difference per 32-pixel block (black 0, through red and yellow, to white at 64 of 255). The result gives the mean difference (of 255) over the zone's drawn pixels (`meanPixelDifference`), over the sky, and over all, the block map's median and largest, what was placed and why anything was not, and with `fitLight` the fitted light and the prediction's, each with the residual it leaves. Each run is kept under `%LOCALAPPDATA%\zonewright\calibration\<shot>\<run>` with the shot crop, render, difference, block map (`blocks.npy` and `.png`), sheet, and `result.json`, which records the conditions (game time, weather, the carried light, the viewer's share, settings) and the renderer's source hash. `getToolingStatus` lists every shot's latest run.
 
 ## Reading a comparison
 
-- **Shifted or scaled scene:** the camera. Its constants (`eyeAboveLoc`, `pitchOffsetDegrees` in `eqCalibration.py`, `verticalFieldOfViewDegrees` in `bridgeViews.py`) come from aligning renders to screenshots; re-measure them with several shots before changing them, and note an outlier shot rather than bending the constants to it.
-- **Wrong overall light:** the time of day differs between shots; the fit measures it per shot. Shots of one zone a few minutes apart should fit alike.
-- **Warm light near the camera:** the character taking the shot carries its light source's light (the dumps' spawn `light`), which reaches 100 to 400 units and lights every surface, baked or not; compare with `compareToConcept` `carriedLight` (the dump's player row: light type, feet, heading) and the zone's `zoneId` set.
-- **Even grey light in dark places:** the client adds a special ambient for the character taking the shot, 0.08 times one less the share of scene light of the floor it stands on, so caves and dark zones read brighter where the shot was taken from inside them; `carriedLight` sets it in an imported classic zone (the result's `viewer`; light type 0 for a character carrying no light).
-- **Local glows, sky, distant haze:** point lights and environment emitters draw, with the rules `docs\clientRendering.md` lists as not settled; the sky's clouds and stars do not; fog without the zone header's values is a guess (see `docs\renderingWorklist.md`).
-- **Missing props, people, and grass:** without a recording, doors, ground items, and spawns are not placed (the neighborhood's info board and teleport arch are doors). With one, NPCs still lack their equipment, live-only models and looks are listed in the result's `recorded.notPlaced`, and some live textures differ from this client's (the neighborhood's arched gate draws as bars). An EQ terrain zone's radial flora is not drawn. All of these count against the difference.
-- **Black faces on a model:** a texture no archive holds, which the client's effect samples as black.
+Look at the sheet first; the numbers only say how much.
+
+- **Shifted or scaled scene:** the camera or the frame. The dump's camera is the client's own; a shift points at how the view is built from it (`eqCalibration.cameraView`, `clientFrame`), never at a constant to nudge.
+- **Wrong overall light:** the sky at the game time, the special ambient, or the zone type's ambient rule. `fitLight` shows which way the light differs; noon light clamps on most sunlit faces, which leaves the sun and bounce colors unmeasured there.
+- **Warm light near the camera:** the viewer's carried light, drawn where the dump puts it.
+- **Local glows, sky, distant haze:** point lights and environment emitters draw with the rules `docs\clientRendering.md` lists as not settled; the sky's clouds, stars, and backdrop ring do not.
+- **Missing props and people:** spawns draw without equipment; anything the client data cannot draw is listed in `notPlaced`. An EQ terrain zone's radial flora is not drawn.
+- **Black faces on a model:** a texture no archive holds, which previews draw black.
+
+Record what a planned set of shots shows in `docs\renderingWorklist.md` (Standing) and in `docs\clientRendering.md` with the shots that show it. Do not tune a constant to one shot.

@@ -1,6 +1,6 @@
 ---
 name: render-spawn
-description: Place and render EverQuest characters (NPCs, players, pets, the scale figure) in a zonewright Blender scene from the client's own models. Use whenever a scene or render needs EQ spawns, whether one character or a whole zone's population from a live dump.
+description: Place and render EverQuest characters (NPCs, players, pets, the scale figure) in a zonewright Blender scene from the client's own models. Use whenever a scene or render needs EQ spawns, whether one character or a whole zone's population from a claudelink or live dump.
 ---
 
 # Render spawns
@@ -45,6 +45,18 @@ The client's animations, with its labels where it has them:
 A model without an animation of its own borrows one, as the client does: a dark elf plays the wood elf's, a Luclin erudite the human's, a kobold the werewolf's. Not every model has every animation; asking for one it lacks is an error naming why.
 
 EQG characters (Drakkin, the gnoll `GBN`, and later races) play the client's EQG animations, `<name>_BA_1_<code>`. The client maps each animation id to an EQG name and a WLD code: `/wave` is `WAVE` on an EQG model and `S03` on a WLD one; `STND` stands. Give a code or label and an EQG model plays the first EQG name mapped to it; give an EQG name and a WLD model plays its code. EQG animations have no lettered variants.
+
+## From a claudelink dump
+
+`placeDump` places a claudelink zone dump's spawns (all but the viewer, who is the camera) with its doors, ground items, and placed objects, each at its actor's position, heading, and scale as the client's scene graph held it, in the stand pose; `near` and `radius` limit it to what stands within reach. A spawn's origin is its actor's position, not stood on the ground: the dump's actor stands at the spawn's z, `avatarHeight` over its feet. A spawn whose actor's scale differs from the rule below for its height is marked with the rule's (`ruleScale`). To place one by hand, a dump's `spawns` row maps to `placeSpawn`:
+
+| Field | Argument |
+|---|---|
+| its actor's `definition` (in `engine.actors.list`, by the spawn's `actor` address) | `model` |
+| `height` | `height` |
+| `y`, `x`, `z`, `heading` | `y`, `x`, `z`, `heading`, with `snapToGround` false |
+| `look.textureType` | `textureSet` (`-1` means no override, so 0) |
+| `look.variation`, `headType`, `faceStyle`, `hairStyle`, `hairColor`, `facialHair`, `facialHairColor`, `eyeColor1`, `heritage`, `tattoo`, `details` | the same names (`-1` is 0) |
 
 ## From a live dump
 

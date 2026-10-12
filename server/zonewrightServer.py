@@ -827,7 +827,7 @@ async def setZoneProperties(
   EQEmu sends false for every zone); and sky, the client sky the zone draws: {type, weather, hour, minute}. type is the sky type the
   client looks up, the zone's short name unless the server overrides it; a type sky.ini lacks gets the client's 'default' sky, as
   every zone without its own does. weather defaults to the type's DefaultWeather. hour and minute place the sun, at its highest at
-  12:00 (a midday screenshot after the server's '#set time 12' matches 13:00). Previews draw the sky behind the zone and take the
+  12:00 (the client's own clock, which claudelink's dumps read). Previews draw the sky behind the zone and take the
   ambient, bounce, sun color and direction, and fog color from it, so those cannot be set by hand while it is set, and setting it
   drops any set before; sky "none" states that the zone draws no sky (its zone row's sky 0, as about a third of the client's EQG
   zones have), so previews show the fog color where nothing is drawn and the light and fog color are set by hand. safePoint [x, y, z, headingDegrees] is where players arrive in the zone (the zone

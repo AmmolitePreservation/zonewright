@@ -1,6 +1,6 @@
 ---
 name: render-door
-description: Place and render EverQuest doors in a zonewright Blender scene from the client's own models. Doors are every server-placed model, not only doors: lifts, teleport pads, books, banners, furniture, and housing pieces. Use whenever a scene or render needs a zone's doors, one or all of them from a live dump.
+description: Place and render EverQuest doors in a zonewright Blender scene from the client's own models. Doors are every server-placed model, not only doors: lifts, teleport pads, books, banners, furniture, and housing pieces. Use whenever a scene or render needs a zone's doors, one or all of them from a claudelink or live dump.
 ---
 
 # Render doors
@@ -20,6 +20,10 @@ description: Place and render EverQuest doors in a zonewright Blender scene from
 | `name`, `collection` | Object name and collection |
 
 Doors are not snapped to the ground: the server's z is the model origin, and measured doors sit on their floors at that z.
+
+## From a claudelink dump
+
+`placeDump` places every visible door of a claudelink zone dump (with its spawns, ground items, and placed objects) at its actor's position, heading, and scale, closed. A hidden door (`visible` false) and one the client draws no actor for are listed with why. To place one by hand, a dump's `doors` row maps to `placeDoor`: `name` is `model`, `y`, `x`, `z`, and `heading` the same names, and `scaleFactor` the same (hundredths; its actor's scale is a hundredth of it).
 
 ## From a live dump
 

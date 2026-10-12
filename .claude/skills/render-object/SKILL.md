@@ -1,6 +1,6 @@
 ---
 name: render-object
-description: Place and render EverQuest ground objects in a zonewright Blender scene from the client's own models: tradeskill containers (kilns, looms, forges, ovens), ground spawns, dropped items, and housing pieces. Use whenever a scene or render needs a zone's objects, one or all of them from a live dump.
+description: Place and render EverQuest ground objects in a zonewright Blender scene from the client's own models: tradeskill containers (kilns, looms, forges, ovens), ground spawns, dropped items, and housing pieces. Use whenever a scene or render needs a zone's objects, one or all of them from a claudelink or live dump.
 ---
 
 # Render objects
@@ -20,6 +20,10 @@ description: Place and render EverQuest ground objects in a zonewright Blender s
 | `name`, `collection` | Object name and collection |
 
 Objects are not snapped to the ground: the server's z is the model origin.
+
+## From a claudelink dump
+
+`placeDump` places every ground item and placed object of a claudelink zone dump (with its spawns and doors) at its actor's position, heading, and scale. One whose actor is tilted (pitch or roll not 0) is listed, not placed, as placement turns only about Z. To place one by hand, a dump's `groundItems` or `placedObjects` row maps to `placeObject`: its actor's `definition` (or the row's `name`) is `model`, `y`, `x`, `z`, and `heading` the same names, and `scale` the same.
 
 ## From a live dump
 
