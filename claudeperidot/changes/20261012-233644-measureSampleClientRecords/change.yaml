@@ -1,0 +1,90 @@
+title: The owner's MacroQuest login.db and MQ2ChatWnd.ini hold what MQ2AutoLogin and MQ2ChatWnd write for the seven sample body characters on
+  account 86
+why: 'Recorded before the seven sample body characters (20261012-233442) next reach character select and the world, as 0014 and 0017 recorded
+  Claudewright''s and 20261012-230619 the 32 bodies'' (its undo was run by hand when the bodies were cut to the sample: its checks were partly
+  met, so the ledger would not revert it). MQ2AutoLogin records a character and persona row per character listed in config\login.db at character
+  select; MQ2ChatWnd writes a [claudeperidot.<name>] section in config\MQ2ChatWnd.ini when each character''s window is made. The ledger never
+  writes either file; the steps refuse, and the checks pass once every sample body has entered the world. The undo removes exactly these characters''
+  rows and sections; account 86''s row belongs to 0014.'
+kind: client
+scope:
+- ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+- ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-12, the owner on the 32 body characters: "great and this should fit in a single account now right?" then "no, not once
+    they''re finished, now. fuckin'' clean that shit up."'
+activation: none
+production: none
+commits: []
+steps:
+- throw 'MQ2AutoLogin and MQ2ChatWnd write these rows and sections themselves when the body characters log in through claudelink; the ledger records
+  them and never writes login.db or MQ2ChatWnd.ini'
+undo:
+- "$script = @'\nimport os, pathlib, sqlite3\npath = pathlib.Path.home() / \"LocalProjects\" / \"mqPeridot\" / \"build\" / \"bin\" / \"release\"\
+  \ / \"config\" / \"login.db\"\nnames = [\"measurehum\", \"measureelf\", \"measuredwm\", \"measureogm\", \"measuregnf\", \"measurekef\", \"measuredkm\"\
+  ]\nconnection = sqlite3.connect(path)\nwith connection:\n  marks = \",\".join(\"?\" * len(names))\n  characters = f\"SELECT id FROM characters\
+  \ WHERE server = 'claudeperidot' AND lower(character) IN ({marks})\"\n  connection.execute(f\"DELETE FROM profiles WHERE character_id IN ({characters})\"\
+  , names)\n  connection.execute(f\"DELETE FROM personas WHERE character_id IN ({characters})\", names)\n  connection.execute(f\"DELETE FROM characters\
+  \ WHERE id IN ({characters})\", names)\nconnection.close()\n'@\n$script | python -\nif ($LASTEXITCODE -ne 0) { throw \"removing the rows failed\
+  \ with exit code $LASTEXITCODE\" }"
+- "$path = \"$env:USERPROFILE\\LocalProjects\\mqPeridot\\build\\bin\\release\\config\\MQ2ChatWnd.ini\"\n$names = @('Measurehum', 'Measureelf',\
+  \ 'Measuredwm', 'Measureogm', 'Measuregnf', 'Measurekef', 'Measuredkm')\n$encoding = [Text.Encoding]::GetEncoding(28591)\n$text = [IO.File]::ReadAllText($path,\
+  \ $encoding)\n$newline = if ($text.Contains(\"`r`n\")) { \"`r`n\" } else { \"`n\" }\n$suffix = ''\nif ($text.EndsWith($newline)) { $text = $text.Substring(0,\
+  \ $text.Length - $newline.Length); $suffix = $newline }\n$lines = [System.Collections.Generic.List[string]]($text -split [regex]::Escape($newline))\n\
+  foreach ($name in $names) {\n  $start = $lines.IndexOf(\"[claudeperidot.$name]\")\n  if ($start -lt 0) { continue }\n  $end = $start + 1\n \
+  \ while ($end -lt $lines.Count -and -not $lines[$end].StartsWith('[')) { $end++ }\n  $lines.RemoveRange($start, $end - $start)\n}\n[IO.File]::WriteAllText($path,\
+  \ ($lines -join $newline) + $suffix, $encoding)"
+checks:
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurehum
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureelf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuredwm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureogm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuregnf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurekef
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuredkm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurehum
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureelf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuredwm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureogm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuregnf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurekef
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuredkm
+  key: WindowTitle
+  value: MQ
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
