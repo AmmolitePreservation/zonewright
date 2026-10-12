@@ -705,9 +705,10 @@ def buildZoneFileModel(cacheRoot, archivePath, entry):
   model = eqgFiles.parseModel(archive.read(entry), label)
   if model["bones"] is not None:
     raise ValueError(f"{label} is skinned; a row's skinned model is not drawn yet")
+  unlit = numpy.tile(numpy.array(unlitColor, dtype=numpy.uint8), (len(model["vertices"]), 1))
   part = eqModels.meshPart(
     model["vertices"], model["triangles"], eqModels.staticEQGUVs(model["uvs"]), *eqModels.eqgMaterialTextures(model["materials"], model["triangleMaterials"], {}),
-    standIns=eqModels.eqgTriangleStandIns(model["materials"], model["triangleMaterials"]),
+    {"normals": model["normals"], "colors": unlit}, standIns=eqModels.eqgTriangleStandIns(model["materials"], model["triangleMaterials"]),
   )
   folder.mkdir(parents=True, exist_ok=True)
   details = stamp | eqModels.writePartsCache(folder, [part], [archive], label)

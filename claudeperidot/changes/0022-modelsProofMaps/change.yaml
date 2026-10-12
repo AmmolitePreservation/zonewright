@@ -1,0 +1,47 @@
+title: claudeperidot's server maps hold interiorwalltest's .map, .wtr, and .nav from the client models proof export
+why: >-
+  The server loads a zone's collision, water, and nav from server/maps by its short name; the proof zone interiorwalltest (0024) has
+  none in EQEmu/maps, so its export's server\maps files go there. server/maps is a checkout of EQEmu/maps at fbd3b191 that the ledger's
+  config kind cannot carry (no commit of ours can reach its origin), so this is recorded as a lab change on claudeperidot, run by hand:
+  first facet putFile each of the export's three files (%LOCALAPPDATA%\zonewright\proof\modelsByReference\export\server\maps\base\interiorwalltest.map,
+  water\interiorwalltest.wtr, nav\interiorwalltest.nav) to ~/modelsProof/ on claudeperidot, then the steps below, which check their
+  hashes before installing them. They are new untracked files in the checkout; no existing file is touched.
+kind: lab
+scope:
+  - /opt/eqemu/akk-stack/server/maps/base/interiorwalltest.map
+  - /opt/eqemu/akk-stack/server/maps/water/interiorwalltest.wtr
+  - /opt/eqemu/akk-stack/server/maps/nav/interiorwalltest.nav
+disposition: exploration
+significance: minor
+ownerClearance: pending
+activation: the interiorwalltest zone process's next boot
+production: none
+commits: []
+steps:
+  - via: facet run
+    host: claudeperidot
+    run: >-
+      cd ~/modelsProof && printf '%s\n' '429e774ddacd6a214ace2d2495e6cdcf1ec12ba0be34e98b20e407b0bbbf00c2  interiorwalltest.map'
+      'b1b5f6ba41ebadf82354e56fb4b0e38f942869df4e2b6c4e6e8f81dc4f8fac03  interiorwalltest.wtr'
+      '4df200daadb1ffc2d79af63655486d5abb3987374a6ba3b6ca393599ced87749  interiorwalltest.nav' | sha256sum -c -
+  - via: facet run
+    host: claudeperidot
+    run: >-
+      set -e; maps=/opt/eqemu/akk-stack/server/maps; for kind in base:map water:wtr nav:nav; do
+      target="$maps/${kind%%:*}/interiorwalltest.${kind##*:}"; test ! -e "$target";
+      sudo -n install -o claudeperidotadmin -g claudeperidotadmin -m 0644 ~/modelsProof/interiorwalltest.${kind##*:} "$target"; done;
+      rm -r ~/modelsProof
+undo:
+  - via: facet run
+    host: claudeperidot
+    run: >-
+      sudo -n rm /opt/eqemu/akk-stack/server/maps/base/interiorwalltest.map /opt/eqemu/akk-stack/server/maps/water/interiorwalltest.wtr
+      /opt/eqemu/akk-stack/server/maps/nav/interiorwalltest.nav
+checks:
+  - via: facet run
+    host: claudeperidot
+    run: >-
+      cd /opt/eqemu/akk-stack/server/maps && sha256sum base/interiorwalltest.map water/interiorwalltest.wtr nav/interiorwalltest.nav
+    expect: >-
+      429e774ddacd6a214ace2d2495e6cdcf1ec12ba0be34e98b20e407b0bbbf00c2 for base, b1b5f6ba41ebadf82354e56fb4b0e38f942869df4e2b6c4e6e8f81dc4f8fac03
+      for water, 4df200daadb1ffc2d79af63655486d5abb3987374a6ba3b6ca393599ced87749 for nav

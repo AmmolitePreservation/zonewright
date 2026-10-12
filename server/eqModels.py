@@ -24,7 +24,7 @@ import machineProfile
 import zoneSources
 
 indexFormat = 11
-modelCacheFormat = 21
+modelCacheFormat = 22
 actorTrailingBytes = 4
 staticKinds = ("wldStatic",)
 defaultAppearance = {
@@ -571,9 +571,12 @@ def eqgModelParts(archive, definition, appearance, context):
       raise ValueError(f"Model '{definition['model']}' is static; it has no animations")
     if changedAppearance(appearance):
       raise ValueError(f"Model '{definition['model']}' is static; appearance does not apply, got {changedAppearance(appearance)}")
+    # Lit as an EQG zone draws the same model placed without baked light (eqZones.placedEQGPart): by its file's normals, with no
+    # baked color, so a placed client model and its copy in an exported zone draw alike.
+    lighting = {"normals": model["normals"], "colors": numpy.tile(numpy.array(sceneLitColor, dtype=numpy.uint8), (len(model["vertices"]), 1))}
     return {"parts": [meshPart(
       model["vertices"], model["triangles"], staticEQGUVs(model["uvs"]), *eqgMaterialTextures(model["materials"], model["triangleMaterials"], {}),
-      standIns=eqgTriangleStandIns(model["materials"], model["triangleMaterials"]),
+      lighting, standIns=eqgTriangleStandIns(model["materials"], model["triangleMaterials"]),
     )], "pose": {"static": True}}
   code = definition["model"].upper()
   if eqLooks.isEQGPlayerModel(code):
