@@ -1,0 +1,17 @@
+title: Claudewright, the spare's human character, carries and wears nothing
+why: >-
+  The owner (2026-10-11): calibration shots are taken by a human with no equipment. Claudewright is already human (race 1,
+  0015) but held a Staff of the Wheel (item 14360, light 14) in the primary slot, whose carried light lit both claudelink
+  calibration shots taken so far; how it got there is not traced (no starting_items row gives it). With the inventory
+  empty, shots carry no light and show no worn gear unless a shot sets one up through its own ledger change.
+kind: db
+scope:
+  - table: inventory
+    where: character_id IN (SELECT id FROM character_data WHERE name = 'Claudewright')
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: "you should make sure your character is a human with no equipment. now that you're on your own little test shard. (2026-10-11)"
+activation: the character's next login (the spare is closed while it applies)
+production: none
+commits: []
