@@ -1,0 +1,54 @@
+title: claudeperidot's maps folder holds arttest.map, arttest.wtr, and arttest.nav, the measurement zone's server files from its game export
+why: >-
+  The zone process for arttest (0028, 0029) loads its collision, water regions, and nav mesh from the maps folder; none exists for
+  arttest. The files are the game export's server\maps (verified by verifyExport). The maps folder is a checkout of EQEmu/maps
+  (fbd3b19128) with no remote Claude can push to, so the ledger's config form (commits fast-forwarded on the host) cannot carry
+  them; this records them as a lab change on claudeperidot, run by hand: first facet putFile copies each file from
+  %LOCALAPPDATA%\zonewright\staging\arttest\server\maps\<kind>\ to /home/claude/arttest/ on claudeperidot, then the steps
+  install them, owned as the folder is (claudeperidotadmin), untracked in the checkout.
+kind: lab
+scope:
+  - /opt/eqemu/akk-stack/server/maps/base/arttest.map on claudeperidot
+  - /opt/eqemu/akk-stack/server/maps/water/arttest.wtr on claudeperidot
+  - /opt/eqemu/akk-stack/server/maps/nav/arttest.nav on claudeperidot
+disposition: exploration
+significance: minor
+ownerClearance: pending
+activation: restart the arttest zone process (a zone process loads its maps when it boots)
+production: none
+commits: []
+steps:
+  - via: facet run
+    host: claudeperidot
+    run: >-
+      cd /home/claude/arttest &&
+      echo '9e481565584330b320b08746dd11344a342d0036e35013aa932324dfbb383c2b  arttest.map' | sha256sum -c - &&
+      echo 'bd4cdd8ce35cb79c6bf791e39bbb2c1ad199b09d5e9847f7b881af0bff0fef0b  arttest.wtr' | sha256sum -c - &&
+      echo '3c45b4387da9d94d410c017063156d4059e11f282b87b1080e05724752182f5f  arttest.nav' | sha256sum -c - &&
+      for kind in base:map water:wtr nav:nav; do test ! -e /opt/eqemu/akk-stack/server/maps/${kind%%:*}/arttest.${kind##*:} || exit 1; done &&
+      sudo install -o claudeperidotadmin -g claudeperidotadmin -m 0644 arttest.map /opt/eqemu/akk-stack/server/maps/base/arttest.map &&
+      sudo install -o claudeperidotadmin -g claudeperidotadmin -m 0644 arttest.wtr /opt/eqemu/akk-stack/server/maps/water/arttest.wtr &&
+      sudo install -o claudeperidotadmin -g claudeperidotadmin -m 0644 arttest.nav /opt/eqemu/akk-stack/server/maps/nav/arttest.nav &&
+      rm -r /home/claude/arttest
+undo:
+  - via: facet run
+    host: claudeperidot
+    run: >-
+      cd /opt/eqemu/akk-stack/server/maps &&
+      echo '9e481565584330b320b08746dd11344a342d0036e35013aa932324dfbb383c2b  base/arttest.map' | sha256sum -c - &&
+      echo 'bd4cdd8ce35cb79c6bf791e39bbb2c1ad199b09d5e9847f7b881af0bff0fef0b  water/arttest.wtr' | sha256sum -c - &&
+      echo '3c45b4387da9d94d410c017063156d4059e11f282b87b1080e05724752182f5f  nav/arttest.nav' | sha256sum -c - &&
+      sudo rm -- base/arttest.map water/arttest.wtr nav/arttest.nav
+checks:
+  - via: facet run
+    host: claudeperidot
+    run: >-
+      cd /opt/eqemu/akk-stack/server/maps && sha256sum base/arttest.map water/arttest.wtr nav/arttest.nav &&
+      stat -c '%U:%G %a %n' base/arttest.map water/arttest.wtr nav/arttest.nav
+    expect: >-
+      the three hashes 9e481565584330b320b08746dd11344a342d0036e35013aa932324dfbb383c2b (base/arttest.map),
+      bd4cdd8ce35cb79c6bf791e39bbb2c1ad199b09d5e9847f7b881af0bff0fef0b (water/arttest.wtr), and
+      3c45b4387da9d94d410c017063156d4059e11f282b87b1080e05724752182f5f (nav/arttest.nav), each claudeperidotadmin:claudeperidotadmin 644
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: aad5149887b7f716f
