@@ -10,7 +10,7 @@ claudeperidot is Claude's own EQEmu server: a faithful copy of Peridot on a LAN-
 
 ## Next
 
-19. The player measurement walks: arttest from zonewright's export, with its server maps first (lab change 20261012-192523-arttestMeasurementMaps), MQClaudeLink's walk command built and recorded (step 21), then the limiting body of each group walked through the ledger [0028, 0029]
+20. The tooling graduation zone: a small zone with several kinds of objects and doors showing most of the new tools, on claudeperidot and the spare for the owner
 
 ## Steps
 
@@ -35,7 +35,7 @@ Each step is ticked when it is done. A step that names ledger changes in bracket
 - [ ] 16. Experiments through the ledger; close every session as the README says [0021, 0022, 0024]
 - [x] 17. Calibration fixture: Claudewright human with no items (0023 took back the Torch experiment 0022) [0020, 0023]
 - [x] 18. The client models proof on the spare: interiorwalltest from zonewright's export, with its server maps first (lab change 0025), each piece shot and compared with the render [0026, 0027]
-- [ ] 19. The player measurement walks: arttest from zonewright's export, with its server maps first (lab change 20261012-192523-arttestMeasurementMaps), MQClaudeLink's walk command built and recorded (step 21), then the limiting body of each group walked through the ledger [0028, 0029]
+- [x] 19. The player measurement walks: arttest from zonewright's export, with its server maps first (lab change 20261012-192523-arttestMeasurementMaps), MQClaudeLink's walk command built and recorded (step 21), then the limiting body of each group walked through the ledger [0028, 0029]
 - [ ] 20. The tooling graduation zone: a small zone with several kinds of objects and doors showing most of the new tools, on claudeperidot and the spare for the owner
 - [x] 21. MQClaudeLink 0.6 (claudelink b00e681) in the plugins folder: the walk command, and name plates hidden in the spare's process only (MacroQuest's MQCaptions off in its memory and the client's name sprites cleared each frame; screenshot hides them by default) [0030]
 
