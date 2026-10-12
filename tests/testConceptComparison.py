@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageEnhance
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import conceptComparison
+import previewFrame
 from conftest import writePNG
 from testReviewViews import crateScene
 
@@ -38,7 +39,8 @@ def testTheComparisonTellsAMatchFromADriftInColorOrInPlace(tmp_path):
   shifted.save(tmp_path / "shifted.png")
   forward = [0.0, 1.0, 0.0]
   same, drab, moved = (
-    conceptComparison.compare(tmp_path / "concept.png", tmp_path / f"{name}.png", tmp_path / f"{name}.jpg", forward, 46.5) for name in ("same", "drab", "shifted")
+    conceptComparison.compare(tmp_path / "concept.png", tmp_path / f"{name}.png", tmp_path / f"{name}.jpg", forward, previewFrame.verticalFieldOfViewDegrees)
+    for name in ("same", "drab", "shifted")
   )
   # The same picture matches on every measure.
   assert same["masses"] == {"sameThird": 1.0, "correlation": 1.0}
@@ -89,14 +91,15 @@ def testAConceptCameraRendersAtTheArtsFrameAndKeepsItsArtWhereTheWorkMoves(stage
     return tried, kept, again, rendered, centre, refusals, sheet, moved, movedAgain
 
   tried, kept, again, rendered, centre, refusals, sheet, moved, movedAgain = stageBlenderServer.session(steps)
-  # The zone is drawn at the art's aspect, 2 to 1, with the client's vertical field of view and so a wider horizontal one.
+  # The zone is drawn at the art's aspect, 2 to 1, as the RoF2 client's camera draws it: half the horizontal view 45/512 of a turn, the
+  # vertical following the aspect.
   assert tried[1]["frameSize"] == [960, 480] and Image.open(tried[1]["renderPath"]).size == (960, 480)
-  assert tried[1]["verticalFieldOfViewDegrees"] == 46.5
-  assert tried[1]["horizontalFieldOfViewDegrees"] == round(math.degrees(2 * math.atan(math.tan(math.radians(46.5) / 2) * 2)), 2)
+  assert tried[1]["horizontalFieldOfViewDegrees"] == round(2 * 45 * 360 / 512, 2)
+  assert abs(tried[1]["verticalFieldOfViewDegrees"] - math.degrees(2 * math.atan(math.tan(math.radians(45 * 360 / 512)) / 2))) < 1e-9
   # Art that is the render itself matches on every measure, and the kept camera draws that render again exactly.
   assert kept[1]["masses"] == {"sameThird": 1.0, "correlation": 1.0}
   assert kept[1]["edges"] == {"conceptEdgesMet": 1.0, "renderEdgesMet": 1.0} and kept[1]["palette"]["conceptDistance"] == 0.0
-  assert kept[1]["keptCamera"]["concept"] == {"path": str(workA / "ref" / "art.png"), "size": [960, 480], "verticalFieldOfViewDegrees": 46.5}
+  assert kept[1]["keptCamera"]["concept"] == {"path": str(workA / "ref" / "art.png"), "size": [960, 480], "verticalFieldOfViewDegrees": tried[1]["verticalFieldOfViewDegrees"]}
   assert Path(again[1]["renderPath"]).read_bytes() == Path(kept[1]["renderPath"]).read_bytes()
   assert again[1]["masses"] == kept[1]["masses"] and again[1]["keptCamera"] is None
   # renderView and pick take the kept camera's frame.

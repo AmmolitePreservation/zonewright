@@ -16,6 +16,7 @@ import clientPointLights
 import emitterParticles
 import eqEmitterDefinitions
 import eqEmitters
+import previewFrame
 
 repositoryRoot = Path(__file__).resolve().parent.parent
 everquestClient = Path(json.loads((repositoryRoot / ".mcp.json").read_text(encoding="utf-8"))["mcpServers"]["zonewright"]["env"]["EVERQUEST_CLIENT"])
@@ -344,13 +345,13 @@ def testEmittersDrawTheirParticlesWhereTheyStand(stageBlenderServer, tmp_path):
   ]
   assert without["emitters"]["emitters"] == 0
   # The flames add their light (they are additive) over the emitter, which stands in the middle of the view a unit below the eye, 8 away:
-  # its row is a quarter of the way from the middle to the bottom over the tangent of half the 46.5-degree view. They rise from it.
+  # its row is a quarter of the way from the middle to the bottom over the tangent of half the preview's vertical view. They rise from it.
   added = (numpy.asarray(Image.open(drawn["outputPath"]).convert("RGB"), dtype=numpy.float64) - numpy.asarray(Image.open(without["outputPath"]).convert("RGB"), dtype=numpy.float64)).sum(2)
   assert added.min() >= -3
   rows, columns = numpy.nonzero(added > 30)
   weights = added[rows, columns]
   height, width = added.shape
-  emitterRow = height / 2 + height / 2 * (1 / 8) / math.tan(math.radians(46.5 / 2))
+  emitterRow = height / 2 + height / 2 * (1 / 8) / math.tan(math.radians(previewFrame.verticalFieldOfViewDegrees / 2))
   assert abs(numpy.average(columns, weights=weights) - width / 2) < 0.02 * width
   assert numpy.average(rows, weights=weights) < emitterRow
   assert added.max() > 200

@@ -4,6 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 from playerScale import eyeHeight
+from previewFrame import renderHeight, verticalFieldOfViewDegrees
 
 groundSceneCode = """
 import bpy
@@ -22,8 +23,6 @@ zoneProperties = {
   "newEngineZone": False,
 }
 eyeLevelView = {"standAt": [0, 0, 0], "headingDegrees": 0, "pitchDegrees": 0}
-renderHeight = 540
-verticalFieldOfViewDegrees = 46.5
 
 
 async def buildGroundScene(session):

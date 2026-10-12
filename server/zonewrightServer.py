@@ -38,7 +38,6 @@ import eqgExport
 import eqgFiles
 import eqModels
 import eqRaces
-import eqRecording
 import eqArchive
 import eqSky
 import eqTextures
@@ -54,6 +53,7 @@ import machineProfile
 import planDrawing
 import playerReach
 import playerScale
+import previewFrame
 import recastHelper
 import serverNav
 import serverRows
@@ -290,7 +290,7 @@ def sortValue(row, sortPath):
 @guardedTool()
 def getToolingStatus():
   """Compare installed Blender and extensions with the pins in toolingManifest.json, and report the bridge, runPython use, and the
-  renderer's latest calibration against each screenshot (calibrateShot)."""
+  renderer's latest calibration run against each claudelink shot (calibrateShot)."""
   return toolingStatus.getToolingStatus(toolingRoot) | {
     "machineProfile": machineProfile.profileStatus(toolingRoot),
     "bridge": bridge.status(),
@@ -1250,6 +1250,11 @@ async def importZone(context: Context, zone: str, collection: str | None = None)
   which the client cannot load and so draws without a reflection, is drawn so and its maps listed in source.environmentMapsNotCube.
   Lights of radius 0, which light nothing in the client, are left out and named in lightsOfRadiusZero; files beside the zone that the
   client never opens (a Luclin zone's <zone>.dat) are named in filesTheClientNeverOpens."""
+  return await importClientZone(context, zone, collection)
+
+
+async def importClientZone(context, zone, collection):
+  """A client zone placed in the open scene with its lights, emitters, and zone lines, as importZone brings it."""
   placed = await placeZone(context, zone, collection)
   clientRoot = zoneSources.resolveClientRoot()
   try:
@@ -1777,159 +1782,140 @@ def passArrays(passes):
   return arrays
 
 
-# calibrateShot draws out to this, past any fog it fits or is given.
-calibrationClip = 1000000.0
-# How far from a screenshot's camera calibrateShot places what a recording shows.
-recordingReach = 1000.0
-# The recording writes -1 for a look value a spawn does not set (a non-Drakkin's tattoo, a WLD model's head override); the client reads
-# such indexes as past their count, which draws 0.
-recordedLookKeys = ("variation", "headType", "faceStyle", "hairStyle", "hairColor", "facialHair", "facialHairColor", "eyeColor1", "heritage", "tattoo", "details")
-
-
-def recordedAppearance(look):
-  appearance = {key: max(int(look[key]), 0) for key in recordedLookKeys}
-  return appearance | {"textureSet": max(int(look["textureType"]), 0)}
-
-
-async def placeRecorded(context, recordingPath, liveDumpsPath, atMilliseconds, near, radius, collection):
-  """Place the NPCs, doors, ground items, and placed objects a recording shows in its zone at a moment (within radius of near, a Blender
-  location, when given); each one that cannot be drawn is listed with why instead."""
+def readDump(dumpPath):
   try:
-    zone = await anyio.to_thread.run_sync(eqRecording.zoneAt, recordingPath, atMilliseconds)
-    sizes = await anyio.to_thread.run_sync(eqRecording.propSizes, liveDumpsPath, zone)
-  except (OSError, ValueError, KeyError) as error:
-    raise ToolError(f"{type(error).__name__}: {error}") from error
+    return eqCalibration.readFormatted(dumpPath, eqCalibration.dumpFormat)
+  except ValueError as error:
+    raise ToolError(str(error)) from error
 
-  def inReach(x, y, z):
-    return near is None or float(numpy.linalg.norm(numpy.array([y, x, z]) - numpy.array(near))) <= radius
 
+async def placeFromDump(context, dump, placements, collection):
+  """Place what a claudelink dump shows (eqCalibration.dumpPlacements) in the open scene; each one the client data cannot draw is listed
+  with why. A spawn whose scale the client's rule (spawnModel) gives otherwise than its actor holds is marked with the rule's."""
+  zone = dump["zone"]["shortName"]
+  newEngineZone = bool(dump["world"]["zoneHeader"]["newEngineZone"])
   placed, notPlaced = [], []
-  newEngine = await zoneIsNewEngine(context)
-  for npc in zone["npcs"]:
-    if not inReach(npc["x"], npc["y"], npc["z"]):
-      continue
-    look = npc["appearance"]
+  for placement in placements:
+    entry = {key: placement[key] for key in ("kind", "name", "model")}
     try:
-      spawn = await anyio.to_thread.run_sync(spawnModel, zone["zone"], look["actorDef"], npc["height"], newEngine, None, recordedAppearance(look), None)
-      location, rotation = placementFrame(None, None, npc["x"], npc["y"], npc["z"], npc["heading"])
-      await placeEQModel(context, spawn["folder"], npc["name"], location, rotation, spawn["scale"], spawn["avatarHeight"], True, collection, spawn["details"], "spawn")
-      placed.append({"kind": "npc", "name": npc["name"], "model": look["actorDef"]})
+      if placement["kind"] == "spawn":
+        spawn = await anyio.to_thread.run_sync(spawnModel, zone, placement["model"], placement["height"], newEngineZone, None, placement["appearance"], None)
+        folder, details, clientContent = spawn["folder"], spawn["details"], "spawn"
+        if abs(spawn["scale"] - placement["scale"]) > dumpScaleTolerance:
+          entry["ruleScale"] = spawn["scale"]
+      else:
+        folder, details = await anyio.to_thread.run_sync(eqModel, zone, placement["model"])
+        clientContent = "door" if placement["kind"] == "door" else "object"
+      await placeEQModel(context, folder, placement["name"], placement["position"], placement["turnDegrees"], placement["scale"], 0, False, collection, details, clientContent)
+      placed.append(entry)
     except ToolError as error:
-      notPlaced.append({"kind": "npc", "name": npc["name"], "model": look["actorDef"], "reason": str(error)})
-  for prop in zone["props"]:
-    if not inReach(prop["x"], prop["y"], prop["z"]):
-      continue
-    name = f"{prop['kind']}{prop['id']}_{prop['name']}"
-    scale, reason = eqRecording.propSize(sizes, prop)
-    if reason is not None:
-      notPlaced.append({"kind": prop["kind"], "name": name, "model": prop["name"], "reason": reason})
-      continue
-    try:
-      folder, details = await anyio.to_thread.run_sync(eqModel, zone["zone"], prop["name"])
-      location, rotation = placementFrame(None, None, prop["x"], prop["y"], prop["z"], prop["heading"])
-      await placeEQModel(context, folder, name, location, rotation, scale, 0, False, collection, details, "door" if prop["kind"] == "door" else "object")
-      placed.append({"kind": prop["kind"], "name": name, "model": prop["name"]})
-    except ToolError as error:
-      notPlaced.append({"kind": prop["kind"], "name": name, "model": prop["name"], "reason": str(error)})
-  return {"zone": zone["zone"], "server": zone["server"], "placed": placed, "notPlaced": notPlaced}
+      notPlaced.append(entry | {"reason": str(error)})
+  return placed, notPlaced
+
+
+# The dump's scales are single precision.
+dumpScaleTolerance = 1e-4
 
 
 @guardedTool()
-async def placeRecording(
-  context: Context, recordingPath: str, liveDumpsPath: str, at: str, near: list[float] | None = None, radius: float | None = None,
-  collection: str | None = None,
-):
-  """Place what a live behavior recording (MQ2PeridotLive's peridotLiveBehavior_<server>_<zone>_<instance>_<character>_<start>.txt) shows
-  in its zone at a moment: at is local time as the recording's start line writes it (YYYYMMDD-HHMMSS). NPCs stand where they last moved
-  to, in their latest look (without equipment, which is not drawn yet) and the stand pose; doors (drawn closed), ground items, and placed
-  objects take their latest state, with the scales (and ground items' tilts) the recording lacks from the live dumps' master folder
-  (liveDumpsPath, holding doors.tsv and ground.tsv). Players are left out: the recording
-  character is the camera. near ([x, y, z], Blender) and radius limit it to what stands within reach. Set the zone's newEngineZone first
-  (setZoneProperties), as for placeSpawn. Each one the client data cannot draw (live-only models are common) is listed with why."""
+async def placeDump(context: Context, dumpPath: str, near: list[float] | None = None, radius: float | None = None, collection: str | None = None):
+  """Place what a claudelink zone dump (claudelinkZoneDump 1, under %LOCALAPPDATA%\\claudelink\\dumps) shows standing in its zone, as
+  the client's scene graph held it: every spawn but the viewer (the camera), and every visible door, ground item, and placed object,
+  each at its actor's position, heading, and scale, with the model the actor draws; spawns in their look (without equipment, which is
+  not drawn yet) and the stand pose, doors closed. near ([x, y, z], Blender) and radius limit it to what stands within reach. Spawns are
+  drawn at the dump's zone's newEngineZone. Each one the client data cannot draw, and each the client draws no actor for, hides, or
+  tilts (placement turns only about Z), is listed with why; a spawn whose actor's scale differs from the client's rule for its height
+  carries the rule's as ruleScale."""
   if (near is None) != (radius is None):
     raise ToolError("near and radius go together")
-  try:
-    start = await anyio.to_thread.run_sync(eqRecording.recordingStart, recordingPath)
-    moment = datetime.datetime.strptime(at, eqRecording.timeFormat)
-  except (OSError, ValueError) as error:
-    raise ToolError(str(error)) from error
-  return await placeRecorded(context, recordingPath, liveDumpsPath, (moment - start).total_seconds() * 1000, near, radius, collection)
+  dump = await anyio.to_thread.run_sync(readDump, dumpPath)
+  placements, notPlaced = eqCalibration.dumpPlacements(dump)
+  if near is not None:
+    placements = [placement for placement in placements if math.dist(placement["position"], near) <= radius]
+  placed, failed = await placeFromDump(context, dump, placements, collection)
+  return {"zone": dump["zone"]["shortName"], "capturedAt": dump["capturedAt"], "placed": placed, "notPlaced": notPlaced + failed}
+
+
+# The sheet returns inline as a JPEG, well inside the MCP output limits.
+sheetQuality = 90
+calibrationPasses = ["lit", "base", "normal", "baked", "share", "pointLight", "visibility"]
 
 
 @guardedTool()
-async def calibrateShot(
-  context: Context, screenshotPath: str, zone: str, newEngineZone: bool, fogColor: list[float] | None = None, fogStart: float | None = None,
-  fogEnd: float | None = None, fogDensity: float | None = None, recordingPath: str | None = None, liveDumpsPath: str | None = None,
-  discardUnsavedChanges: bool = False,
-):
-  """Calibrate the renderer against a live client screenshot named <zone>,<loc y>,<loc x>,<loc z>,<compass heading>,<pitch>.jpg (see the
-  calibrate-renderer skill). Opens a new file (discarding unsaved changes only with discardUnsavedChanges), imports zone (the client's
-  zone file name), renders the screenshot's view, fits the scene light (ambient, sun, bounce, sun direction) that best explains the
-  screenshot under the client's lighting, renders with it, and returns the screenshot beside the render. Give the fog from the zone
-  header (the live dumps' zoneHeaders; density 0 for a zone whose FogOnOff is 0), all four values; with none given, the fog's start,
-  end, and color are fitted with the light, at the client's density. Give recordingPath, a live behavior recording of the zone running
-  when the screenshot was taken, and liveDumpsPath to place what stood within recordingReach of the camera at that moment (see
-  placeRecording). Each run is
-  kept under the tooling root's calibration folder with its fit and mean pixel difference, and getToolingStatus lists the latest per
-  screenshot."""
+async def calibrateShot(context: Context, screenshotPath: str, fitLight: bool = False, discardUnsavedChanges: bool = False):
+  """Calibrate the renderer against a claudelink shot of the spare RoF2 client (see the calibrate-renderer skill): screenshotPath is
+  the shot's PNG, beside its sidecar (<shot>.json), which names the zone dump taken in the same frame. Refuses a shot whose sidecar and
+  dump do not pair (paths and capture time), taken under 100 fps or with MacroQuest's frame limiter throttling, or whose PNG is not the
+  client area the sidecar records. Opens a new file (discarding unsaved changes only with discardUnsavedChanges), imports the dump's
+  zone as importZone does, sets the zone from the dump (the sky at its game time, the zone header's fog and clips, newEngineZone, short
+  name, and id, and the viewer's special ambient from its actor's share of scene light), places what stands in view as placeDump does
+  (in "<zone> dump"), and predicts the shot without fitting anything: renders the dump's camera exactly (eye, heading, pitch; a frame at
+  the viewport's aspect whose field of view the camera's half view angle and viewAngleRatio give) with the light the viewer carries
+  where the client put it. Returns a sheet of the shot cropped to the viewport beside the render, over their difference (amplified 4
+  times) and a map of the difference per 32-pixel block (black 0 through red and yellow to white at 64 of 255), with the mean
+  difference (of 255) over the zone's drawn pixels, over the sky, and over all. fitLight also fits the ambient, sun, and bounce colors
+  and sun direction that best explain the shot (least squares, the rest of the light and the fog as predicted) and reports them beside
+  the sky's prediction, a diagnostic. Each run is kept under the tooling root's calibration\\<shot>\\<run> with its pictures, the
+  conditions it was taken under (game time, weather, light, settings), and the renderer's source hash; getToolingStatus lists each
+  shot's latest run."""
   try:
-    shot = eqCalibration.parseShotName(screenshotPath)
+    sidecar, dump = await anyio.to_thread.run_sync(eqCalibration.readShot, screenshotPath)
+    view = eqCalibration.cameraView(dump["camera"])
+    frame = eqCalibration.clientFrame(dump["camera"], dump["viewport"])
+    viewed = eqCalibration.viewer(dump)
+    updates = eqCalibration.zoneProperties(dump, viewed["specialAmbientColor"])
+    carried = eqCalibration.carriedLight(dump)
   except ValueError as error:
     raise ToolError(str(error)) from error
-  if not Path(screenshotPath).is_file():
-    raise ToolError(f"No screenshot at {screenshotPath}")
-  fogGiven = [value is not None for value in (fogColor, fogStart, fogEnd, fogDensity)]
-  if any(fogGiven) and not all(fogGiven):
-    raise ToolError("Give all of fogColor, fogStart, fogEnd, and fogDensity (the zone header's fog), or none to fit the fog")
-  view = eqCalibration.shotView(shot)
+  zone = dump["zone"]["shortName"]
   await callBridge(context, "newFile", {"discardUnsavedChanges": discardUnsavedChanges})
-  imported = await placeZone(context, zone, None)
-  neutral = {"ambientColor": [1, 1, 1], "specialAmbientColor": [0, 0, 0], "bounceColor": [0, 0, 0], "sunColor": [0, 0, 0], "sunAzimuthDegrees": 0, "sunElevationDegrees": 45}
-  # The fog is used as given or fitted, without the client's pull-in at the far clip: calibration views stay well inside it.
-  if all(fogGiven):
-    environment = {"fogColor": fogColor, "fogStart": fogStart, "fogEnd": fogEnd, "fogDensity": fogDensity, "fogOn": True, "maxClip": calibrationClip, "newEngineZone": newEngineZone}
-  else:
-    environment = {"fogColor": [0, 0, 0], "fogStart": 0, "fogEnd": 100000, "fogDensity": 0, "fogOn": True, "maxClip": calibrationClip, "newEngineZone": newEngineZone}
-  await callBridge(context, "setZoneProperties", {"updates": neutral | environment})
-  recorded = None
-  if (recordingPath is None) != (liveDumpsPath is None):
-    raise ToolError("recordingPath and liveDumpsPath go together")
-  if recordingPath is not None:
-    try:
-      start = await anyio.to_thread.run_sync(eqRecording.recordingStart, recordingPath)
-    except (OSError, ValueError) as error:
-      raise ToolError(str(error)) from error
-    # The screenshot's file time is when the client took it.
-    taken = datetime.datetime.fromtimestamp(Path(screenshotPath).stat().st_mtime)
-    recorded = await placeRecorded(context, recordingPath, liveDumpsPath, (taken - start).total_seconds() * 1000, view["eye"], recordingReach, None)
+  imported = await importClientZone(context, zone, None)
+  stored = await callBridge(context, "setZoneProperties", {"updates": updates, "clientZones": await clientZoneIDs()})
+  placements, notPlaced = eqCalibration.dumpPlacements(dump)
+  shown = eqCalibration.withinView([placement["position"] for placement in placements], view, frame, dump["camera"]["farClip"]).tolist() if placements else []
+  outOfView = [placement for placement, inView in zip(placements, shown) if not inView]
+  placed, failed = await placeFromDump(context, dump, [placement for placement, inView in zip(placements, shown) if inView], f"{zone} dump")
   runFolder = toolingRoot / "calibration" / Path(screenshotPath).stem / datetime.datetime.now(datetime.UTC).strftime("%Y%m%d-%H%M%S")
   runFolder.mkdir(parents=True, exist_ok=True)
-  measured = passArrays((await callBridge(context, "renderPasses", {"view": view, "outputFolder": str(runFolder), "passNames": ["lit", "base", "normal", "baked", "share", "distance"], "sky": None}))["passes"])
-  height, width = measured["lit"].shape[:2]
-  screen = await anyio.to_thread.run_sync(eqCalibration.screenshotPixels, screenshotPath, width, height)
-  givenFog = {"fogStart": fogStart, "fogEnd": fogEnd, "fogDensity": fogDensity} if all(fogGiven) else None
+  sky = await zoneSky(stored["zone"])
+  renderPath = runFolder / "render.png"
+  described = await callBridge(context, "renderView", {
+    "view": view, "outputPath": str(renderPath), "figureModel": None, "shading": "client", "bandHeight": 50.0, "guides": False, "sky": sky,
+    "swimVolumes": False, "labels": None, "emitters": await previewEmitterAssets(), "frame": frame, "carriedLight": carried,
+  })
+  passes = passArrays((await callBridge(context, "renderPasses", {
+    "view": view, "outputFolder": str(runFolder), "passNames": calibrationPasses if fitLight else ["lit"], "sky": sky, "frame": frame, "carriedLight": carried,
+  }))["passes"])
+
+  def compare():
+    screen = eqCalibration.viewportPixels(screenshotPath, dump["viewport"], frame["size"])
+    numbers, blocks, pictures = eqCalibration.comparison(screen, eqCalibration.renderPixels(renderPath), passes["lit"][..., 3] > 0.5)
+    eqCalibration.toImage(screen).save(runFolder / "shot.png")
+    pictures.pop("sheet").save(runFolder / "sheet.jpg", quality=sheetQuality)
+    for name, picture in pictures.items():
+      picture.save(runFolder / f"{name}.png")
+    numpy.save(runFolder / "blocks.npy", blocks)
+    return numbers, eqCalibration.fitLight(screen, passes, stored["zone"] | sky["environment"]) if fitLight else None
+
   try:
-    fit = await anyio.to_thread.run_sync(eqCalibration.fitScene, screen, measured, givenFog)
+    numbers, fitted = await anyio.to_thread.run_sync(compare)
   except ValueError as error:
     raise ToolError(str(error)) from error
-  lightingKeys = ("ambientColor", "specialAmbientColor", "bounceColor", "sunColor", "sunAzimuthDegrees", "sunElevationDegrees")
-  if givenFog is None:
-    environment |= {key: fit[key] for key in ("fogColor", "fogStart", "fogEnd", "fogDensity")}
-  await callBridge(context, "setZoneProperties", {"updates": {key: fit[key] for key in lightingKeys} | environment})
-  rendered = passArrays((await callBridge(context, "renderPasses", {"view": view, "outputFolder": str(runFolder), "passNames": ["lit"], "sky": None}))["passes"])["lit"]
-  background = numpy.concatenate([numpy.array(environment["fogColor"]), [1.0]])
-  composited = rendered * rendered[..., 3:4] + background * (1 - rendered[..., 3:4])
-  image, difference = eqCalibration.comparison(screen, numpy.concatenate([composited[..., :3], rendered[..., 3:4]], axis=2))
-  comparePath = runFolder / "compare.png"
-  image.save(comparePath)
+  finally:
+    for name in calibrationPasses:
+      (runFolder / f"{name}.npy").unlink(missing_ok=True)
   result = {
-    "screenshot": Path(screenshotPath).name, "zone": zone, "view": view, "fit": fit, "meanPixelDifference": difference, "environment": environment,
-    "comparePath": str(comparePath), "time": runFolder.name,
+    "shot": Path(screenshotPath).name, "zone": zone, "run": runFolder.name, "screenshotPath": str(Path(screenshotPath).resolve()), "dumpPath": sidecar["dump"],
+    "capturedAt": dump["capturedAt"], "view": view, "frame": frame, "conditions": eqCalibration.conditions(dump, sidecar, stored["zone"]["sky"], carried, viewed),
+    "zoneProperties": updates, "rendererSource": eqCalibration.rendererSource(serverDirectory), "comparison": numbers, "fitLight": fitted,
+    "placed": placed, "notPlaced": notPlaced + failed, "outOfView": [placement["name"] for placement in outOfView], "dumpProblems": dump["problems"],
+    "pointLights": described["pointLights"], "emitters": described["emitters"], "sheetPath": str(runFolder / "sheet.jpg"), "runFolder": str(runFolder),
   }
   (runFolder / "result.json").write_text(json.dumps(result, indent=1), encoding="utf-8")
-  preview = io.BytesIO()
-  image.resize((image.width * 2 // 3, image.height * 2 // 3)).save(preview, format="PNG")
-  return [Image(data=preview.getvalue(), format="png"), result | {"import": imported["source"], "recorded": recorded}]
+  summary = {key: value for key, value in result.items() if key not in ("placed", "outOfView")} | {
+    "placed": len(placed), "outOfView": len(outOfView), "import": imported["source"],
+  }
+  return [Image(data=(runFolder / "sheet.jpg").read_bytes(), format="jpeg"), summary]
 
 
 @guardedTool()
@@ -3000,11 +2986,12 @@ async def viewFromLane(context: Context, target: str | list[float] | None = None
 @guardedTool()
 async def compareToConcept(
   context: Context, camera: str | None = None, concept: str | None = None, view: dict | None = None,
-  verticalFieldOfViewDegrees: float = 46.5, saveAs: str | None = None, note: str | None = None, guides: bool = True,
+  verticalFieldOfViewDegrees: float | None = None, saveAs: str | None = None, note: str | None = None, guides: bool = True,
   carriedLight: dict | None = None,
 ):
   """Compare concept art with the zone seen as the art sees it, as an artist checks work against the art: the zone rendered at the art's
-  aspect with a vertical field of view of verticalFieldOfViewDegrees (the client's is 46.5), beside the art; the art at half over the
+  aspect with a vertical field of view of verticalFieldOfViewDegrees (by default the RoF2 client's at the art's aspect: half its
+  horizontal view 45/512 of a turn, the vertical following the aspect), beside the art; the art at half over the
   render with the render's eye level drawn, for matching the camera to the art's horizon and framing; both squinted into their dark,
   middle, and light thirds, with where the render's masses are lighter or darker; their strongest edges (the big forms' outlines) over each
   other; and their palettes. The numbers: the share of the picture in the same third and the masses' correlation, the share of each one's
@@ -3036,7 +3023,8 @@ async def compareToConcept(
       size = conceptComparison.renderSize(conceptPath)
     except (ValueError, OSError) as error:
       raise ToolError(f"The concept art cannot be read: {error}") from error
-    fieldOfView, renderedView = verticalFieldOfViewDegrees, view
+    fieldOfView = previewFrame.verticalFieldOfView(previewFrame.clientHalfViewAngle, size[0] / size[1]) if verticalFieldOfViewDegrees is None else verticalFieldOfViewDegrees
+    renderedView = view
     frame = {"size": size, "verticalFieldOfViewDegrees": fieldOfView}
   zone = await callBridge(context, "getZoneProperties", {})
   sky = await zoneSky(zone)

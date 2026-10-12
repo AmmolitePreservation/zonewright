@@ -1,16 +1,11 @@
 import io
 import math
-import sys
-from pathlib import Path
 
 import numpy
 from PIL import Image
 import pytest
 
 from conftest import writePNG
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
-import eqCalibration
 
 texture = (200, 150, 100, 255)
 environment = {
@@ -239,67 +234,6 @@ def testImportZoneBringsAnEQGZonesZoneLinesAsGuides(stageBlenderServer):
   # The plan at 1.6 pixels a unit, north (+X) up: inside ATP_2_ at (2160, -712), clear of its name, the guide tints the tube green.
   red, green, _ = (inGuide - inBare for inGuide, inBare in zip(pixelAt(plan, 692, 327), pixelAt(bare, 692, 327)))
   assert green - red > 30, (pixelAt(plan, 692, 327), pixelAt(bare, 692, 327))
-
-
-@pytest.mark.clientData("calibration")
-def testCalibrationRecoversTheLightOfAKnownShot(stageBlenderServer, tmp_path):
-  shotName = "poknowledge,396.22,-192.08,-156.87,73.44,12.48"
-  known = environment | {"ambientColor": [0.35, 0.4, 0.6], "specialAmbientColor": [0, 0, 0], "bounceColor": [0, 0, 0], "sunColor": [0.3, 0.25, 0.1], "sunAzimuthDegrees": 120, "sunElevationDegrees": 40}
-
-  async def steps(session):
-    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
-    await session.expectSuccess("importZone", {"zone": "poknowledge"})
-    await session.expectSuccess("setZoneProperties", known)
-    image, _ = await session.expectImage("renderView", {"view": eqCalibration.shotView(eqCalibration.parseShotName(shotName + ".jpg"))})
-    (tmp_path / "shot.png").write_bytes(image)
-    Image.open(tmp_path / "shot.png").convert("RGB").save(tmp_path / f"{shotName}.jpg", quality=95)
-    calibrated = await session.expectImage("calibrateShot", {
-      "screenshotPath": str(tmp_path / f"{shotName}.jpg"), "zone": "poknowledge", "newEngineZone": False, "fogColor": known["fogColor"],
-      "fogStart": known["fogStart"], "fogEnd": known["fogEnd"], "fogDensity": 0, "discardUnsavedChanges": True,
-    })
-    return calibrated, await session.expectSuccess("getToolingStatus")
-
-  (_, result), status = stageBlenderServer.session(steps)
-  fit = result["fit"]
-  # A shot drawn by the renderer itself, through JPEG: the fit finds its ambient and sun and redraws it within a few levels.
-  for key in ("ambientColor", "sunColor"):
-    for measured, expected in zip(fit[key], known[key]):
-      assert abs(measured - expected) <= 0.05, (key, fit[key], known[key])
-  assert result["meanPixelDifference"] < 3
-  assert Path(result["comparePath"]).is_file()
-  # The run is tracked: tooling status lists the screenshot's latest calibration.
-  assert [(entry["screenshot"], entry["runs"], entry["meanPixelDifference"]) for entry in status["calibration"]] == [(f"{shotName}.jpg", 1, result["meanPixelDifference"])]
-
-
-@pytest.mark.clientData("calibration")
-def testCalibrationFitsTheFogOfAShotWithoutAZoneHeader(stageBlenderServer, tmp_path):
-  shotName = "poknowledge,396.22,-192.08,-156.87,73.44,12.48"
-  known = environment | {
-    "ambientColor": [0.5, 0.5, 0.55], "specialAmbientColor": [0, 0, 0], "bounceColor": [0, 0, 0], "sunColor": [0.3, 0.3, 0.25], "sunAzimuthDegrees": 120,
-    "sunElevationDegrees": 40, "fogColor": [0.6, 0.65, 0.75], "fogStart": 50, "fogEnd": 600, "fogDensity": 0.33, "fogOn": True, "maxClip": 1200,
-  }
-
-  async def steps(session):
-    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
-    await session.expectSuccess("importZone", {"zone": "poknowledge"})
-    await session.expectSuccess("setZoneProperties", known)
-    image, _ = await session.expectImage("renderView", {"view": eqCalibration.shotView(eqCalibration.parseShotName(shotName + ".jpg"))})
-    (tmp_path / "shot.png").write_bytes(image)
-    Image.open(tmp_path / "shot.png").convert("RGB").save(tmp_path / f"{shotName}.jpg", quality=95)
-    return await session.expectImage("calibrateShot", {
-      "screenshotPath": str(tmp_path / f"{shotName}.jpg"), "zone": "poknowledge", "newEngineZone": False, "discardUnsavedChanges": True,
-    })
-
-  _, result = stageBlenderServer.session(steps)
-  fit = result["fit"]
-  # With no zone header given, the fog is fitted at the client's density alongside the light, and the redraw matches the shot. Where
-  # no surface in view is fully fogged, a slightly nearer fog end with a slightly darker fog color draws nearly the same image, so
-  # the color is held to 0.08.
-  for measured, expected in zip(fit["fogColor"], known["fogColor"]):
-    assert abs(measured - expected) <= 0.08, (fit["fogColor"], known["fogColor"])
-  assert abs(fit["fogStart"] - known["fogStart"]) <= 60
-  assert abs(fit["fogEnd"] - known["fogEnd"]) <= 120
-  assert result["meanPixelDifference"] < 4
 
 
 @pytest.mark.clientData("clientFiles")

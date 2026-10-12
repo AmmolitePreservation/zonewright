@@ -363,8 +363,8 @@ def pick(view, pixel, sky):
   return bridgeViews.pick(bpy.context.scene, previewZone(sky), view, pixel)
 
 
-def renderPasses(view, outputFolder, passNames, sky):
-  return bridgeViews.renderPasses(bpy.context.scene, previewZone(sky), view, outputFolder, passNames)
+def renderPasses(view, outputFolder, passNames, sky, frame=None, carriedLight=None):
+  return bridgeViews.renderPasses(bpy.context.scene, previewZone(sky), view, outputFolder, passNames, frame, carriedLight)
 
 
 commands = {

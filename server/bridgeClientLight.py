@@ -8,7 +8,7 @@ import bpy
 
 groupName = "eqClientLight"
 # Raised whenever buildGroup changes, so a group saved in an older .blend is rebuilt in place.
-groupVersion = 12
+groupVersion = 13
 bakedAttribute = "eqColor"
 # The share of scene light a cave's lining does not take (1 less its daylight), which a preview puts on the copy it draws a terrain
 # holding daylit caves from (bridgeCaveLight); a surface without it reads none, and so takes its full share.
@@ -27,8 +27,9 @@ environmentValues = ("fogStart", "fogEnd", "fogDensity")
 # eqgame.exe pulls a fog end that reaches the far clip back to this share of the clip's distance past the fog start (0x48ac00).
 fogPullIn = 0.15
 # What the group outputs: the drawn color, or one of its inputs for calibration (bridgeViews.renderPasses). The render keeps only values
-# of 0 or more, so the normal pass holds normal * 0.5 + 0.5; the distance pass holds the distance from the camera.
-passes = ("lit", "base", "normal", "baked", "share", "distance")
+# of 0 or more, so the normal pass holds normal * 0.5 + 0.5; the distance pass holds the distance from the camera, the pointLight pass
+# the point lights' light, and the visibility pass the share of the color the fog leaves.
+passes = ("lit", "base", "normal", "baked", "share", "distance", "pointLight", "visibility")
 
 
 def towardSun(azimuthDegrees, elevationDegrees):
@@ -142,9 +143,15 @@ def buildGroup(tree):
     halves.inputs[axis].default_value = 0.5
   encodedNormal = build.vectorMath("ADD", build.scale(normal, build.math("ADD", 0.5, 0.0)), halves.outputs["Vector"])
   distanceColor = build.node("ShaderNodeCombineXYZ")
+  visibilityColor = build.node("ShaderNodeCombineXYZ")
   for axis in "XYZ":
     tree.links.new(distance, distanceColor.inputs[axis])
-  for index, passOutput in enumerate((inputs["Base"], encodedNormal, inputs["Baked"], shareColor.outputs["Vector"], distanceColor.outputs["Vector"]), 1):
+    tree.links.new(visibility, visibilityColor.inputs[axis])
+  passOutputs = (
+    inputs["Base"], encodedNormal, inputs["Baked"], shareColor.outputs["Vector"], distanceColor.outputs["Vector"], pointLight.outputs["Color"],
+    visibilityColor.outputs["Vector"],
+  )
+  for index, passOutput in enumerate(passOutputs, 1):
     choose = build.node("ShaderNodeMix", data_type="RGBA")
     colorInputs = [socket for socket in choose.inputs if socket.type == "RGBA"]
     tree.links.new(build.math("COMPARE", passSelect, float(index)), choose.inputs["Factor"])

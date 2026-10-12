@@ -79,6 +79,18 @@ def carriedLight(lightType, at, headingDegrees, zoneId):
   }
 
 
+def carriedLightAt(lightType, position, radius, zoneId):
+  """The light the viewing character carries, standing where the client put it (a claudelink dump's CPointLight position, Blender
+  axes): its light type's definition color, and its reach, which must be the radius the client gave it."""
+  if lightType not in carriedLightTypes:
+    raise ValueError(f"A carried light type is one of {sorted(carriedLightTypes)} (0 carries none), got {lightType!r}")
+  definition, reach = carriedLightTypes[lightType]
+  expected = min(reach, carriedLightReachCaps.get(zoneId, carriedLightReachCap))
+  if radius != expected:
+    raise ValueError(f"The client gave carried light type {lightType} a radius of {radius} in zone {zoneId}, where its definition and the zone's cap give {expected}")
+  return {"name": f"carried {definition}", "position": list(position), "color": list(carriedLightColors[definition]), "radius": radius, "carriedByViewer": True}
+
+
 def reachesBox(light, low, high):
   """Whether a light's sphere of influence reaches a box: the test this preview takes for the dPVS region of influence the client
   makes of each light, whose own test is not traced."""

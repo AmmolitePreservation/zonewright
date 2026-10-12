@@ -930,21 +930,28 @@ def viewPose(sourceScene, zone, view, figureModel):
     preview.remove()
 
 
-def renderPasses(sourceScene, zone, view, outputFolder, passNames):
+def renderPasses(sourceScene, zone, view, outputFolder, passNames, frame=None, carriedLight=None):
   """Render a view once per named bridgeClientLight pass as raw floats (numpy .npy, rows top to bottom, RGBA, alpha 0 where nothing
-  is drawn) for calibration: the drawn color (lit), the base (texture) color, the normal, the baked light, and the share of scene
-  light."""
+  is drawn) for calibration: the drawn color (lit), the base (texture) color, the normal, the baked light, the share of scene light,
+  the distance, the point lights' light, and the fog's visibility, at frame ({size, verticalFieldOfViewDegrees}, the preview's own when
+  None), with the zone's point lights and the light the view's character carries (a clientPointLights.carriedLight record, or None)
+  drawn as a client-shaded view draws them."""
   unknown = sorted(set(passNames) - set(bridgeClientLight.passes))
   if unknown:
     raise ValueError(f"Unknown passes {unknown}; known: {list(bridgeClientLight.passes)}")
   preview = PreviewScene(sourceScene, zone)
   written = {}
   try:
+    if frame is not None:
+      preview.setFrame(requireFrame(frame))
     description = placeCamera(preview, view, None)
+    bridgeCaveLight.applyDaylight(preview)
+    description["pointLights"] = bridgePointLights.applyPointLights(preview, sourceScene, [] if carriedLight is None else [carriedLight])
     preview.scene.render.film_transparent = True
     preview.scene.render.image_settings.file_format = "OPEN_EXR"
     preview.scene.render.image_settings.color_mode = "RGBA"
     preview.scene.render.image_settings.color_depth = "32"
+    width, height = preview.frameSize()
     for passName in passNames:
       bridgeClientLight.selectPass(passName)
       exrPath = os.path.join(outputFolder, f"{passName}.exr")
@@ -957,7 +964,7 @@ def renderPasses(sourceScene, zone, view, outputFolder, passNames):
       finally:
         bpy.data.images.remove(image)
       arrayPath = os.path.join(outputFolder, f"{passName}.npy")
-      numpy.save(arrayPath, pixels.reshape(renderHeight, renderWidth, 4)[::-1])
+      numpy.save(arrayPath, pixels.reshape(height, width, 4)[::-1])
       os.remove(exrPath)
       written[passName] = arrayPath
   finally:

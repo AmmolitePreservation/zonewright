@@ -55,7 +55,7 @@ heavyGroups = {
     "eqgFiles", "eqgSkeletons", "eqgTerrain", "loadTimeLight", "zoneGeometry", "zoneSources", "playerScale", "machineProfile", "toolingManifest",
   )} | {(zoneSurveySkill / "SKILL.md").as_posix()},
   "clientFiles": clientZoneFiles,
-  "calibration": clientZoneFiles | {"server/eqCalibration.py"},
+  "calibration": clientZoneFiles | {f"server/{name}.py" for name in ("eqCalibration", "previewFrame", "clientPointLights", "bridgeViews", "bridgePointLights")},
   "serverMaps": {f"server/{name}.py" for name in (
     "serverMapFiles", "serverMapDrawing", "eqAxes", "eqgFiles", "eqArchive", "playerReach", "laneDrawing", "planDrawing", "playerScale",
     "buildTolerances", "checkpoints", "serverNav", "viewSheets",
