@@ -10,7 +10,7 @@ claudeperidot is Claude's own EQEmu server: a faithful copy of Peridot on a LAN-
 
 ## Next
 
-18. The client models proof on the spare: interiorwalltest from zonewright's export, with its server maps first (lab change 0025), each piece shot and compared with the render [0026, 0027]
+19. The player measurement walks: arttest from zonewright's export, with its server maps first (lab change 20261012-192523-arttestMeasurementMaps), MQClaudeLink's walk command built and recorded (step 21), then the limiting body of each group walked through the ledger [0028, 0029]
 
 ## Steps
 
@@ -34,7 +34,7 @@ Each step is ticked when it is done. A step that names ledger changes in bracket
 - [x] 15. Retire the EQBCS route for Claude's work once a claudelink shot matches one of the owner's screenshots (2026-10-11): after the loader restart the spare shot with the limiter suspended at 186 to 226 fps (the client's own cap of 100 does not hold it there); Highpass Hold EQ000005 retaken at 9:32, weather clear, the dump's camera row: mean absolute difference about 4 levels, and the mist at the falls' foot, missing from the 3 fps shot, matches the owner's. The EQBCS route is retired for Claude's work
 - [ ] 16. Experiments through the ledger; close every session as the README says [0021, 0022, 0024]
 - [x] 17. Calibration fixture: Claudewright human with no items (0023 took back the Torch experiment 0022) [0020, 0023]
-- [ ] 18. The client models proof on the spare: interiorwalltest from zonewright's export, with its server maps first (lab change 0025), each piece shot and compared with the render [0026, 0027]
+- [x] 18. The client models proof on the spare: interiorwalltest from zonewright's export, with its server maps first (lab change 0025), each piece shot and compared with the render [0026, 0027]
 - [ ] 19. The player measurement walks: arttest from zonewright's export, with its server maps first (lab change 20261012-192523-arttestMeasurementMaps), MQClaudeLink's walk command built and recorded (step 21), then the limiting body of each group walked through the ledger [0028, 0029]
 - [ ] 20. The tooling graduation zone: a small zone with several kinds of objects and doors showing most of the new tools, on claudeperidot and the spare for the owner
 - [x] 21. MQClaudeLink 0.6 (claudelink b00e681) in the plugins folder: the walk command, and name plates hidden in the spare's process only (MacroQuest's MQCaptions off in its memory and the client's name sprites cleared each frame; screenshot hides them by default) [0030]
