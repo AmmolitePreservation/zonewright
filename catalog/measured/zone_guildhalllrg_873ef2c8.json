@@ -5,25 +5,37 @@
  "assets": {
   "model/obj_drwynew.mod@37f467f0": {
    "archive": "guildhalllrg.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_intdoor.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.82,
+     -9.79,
+     -10.28
+    ],
+    [
+     4.82,
+     9.79,
+     11.56
+    ]
+   ],
+   "bytes": 29935,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_colblk.dds",
-      "e_TextureNormal0": "gh_colblk_n10.dds"
-     }
+     "color": "orange",
+     "share": 0.563
     },
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_trima.dds",
-      "e_TextureNormal0": "gh_trima_n4.dds"
-     }
-    },
+     "color": "grey",
+     "share": 0.437
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "marbleplain",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -32,126 +44,79 @@
      }
     },
     {
+     "name": "columntrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
       "e_TextureDiffuse0": "gh_trimb.dds",
       "e_TextureNormal0": "gh_trimb_n4.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_flra.dds",
-      "e_TextureNormal0": "gh_flra_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_walldeta.dds",
-      "e_TextureNormal0": "gh_walldeta_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "sp_grate.dds",
-      "e_TextureNormal0": "sp_grate_2ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallmarble.dds",
-      "e_TextureNormal0": "gh_wallmarble_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallplain.dds",
-      "e_TextureNormal0": "gh_wallplain_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_trimext.dds",
-      "e_TextureNormal0": "gh_trimext_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "di_tak_wall_bronze.dds",
-      "e_TextureNormal0": "di_tak_wall_bronze10ns.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {}
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "di_tak_wall_accent.dds",
-      "e_TextureNormal0": "di_tak_wall_accent_10n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "sarith_grass_a_c.dds",
-      "e_TextureNormal0": "di_tak_wall_plain_8n.dds"
-     }
     }
    ],
+   "entry": "obj_drwynew.mod",
+   "footprint": 188.9,
+   "kind": "model",
    "name": "obj_drwynew.mod",
+   "origin": "center",
    "placements": 22,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "37f467f09168913bde6bce19ff8bfa1ec84ac777bce43f98b15f3374624a63d5",
+   "sits": {
+    "upright": 22
+   },
    "size": [
-    9.6,
-    19.6,
-    21.8
+    9.64,
+    19.59,
+    21.84
    ],
    "skinned": false,
+   "textureShares": {
+    "gh_trimb.dds": 0.563,
+    "gh_wallplain.dds": 0.437
+   },
+   "textures": [
+    "gh_trimb.dds",
+    "gh_trimb_n4.dds",
+    "gh_wallplain.dds",
+    "gh_wallplain_n10.dds",
+    "marr_coverage2.dds"
+   ],
    "triangles": 250
   },
   "model/obj_drwytopbackrm.mod@c2d5d164": {
    "archive": "guildhalllrg.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -16.76,
+     -9.79,
+     -10.28
+    ],
+    [
+     4.82,
+     9.79,
+     11.56
+    ]
+   ],
+   "bytes": 31879,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.618
+    },
+    {
+     "color": "orange",
+     "share": 0.382
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "marbleblock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -160,14 +125,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_trima.dds",
-      "e_TextureNormal0": "gh_trima_n4.dds"
-     }
-    },
-    {
+     "name": "marbleplain",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -176,134 +134,82 @@
      }
     },
     {
+     "name": "columntrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
       "e_TextureDiffuse0": "gh_trimb.dds",
       "e_TextureNormal0": "gh_trimb_n4.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_flra.dds",
-      "e_TextureNormal0": "gh_flra_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_walldeta.dds",
-      "e_TextureNormal0": "gh_walldeta_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "sp_grate.dds",
-      "e_TextureNormal0": "sp_grate_2ns.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallmarble.dds",
-      "e_TextureNormal0": "gh_wallmarble_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallplain.dds",
-      "e_TextureNormal0": "gh_wallplain_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_trimext.dds",
-      "e_TextureNormal0": "gh_trimext_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "di_tak_wall_bronze.dds",
-      "e_TextureNormal0": "di_tak_wall_bronze10ns.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {}
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "di_tak_wall_accent.dds",
-      "e_TextureNormal0": "di_tak_wall_accent_10n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "sarith_grass_a_c.dds",
-      "e_TextureNormal0": "di_tak_wall_plain_8n.dds"
-     }
     }
    ],
+   "entry": "obj_drwytopbackrm.mod",
+   "footprint": 422.8,
+   "kind": "model",
    "name": "obj_drwytopbackrm.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "c2d5d16454e49b4ffb0b8e7e0a9805e35fe89de846a5b9038c7ed46d51f75343",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    21.6,
-    19.6,
-    21.8
+    21.58,
+    19.59,
+    21.84
    ],
    "skinned": false,
+   "textureShares": {
+    "gh_colblk.dds": 0.244,
+    "gh_trimb.dds": 0.382,
+    "gh_wallplain.dds": 0.374
+   },
+   "textures": [
+    "gh_colblk.dds",
+    "gh_colblk_n10.dds",
+    "gh_trimb.dds",
+    "gh_trimb_n4.dds",
+    "gh_wallplain.dds",
+    "gh_wallplain_n10.dds",
+    "marr_coverage2.dds"
+   ],
    "triangles": 268
   },
   "model/obj_frontentrance.mod@b2774234": {
    "archive": "guildhalllrg.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -0.13,
+     -6.46,
+     -8.76
+    ],
+    [
+     0.13,
+     6.46,
+     8.76
+    ]
+   ],
+   "bytes": 40447,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_colblk.dds",
-      "e_TextureNormal0": "gh_colblk_n10.dds"
-     }
+     "color": "orange",
+     "share": 0.55
     },
     {
+     "color": "tan",
+     "share": 0.449
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "marbletrim01",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -312,38 +218,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallplain.dds",
-      "e_TextureNormal0": "gh_wallplain_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_trimb.dds",
-      "e_TextureNormal0": "gh_trimb_n4.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_flra.dds",
-      "e_TextureNormal0": "gh_flra_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_walldeta.dds",
-      "e_TextureNormal0": "gh_walldeta_n10.dds"
-     }
-    },
-    {
+     "name": "ceiling01",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -352,102 +227,82 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallmarble.dds",
-      "e_TextureNormal0": "gh_wallmarble_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallplain.dds",
-      "e_TextureNormal0": "gh_wallplain_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_trimext.dds",
-      "e_TextureNormal0": "gh_trimext_n10.dds"
-     }
-    },
-    {
+     "name": "metalroof",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
       "e_TextureDiffuse0": "di_tak_wall_bronze.dds",
       "e_TextureNormal0": "di_tak_wall_bronze10ns.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {}
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "di_tak_wall_accent.dds",
-      "e_TextureNormal0": "di_tak_wall_accent_10n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "sarith_grass_a_c.dds",
-      "e_TextureNormal0": "di_tak_wall_plain_8n.dds"
-     }
     }
    ],
+   "entry": "obj_frontentrance.mod",
+   "footprint": 3.3,
+   "kind": "model",
    "name": "obj_frontentrance.mod",
+   "origin": "wallBack",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "b277423420be5ef2c4101f34222a43d043e68b073605d8a7bc5b0074a4810747",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    0.3,
-    12.9,
-    17.5
+    0.26,
+    12.92,
+    17.53
    ],
    "skinned": false,
+   "textureShares": {
+    "di_tak_wall_bronze.dds": 0.038,
+    "gh_trima.dds": 0.512,
+    "sp_grate.dds": 0.449
+   },
+   "textures": [
+    "di_tak_wall_bronze.dds",
+    "di_tak_wall_bronze10ns.dds",
+    "gh_trima.dds",
+    "gh_trima_n4.dds",
+    "marr_coverage2.dds",
+    "sp_grate.dds",
+    "sp_grate_2ns.dds"
+   ],
    "triangles": 318
   },
   "model/obj_guildhalllrgdoor.mod@89b0336c": {
    "archive": "guildhalllrg.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -0.73,
+     -5.75,
+     -0.0
+    ],
+    [
+     0.73,
+     5.75,
+     15.8
+    ]
+   ],
+   "bytes": 45199,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_colblk.dds",
-      "e_TextureNormal0": "gh_colblk_n10.dds"
-     }
+     "color": "orange",
+     "share": 0.683
     },
     {
+     "color": "tan",
+     "share": 0.317
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "marbletrim01",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -456,38 +311,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallplain.dds",
-      "e_TextureNormal0": "gh_wallplain_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_trimb.dds",
-      "e_TextureNormal0": "gh_trimb_n4.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_flra.dds",
-      "e_TextureNormal0": "gh_flra_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_walldeta.dds",
-      "e_TextureNormal0": "gh_walldeta_n10.dds"
-     }
-    },
-    {
+     "name": "ceiling01",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -496,102 +320,84 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallmarble.dds",
-      "e_TextureNormal0": "gh_wallmarble_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallplain.dds",
-      "e_TextureNormal0": "gh_wallplain_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_trimext.dds",
-      "e_TextureNormal0": "gh_trimext_n10.dds"
-     }
-    },
-    {
+     "name": "metalroof",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
       "e_TextureDiffuse0": "di_tak_wall_bronze.dds",
       "e_TextureNormal0": "di_tak_wall_bronze10ns.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {}
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "di_tak_wall_accent.dds",
-      "e_TextureNormal0": "di_tak_wall_accent_10n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "sarith_grass_a_c.dds",
-      "e_TextureNormal0": "di_tak_wall_plain_8n.dds"
-     }
     }
    ],
+   "entry": "obj_guildhalllrgdoor.mod",
+   "footprint": 16.9,
+   "kind": "model",
    "name": "obj_guildhalllrgdoor.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "89b0336cf3502df4da050e69d43f94c4b869eefe3626364b5cd7d4f4703e9555",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    1.5,
-    11.5,
+    1.47,
+    11.51,
     15.8
    ],
    "skinned": false,
+   "textureShares": {
+    "di_tak_wall_bronze.dds": 0.028,
+    "gh_trima.dds": 0.655,
+    "sp_grate.dds": 0.317
+   },
+   "textures": [
+    "di_tak_wall_bronze.dds",
+    "di_tak_wall_bronze10ns.dds",
+    "gh_trima.dds",
+    "gh_trima_n4.dds",
+    "marr_coverage2.dds",
+    "sp_grate.dds",
+    "sp_grate_2ns.dds"
+   ],
    "triangles": 362
   },
   "model/obj_intdoor.mod@902ac7d2": {
    "archive": "guildhalllrg.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_drwynew.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.73,
+     -2.87,
+     -7.9
+    ],
+    [
+     0.73,
+     2.87,
+     7.9
+    ]
+   ],
+   "bytes": 41527,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_colblk.dds",
-      "e_TextureNormal0": "gh_colblk_n10.dds"
-     }
+     "color": "orange",
+     "share": 0.662
     },
     {
+     "color": "tan",
+     "share": 0.338
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "marbletrim01",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -600,38 +406,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallplain.dds",
-      "e_TextureNormal0": "gh_wallplain_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_trimb.dds",
-      "e_TextureNormal0": "gh_trimb_n4.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_flra.dds",
-      "e_TextureNormal0": "gh_flra_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_walldeta.dds",
-      "e_TextureNormal0": "gh_walldeta_n10.dds"
-     }
-    },
-    {
+     "name": "ceiling01",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -640,94 +415,86 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "gh_wallmarble.dds",
-      "e_TextureNormal0": "gh_wallmarble_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallplain.dds",
-      "e_TextureNormal0": "gh_wallplain_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_trimext.dds",
-      "e_TextureNormal0": "gh_trimext_n10.dds"
-     }
-    },
-    {
+     "name": "metalroof",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
       "e_TextureDiffuse0": "di_tak_wall_bronze.dds",
       "e_TextureNormal0": "di_tak_wall_bronze10ns.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {}
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "di_tak_wall_accent.dds",
-      "e_TextureNormal0": "di_tak_wall_accent_10n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "sarith_grass_a_c.dds",
-      "e_TextureNormal0": "di_tak_wall_plain_8n.dds"
-     }
     }
    ],
+   "entry": "obj_intdoor.mod",
+   "footprint": 8.4,
+   "kind": "model",
    "name": "obj_intdoor.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "902ac7d2866631485c90b10d6c30e9b6cc5c692a4506e416664edcbf7aeb17f6",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    1.5,
-    5.7,
+    1.47,
+    5.74,
     15.8
    ],
    "skinned": false,
+   "textureShares": {
+    "di_tak_wall_bronze.dds": 0.03,
+    "gh_trima.dds": 0.632,
+    "sp_grate.dds": 0.338
+   },
+   "textures": [
+    "di_tak_wall_bronze.dds",
+    "di_tak_wall_bronze10ns.dds",
+    "gh_trima.dds",
+    "gh_trima_n4.dds",
+    "marr_coverage2.dds",
+    "sp_grate.dds",
+    "sp_grate_2ns.dds"
+   ],
    "triangles": 328
   },
   "model/ter_centerrm.ter@c394dea2": {
    "archive": "guildhalllrg.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -156.06,
+     -526.03,
+     -24.39
+    ],
+    [
+     157.23,
+     89.87,
+     129.72
+    ]
+   ],
+   "bytes": 5442195,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.606
+    },
+    {
+     "color": "tan",
+     "share": 0.217
+    },
+    {
+     "color": "orange",
+     "share": 0.165
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "marbleblock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -736,6 +503,7 @@
      }
     },
     {
+     "name": "marbletrim01",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -744,6 +512,7 @@
      }
     },
     {
+     "name": "marbleplain",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -752,6 +521,7 @@
      }
     },
     {
+     "name": "columntrim",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -760,6 +530,7 @@
      }
     },
     {
+     "name": "floor01",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -768,6 +539,7 @@
      }
     },
     {
+     "name": "walldet",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -776,14 +548,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "sp_grate.dds",
-      "e_TextureNormal0": "sp_grate_2ns.dds"
-     }
-    },
-    {
+     "name": "brick",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
@@ -792,79 +557,64 @@
      }
     },
     {
+     "name": "redmarble",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "marr_coverage2.dds",
       "e_TextureDiffuse0": "gh_wallmarble.dds",
       "e_TextureNormal0": "gh_wallmarble_n10.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallplain.dds",
-      "e_TextureNormal0": "gh_wallplain_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_wallblk.dds",
-      "e_TextureNormal0": "gh_wallblk_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_fp_ext_coverage_lite.dds",
-      "e_TextureDiffuse0": "gh_trimext.dds",
-      "e_TextureNormal0": "gh_trimext_n10.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "di_tak_wall_bronze.dds",
-      "e_TextureNormal0": "di_tak_wall_bronze10ns.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {}
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "di_tak_wall_accent.dds",
-      "e_TextureNormal0": "di_tak_wall_accent_10n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "marr_coverage2.dds",
-      "e_TextureDiffuse0": "sarith_grass_a_c.dds",
-      "e_TextureNormal0": "di_tak_wall_plain_8n.dds"
-     }
     }
    ],
+   "entry": "ter_centerrm.ter",
+   "footprint": 192958.9,
+   "kind": "model",
    "name": "ter_centerrm.ter",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "c394dea220a74d2960b22633c7924c4e4093269689312835ed5d1c8e504e7377",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    313.3,
-    615.9,
-    154.1
+    313.29,
+    615.91,
+    154.12
    ],
    "skinned": false,
+   "textureShares": {
+    "gh_colblk.dds": 0.211,
+    "gh_flra.dds": 0.153,
+    "gh_trima.dds": 0.066,
+    "gh_trimb.dds": 0.099,
+    "gh_wallblk.dds": 0.204,
+    "gh_walldeta.dds": 0.064,
+    "gh_wallmarble.dds": 0.012,
+    "gh_wallplain.dds": 0.191
+   },
+   "textures": [
+    "gh_colblk.dds",
+    "gh_colblk_n10.dds",
+    "gh_flra.dds",
+    "gh_flra_n10.dds",
+    "gh_trima.dds",
+    "gh_trima_n4.dds",
+    "gh_trimb.dds",
+    "gh_trimb_n4.dds",
+    "gh_wallblk.dds",
+    "gh_wallblk_n10.dds",
+    "gh_walldeta.dds",
+    "gh_walldeta_n10.dds",
+    "gh_wallmarble.dds",
+    "gh_wallmarble_n10.dds",
+    "gh_wallplain.dds",
+    "gh_wallplain_n10.dds",
+    "marr_coverage2.dds"
+   ],
    "triangles": 50542
   },
   "texture/di_fp_ext_coverage_lite.dds@40b101e4": {
@@ -878,28 +628,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_drwynew.mod": 66,
-     "obj_drwytopbackrm.mod": 3,
-     "obj_frontentrance.mod": 3,
-     "obj_intdoor.mod": 3,
-     "ter_centerrm.ter": 3
-    },
-    "partners": {
-     "gh_trimext.dds": 6,
-     "gh_wallblk.dds": 6,
-     "gh_wallblk_n10.dds": 6,
-     "gh_wallplain.dds": 6,
-     "gh_wallplain_n10.dds": 6
-    },
-    "roles": {
-     "e_TextureCoverage0": 18
-    },
-    "shaders": {
-     "Opaque_MPLBump2UV.fx": 18
-    }
-   },
    "meanColor": [
     99,
     98,
@@ -1050,25 +778,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
-     "ter_centerrm.ter": 1
-    },
-    "partners": {
-     "di_tak_wall_accent_10n.dds": 6,
-     "marr_coverage2.dds": 6
-    },
-    "roles": {
-     "e_TextureDiffuse0": 6
-    },
-    "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
-    }
-   },
    "meanColor": [
     111,
     142,
@@ -1099,25 +808,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
-     "ter_centerrm.ter": 1
-    },
-    "partners": {
-     "di_tak_wall_accent.dds": 6,
-     "marr_coverage2.dds": 6
-    },
-    "roles": {
-     "e_TextureNormal0": 6
-    },
-    "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
-    }
-   },
    "meanColor": [
     127,
     127,
@@ -1210,21 +900,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
      "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
-     "ter_centerrm.ter": 1
+     "obj_guildhalllrgdoor.mod": 1,
+     "obj_intdoor.mod": 1
     },
     "partners": {
-     "di_tak_wall_bronze10ns.dds": 6,
-     "marr_coverage2.dds": 6
+     "di_tak_wall_bronze10ns.dds": 3,
+     "marr_coverage2.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 6
+     "Opaque_MPLSB.fx": 3
     }
    },
    "meanColor": [
@@ -1274,21 +962,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
      "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
-     "ter_centerrm.ter": 1
+     "obj_guildhalllrgdoor.mod": 1,
+     "obj_intdoor.mod": 1
     },
     "partners": {
-     "di_tak_wall_bronze.dds": 6,
-     "marr_coverage2.dds": 6
+     "di_tak_wall_bronze.dds": 3,
+     "marr_coverage2.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 6
+     "Opaque_MPLSB.fx": 3
     }
    },
    "meanColor": [
@@ -1351,25 +1037,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
-     "ter_centerrm.ter": 1
-    },
-    "partners": {
-     "marr_coverage2.dds": 6,
-     "sarith_grass_a_c.dds": 6
-    },
-    "roles": {
-     "e_TextureNormal0": 6
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 6
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -1522,21 +1189,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
      "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_colblk_n10.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_colblk_n10.dds": 2,
+     "marr_coverage2.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -1586,21 +1250,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
      "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_colblk.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_colblk.dds": 2,
+     "marr_coverage2.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -1635,21 +1296,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_flra_n10.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_flra_n10.dds": 1,
+     "marr_coverage2.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -1699,21 +1356,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_flra.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_flra.dds": 1,
+     "marr_coverage2.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -1748,21 +1401,20 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
      "obj_frontentrance.mod": 1,
+     "obj_guildhalllrgdoor.mod": 1,
      "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_trima_n4.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_trima_n4.dds": 4,
+     "marr_coverage2.dds": 4
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 4
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 6
+     "Opaque_MPLSB.fx": 4
     }
    },
    "meanColor": [
@@ -1842,21 +1494,20 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
      "obj_frontentrance.mod": 1,
+     "obj_guildhalllrgdoor.mod": 1,
      "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_trima.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_trima.dds": 4,
+     "marr_coverage2.dds": 4
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 4
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 6
+     "Opaque_MPLSB.fx": 4
     }
    },
    "meanColor": [
@@ -1893,19 +1544,17 @@
     "models": {
      "obj_drwynew.mod": 22,
      "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_trimb_n4.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_trimb_n4.dds": 3,
+     "marr_coverage2.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 6
+     "Opaque_MPLSB.fx": 3
     }
    },
    "meanColor": [
@@ -1987,19 +1636,17 @@
     "models": {
      "obj_drwynew.mod": 22,
      "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_trimb.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_trimb.dds": 3,
+     "marr_coverage2.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 6
+     "Opaque_MPLSB.fx": 3
     }
    },
    "meanColor": [
@@ -2032,25 +1679,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
-     "ter_centerrm.ter": 1
-    },
-    "partners": {
-     "di_fp_ext_coverage_lite.dds": 6,
-     "gh_trimext_n10.dds": 6
-    },
-    "roles": {
-     "e_TextureDiffuse0": 6
-    },
-    "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
-    }
-   },
    "meanColor": [
     99,
     95,
@@ -2081,25 +1709,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
-     "ter_centerrm.ter": 1
-    },
-    "partners": {
-     "di_fp_ext_coverage_lite.dds": 6,
-     "gh_trimext.dds": 6
-    },
-    "roles": {
-     "e_TextureNormal0": 6
-    },
-    "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -2132,23 +1741,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 44,
-     "obj_drwytopbackrm.mod": 2,
-     "obj_frontentrance.mod": 2,
-     "obj_intdoor.mod": 2,
-     "ter_centerrm.ter": 2
+     "ter_centerrm.ter": 1
     },
     "partners": {
-     "di_fp_ext_coverage_lite.dds": 6,
-     "gh_wallblk_n10.dds": 12,
-     "marr_coverage2.dds": 6
+     "gh_wallblk_n10.dds": 1,
+     "marr_coverage2.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6,
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2198,23 +1801,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 44,
-     "obj_drwytopbackrm.mod": 2,
-     "obj_frontentrance.mod": 2,
-     "obj_intdoor.mod": 2,
-     "ter_centerrm.ter": 2
+     "ter_centerrm.ter": 1
     },
     "partners": {
-     "di_fp_ext_coverage_lite.dds": 6,
-     "gh_wallblk.dds": 12,
-     "marr_coverage2.dds": 6
+     "gh_wallblk.dds": 1,
+     "marr_coverage2.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6,
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2249,21 +1846,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_walldeta_n10.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_walldeta_n10.dds": 1,
+     "marr_coverage2.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2313,21 +1906,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_walldeta.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_walldeta.dds": 1,
+     "marr_coverage2.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2362,21 +1951,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_wallmarble_n10.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_wallmarble_n10.dds": 1,
+     "marr_coverage2.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2426,21 +2011,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
      "ter_centerrm.ter": 1
     },
     "partners": {
-     "gh_wallmarble.dds": 6,
-     "marr_coverage2.dds": 6
+     "gh_wallmarble.dds": 1,
+     "marr_coverage2.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2475,23 +2056,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 44,
-     "obj_drwytopbackrm.mod": 2,
-     "obj_frontentrance.mod": 2,
-     "obj_intdoor.mod": 2,
-     "ter_centerrm.ter": 2
+     "obj_drwynew.mod": 22,
+     "obj_drwytopbackrm.mod": 1,
+     "ter_centerrm.ter": 1
     },
     "partners": {
-     "di_fp_ext_coverage_lite.dds": 6,
-     "gh_wallplain_n10.dds": 12,
-     "marr_coverage2.dds": 6
+     "gh_wallplain_n10.dds": 3,
+     "marr_coverage2.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 12
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6,
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump.fx": 3
     }
    },
    "meanColor": [
@@ -2541,23 +2118,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 44,
-     "obj_drwytopbackrm.mod": 2,
-     "obj_frontentrance.mod": 2,
-     "obj_intdoor.mod": 2,
-     "ter_centerrm.ter": 2
+     "obj_drwynew.mod": 22,
+     "obj_drwytopbackrm.mod": 1,
+     "ter_centerrm.ter": 1
     },
     "partners": {
-     "di_fp_ext_coverage_lite.dds": 6,
-     "gh_wallplain.dds": 12,
-     "marr_coverage2.dds": 6
+     "gh_wallplain.dds": 3,
+     "marr_coverage2.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 12
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6,
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump.fx": 3
     }
    },
    "meanColor": [
@@ -2592,26 +2165,25 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 264,
-     "obj_drwytopbackrm.mod": 12,
-     "obj_frontentrance.mod": 12,
-     "obj_intdoor.mod": 12,
-     "ter_centerrm.ter": 12
+     "obj_drwynew.mod": 44,
+     "obj_drwytopbackrm.mod": 3,
+     "obj_frontentrance.mod": 3,
+     "obj_intdoor.mod": 3,
+     "ter_centerrm.ter": 8
     },
     "partners": {
-     "gh_colblk.dds": 6,
-     "gh_colblk_n10.dds": 6,
-     "gh_trima.dds": 6,
-     "gh_trima_n4.dds": 6,
-     "gh_wallplain.dds": 6
+     "gh_trima.dds": 4,
+     "gh_trima_n4.dds": 4,
+     "gh_trimb.dds": 3,
+     "gh_wallplain.dds": 3,
+     "gh_wallplain_n10.dds": 3
     },
     "roles": {
-     "e_TextureCoverage0": 72
+     "e_TextureCoverage0": 22
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 42,
-     "Opaque_MPLBump2UV.fx": 6,
-     "Opaque_MPLSB.fx": 24
+     "Opaque_MPLBump.fx": 9,
+     "Opaque_MPLSB.fx": 13
     }
    },
    "meanColor": [
@@ -2644,25 +2216,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
-     "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
-     "ter_centerrm.ter": 1
-    },
-    "partners": {
-     "di_tak_wall_plain_8n.dds": 6,
-     "marr_coverage2.dds": 6
-    },
-    "roles": {
-     "e_TextureDiffuse0": 6
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 6
-    }
-   },
    "meanColor": [
     70,
     84,
@@ -2695,21 +2248,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
      "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
-     "ter_centerrm.ter": 1
+     "obj_guildhalllrgdoor.mod": 1,
+     "obj_intdoor.mod": 1
     },
     "partners": {
-     "marr_coverage2.dds": 6,
-     "sp_grate_2ns.dds": 6
+     "marr_coverage2.dds": 3,
+     "sp_grate_2ns.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 6
+     "Opaque_MPLSB.fx": 3
     }
    },
    "meanColor": [
@@ -2759,21 +2310,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drwynew.mod": 22,
-     "obj_drwytopbackrm.mod": 1,
      "obj_frontentrance.mod": 1,
-     "obj_intdoor.mod": 1,
-     "ter_centerrm.ter": 1
+     "obj_guildhalllrgdoor.mod": 1,
+     "obj_intdoor.mod": 1
     },
     "partners": {
-     "marr_coverage2.dds": 6,
-     "sp_grate.dds": 6
+     "marr_coverage2.dds": 3,
+     "sp_grate.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 6
+     "Opaque_MPLSB.fx": 3
     }
    },
    "meanColor": [
@@ -2863,6 +2412,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:guildhalllrg",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "guildhalllrg"
 }

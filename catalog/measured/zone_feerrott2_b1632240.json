@@ -1,7 +1,7 @@
 {
  "archives": [
-  "objforfeerrott.eqg",
-  "feerrott2.eqg"
+  "feerrott2.eqg",
+  "objforfeerrott.eqg"
  ],
  "assets": {
   "ecosystem/feerrott2/base": {
@@ -156,7 +156,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "butterflyA15": 1,
@@ -192,7 +192,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "waterfall02": 1,
@@ -239,7 +239,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "geodechSm00": 1
@@ -261,7 +261,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "portal_lower": 1
@@ -283,7 +283,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "portal_upper": 1
@@ -315,7 +315,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "Firesmoke13": 1,
@@ -351,7 +351,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "Firepit14": 1,
@@ -377,7 +377,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "groundfog00": 1
@@ -409,7 +409,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "innothulefog00": 1,
@@ -443,7 +443,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "moths306": 1,
@@ -479,7 +479,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "butterfly25": 1,
@@ -515,7 +515,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "Firepit19": 1,
@@ -528,9 +528,35 @@
   },
   "model/obj_feerrott_2_cazic_thule.mod@b56f15dd": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -999.96,
+     -195.67,
+     -111.0
+    ],
+    [
+     648.01,
+     1119.82,
+     176.06
+    ]
+   ],
+   "bytes": 64695,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 0.998
+    },
+    {
+     "color": "blue",
+     "share": 0.002
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cndrblck2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -539,14 +565,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_stone_floor_plain02.dds",
-      "e_TextureNormal0": "di_frott_stone_floor_plain02_6n.dds"
-     }
-    },
-    {
+     "name": "cndrblck",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -555,6 +574,7 @@
      }
     },
     {
+     "name": "yys2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -563,6 +583,7 @@
      }
     },
     {
+     "name": "flrr2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -571,6 +592,7 @@
      }
     },
     {
+     "name": "stn2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -579,26 +601,84 @@
      }
     }
    ],
+   "entry": "obj_feerrott_2_cazic_thule.mod",
+   "footprint": 2167890.0,
+   "kind": "model",
    "name": "obj_feerrott_2_cazic_thule.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "b56f15dd6c4c622a79b0a6e31da3c46ef1bf88f83831e420939109da1c1be809",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    1648.0,
-    1315.5,
-    287.1
+    1647.97,
+    1315.49,
+    287.06
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_stone_base.dds": 0.002,
+    "di_frott_stone_cinderblock.dds": 0.964,
+    "di_frott_stone_floor_plain02.dds": 0.021,
+    "di_frott_trim02.dds": 0.013
+   },
+   "textures": [
+    "coverage.dds",
+    "coverage_wallstains_green.dds",
+    "di_frott_coverage_wall.dds",
+    "di_frott_stone_base.dds",
+    "di_frott_stone_base_6n.dds",
+    "di_frott_stone_cinderblock.dds",
+    "di_frott_stone_cinderblock_6n.dds",
+    "di_frott_stone_floor_plain02.dds",
+    "di_frott_stone_floor_plain02_6n.dds",
+    "di_frott_trim02.dds",
+    "di_frott_trim02_6n.dds"
+   ],
    "triangles": 1006
   },
   "model/obj_feerrott_bbq.mod@59cd8d33": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_stone_structure_bowl.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.96,
+     -7.28,
+     -1.57
+    ],
+    [
+     2.0,
+     1.81,
+     15.61
+    ]
+   ],
+   "bytes": 126893,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 0.744
+    },
+    {
+     "color": "blue",
+     "share": 0.163
+    },
+    {
+     "color": "tan",
+     "share": 0.087
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "hdd",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "bbq_dude_coverage.dds",
@@ -607,6 +687,7 @@
      }
     },
     {
+     "name": "frnt",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "bbq_dude_coverage.dds",
@@ -615,6 +696,7 @@
      }
     },
     {
+     "name": "bck",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "bbq_dude_coverage.dds",
@@ -623,6 +705,7 @@
      }
     },
     {
+     "name": "btm",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "bbq_dude_coverage.dds",
@@ -631,6 +714,7 @@
      }
     },
     {
+     "name": "mtl",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -639,6 +723,7 @@
      }
     },
     {
+     "name": "wdd",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -647,6 +732,7 @@
      }
     },
     {
+     "name": "cncrt",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -655,26 +741,81 @@
      }
     }
    ],
+   "entry": "obj_feerrott_bbq.mod",
+   "footprint": 36.0,
+   "kind": "model",
    "name": "obj_feerrott_bbq.mod",
+   "origin": "offset",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "59cd8d33ef9b390c4068cc22e0a84741d0df827b7b708423f1b7176b155a20d7",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    4.0,
-    9.1,
-    17.2
+    3.96,
+    9.09,
+    17.18
    ],
    "skinned": false,
+   "textureShares": {
+    "bbq_dude_back.dds": 0.042,
+    "bbq_dude_bottom.dds": 0.007,
+    "bbq_dude_front.dds": 0.045,
+    "bbq_dude_head.dds": 0.026,
+    "di_ent_metal01_c.dds": 0.074,
+    "di_et_ext_woodrough2_c.dds": 0.644,
+    "di_frott_rock_face01.dds": 0.163
+   },
+   "textures": [
+    "bbq_dude_back.dds",
+    "bbq_dude_back_n.dds",
+    "bbq_dude_bottom.dds",
+    "bbq_dude_coverage.dds",
+    "bbq_dude_front.dds",
+    "bbq_dude_front_n.dds",
+    "bbq_dude_head.dds",
+    "c_cdm_bd_s03_n.dds",
+    "di_ent_metal01_c.dds",
+    "di_ent_metal01_n.dds",
+    "di_et_ext_woodrough2_8_n.dds",
+    "di_et_ext_woodrough2_c.dds",
+    "di_frott_coverage_wall.dds",
+    "di_frott_rock_face01.dds",
+    "di_frott_rock_face01_6n.dds"
+   ],
    "triangles": 2280
   },
   "model/obj_feerrott_bridge.mod@7b4a511d": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -51.08,
+     -150.75,
+     -31.66
+    ],
+    [
+     50.91,
+     153.9,
+     62.22
+    ]
+   ],
+   "bytes": 97806,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brdg2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -683,6 +824,7 @@
      }
     },
     {
+     "name": "brdg",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -691,66 +833,140 @@
      }
     }
    ],
+   "entry": "obj_feerrott_bridge.mod",
+   "footprint": 31071.1,
+   "kind": "model",
    "name": "obj_feerrott_bridge.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "7b4a511d2d00141b503c161c9209552fb1c88a0faa821d1ca2e0fc021d3a4389",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    102.0,
-    304.6,
-    93.9
+    101.99,
+    304.64,
+    93.88
    ],
    "skinned": false,
+   "textureShares": {
+    "di_uquarry_cavehall_wall01.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_ground.dds",
+    "di_frott_coverage_wall.dds",
+    "di_uquarry_cavehall_wall01.dds",
+    "di_uquarry_cavehall_wall01_10n.dds"
+   ],
    "triangles": 1644
   },
   "model/obj_feerrott_deadtree.mod@1d44fd5e": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 16,
+    "obj_feerrott_rockc.mod": 50,
+    "obj_feerrott_rockd.mod": 37,
+    "obj_feerrott_treestump.mod": 16,
+    "obp_fern_full.mod": 144
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -14.68,
+     -17.94,
+     -6.52
+    ],
+    [
+     15.86,
+     9.93,
+     37.49
+    ]
+   ],
+   "bytes": 17103,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "gnarledbark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
       "e_TextureDiffuse0": "tree_oakgnarled_bark_c.dds",
       "e_TextureNormal0": "tree_oakgnarled_bark_n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "tree_oakgnarled_leaves_c.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "di_frott_moss01.dds"
-     }
     }
    ],
+   "entry": "obj_feerrott_deadtree.mod",
+   "footprint": 851.1,
+   "kind": "model",
    "name": "obj_feerrott_deadtree.mod",
+   "origin": "offset",
    "placements": 225,
    "scaleRange": [
     0.501,
     1.499
    ],
    "sha256": "1d44fd5e36021bee90d7ad583a32224a26bcd9be16296e51e525e1071b8cf9d6",
+   "sits": {
+    "tilted": 5,
+    "upright": 220
+   },
    "size": [
-    30.5,
-    27.9,
-    44.0
+    30.54,
+    27.86,
+    44.01
    ],
    "skinned": false,
+   "textureShares": {
+    "tree_oakgnarled_bark_c.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "tree_oakgnarled_bark_c.dds",
+    "tree_oakgnarled_bark_n.dds"
+   ],
    "triangles": 353
   },
   "model/obj_feerrott_druid_circle.mod@5e77664f": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -48.58,
+     -48.58,
+     -2.16
+    ],
+    [
+     48.58,
+     48.58,
+     50.72
+    ]
+   ],
+   "bytes": 37460,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.733
+    },
+    {
+     "color": "blue",
+     "share": 0.267
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brdg2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -759,14 +975,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_frott_coverage_ground.dds",
-      "e_TextureDiffuse0": "di_frott_rock01.dds",
-      "e_TextureNormal0": "di_frott_rock_face01_6n.dds"
-     }
-    },
-    {
+     "name": "icn2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -775,6 +984,7 @@
      }
     },
     {
+     "name": "icncln2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -783,26 +993,71 @@
      }
     }
    ],
+   "entry": "obj_feerrott_druid_circle.mod",
+   "footprint": 9439.4,
+   "kind": "model",
    "name": "obj_feerrott_druid_circle.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "5e77664f49211f135cefdf90d58db1966ac0901872628491749067164105de5d",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    97.2,
-    97.2,
-    52.9
+    97.16,
+    97.16,
+    52.88
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_rock01.dds": 0.604,
+    "di_frott_rock_face01.dds": 0.267,
+    "di_frott_rock_icon01.dds": 0.129
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "di_frott_rock01.dds",
+    "di_frott_rock_face01.dds",
+    "di_frott_rock_face01_6n.dds",
+    "di_frott_rock_icon01.dds",
+    "di_frott_rock_icon01_6n.dds"
+   ],
    "triangles": 532
   },
   "model/obj_feerrott_ent2thule_pillar.mod@53ac79b8": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rockb.mod": 2,
+    "obj_feerrott_treestump.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.14,
+     -8.14,
+     -0.07
+    ],
+    [
+     8.14,
+     8.14,
+     47.16
+    ]
+   ],
+   "bytes": 10017,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "thule_plainstone",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sp_housegarden_ground_ov.dds",
@@ -811,6 +1066,7 @@
      }
     },
     {
+     "name": "concrete_2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "erosion_ov_vert.dds",
@@ -819,6 +1075,7 @@
      }
     },
     {
+     "name": "thule_metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sp_housegarden_ground_ov.dds",
@@ -827,6 +1084,7 @@
      }
     },
     {
+     "name": "thule_exttrim",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sp_housegarden_ground_ov.dds",
@@ -835,112 +1093,78 @@
      }
     }
    ],
+   "entry": "obj_feerrott_ent2thule_pillar.mod",
+   "footprint": 265.1,
+   "kind": "model",
    "name": "obj_feerrott_ent2thule_pillar.mod",
+   "origin": "base",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "53ac79b84cc43f82c84ee7300a9e3b0b282aeca647114ac405e9e19234d47fa8",
+   "sits": {
+    "upright": 3
+   },
    "size": [
-    16.3,
-    16.3,
-    47.2
+    16.28,
+    16.28,
+    47.23
    ],
    "skinned": false,
+   "textureShares": {
+    "thule_blackmetal.dds": 0.02,
+    "thule_ext_stair_c.dds": 0.203,
+    "thule_stoneplain_c.dds": 0.777
+   },
+   "textures": [
+    "erosion_ov_vert.dds",
+    "sp_housegarden_ground_ov.dds",
+    "thule_blackmetal.dds",
+    "thule_blackmetal_ns.dds",
+    "thule_ext_stair_c.dds",
+    "thule_ext_stair_n.dds",
+    "thule_stoneplain_c.dds",
+    "thule_stoneplain_n.dds"
+   ],
    "triangles": 92
   },
   "model/obj_feerrott_ent_2oggok.mod@b1db844f": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -145.28,
+     -81.71,
+     -0.55
+    ],
+    [
+     12.96,
+     225.24,
+     54.47
+    ]
+   ],
+   "bytes": 148217,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_frott_coverage_wall.dds",
-      "e_TextureDiffuse0": "di_frott_stone_cinderblock.dds",
-      "e_TextureNormal0": "di_frott_stone_cinderblock_6n.dds"
-     }
+     "color": "tan",
+     "share": 0.45
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_stone_cinderblock.dds",
-      "e_TextureNormal0": "di_frott_stone_cinderblock_6n.dds"
-     }
+     "color": "brown",
+     "share": 0.337
     },
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ferrott_eye.dds"
-     }
-    },
+     "color": "grey",
+     "share": 0.212
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_stone_base.dds",
-      "e_TextureNormal0": "di_frott_stone_base_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_trim01.dds",
-      "e_TextureNormal0": "di_frott_trim01_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_trim03.dds",
-      "e_TextureNormal0": "di_frott_trim03_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_stone_floor_tile01.dds",
-      "e_TextureNormal0": "di_frott_stone_floor_plain02_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_stone_floor_plain02.dds",
-      "e_TextureNormal0": "di_frott_stone_floor_plain02_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_granite.dds",
-      "e_TextureNormal0": "di_frott_rock_face01_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "ew_coals001_c.dds",
-      "e_TextureNormal0": "ew_coals001_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_rock01.dds",
-      "e_TextureNormal0": "di_frott_stone_base_6n.dds"
-     }
-    },
-    {
+     "name": "bsstn",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -949,14 +1173,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_granite.dds",
-      "e_TextureNormal0": "di_frott_rock_face01_6n.dds"
-     }
-    },
-    {
+     "name": "drt",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -965,6 +1182,7 @@
      }
     },
     {
+     "name": "wrmstcc2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -973,26 +1191,77 @@
      }
     }
    ],
+   "entry": "obj_feerrott_ent_2oggok.mod",
+   "footprint": 48571.4,
+   "kind": "model",
    "name": "obj_feerrott_ent_2oggok.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "b1db844fbd20c88aa4544ae3548976a5e092e049e5a4768827007701580ddf7b",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    158.2,
-    306.9,
-    55.0
+    158.24,
+    306.95,
+    55.03
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fobone_dirt_path.dds": 0.337,
+    "di_fobone_stucco01.dds": 0.45,
+    "di_frott_rock01.dds": 0.212
+   },
+   "textures": [
+    "coverage.dds",
+    "coverage_wallstains_green.dds",
+    "di_fobone_dirt_path.dds",
+    "di_fobone_dirt_path_14n.dds",
+    "di_fobone_stucco01.dds",
+    "di_fobone_stucco01_8n.dds",
+    "di_frott_rock01.dds",
+    "di_frott_stone_base_6n.dds"
+   ],
    "triangles": 2839
   },
   "model/obj_feerrott_obeliska.mod@65a12124": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rockc.mod": 1,
+    "obp_fern_full.mod": 8
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -9.98,
+     -9.98,
+     0.74
+    ],
+    [
+     9.98,
+     9.98,
+     128.04
+    ]
+   ],
+   "bytes": 12277,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 0.914
+    },
+    {
+     "color": "grey",
+     "share": 0.086
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cndrblck2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1001,14 +1270,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_stone_cinderblock.dds",
-      "e_TextureNormal0": "di_frott_stone_cinderblock_6n.dds"
-     }
-    },
-    {
+     "name": "yys2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1017,50 +1279,88 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_stone_base.dds",
-      "e_TextureNormal0": "di_frott_stone_base_6n.dds"
-     }
-    },
-    {
+     "name": "tp2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
       "e_TextureDiffuse0": "di_frott_trim01.dds",
       "e_TextureNormal0": "di_frott_trim01_6n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_trim03.dds",
-      "e_TextureNormal0": "di_frott_trim03_6n.dds"
-     }
     }
    ],
+   "entry": "obj_feerrott_obeliska.mod",
+   "footprint": 398.4,
+   "kind": "model",
    "name": "obj_feerrott_obeliska.mod",
+   "origin": "base",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "65a12124165bad9c2c6ccf287164698cc0f756766c6ab9072d7110afa2180cc8",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    20.0,
-    20.0,
+    19.96,
+    19.96,
     127.3
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_stone_cinderblock.dds": 0.731,
+    "di_frott_trim01.dds": 0.086,
+    "di_frott_trim02.dds": 0.183
+   },
+   "textures": [
+    "coverage_wallstains_green.dds",
+    "di_frott_coverage_wall.dds",
+    "di_frott_stone_cinderblock.dds",
+    "di_frott_stone_cinderblock_6n.dds",
+    "di_frott_trim01.dds",
+    "di_frott_trim01_6n.dds",
+    "di_frott_trim02.dds",
+    "di_frott_trim02_6n.dds"
+   ],
    "triangles": 226
   },
   "model/obj_feerrott_obeliskb.mod@7d7f2425": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_deadtree.mod": 1,
+    "obj_feerrott_rockb.mod": 2,
+    "obj_feerrott_rockd.mod": 1,
+    "obp_fern_full.mod": 14
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -9.98,
+     -9.98,
+     0.74
+    ],
+    [
+     9.98,
+     9.98,
+     128.04
+    ]
+   ],
+   "bytes": 15361,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 0.918
+    },
+    {
+     "color": "grey",
+     "share": 0.082
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cndrblck2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1069,30 +1369,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_stone_cinderblock.dds",
-      "e_TextureNormal0": "di_frott_stone_cinderblock_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_frott_coverage_wall.dds",
-      "e_TextureDiffuse0": "di_frott_trim02.dds",
-      "e_TextureNormal0": "di_frott_trim02_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_stone_base.dds",
-      "e_TextureNormal0": "di_frott_stone_base_6n.dds"
-     }
-    },
-    {
+     "name": "tp2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -1101,6 +1378,7 @@
      }
     },
     {
+     "name": "tpdn2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -1109,26 +1387,83 @@
      }
     }
    ],
+   "entry": "obj_feerrott_obeliskb.mod",
+   "footprint": 398.4,
+   "kind": "model",
    "name": "obj_feerrott_obeliskb.mod",
+   "origin": "base",
    "placements": 14,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "7d7f2425dd19647de1e61eca6f1a64e6841e8dbc11120f5cfbf709b28d352da2",
+   "sits": {
+    "tilted": 1,
+    "upright": 13
+   },
    "size": [
-    20.0,
-    20.0,
+    19.96,
+    19.96,
     127.3
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_stone_cinderblock.dds": 0.8,
+    "di_frott_trim01.dds": 0.082,
+    "di_frott_trim03.dds": 0.118
+   },
+   "textures": [
+    "coverage_wallstains_green.dds",
+    "di_frott_coverage_wall.dds",
+    "di_frott_stone_cinderblock.dds",
+    "di_frott_stone_cinderblock_6n.dds",
+    "di_frott_trim01.dds",
+    "di_frott_trim01_6n.dds",
+    "di_frott_trim03.dds",
+    "di_frott_trim03_6n.dds"
+   ],
    "triangles": 246
   },
   "model/obj_feerrott_pyramid_hut.mod@7df0937d": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rockc.mod": 1,
+    "obj_feerrott_treestump.mod": 1,
+    "obp_fern_full.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -50.0,
+     -59.01,
+     -3.7
+    ],
+    [
+     50.0,
+     50.0,
+     69.01
+    ]
+   ],
+   "bytes": 57298,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.365
+    },
+    {
+     "color": "blue",
+     "share": 0.327
+    },
+    {
+     "color": "teal",
+     "share": 0.307
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cndrblck2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1137,14 +1472,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_stone_cinderblock.dds",
-      "e_TextureNormal0": "di_frott_stone_cinderblock_6n.dds"
-     }
-    },
-    {
+     "name": "yys2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1153,14 +1481,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_stone_base.dds",
-      "e_TextureNormal0": "di_frott_stone_base_6n.dds"
-     }
-    },
-    {
+     "name": "tp2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -1169,6 +1490,7 @@
      }
     },
     {
+     "name": "tpdn2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -1177,6 +1499,7 @@
      }
     },
     {
+     "name": "fncyfloor",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -1185,26 +1508,88 @@
      }
     }
    ],
+   "entry": "obj_feerrott_pyramid_hut.mod",
+   "footprint": 10901.4,
+   "kind": "model",
    "name": "obj_feerrott_pyramid_hut.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "7df0937dd879511d6d146fc595e7e390f202649a235ec28f51bfd49056d32250",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     100.0,
-    109.0,
-    72.7
+    109.01,
+    72.72
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_stone_cinderblock.dds": 0.079,
+    "di_frott_stone_floor_tile01.dds": 0.327,
+    "di_frott_trim01.dds": 0.365,
+    "di_frott_trim02.dds": 0.175,
+    "di_frott_trim03.dds": 0.053
+   },
+   "textures": [
+    "coverage.dds",
+    "coverage_wallstains_green.dds",
+    "di_frott_coverage_wall.dds",
+    "di_frott_stone_cinderblock.dds",
+    "di_frott_stone_cinderblock_6n.dds",
+    "di_frott_stone_floor_plain02_6n.dds",
+    "di_frott_stone_floor_tile01.dds",
+    "di_frott_trim01.dds",
+    "di_frott_trim01_6n.dds",
+    "di_frott_trim02.dds",
+    "di_frott_trim02_6n.dds",
+    "di_frott_trim03.dds",
+    "di_frott_trim03_6n.dds"
+   ],
    "triangles": 894
   },
   "model/obj_feerrott_pyramid_roof.mod@f265aadc": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rockd.mod": 3,
+    "obp_fern_full.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -50.0,
+     -59.01,
+     -3.7
+    ],
+    [
+     50.0,
+     50.0,
+     69.26
+    ]
+   ],
+   "bytes": 68530,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "blue",
+     "share": 0.46
+    },
+    {
+     "color": "teal",
+     "share": 0.313
+    },
+    {
+     "color": "grey",
+     "share": 0.228
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cndrblck2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1213,14 +1598,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_stone_cinderblock.dds",
-      "e_TextureNormal0": "di_frott_stone_cinderblock_6n.dds"
-     }
-    },
-    {
+     "name": "yys2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1229,14 +1607,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_stone_base.dds",
-      "e_TextureNormal0": "di_frott_stone_base_6n.dds"
-     }
-    },
-    {
+     "name": "tp2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -1245,6 +1616,7 @@
      }
     },
     {
+     "name": "tpdn2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -1253,6 +1625,7 @@
      }
     },
     {
+     "name": "fncyfloor",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -1261,26 +1634,83 @@
      }
     }
    ],
+   "entry": "obj_feerrott_pyramid_roof.mod",
+   "footprint": 10901.4,
+   "kind": "model",
    "name": "obj_feerrott_pyramid_roof.mod",
+   "origin": "offset",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "f265aadc4ad0cd54c00620d65f68d68b9c809b48c034e2ef06dfd68ed2a80fb4",
+   "sits": {
+    "upright": 3
+   },
    "size": [
     100.0,
-    109.0,
-    73.0
+    109.01,
+    72.96
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_stone_cinderblock.dds": 0.097,
+    "di_frott_stone_floor_tile01.dds": 0.46,
+    "di_frott_trim01.dds": 0.228,
+    "di_frott_trim02.dds": 0.17,
+    "di_frott_trim03.dds": 0.046
+   },
+   "textures": [
+    "coverage.dds",
+    "coverage_wallstains_green.dds",
+    "di_frott_coverage_wall.dds",
+    "di_frott_stone_cinderblock.dds",
+    "di_frott_stone_cinderblock_6n.dds",
+    "di_frott_stone_floor_plain02_6n.dds",
+    "di_frott_stone_floor_tile01.dds",
+    "di_frott_trim01.dds",
+    "di_frott_trim01_6n.dds",
+    "di_frott_trim02.dds",
+    "di_frott_trim02_6n.dds",
+    "di_frott_trim03.dds",
+    "di_frott_trim03_6n.dds"
+   ],
    "triangles": 1141
   },
   "model/obj_feerrott_rocka.mod@5ec3a1b2": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rockb.mod": 118,
+    "obj_feerrott_treestump.mod": 130,
+    "obp_feerrott_bigoak.mod": 66,
+    "obp_feerrott_gnarledtree.mod": 83,
+    "obp_fern_full.mod": 360
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -5.23,
+     -4.48,
+     -1.33
+    ],
+    [
+     5.23,
+     4.48,
+     3.51
+    ]
+   ],
+   "bytes": 3690,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -1289,26 +1719,69 @@
      }
     }
    ],
+   "entry": "obj_feerrott_rocka.mod",
+   "footprint": 93.7,
+   "kind": "model",
    "name": "obj_feerrott_rocka.mod",
+   "origin": "offset",
    "placements": 489,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "5ec3a1b28a7624fa18e9951347159497bd4e44581134d07207d02b41f8314b31",
+   "sits": {
+    "upright": 489
+   },
    "size": [
-    10.5,
-    9.0,
-    4.8
+    10.45,
+    8.97,
+    4.84
    ],
    "skinned": false,
+   "textureShares": {
+    "di_uquarry_cavehall_wall01.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_ground.dds",
+    "di_uquarry_cavehall_wall01.dds",
+    "di_uquarry_cavehall_wall01_10n.dds"
+   ],
    "triangles": 56
   },
   "model/obj_feerrott_rockb.mod@027be560": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 118,
+    "obj_feerrott_treestump.mod": 229,
+    "obp_feerrott_bigoak.mod": 99,
+    "obp_feerrott_gnarledtree.mod": 117,
+    "obp_fern_full.mod": 604
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.76,
+     -1.76,
+     -1.04
+    ],
+    [
+     1.84,
+     1.83,
+     2.35
+    ]
+   ],
+   "bytes": 2722,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -1317,26 +1790,69 @@
      }
     }
    ],
+   "entry": "obj_feerrott_rockb.mod",
+   "footprint": 12.9,
+   "kind": "model",
    "name": "obj_feerrott_rockb.mod",
+   "origin": "offset",
    "placements": 657,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "027be56035abc10002b22a667d54250ab37c19ab4c28b336fbce97083f79bb5f",
+   "sits": {
+    "upright": 657
+   },
    "size": [
     3.6,
-    3.6,
-    3.4
+    3.58,
+    3.38
    ],
    "skinned": false,
+   "textureShares": {
+    "di_uquarry_cavehall_wall01.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_ground.dds",
+    "di_uquarry_cavehall_wall01.dds",
+    "di_uquarry_cavehall_wall01_10n.dds"
+   ],
    "triangles": 56
   },
   "model/obj_feerrott_rockc.mod@7212ef4c": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_deadtree.mod": 50,
+    "obj_feerrott_rockd.mod": 100,
+    "obj_feerrott_treestump.mod": 47,
+    "obp_feerrott_gnarledtree.mod": 50,
+    "obp_fern_full.mod": 266
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.6,
+     -2.47,
+     -2.34
+    ],
+    [
+     4.6,
+     2.47,
+     7.58
+    ]
+   ],
+   "bytes": 4666,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -1345,26 +1861,69 @@
      }
     }
    ],
+   "entry": "obj_feerrott_rockc.mod",
+   "footprint": 45.6,
+   "kind": "model",
    "name": "obj_feerrott_rockc.mod",
+   "origin": "offset",
    "placements": 435,
    "scaleRange": [
     0.501,
     1.0
    ],
    "sha256": "7212ef4c6c60c6b8f956648c63f4fea5eb455f80e63310b71ff88cc33fd4c203",
+   "sits": {
+    "upright": 435
+   },
    "size": [
-    9.2,
-    4.9,
-    9.9
+    9.21,
+    4.95,
+    9.92
    ],
    "skinned": false,
+   "textureShares": {
+    "di_uquarry_cavehall_wall01.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_ground.dds",
+    "di_uquarry_cavehall_wall01.dds",
+    "di_uquarry_cavehall_wall01_10n.dds"
+   ],
    "triangles": 74
   },
   "model/obj_feerrott_rockd.mod@c3062985": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_deadtree.mod": 37,
+    "obj_feerrott_rockc.mod": 100,
+    "obp_feerrott_gnarledtree.mod": 45,
+    "obp_feerrott_tree_tall.mod": 28,
+    "obp_fern_full.mod": 275
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.93,
+     -2.97,
+     -1.75
+    ],
+    [
+     2.93,
+     2.97,
+     8.5
+    ]
+   ],
+   "bytes": 11226,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -1373,26 +1932,69 @@
      }
     }
    ],
+   "entry": "obj_feerrott_rockd.mod",
+   "footprint": 34.8,
+   "kind": "model",
    "name": "obj_feerrott_rockd.mod",
+   "origin": "offset",
    "placements": 375,
    "scaleRange": [
     0.251,
     1.0
    ],
    "sha256": "c3062985e00bd80496a241b2a83f499e1c92e2a59270c4ab0e9b6711ab7f5d3b",
+   "sits": {
+    "upright": 375
+   },
    "size": [
-    5.9,
-    5.9,
-    10.3
+    5.86,
+    5.94,
+    10.25
    ],
    "skinned": false,
+   "textureShares": {
+    "di_uquarry_cavehall_wall01.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_ground.dds",
+    "di_uquarry_cavehall_wall01.dds",
+    "di_uquarry_cavehall_wall01_10n.dds"
+   ],
    "triangles": 72
   },
   "model/obj_feerrott_rocke.mod@73603f9c": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rockb.mod": 96,
+    "obj_feerrott_treestump.mod": 164,
+    "obp_feerrott_bigoak.mod": 70,
+    "obp_feerrott_gnarledtree.mod": 84,
+    "obp_fern_full.mod": 432
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -5.97,
+     -4.79,
+     -5.84
+    ],
+    [
+     5.97,
+     4.79,
+     5.84
+    ]
+   ],
+   "bytes": 8578,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -1401,70 +2003,138 @@
      }
     }
    ],
+   "entry": "obj_feerrott_rocke.mod",
+   "footprint": 114.4,
+   "kind": "model",
    "name": "obj_feerrott_rocke.mod",
+   "origin": "center",
    "placements": 527,
    "scaleRange": [
     0.251,
     1.249
    ],
    "sha256": "73603f9cefa10e2b9f0d327b34ea9eb323e7ac397fe1dae9cb03d99d66eda5ab",
+   "sits": {
+    "upright": 527
+   },
    "size": [
-    11.9,
-    9.6,
-    11.7
+    11.94,
+    9.58,
+    11.69
    ],
    "skinned": false,
+   "textureShares": {
+    "di_uquarry_cavehall_wall01.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_ground.dds",
+    "di_uquarry_cavehall_wall01.dds",
+    "di_uquarry_cavehall_wall01_10n.dds"
+   ],
    "triangles": 164
   },
   "model/obj_feerrott_stone_dwelling.mod@a621aaa9": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_stone_structure_bed.mod": 8,
+    "obj_feerrott_stone_structure_bowl.mod": 3,
+    "obj_feerrott_stone_structure_chair.mod": 10
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -23.7,
+     -26.32,
+     -1.46
+    ],
+    [
+     23.76,
+     26.12,
+     38.16
+    ]
+   ],
+   "bytes": 57248,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "blue",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brdg2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
       "e_TextureDiffuse0": "di_frott_rock_face01.dds",
       "e_TextureNormal0": "di_frott_rock_face01_6n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage4.dds",
-      "e_TextureDiffuse0": "di_frott_rock_face01.dds",
-      "e_TextureNormal0": "di_frott_rock_face01_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage4.dds",
-      "e_TextureDiffuse0": "ew_coals001_c.dds",
-      "e_TextureNormal0": "ew_coals001_n.dds"
-     }
     }
    ],
+   "entry": "obj_feerrott_stone_dwelling.mod",
+   "footprint": 2488.4,
+   "kind": "model",
    "name": "obj_feerrott_stone_dwelling.mod",
+   "origin": "offset",
    "placements": 9,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "a621aaa92637198cd298f027e05804aea120199047057c5f1764218334eb54aa",
+   "sits": {
+    "upright": 9
+   },
    "size": [
-    47.5,
-    52.4,
-    39.6
+    47.46,
+    52.44,
+    39.62
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_rock_face01.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "di_frott_rock_face01.dds",
+    "di_frott_rock_face01_6n.dds"
+   ],
    "triangles": 1128
   },
   "model/obj_feerrott_stone_shrine.mod@a6f0d07c": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obp_fern_full.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -47.67,
+     -47.67,
+     -0.17
+    ],
+    [
+     47.67,
+     47.67,
+     56.0
+    ]
+   ],
+   "bytes": 163993,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "blue",
+     "share": 0.986
+    },
+    {
+     "color": "teal",
+     "share": 0.014
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brdg2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1473,6 +2143,7 @@
      }
     },
     {
+     "name": "icn2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1481,70 +2152,147 @@
      }
     }
    ],
+   "entry": "obj_feerrott_stone_shrine.mod",
+   "footprint": 9088.3,
+   "kind": "model",
    "name": "obj_feerrott_stone_shrine.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "a6f0d07cb95f8e8b8dd31b6f5eccfd1e5b7a889ce41c10d582fef3471dc270bd",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    95.3,
-    95.3,
-    56.2
+    95.33,
+    95.33,
+    56.17
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_rock_face01.dds": 0.986,
+    "di_frott_rock_icon06.dds": 0.014
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "di_frott_rock_face01.dds",
+    "di_frott_rock_face01_6n.dds",
+    "di_frott_rock_icon06.dds",
+    "di_frott_rock_icon06_6n.dds"
+   ],
    "triangles": 3504
   },
   "model/obj_feerrott_stone_structure_bed.mod@afd072e5": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 1,
+    "obj_feerrott_rockc.mod": 1,
+    "obj_feerrott_stone_dwelling.mod": 8,
+    "obj_feerrott_stone_structure_chair.mod": 4,
+    "obp_fern_full.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.68,
+     -6.61,
+     -0.14
+    ],
+    [
+     3.55,
+     7.45,
+     5.4
+    ]
+   ],
+   "bytes": 13716,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "blue",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brdg2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
       "e_TextureDiffuse0": "di_frott_rock_face01.dds",
       "e_TextureNormal0": "di_frott_rock_face01_6n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage4.dds",
-      "e_TextureDiffuse0": "di_frott_rock_face01.dds",
-      "e_TextureNormal0": "di_frott_rock_face01_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage4.dds",
-      "e_TextureDiffuse0": "ew_coals001_c.dds",
-      "e_TextureNormal0": "ew_coals001_n.dds"
-     }
     }
    ],
+   "entry": "obj_feerrott_stone_structure_bed.mod",
+   "footprint": 101.6,
+   "kind": "model",
    "name": "obj_feerrott_stone_structure_bed.mod",
+   "origin": "base",
    "placements": 8,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "afd072e59422ca978dd2261881099c2fd603666aafb93df0da9480f5840e235e",
+   "sits": {
+    "upright": 8
+   },
    "size": [
-    7.2,
-    14.1,
-    5.5
+    7.22,
+    14.06,
+    5.55
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_rock_face01.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "di_frott_rock_face01.dds",
+    "di_frott_rock_face01_6n.dds"
+   ],
    "triangles": 201
   },
   "model/obj_feerrott_stone_structure_bowl.mod@fa2c39ea": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_bbq.mod": 3,
+    "obj_feerrott_rockc.mod": 3,
+    "obj_feerrott_stone_dwelling.mod": 3,
+    "obj_feerrott_stone_structure_chair.mod": 4,
+    "obp_fern_full.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.0,
+     -3.0,
+     -0.3
+    ],
+    [
+     3.0,
+     3.0,
+     4.0
+    ]
+   ],
+   "bytes": 5300,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "blue",
+     "share": 0.868
+    },
+    {
+     "color": "red",
+     "share": 0.132
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brdg2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1553,14 +2301,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage4.dds",
-      "e_TextureDiffuse0": "di_frott_rock_face01.dds",
-      "e_TextureNormal0": "di_frott_rock_face01_6n.dds"
-     }
-    },
-    {
+     "name": "cls",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage4.dds",
@@ -1569,70 +2310,152 @@
      }
     }
    ],
+   "entry": "obj_feerrott_stone_structure_bowl.mod",
+   "footprint": 36.0,
+   "kind": "model",
    "name": "obj_feerrott_stone_structure_bowl.mod",
+   "origin": "offset",
    "placements": 8,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "fa2c39eafec7fbb66cfc3824199f84cfcfa9e49ad614d0b7b6d0d5b1df1d36e0",
+   "sits": {
+    "upright": 8
+   },
    "size": [
     6.0,
     6.0,
     4.3
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_rock_face01.dds": 0.868,
+    "ew_coals001_c.dds": 0.132
+   },
+   "textures": [
+    "coverage4.dds",
+    "di_frott_coverage_wall.dds",
+    "di_frott_rock_face01.dds",
+    "di_frott_rock_face01_6n.dds",
+    "ew_coals001_c.dds",
+    "ew_coals001_n.dds"
+   ],
    "triangles": 86
   },
   "model/obj_feerrott_stone_structure_chair.mod@4a0bdd93": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 2,
+    "obj_feerrott_stone_dwelling.mod": 10,
+    "obj_feerrott_stone_structure_bed.mod": 4,
+    "obj_feerrott_stone_structure_bowl.mod": 4,
+    "obp_fern_full.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -5.0,
+     -4.45,
+     -0.17
+    ],
+    [
+     5.0,
+     5.85,
+     7.8
+    ]
+   ],
+   "bytes": 3924,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "blue",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brdg2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
       "e_TextureDiffuse0": "di_frott_rock_face01.dds",
       "e_TextureNormal0": "di_frott_rock_face01_6n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage4.dds",
-      "e_TextureDiffuse0": "di_frott_rock_face01.dds",
-      "e_TextureNormal0": "di_frott_rock_face01_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage4.dds",
-      "e_TextureDiffuse0": "ew_coals001_c.dds",
-      "e_TextureNormal0": "ew_coals001_n.dds"
-     }
     }
    ],
+   "entry": "obj_feerrott_stone_structure_chair.mod",
+   "footprint": 103.0,
+   "kind": "model",
    "name": "obj_feerrott_stone_structure_chair.mod",
+   "origin": "base",
    "placements": 11,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "4a0bdd938e18cf1d12347343512ec6bfec9070e99715cabfcb4e841deff208f0",
+   "sits": {
+    "upright": 11
+   },
    "size": [
     10.0,
     10.3,
-    8.0
+    7.98
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_rock_face01.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "di_frott_rock_face01.dds",
+    "di_frott_rock_face01_6n.dds"
+   ],
    "triangles": 70
   },
   "model/obj_feerrott_tent.mod@49d2195e": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rockb.mod": 6,
+    "obj_feerrott_rockc.mod": 3,
+    "obj_feerrott_rockd.mod": 4,
+    "obp_feerrott_campfire.mod": 11,
+    "obp_fern_full.mod": 7
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -7.88,
+     -8.13,
+     -0.73
+    ],
+    [
+     7.99,
+     6.94,
+     11.91
+    ]
+   ],
+   "bytes": 155869,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "tan",
+     "share": 0.912
+    },
+    {
+     "color": "black",
+     "share": 0.082
+    },
+    {
+     "color": "grey",
+     "share": 0.006
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "wdd2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1641,6 +2464,7 @@
      }
     },
     {
+     "name": "ttt",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -1649,6 +2473,7 @@
      }
     },
     {
+     "name": "tnt",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1657,6 +2482,7 @@
      }
     },
     {
+     "name": "tntfcc",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1665,130 +2491,145 @@
      }
     }
    ],
+   "entry": "obj_feerrott_tent.mod",
+   "footprint": 239.2,
+   "kind": "model",
    "name": "obj_feerrott_tent.mod",
+   "origin": "offset",
    "placements": 13,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "49d2195eb94904460da382f93fee34fb416bd747ef2c02dcb23223d3bf76e863",
+   "sits": {
+    "upright": 13
+   },
    "size": [
-    15.9,
-    15.1,
-    12.6
+    15.87,
+    15.07,
+    12.63
    ],
    "skinned": false,
+   "textureShares": {
+    "canvas.dds": 0.006,
+    "di_frott_tent01.dds": 0.441,
+    "di_frott_tent02.dds": 0.471,
+    "di_pine_bark02.dds": 0.082
+   },
+   "textures": [
+    "canvas.dds",
+    "di_frott_coverage_ground.dds",
+    "di_frott_coverage_wall.dds",
+    "di_frott_tent01.dds",
+    "di_frott_tent02.dds",
+    "di_pine_bark02.dds",
+    "di_pine_bark02_4n.dds"
+   ],
    "triangles": 3452
   },
   "model/obj_feerrott_treestump.mod@28265aca": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 130,
+    "obj_feerrott_rockb.mod": 229,
+    "obj_feerrott_rocke.mod": 164,
+    "obp_feerrott_gnarledtree.mod": 130,
+    "obp_fern_full.mod": 1017
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -10.78,
+     -9.14,
+     -6.52
+    ],
+    [
+     7.01,
+     9.4,
+     16.95
+    ]
+   ],
+   "bytes": 20007,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "gnarledbark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
       "e_TextureDiffuse0": "tree_oakgnarled_bark_c.dds",
       "e_TextureNormal0": "tree_oakgnarled_bark_n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "tree_oakgnarled_leaves_c.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "di_frott_moss01.dds"
-     }
     }
    ],
+   "entry": "obj_feerrott_treestump.mod",
+   "footprint": 329.7,
+   "kind": "model",
    "name": "obj_feerrott_treestump.mod",
+   "origin": "offset",
    "placements": 1158,
    "scaleRange": [
     0.401,
     1.25
    ],
    "sha256": "28265acacff06aa9b5167eeb0560538189237fa135d6b09b971f2809cacef259",
+   "sits": {
+    "tilted": 5,
+    "upright": 1153
+   },
    "size": [
-    17.8,
-    18.5,
-    23.5
+    17.78,
+    18.54,
+    23.47
    ],
    "skinned": false,
+   "textureShares": {
+    "tree_oakgnarled_bark_c.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "tree_oakgnarled_bark_c.dds",
+    "tree_oakgnarled_bark_n.dds"
+   ],
    "triangles": 232
   },
   "model/obj_feerrott_waterfall_rockb.mod@f0406aff": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obp_feerrott_hangingtree.mod": 1,
+    "obp_fern_full.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -45.99,
+     -35.85,
+     -10.0
+    ],
+    [
+     43.56,
+     34.03,
+     28.31
+    ]
+   ],
+   "bytes": 3798,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_frott_coverage_wall.dds",
-      "e_TextureDiffuse0": "di_frott_stone_cinderblock.dds",
-      "e_TextureNormal0": "di_frott_stone_cinderblock_6n.dds"
-     }
-    },
+     "color": "teal",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_stone_cinderblock.dds",
-      "e_TextureNormal0": "di_frott_stone_cinderblock_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_frott_coverage_wall.dds",
-      "e_TextureDiffuse0": "di_frott_trim02.dds",
-      "e_TextureNormal0": "di_frott_trim02_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_stone_base.dds",
-      "e_TextureNormal0": "di_frott_stone_base_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_trim01.dds",
-      "e_TextureNormal0": "di_frott_trim01_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_frott_trim03.dds",
-      "e_TextureNormal0": "di_frott_trim03_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_frott_stone_floor_tile01.dds",
-      "e_TextureNormal0": "di_frott_stone_floor_plain02_6n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_wallstains_green.dds",
-      "e_TextureDiffuse0": "di_ent_metal01_c.dds",
-      "e_TextureNormal0": "di_ent_metal01_n.dds"
-     }
-    },
-    {
+     "name": "rck2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1797,6 +2638,7 @@
      }
     },
     {
+     "name": "rck",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -1805,26 +2647,64 @@
      }
     }
    ],
+   "entry": "obj_feerrott_waterfall_rockb.mod",
+   "footprint": 6258.4,
+   "kind": "model",
    "name": "obj_feerrott_waterfall_rockb.mod",
+   "origin": "offset",
    "placements": 4,
    "scaleRange": [
     0.501,
     1.0
    ],
    "sha256": "f0406affc24e373a2ff122a5027a1d2630848e644e2eb9a09206c4576d491c4b",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    89.6,
-    69.9,
-    38.3
+    89.56,
+    69.88,
+    38.31
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_rock02.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_ground.dds",
+    "di_frott_coverage_wall.dds",
+    "di_frott_rock02.dds",
+    "di_frott_rock02_6n.dds"
+   ],
    "triangles": 24
   },
   "model/obj_stone_structure.mod@6662d958": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -43.82,
+     -43.16,
+     -7.44
+    ],
+    [
+     34.44,
+     38.73,
+     24.44
+    ]
+   ],
+   "bytes": 47900,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "stn2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1833,42 +2713,76 @@
      }
     },
     {
+     "name": "stnrn",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
       "e_TextureDiffuse0": "di_frott_granite_icon02.dds",
       "e_TextureNormal0": "di_uquarry_cavehall_wall01_10n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_frott_coverage_ground.dds",
-      "e_TextureDiffuse0": "di_frott_granite.dds",
-      "e_TextureNormal0": "di_uquarry_cavehall_wall01_10n.dds"
-     }
     }
    ],
+   "entry": "obj_stone_structure.mod",
+   "footprint": 6408.9,
+   "kind": "model",
    "name": "obj_stone_structure.mod",
+   "origin": "offset",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "6662d958f667e375ec27f7d90ed414b575ff5ebb32575b0ace4b77ed0b398846",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    78.3,
-    81.9,
-    31.9
+    78.26,
+    81.89,
+    31.88
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_granite.dds": 0.952,
+    "di_frott_granite_icon02.dds": 0.048
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "di_frott_granite.dds",
+    "di_frott_granite_icon02.dds",
+    "di_uquarry_cavehall_wall01_10n.dds"
+   ],
    "triangles": 1054
   },
   "model/obj_stone_structure_topless.mod@60a91e6c": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rockb.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -43.82,
+     -43.16,
+     -7.44
+    ],
+    [
+     31.33,
+     38.73,
+     17.18
+    ]
+   ],
+   "bytes": 44412,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "stn2uv",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1877,42 +2791,84 @@
      }
     },
     {
+     "name": "stnrn",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
       "e_TextureDiffuse0": "di_frott_granite_icon02.dds",
       "e_TextureNormal0": "di_uquarry_cavehall_wall01_10n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_frott_coverage_ground.dds",
-      "e_TextureDiffuse0": "di_frott_granite.dds",
-      "e_TextureNormal0": "di_uquarry_cavehall_wall01_10n.dds"
-     }
     }
    ],
+   "entry": "obj_stone_structure_topless.mod",
+   "footprint": 6154.4,
+   "kind": "model",
    "name": "obj_stone_structure_topless.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "60a91e6cde2de7eef85bc7ad063bd7ef27f41609234e735ca312a6fd30dfa3d4",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    75.2,
-    81.9,
-    24.6
+    75.15,
+    81.89,
+    24.62
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_granite.dds": 0.898,
+    "di_frott_granite_icon02.dds": 0.102
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "di_frott_granite.dds",
+    "di_frott_granite_icon02.dds",
+    "di_uquarry_cavehall_wall01_10n.dds"
+   ],
    "triangles": 972
   },
   "model/obp_feerrott_bigoak.mod@1d9c5e30": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 66,
+    "obj_feerrott_rockb.mod": 99,
+    "obj_feerrott_rocke.mod": 70,
+    "obj_feerrott_treestump.mod": 88,
+    "obp_fern_full.mod": 482
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -39.14,
+     -47.41,
+     -2.71
+    ],
+    [
+     52.93,
+     36.37,
+     78.61
+    ]
+   ],
+   "bytes": 70223,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 0.968
+    },
+    {
+     "color": "black",
+     "share": 0.032
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brk",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -1921,50 +2877,83 @@
      }
     },
     {
+     "name": "lf1",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "tree_oakgnarled_leaves_c.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "tree_oakgnarled_leaves_c.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "di_frott_moss01.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "di_frott_moss01.dds"
      }
     }
    ],
+   "entry": "obp_feerrott_bigoak.mod",
+   "footprint": 7713.7,
+   "kind": "model",
    "name": "obp_feerrott_bigoak.mod",
+   "origin": "offset",
    "placements": 525,
    "scaleRange": [
     0.501,
     2.501
    ],
    "sha256": "1d9c5e30c3b173244ce58608ab272716553cbcd396e83257ebda6724d5e51aed",
+   "sits": {
+    "tilted": 14,
+    "upright": 511
+   },
    "size": [
-    92.1,
-    83.8,
-    81.3
+    92.07,
+    83.78,
+    81.32
    ],
    "skinned": false,
+   "textureShares": {
+    "tree_oakgnarled_bark_c.dds": 0.032,
+    "tree_oakgnarled_leaves_c.dds": 0.968
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "tree_oakgnarled_bark_c.dds",
+    "tree_oakgnarled_bark_n.dds",
+    "tree_oakgnarled_leaves_c.dds"
+   ],
    "triangles": 1423
   },
   "model/obp_feerrott_campfire.mod@d2ed8af3": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 1,
+    "obj_feerrott_rockb.mod": 4,
+    "obj_feerrott_rockc.mod": 1,
+    "obj_feerrott_tent.mod": 11,
+    "obp_fern_full.mod": 4
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.96,
+     -3.78,
+     -0.42
+    ],
+    [
+     4.22,
+     4.37,
+     1.09
+    ]
+   ],
+   "bytes": 39274,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.915
+    },
+    {
+     "color": "tan",
+     "share": 0.085
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "scrch",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -1973,6 +2962,7 @@
      }
     },
     {
+     "name": "rck",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -1981,6 +2971,7 @@
      }
     },
     {
+     "name": "wd",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_ground.dds",
@@ -1989,66 +2980,148 @@
      }
     }
    ],
+   "entry": "obp_feerrott_campfire.mod",
+   "footprint": 66.7,
+   "kind": "model",
    "name": "obp_feerrott_campfire.mod",
+   "origin": "offset",
    "placements": 5,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "d2ed8af3b31bb177e3b891077c7674c17ff4f9363fb88cd66e0a29213bf7318d",
+   "sits": {
+    "upright": 5
+   },
    "size": [
-    8.2,
-    8.2,
-    1.5
+    8.17,
+    8.15,
+    1.51
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 0.915,
+    "woodscorch.dds": 0.085
+   },
+   "textures": [
+    "book_stump_bark_01_n.dds",
+    "di_frott_coverage_ground.dds",
+    "sb_rock01_10n.dds",
+    "sb_rock01_c.dds",
+    "woodscorch.dds"
+   ],
    "triangles": 776
   },
   "model/obp_feerrott_felledtree.mod@92761c8c": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rockb.mod": 14,
+    "obj_feerrott_rockc.mod": 9,
+    "obj_feerrott_treestump.mod": 12,
+    "obp_feerrott_gnarledtree.mod": 10,
+    "obp_fern_full.mod": 66
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -37.32,
+     -15.59,
+     -3.54
+    ],
+    [
+     8.27,
+     7.98,
+     21.83
+    ]
+   ],
+   "bytes": 12779,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "gnarledbark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
       "e_TextureDiffuse0": "tree_oakgnarled_bark_c.dds",
       "e_TextureNormal0": "tree_oakgnarled_bark_n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "tree_oakgnarled_leaves_c.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "di_frott_moss01.dds"
-     }
     }
    ],
+   "entry": "obp_feerrott_felledtree.mod",
+   "footprint": 1074.9,
+   "kind": "model",
    "name": "obp_feerrott_felledtree.mod",
+   "origin": "offset",
    "placements": 86,
    "scaleRange": [
     0.804,
     1.494
    ],
    "sha256": "92761c8cdfd2f49cc51d48a7739b4ff389df2da8d68d7e4cb7afba8e04216cf8",
+   "sits": {
+    "tilted": 4,
+    "upright": 82
+   },
    "size": [
-    45.6,
-    23.6,
-    25.4
+    45.59,
+    23.58,
+    25.37
    ],
    "skinned": false,
+   "textureShares": {
+    "tree_oakgnarled_bark_c.dds": 1.0
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "tree_oakgnarled_bark_c.dds",
+    "tree_oakgnarled_bark_n.dds"
+   ],
    "triangles": 205
   },
   "model/obp_feerrott_gnarledtree.mod@b28def54": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 83,
+    "obj_feerrott_rockb.mod": 117,
+    "obj_feerrott_rocke.mod": 84,
+    "obj_feerrott_treestump.mod": 130,
+    "obp_fern_full.mod": 623
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -31.84,
+     -40.19,
+     -6.52
+    ],
+    [
+     38.75,
+     43.36,
+     53.56
+    ]
+   ],
+   "bytes": 33503,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 0.955
+    },
+    {
+     "color": "black",
+     "share": 0.045
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "gnarledbark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -2057,38 +3130,87 @@
      }
     },
     {
+     "name": "gnarledleaves",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "tree_oakgnarled_leaves_c.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "di_frott_moss01.dds"
-     }
     }
    ],
+   "entry": "obp_feerrott_gnarledtree.mod",
+   "footprint": 5897.3,
+   "kind": "model",
    "name": "obp_feerrott_gnarledtree.mod",
+   "origin": "offset",
    "placements": 859,
    "scaleRange": [
     0.501,
     3.001
    ],
    "sha256": "b28def5495f7cfbf048de57c2928fb303bb0f6e8c25393b10aca002b0386d458",
+   "sits": {
+    "tilted": 32,
+    "upright": 827
+   },
    "size": [
-    70.6,
-    83.5,
-    60.1
+    70.59,
+    83.55,
+    60.08
    ],
    "skinned": false,
+   "textureShares": {
+    "tree_oakgnarled_bark_c.dds": 0.045,
+    "tree_oakgnarled_leaves_c.dds": 0.955
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "tree_oakgnarled_bark_c.dds",
+    "tree_oakgnarled_bark_n.dds",
+    "tree_oakgnarled_leaves_c.dds"
+   ],
    "triangles": 590
   },
   "model/obp_feerrott_hangingtree.mod@b2999eca": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 11,
+    "obj_feerrott_rockb.mod": 27,
+    "obj_feerrott_rocke.mod": 15,
+    "obj_feerrott_treestump.mod": 18,
+    "obp_fern_full.mod": 88
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -55.87,
+     -64.46,
+     -10.4
+    ],
+    [
+     87.48,
+     60.72,
+     88.36
+    ]
+   ],
+   "bytes": 144467,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "teal",
+     "share": 0.946
+    },
+    {
+     "color": "black",
+     "share": 0.032
+    },
+    {
+     "color": "green",
+     "share": 0.022
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brk",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -2097,50 +3219,92 @@
      }
     },
     {
+     "name": "lf1",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "tree_oakgnarled_leaves_c.dds"
      }
     },
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "tree_oakgnarled_leaves_c.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "di_frott_moss01.dds"
-     }
-    },
-    {
+     "name": "mss",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "di_frott_moss01.dds"
      }
     }
    ],
+   "entry": "obp_feerrott_hangingtree.mod",
+   "footprint": 17946.2,
+   "kind": "model",
    "name": "obp_feerrott_hangingtree.mod",
+   "origin": "offset",
    "placements": 137,
    "scaleRange": [
     0.001,
     1.243
    ],
    "sha256": "b2999eca4166cc45b915d8828bf8abfe98ecff9b5976a9bfec8de71eee8b91cc",
+   "sits": {
+    "tilted": 52,
+    "upright": 85
+   },
    "size": [
-    143.4,
-    125.2,
-    98.8
+    143.35,
+    125.19,
+    98.76
    ],
    "skinned": false,
+   "textureShares": {
+    "di_frott_moss01.dds": 0.022,
+    "tree_oakgnarled_bark_c.dds": 0.032,
+    "tree_oakgnarled_leaves_c.dds": 0.946
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "di_frott_moss01.dds",
+    "tree_oakgnarled_bark_c.dds",
+    "tree_oakgnarled_bark_n.dds",
+    "tree_oakgnarled_leaves_c.dds"
+   ],
    "triangles": 2735
   },
   "model/obp_feerrott_tree_tall.mod@6ef32446": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 30,
+    "obj_feerrott_rockd.mod": 28,
+    "obj_feerrott_rocke.mod": 27,
+    "obj_feerrott_treestump.mod": 60,
+    "obp_fern_full.mod": 207
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -35.15,
+     -38.18,
+     -17.26
+    ],
+    [
+     36.17,
+     33.68,
+     186.01
+    ]
+   ],
+   "bytes": 70650,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 0.946
+    },
+    {
+     "color": "black",
+     "share": 0.054
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "trunk",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -2149,6 +3313,7 @@
      }
     },
     {
+     "name": "roots",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -2157,58 +3322,152 @@
      }
     },
     {
+     "name": "full",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "di_pine_branch1.dds"
      }
     }
    ],
+   "entry": "obp_feerrott_tree_tall.mod",
+   "footprint": 5125.0,
+   "kind": "model",
    "name": "obp_feerrott_tree_tall.mod",
+   "origin": "offset",
    "placements": 323,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "6ef32446077d409813a0bcc421e932740aba4a399a795d9b37a313280bb2bc2d",
+   "sits": {
+    "tilted": 1,
+    "upright": 322
+   },
    "size": [
-    71.3,
-    71.9,
-    203.3
+    71.32,
+    71.86,
+    203.27
    ],
    "skinned": false,
+   "textureShares": {
+    "di_pine_bark01.dds": 0.049,
+    "di_pine_bark02.dds": 0.054,
+    "di_pine_branch1.dds": 0.897
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "di_pine_bark01.dds",
+    "di_pine_bark01_4n.dds",
+    "di_pine_bark02.dds",
+    "di_pine_bark02_4n.dds",
+    "di_pine_branch1.dds"
+   ],
    "triangles": 840
   },
   "model/obp_fern_full.mod@6c419f1f": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rockb.mod": 604,
+    "obj_feerrott_rocke.mod": 432,
+    "obj_feerrott_treestump.mod": 1017,
+    "obp_feerrott_bigoak.mod": 482,
+    "obp_feerrott_gnarledtree.mod": 623
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -7.09,
+     -4.69,
+     -1.96
+    ],
+    [
+     5.96,
+     5.08,
+     6.34
+    ]
+   ],
+   "bytes": 5697,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "mss",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "fern_full.dds"
      }
     }
    ],
+   "entry": "obp_fern_full.mod",
+   "footprint": 127.5,
+   "kind": "model",
    "name": "obp_fern_full.mod",
+   "origin": "offset",
    "placements": 4799,
    "scaleRange": [
     0.501,
     2.001
    ],
    "sha256": "6c419f1f938089704aa52ea87d6accc6758bd25a0dac1cc94f1797f7945d7e86",
+   "sits": {
+    "tilted": 1,
+    "upright": 4798
+   },
    "size": [
-    13.1,
-    9.8,
-    8.3
+    13.05,
+    9.77,
+    8.31
    ],
    "skinned": false,
+   "textureShares": {
+    "fern_full.dds": 1.0
+   },
+   "textures": [
+    "fern_full.dds"
+   ],
    "triangles": 68
   },
   "model/obp_fob_tree_tall.mod@a7f10a47": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_treestump.mod": 1,
+    "obp_feerrott_gnarledtree.mod": 1,
+    "obp_fern_full.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -35.15,
+     -38.18,
+     -17.26
+    ],
+    [
+     36.17,
+     33.68,
+     186.01
+    ]
+   ],
+   "bytes": 70656,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 0.946
+    },
+    {
+     "color": "black",
+     "share": 0.054
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "trunk",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -2217,6 +3476,7 @@
      }
     },
     {
+     "name": "roots",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_green.dds",
@@ -2225,32 +3485,85 @@
      }
     },
     {
+     "name": "full",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "di_pine_branch1.dds"
      }
     }
    ],
+   "entry": "obp_fob_tree_tall.mod",
+   "footprint": 5125.0,
+   "kind": "model",
    "name": "obp_fob_tree_tall.mod",
+   "origin": "offset",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "a7f10a47a67de4f6ec3b07eda0be8bd55375acec62c125d8f79eb2d13a063165",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    71.3,
-    71.9,
-    203.3
+    71.32,
+    71.86,
+    203.27
    ],
    "skinned": false,
+   "textureShares": {
+    "di_pine_bark01.dds": 0.049,
+    "di_pine_bark02.dds": 0.054,
+    "di_pine_branch1.dds": 0.897
+   },
+   "textures": [
+    "coverage_wallstains_green.dds",
+    "di_pine_bark01.dds",
+    "di_pine_bark01_4n.dds",
+    "di_pine_bark02.dds",
+    "di_pine_bark02_4n.dds",
+    "di_pine_branch1.dds"
+   ],
    "triangles": 840
   },
   "model/obp_tree_dead.mod@d3f065cd": {
    "archive": "feerrott2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_feerrott_rocka.mod": 21,
+    "obj_feerrott_rockb.mod": 16,
+    "obj_feerrott_rocke.mod": 16,
+    "obj_feerrott_treestump.mod": 35,
+    "obp_fern_full.mod": 114
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -18.41,
+     -27.51,
+     -17.26
+    ],
+    [
+     18.41,
+     27.51,
+     178.81
+    ]
+   ],
+   "bytes": 35826,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 0.522
+    },
+    {
+     "color": "green",
+     "share": 0.478
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "trunk",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
@@ -2259,33 +3572,46 @@
      }
     },
     {
+     "name": "roots",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_frott_coverage_wall.dds",
       "e_TextureDiffuse0": "di_pine_bark01.dds",
       "e_TextureNormal0": "di_pine_bark01_4n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "di_pine_branch1.dds"
-     }
     }
    ],
+   "entry": "obp_tree_dead.mod",
+   "footprint": 2025.5,
+   "kind": "model",
    "name": "obp_tree_dead.mod",
+   "origin": "offset",
    "placements": 165,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "d3f065cdabbf012feeed5387dad9855233b5124783a9721852463cff47443f45",
+   "sits": {
+    "upright": 165
+   },
    "size": [
-    36.8,
-    55.0,
-    196.1
+    36.81,
+    55.02,
+    196.07
    ],
    "skinned": false,
+   "textureShares": {
+    "di_pine_bark01.dds": 0.478,
+    "di_pine_bark02.dds": 0.522
+   },
+   "textures": [
+    "di_frott_coverage_wall.dds",
+    "di_pine_bark01.dds",
+    "di_pine_bark01_4n.dds",
+    "di_pine_bark02.dds",
+    "di_pine_bark02_4n.dds"
+   ],
    "triangles": 608
   },
   "texture/alk_blood_c.dds@4f661fbb": {
@@ -4626,25 +5952,23 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_ent_2oggok.mod": 7,
-     "obj_feerrott_obeliska.mod": 4,
-     "obj_feerrott_obeliskb.mod": 14,
-     "obj_feerrott_pyramid_roof.mod": 6,
-     "obj_feerrott_waterfall_rockb.mod": 8
+     "obj_feerrott_2_cazic_thule.mod": 1,
+     "obj_feerrott_ent_2oggok.mod": 2,
+     "obj_feerrott_pyramid_hut.mod": 1,
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "di_frott_stone_cinderblock.dds": 7,
-     "di_frott_stone_cinderblock_6n.dds": 7,
-     "di_frott_stone_floor_plain02.dds": 2,
-     "di_frott_stone_floor_plain02_6n.dds": 6,
-     "di_frott_stone_floor_tile01.dds": 4
+     "di_frott_rock01.dds": 1,
+     "di_frott_stone_cinderblock.dds": 1,
+     "di_frott_stone_cinderblock_6n.dds": 1,
+     "di_frott_stone_floor_plain02_6n.dds": 2,
+     "di_frott_stone_floor_tile01.dds": 2
     },
     "roles": {
-     "e_TextureCoverage0": 17
+     "e_TextureCoverage0": 5
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 16,
-     "Opaque_MPLBump2UV.fx": 1
+     "Opaque_MPLBump.fx": 5
     }
    },
    "meanColor": [
@@ -4679,22 +6003,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_stone_dwelling.mod": 18,
-     "obj_feerrott_stone_structure_bed.mod": 16,
-     "obj_feerrott_stone_structure_bowl.mod": 16,
-     "obj_feerrott_stone_structure_chair.mod": 22
+     "obj_feerrott_stone_structure_bowl.mod": 8
     },
     "partners": {
-     "di_frott_rock_face01.dds": 4,
-     "di_frott_rock_face01_6n.dds": 4,
-     "ew_coals001_c.dds": 4,
-     "ew_coals001_n.dds": 4
+     "ew_coals001_c.dds": 1,
+     "ew_coals001_n.dds": 1
     },
     "roles": {
-     "e_TextureCoverage0": 8
+     "e_TextureCoverage0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 8
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -4831,7 +6150,7 @@
     0.84
    ],
    "sha256": "63c4f18efcbb3bb181c9ad6b4022240342bb0ce2b32b33c311474b0cd7793180",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.0,
    "width": 256
@@ -4861,7 +6180,7 @@
     0.83
    ],
    "sha256": "b9a98fdfb8b393116d46e2a12987b7a8af680f6220b49032ba560cc576c30b51",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": true,
    "transparentShare": 0.0,
    "width": 256
@@ -4898,8 +6217,8 @@
   },
   "texture/coverage_thuleground_ov.dds@df5624ec": {
    "archives": [
-    "objforfeerrott.eqg",
-    "feerrott2.eqg"
+    "feerrott2.eqg",
+    "objforfeerrott.eqg"
    ],
    "brightness": 0.283,
    "colorName": "tan",
@@ -5000,24 +6319,24 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_ent_2oggok.mod": 6,
-     "obj_feerrott_obeliska.mod": 12,
-     "obj_feerrott_obeliskb.mod": 42,
-     "obj_feerrott_pyramid_roof.mod": 9,
-     "obj_feerrott_waterfall_rockb.mod": 16
+     "obj_feerrott_obeliska.mod": 4,
+     "obj_feerrott_obeliskb.mod": 28,
+     "obj_feerrott_pyramid_hut.mod": 2,
+     "obj_feerrott_pyramid_roof.mod": 6,
+     "obp_fob_tree_tall.mod": 4
     },
     "partners": {
-     "di_frott_stone_base.dds": 7,
-     "di_frott_stone_base_6n.dds": 8,
-     "di_frott_trim01.dds": 6,
-     "di_frott_trim01_6n.dds": 6,
-     "di_frott_trim03.dds": 6
+     "di_frott_trim01.dds": 4,
+     "di_frott_trim01_6n.dds": 4,
+     "di_frott_trim03.dds": 3,
+     "di_frott_trim03_6n.dds": 3,
+     "di_pine_bark02.dds": 1
     },
     "roles": {
-     "e_TextureCoverage0": 26
+     "e_TextureCoverage0": 12
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 26
+     "Opaque_MPLBump2UV.fx": 12
     }
    },
    "meanColor": [
@@ -6859,20 +8178,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_bbq.mod": 2,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_bbq.mod": 2
     },
     "partners": {
-     "coverage_wallstains_green.dds": 1,
-     "di_ent_metal01_n.dds": 2,
+     "di_ent_metal01_n.dds": 1,
      "di_frott_coverage_wall.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 1,
-     "Opaque_MPLBump2UV.fx": 1
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -6922,20 +8238,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_bbq.mod": 2,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_bbq.mod": 2
     },
     "partners": {
-     "coverage_wallstains_green.dds": 1,
-     "di_ent_metal01_c.dds": 2,
+     "di_ent_metal01_c.dds": 1,
      "di_frott_coverage_wall.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 2
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 1,
-     "Opaque_MPLBump2UV.fx": 1
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -7520,18 +8833,17 @@
      "obj_feerrott_rocke.mod": 527
     },
     "partners": {
-     "di_frott_granite.dds": 2,
      "di_uquarry_cavehall_wall01.dds": 6,
-     "di_uquarry_cavehall_wall01_10n.dds": 8,
+     "di_uquarry_cavehall_wall01_10n.dds": 6,
      "sb_rock01_10n.dds": 2,
-     "sb_rock01_c.dds": 2
+     "sb_rock01_c.dds": 2,
+     "woodscorch.dds": 1
     },
     "roles": {
-     "e_TextureCoverage0": 14
+     "e_TextureCoverage0": 11
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 12,
-     "Opaque_MPLBump2UV.fx": 2
+     "Opaque_MPLBump.fx": 11
     }
    },
    "meanColor": [
@@ -7575,16 +8887,16 @@
     "partners": {
      "di_frott_rock_face01.dds": 7,
      "di_frott_rock_face01_6n.dds": 8,
-     "di_frott_stone_cinderblock.dds": 7,
-     "di_frott_stone_cinderblock_6n.dds": 7,
-     "tree_oakgnarled_bark_c.dds": 6
+     "di_pine_bark02_4n.dds": 5,
+     "tree_oakgnarled_bark_c.dds": 6,
+     "tree_oakgnarled_bark_n.dds": 6
     },
     "roles": {
-     "e_TextureCoverage0": 44
+     "e_TextureCoverage0": 40
     },
     "shaders": {
      "Opaque_MPLBump.fx": 1,
-     "Opaque_MPLBump2UV.fx": 43
+     "Opaque_MPLBump2UV.fx": 39
     }
    },
    "meanColor": [
@@ -7619,23 +8931,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_ent_2oggok.mod": 2,
-     "obj_stone_structure.mod": 8,
-     "obj_stone_structure_topless.mod": 2
+     "obj_stone_structure.mod": 4,
+     "obj_stone_structure_topless.mod": 1
     },
     "partners": {
-     "coverage.dds": 1,
-     "di_frott_coverage_ground.dds": 2,
      "di_frott_coverage_wall.dds": 2,
-     "di_frott_rock_face01_6n.dds": 2,
-     "di_uquarry_cavehall_wall01_10n.dds": 4
+     "di_uquarry_cavehall_wall01_10n.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 1,
-     "Opaque_MPLBump2UV.fx": 5
+     "Opaque_MPLBump2UV.fx": 2
     }
    },
    "meanColor": [
@@ -7849,18 +9156,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_deadtree.mod": 225,
-     "obj_feerrott_treestump.mod": 1158,
-     "obp_feerrott_bigoak.mod": 1050,
-     "obp_feerrott_gnarledtree.mod": 859,
-     "obp_feerrott_hangingtree.mod": 274
+     "obp_feerrott_hangingtree.mod": 137
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 8
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Chroma_MPLBasicAT.fx": 8
+     "Chroma_MPLBasicAT.fx": 1
     }
    },
    "meanColor": [
@@ -8043,22 +9346,21 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_druid_circle.mod": 2,
-     "obj_feerrott_ent_2oggok.mod": 2
+     "obj_feerrott_druid_circle.mod": 1,
+     "obj_feerrott_ent_2oggok.mod": 1
     },
     "partners": {
      "coverage.dds": 1,
-     "coverage_wallstains_green.dds": 1,
      "di_frott_coverage_wall.dds": 1,
-     "di_frott_rock_face01_6n.dds": 2,
-     "di_frott_stone_base_6n.dds": 2
+     "di_frott_rock_face01_6n.dds": 1,
+     "di_frott_stone_base_6n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2,
-     "Opaque_MPLBump2UV.fx": 2
+     "Opaque_MPLBump.fx": 1,
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -8231,21 +9533,19 @@
    "materials": {
     "models": {
      "obj_feerrott_bbq.mod": 2,
-     "obj_feerrott_stone_dwelling.mod": 18,
-     "obj_feerrott_stone_structure_bed.mod": 16,
-     "obj_feerrott_stone_structure_bowl.mod": 16,
-     "obj_feerrott_stone_structure_chair.mod": 22
+     "obj_feerrott_stone_dwelling.mod": 9,
+     "obj_feerrott_stone_structure_bed.mod": 8,
+     "obj_feerrott_stone_structure_bowl.mod": 8,
+     "obj_feerrott_stone_structure_chair.mod": 11
     },
     "partners": {
-     "coverage4.dds": 4,
      "di_frott_coverage_wall.dds": 7,
-     "di_frott_rock_face01_6n.dds": 11
+     "di_frott_rock_face01_6n.dds": 7
     },
     "roles": {
-     "e_TextureDiffuse0": 11
+     "e_TextureDiffuse0": 7
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4,
      "Opaque_MPLBump2UV.fx": 7
     }
    },
@@ -8296,25 +9596,22 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_druid_circle.mod": 3,
-     "obj_feerrott_stone_dwelling.mod": 18,
-     "obj_feerrott_stone_structure_bed.mod": 16,
-     "obj_feerrott_stone_structure_bowl.mod": 16,
-     "obj_feerrott_stone_structure_chair.mod": 22
+     "obj_feerrott_druid_circle.mod": 2,
+     "obj_feerrott_stone_dwelling.mod": 9,
+     "obj_feerrott_stone_structure_bed.mod": 8,
+     "obj_feerrott_stone_structure_bowl.mod": 8,
+     "obj_feerrott_stone_structure_chair.mod": 11
     },
     "partners": {
-     "coverage4.dds": 4,
      "di_frott_coverage_wall.dds": 8,
-     "di_frott_granite.dds": 2,
-     "di_frott_rock01.dds": 2,
-     "di_frott_rock_face01.dds": 11
+     "di_frott_rock01.dds": 1,
+     "di_frott_rock_face01.dds": 7
     },
     "roles": {
-     "e_TextureNormal0": 15
+     "e_TextureNormal0": 8
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6,
-     "Opaque_MPLBump2UV.fx": 9
+     "Opaque_MPLBump2UV.fx": 8
     }
    },
    "meanColor": [
@@ -8679,21 +9976,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_obeliska.mod": 4,
-     "obj_feerrott_obeliskb.mod": 14,
-     "obj_feerrott_pyramid_hut.mod": 1,
-     "obj_feerrott_pyramid_roof.mod": 3,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_2_cazic_thule.mod": 1
     },
     "partners": {
-     "coverage_wallstains_green.dds": 7,
-     "di_frott_stone_base_6n.dds": 7
+     "coverage_wallstains_green.dds": 1,
+     "di_frott_stone_base_6n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 7
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 7
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -8743,24 +10036,21 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_ent_2oggok.mod": 3,
-     "obj_feerrott_obeliska.mod": 4,
-     "obj_feerrott_obeliskb.mod": 14,
-     "obj_feerrott_pyramid_roof.mod": 3,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_2_cazic_thule.mod": 1,
+     "obj_feerrott_ent_2oggok.mod": 1
     },
     "partners": {
      "coverage.dds": 1,
-     "coverage_wallstains_green.dds": 8,
-     "di_frott_rock01.dds": 2,
-     "di_frott_stone_base.dds": 7
+     "coverage_wallstains_green.dds": 1,
+     "di_frott_rock01.dds": 1,
+     "di_frott_stone_base.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 9
+     "e_TextureNormal0": 2
     },
     "shaders": {
      "Opaque_MPLBump.fx": 1,
-     "Opaque_MPLBump2UV.fx": 8
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -8795,23 +10085,23 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_obeliska.mod": 8,
-     "obj_feerrott_obeliskb.mod": 28,
-     "obj_feerrott_pyramid_hut.mod": 2,
-     "obj_feerrott_pyramid_roof.mod": 6,
-     "obj_feerrott_waterfall_rockb.mod": 8
+     "obj_feerrott_2_cazic_thule.mod": 2,
+     "obj_feerrott_obeliska.mod": 4,
+     "obj_feerrott_obeliskb.mod": 14,
+     "obj_feerrott_pyramid_hut.mod": 1,
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "coverage.dds": 7,
-     "di_frott_coverage_wall.dds": 7,
-     "di_frott_stone_cinderblock_6n.dds": 14
+     "coverage.dds": 1,
+     "di_frott_coverage_wall.dds": 5,
+     "di_frott_stone_cinderblock_6n.dds": 6
     },
     "roles": {
-     "e_TextureDiffuse0": 14
+     "e_TextureDiffuse0": 6
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 7,
-     "Opaque_MPLBump2UV.fx": 7
+     "Opaque_MPLBump.fx": 1,
+     "Opaque_MPLBump2UV.fx": 5
     }
    },
    "meanColor": [
@@ -8861,23 +10151,23 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_obeliska.mod": 8,
-     "obj_feerrott_obeliskb.mod": 28,
-     "obj_feerrott_pyramid_hut.mod": 2,
-     "obj_feerrott_pyramid_roof.mod": 6,
-     "obj_feerrott_waterfall_rockb.mod": 8
+     "obj_feerrott_2_cazic_thule.mod": 2,
+     "obj_feerrott_obeliska.mod": 4,
+     "obj_feerrott_obeliskb.mod": 14,
+     "obj_feerrott_pyramid_hut.mod": 1,
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "coverage.dds": 7,
-     "di_frott_coverage_wall.dds": 7,
-     "di_frott_stone_cinderblock.dds": 14
+     "coverage.dds": 1,
+     "di_frott_coverage_wall.dds": 5,
+     "di_frott_stone_cinderblock.dds": 6
     },
     "roles": {
-     "e_TextureNormal0": 14
+     "e_TextureNormal0": 6
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 7,
-     "Opaque_MPLBump2UV.fx": 7
+     "Opaque_MPLBump.fx": 1,
+     "Opaque_MPLBump2UV.fx": 5
     }
    },
    "meanColor": [
@@ -8912,20 +10202,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_2_cazic_thule.mod": 2,
-     "obj_feerrott_ent_2oggok.mod": 1
+     "obj_feerrott_2_cazic_thule.mod": 1
     },
     "partners": {
-     "coverage.dds": 2,
      "coverage_wallstains_green.dds": 1,
-     "di_frott_stone_floor_plain02_6n.dds": 3
+     "di_frott_stone_floor_plain02_6n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 3
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 1,
-     "Opaque_MPLBump2UV.fx": 2
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -8975,24 +10262,22 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_2_cazic_thule.mod": 2,
-     "obj_feerrott_ent_2oggok.mod": 2,
+     "obj_feerrott_2_cazic_thule.mod": 1,
      "obj_feerrott_pyramid_hut.mod": 1,
-     "obj_feerrott_pyramid_roof.mod": 3,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "coverage.dds": 6,
+     "coverage.dds": 2,
      "coverage_wallstains_green.dds": 1,
-     "di_frott_stone_floor_plain02.dds": 3,
-     "di_frott_stone_floor_tile01.dds": 4
+     "di_frott_stone_floor_plain02.dds": 1,
+     "di_frott_stone_floor_tile01.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 7
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 5,
-     "Opaque_MPLBump2UV.fx": 2
+     "Opaque_MPLBump.fx": 2,
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -9057,20 +10342,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_ent_2oggok.mod": 1,
      "obj_feerrott_pyramid_hut.mod": 1,
-     "obj_feerrott_pyramid_roof.mod": 3,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "coverage.dds": 4,
-     "di_frott_stone_floor_plain02_6n.dds": 4
+     "coverage.dds": 2,
+     "di_frott_stone_floor_plain02_6n.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -9243,18 +10526,17 @@
      "obj_feerrott_obeliska.mod": 4,
      "obj_feerrott_obeliskb.mod": 14,
      "obj_feerrott_pyramid_hut.mod": 1,
-     "obj_feerrott_pyramid_roof.mod": 3,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "coverage_wallstains_green.dds": 6,
-     "di_frott_trim01_6n.dds": 6
+     "coverage_wallstains_green.dds": 4,
+     "di_frott_trim01_6n.dds": 4
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 4
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump2UV.fx": 4
     }
    },
    "meanColor": [
@@ -9307,18 +10589,17 @@
      "obj_feerrott_obeliska.mod": 4,
      "obj_feerrott_obeliskb.mod": 14,
      "obj_feerrott_pyramid_hut.mod": 1,
-     "obj_feerrott_pyramid_roof.mod": 3,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "coverage_wallstains_green.dds": 6,
-     "di_frott_trim01.dds": 6
+     "coverage_wallstains_green.dds": 4,
+     "di_frott_trim01.dds": 4
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 4
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump2UV.fx": 4
     }
    },
    "meanColor": [
@@ -9353,21 +10634,20 @@
    "kind": "texture",
    "materials": {
     "models": {
+     "obj_feerrott_2_cazic_thule.mod": 1,
      "obj_feerrott_obeliska.mod": 4,
-     "obj_feerrott_obeliskb.mod": 14,
      "obj_feerrott_pyramid_hut.mod": 1,
-     "obj_feerrott_pyramid_roof.mod": 3,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "di_frott_coverage_wall.dds": 6,
-     "di_frott_trim02_6n.dds": 6
+     "di_frott_coverage_wall.dds": 4,
+     "di_frott_trim02_6n.dds": 4
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 4
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump2UV.fx": 4
     }
    },
    "meanColor": [
@@ -9417,21 +10697,20 @@
    "kind": "texture",
    "materials": {
     "models": {
+     "obj_feerrott_2_cazic_thule.mod": 1,
      "obj_feerrott_obeliska.mod": 4,
-     "obj_feerrott_obeliskb.mod": 14,
      "obj_feerrott_pyramid_hut.mod": 1,
-     "obj_feerrott_pyramid_roof.mod": 3,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "di_frott_coverage_wall.dds": 6,
-     "di_frott_trim02.dds": 6
+     "di_frott_coverage_wall.dds": 4,
+     "di_frott_trim02.dds": 4
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 4
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump2UV.fx": 4
     }
    },
    "meanColor": [
@@ -9466,21 +10745,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_obeliska.mod": 4,
      "obj_feerrott_obeliskb.mod": 14,
      "obj_feerrott_pyramid_hut.mod": 1,
-     "obj_feerrott_pyramid_roof.mod": 3,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "coverage_wallstains_green.dds": 6,
-     "di_frott_trim03_6n.dds": 6
+     "coverage_wallstains_green.dds": 3,
+     "di_frott_trim03_6n.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump2UV.fx": 3
     }
    },
    "meanColor": [
@@ -9530,21 +10807,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_obeliska.mod": 4,
      "obj_feerrott_obeliskb.mod": 14,
      "obj_feerrott_pyramid_hut.mod": 1,
-     "obj_feerrott_pyramid_roof.mod": 3,
-     "obj_feerrott_waterfall_rockb.mod": 4
+     "obj_feerrott_pyramid_roof.mod": 3
     },
     "partners": {
-     "coverage_wallstains_green.dds": 6,
-     "di_frott_trim03.dds": 6
+     "coverage_wallstains_green.dds": 3,
+     "di_frott_trim03.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump2UV.fx": 3
     }
    },
    "meanColor": [
@@ -10811,15 +12086,14 @@
    "materials": {
     "models": {
      "obp_feerrott_tree_tall.mod": 323,
-     "obp_fob_tree_tall.mod": 2,
-     "obp_tree_dead.mod": 165
+     "obp_fob_tree_tall.mod": 2
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 3
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Chroma_MPLBasicAT.fx": 3
+     "Chroma_MPLBasicAT.fx": 2
     }
    },
    "meanColor": [
@@ -10888,8 +12162,8 @@
   },
   "texture/di_rathe_ground.dds@3b61d4cf": {
    "archives": [
-    "objforfeerrott.eqg",
-    "feerrott2.eqg"
+    "feerrott2.eqg",
+    "objforfeerrott.eqg"
    ],
    "brightness": 0.294,
    "colorName": "brown",
@@ -10919,8 +12193,8 @@
   },
   "texture/di_rathe_ground_8n.dds@9a22b9e2": {
    "archives": [
-    "objforfeerrott.eqg",
-    "feerrott2.eqg"
+    "feerrott2.eqg",
+    "objforfeerrott.eqg"
    ],
    "brightness": 0.555,
    "colorName": "blue",
@@ -12024,18 +13298,18 @@
      "obj_feerrott_rocke.mod": 527
     },
     "partners": {
-     "di_frott_coverage_ground.dds": 8,
+     "di_frott_coverage_ground.dds": 6,
      "di_frott_coverage_wall.dds": 5,
-     "di_frott_granite.dds": 4,
+     "di_frott_granite.dds": 2,
      "di_frott_granite_icon02.dds": 2,
      "di_uquarry_cavehall_wall01.dds": 7
     },
     "roles": {
-     "e_TextureNormal0": 13
+     "e_TextureNormal0": 11
     },
     "shaders": {
      "Opaque_MPLBump.fx": 6,
-     "Opaque_MPLBump2UV.fx": 7
+     "Opaque_MPLBump2UV.fx": 5
     }
    },
    "meanColor": [
@@ -12149,8 +13423,8 @@
   },
   "texture/erosion_ov_tile.dds@c2d78489": {
    "archives": [
-    "objforfeerrott.eqg",
-    "feerrott2.eqg"
+    "feerrott2.eqg",
+    "objforfeerrott.eqg"
    ],
    "brightness": 0.202,
    "colorName": "tan",
@@ -12266,22 +13540,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_ent_2oggok.mod": 1,
-     "obj_feerrott_stone_dwelling.mod": 9,
-     "obj_feerrott_stone_structure_bed.mod": 8,
-     "obj_feerrott_stone_structure_bowl.mod": 8,
-     "obj_feerrott_stone_structure_chair.mod": 11
+     "obj_feerrott_stone_structure_bowl.mod": 8
     },
     "partners": {
-     "coverage.dds": 1,
-     "coverage4.dds": 4,
-     "ew_coals001_n.dds": 5
+     "coverage4.dds": 1,
+     "ew_coals001_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 5
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -12331,22 +13600,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_ent_2oggok.mod": 1,
-     "obj_feerrott_stone_dwelling.mod": 9,
-     "obj_feerrott_stone_structure_bed.mod": 8,
-     "obj_feerrott_stone_structure_bowl.mod": 8,
-     "obj_feerrott_stone_structure_chair.mod": 11
+     "obj_feerrott_stone_structure_bowl.mod": 8
     },
     "partners": {
-     "coverage.dds": 1,
-     "coverage4.dds": 4,
-     "ew_coals001_c.dds": 5
+     "coverage4.dds": 1,
+     "ew_coals001_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 5
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 5
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -12676,18 +13940,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_feerrott_ent_2oggok.mod": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBasic.fx": 1
-    }
-   },
    "meanColor": [
     132,
     111,
@@ -12942,7 +14194,7 @@
     1.93
    ],
    "sha256": "32156f3addb216c481526b1dcbed87743cb3bd6a0a76711dc39f68ad207c397c",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": false,
    "transparentShare": 0.0,
    "width": 256
@@ -12972,7 +14224,7 @@
     2.0
    ],
    "sha256": "bd24d303246b66c790fc34185ebe6b1800f950d7aa75adf3a626cfbf940935ef",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": false,
    "transparentShare": 0.0,
    "width": 256
@@ -15768,8 +17020,8 @@
   },
   "texture/thule_blackmetal.dds@7612ecc2": {
    "archives": [
-    "objforfeerrott.eqg",
-    "feerrott2.eqg"
+    "feerrott2.eqg",
+    "objforfeerrott.eqg"
    ],
    "brightness": 0.189,
    "colorName": "grey",
@@ -15829,8 +17081,8 @@
   },
   "texture/thule_blackmetal_ns.dds@7d3eb888": {
    "archives": [
-    "objforfeerrott.eqg",
-    "feerrott2.eqg"
+    "feerrott2.eqg",
+    "objforfeerrott.eqg"
    ],
    "brightness": 0.558,
    "colorName": "blue",
@@ -16814,18 +18066,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_feerrott_deadtree.mod": 225,
-     "obj_feerrott_treestump.mod": 1158,
-     "obp_feerrott_bigoak.mod": 1050,
+     "obp_feerrott_bigoak.mod": 525,
      "obp_feerrott_gnarledtree.mod": 859,
-     "obp_feerrott_hangingtree.mod": 274
+     "obp_feerrott_hangingtree.mod": 137
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 8
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Chroma_MPLBasicAT.fx": 8
+     "Chroma_MPLBasicAT.fx": 3
     }
    },
    "meanColor": [
@@ -16846,7 +18096,7 @@
    "tiles": true,
    "transparentShare": 0.568,
    "uses": {
-    "areaShare": 0.6523,
+    "areaShare": 0.6524,
     "objectShare": 1.0,
     "slopeShares": {
      "flat": 0.024,
@@ -17277,7 +18527,7 @@
     0.97
    ],
    "sha256": "01d526cbd42f03e55f948bb485c37099813e4cf24cb41335c378f02ab8b37100",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.232,
    "width": 256
@@ -17307,7 +18557,7 @@
     1.24
    ],
    "sha256": "cd3ba6a17a7265046d2a0ae74701da2532e33381ac5347ac8cf729c6b2ab6397",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": true,
    "transparentShare": 0.236,
    "width": 256
@@ -17353,6 +18603,6 @@
   "This EQ terrain zone's lights are not read"
  ],
  "source": "zone:feerrott2",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "feerrott2"
 }

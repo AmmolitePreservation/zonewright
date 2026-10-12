@@ -435,9 +435,36 @@
   },
   "model/obj_evilrock.mod@4a521e57": {
    "archive": "shadowedmount.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_evilrockspire.mod": 14,
+    "obp_dahliabush.mod": 2,
+    "obp_deadtree_card.mod": 98,
+    "obp_seaplant.mod": 322
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.36,
+     -3.57,
+     -1.43
+    ],
+    [
+     4.9,
+     3.71,
+     3.79
+    ]
+   ],
+   "bytes": 3459,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "evil_rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_dark.dds",
@@ -446,26 +473,67 @@
      }
     }
    ],
+   "entry": "obj_evilrock.mod",
+   "footprint": 67.4,
+   "kind": "model",
    "name": "obj_evilrock.mod",
+   "origin": "offset",
    "placements": 4680,
    "scaleRange": [
     0.2,
     7.94
    ],
    "sha256": "4a521e57c0c103d5b8b6b33e11b062159ff1c74dfa53b2056be07c97a5d9e354",
+   "sits": {
+    "tilted": 11,
+    "upright": 4669
+   },
    "size": [
-    9.3,
-    7.3,
-    5.2
+    9.26,
+    7.28,
+    5.22
    ],
    "skinned": false,
+   "textureShares": {
+    "evil_rock.dds": 1.0
+   },
+   "textures": [
+    "coverage_dark.dds",
+    "di_moors_rock_dirt_12n.dds",
+    "evil_rock.dds"
+   ],
    "triangles": 68
   },
   "model/obj_evilrockspire.mod@faabb720": {
    "archive": "shadowedmount.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_evilrock.mod": 14,
+    "obp_seaplant.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -73.86,
+     -66.5,
+     -106.79
+    ],
+    [
+     65.97,
+     68.29,
+     188.9
+    ]
+   ],
+   "bytes": 11703,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "evil_rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_dark.dds",
@@ -474,123 +542,281 @@
      }
     }
    ],
+   "entry": "obj_evilrockspire.mod",
+   "footprint": 18847.7,
+   "kind": "model",
    "name": "obj_evilrockspire.mod",
+   "origin": "center",
    "placements": 24,
    "scaleRange": [
     0.501,
     2.001
    ],
    "sha256": "faabb72040769c6b929e6b3f9379ee6064a8278fab6189c8583e1c6832264db3",
+   "sits": {
+    "tilted": 11,
+    "upright": 13
+   },
    "size": [
-    139.8,
-    134.8,
-    295.7
+    139.83,
+    134.79,
+    295.69
    ],
    "skinned": false,
+   "textureShares": {
+    "evil_rock.dds": 1.0
+   },
+   "textures": [
+    "coverage_dark.dds",
+    "di_moors_rock_dirt_12n.dds",
+    "evil_rock.dds"
+   ],
    "triangles": 192
   },
   "model/obp_dahliabush.mod@5918c3b8": {
    "archive": "shadowedmount.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_evilrock.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.75,
+     -2.6,
+     -0.12
+    ],
+    [
+     2.72,
+     3.05,
+     3.73
+    ]
+   ],
+   "bytes": 4256,
+   "collisionShare": 0.0,
+   "dominantColors": [],
+   "drawnMaterials": [
     {
+     "name": "dahlia_card",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "chocolate-dahlia.dds"
      }
     }
    ],
+   "entry": "obp_dahliabush.mod",
+   "footprint": 30.9,
+   "kind": "model",
    "name": "obp_dahliabush.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     3.001,
     3.001
    ],
    "sha256": "5918c3b8bbc54774105265d2cc0ff34924cb2e912e9f40eff0a10e8e5e2156f1",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    5.5,
-    5.6,
-    3.8
+    5.47,
+    5.64,
+    3.85
    ],
    "skinned": false,
+   "textureShares": {
+    "chocolate-dahlia.dds": 1.0
+   },
+   "textures": [
+    "chocolate-dahlia.dds"
+   ],
    "triangles": 48
   },
   "model/obp_deadtree_card.mod@33196f09": {
    "archive": "shadowedmount.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_evilrock.mod": 98
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -18.73,
+     -18.73,
+     -3.94
+    ],
+    [
+     18.73,
+     18.73,
+     33.12
+    ]
+   ],
+   "bytes": 1506,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "evil_deadtree_card",
      "shader": "Alpha_MPLBasicA.fx",
      "textures": {
       "e_TextureDiffuse0": "deadtree_card.dds"
      }
     }
    ],
+   "entry": "obp_deadtree_card.mod",
+   "footprint": 1403.4,
+   "kind": "model",
    "name": "obp_deadtree_card.mod",
+   "origin": "offset",
    "placements": 161,
    "scaleRange": [
     1.018,
     3.495
    ],
    "sha256": "33196f09a2855d03079007825e3562b8d866b32e691702cec5547b691e63427d",
+   "sits": {
+    "upright": 161
+   },
    "size": [
-    37.5,
-    37.5,
-    37.1
+    37.46,
+    37.46,
+    37.06
    ],
    "skinned": false,
+   "textureShares": {
+    "deadtree_card.dds": 1.0
+   },
+   "textures": [
+    "deadtree_card.dds"
+   ],
    "triangles": 16
   },
   "model/obp_seaplant.mod@02cacfe3": {
    "archive": "shadowedmount.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_evilrock.mod": 322,
+    "obj_evilrockspire.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -5.26,
+     -5.21,
+     -2.18
+    ],
+    [
+     4.97,
+     5.28,
+     8.2
+    ]
+   ],
+   "bytes": 21626,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "seaplant_card",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "seaplant.dds"
      }
     }
    ],
+   "entry": "obp_seaplant.mod",
+   "footprint": 107.3,
+   "kind": "model",
    "name": "obp_seaplant.mod",
+   "origin": "offset",
    "placements": 521,
    "scaleRange": [
     0.805,
     2.499
    ],
    "sha256": "02cacfe3df684cd6f68e6a35ac2b794493bc0414a581dc1bcb71ed17d3b0176b",
+   "sits": {
+    "upright": 521
+   },
    "size": [
-    10.2,
-    10.5,
-    10.4
+    10.23,
+    10.49,
+    10.38
    ],
    "skinned": false,
+   "textureShares": {
+    "seaplant.dds": 1.0
+   },
+   "textures": [
+    "seaplant.dds"
+   ],
    "triangles": 336
   },
   "model/obp_vsmokecard.mod@f5f17262": {
    "archive": "shadowedmount.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -1499.43,
+     -1471.56,
+     -5.03
+    ],
+    [
+     1343.53,
+     1313.49,
+     4165.8
+    ]
+   ],
+   "bytes": 32412,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "04 - Default",
      "shader": "Opaque_MaxWaterFall.fx",
      "textures": {
       "e_TextureDiffuse0": "volcano_smoke.dds"
      }
     }
    ],
+   "entry": "obp_vsmokecard.mod",
+   "footprint": 7917801.9,
+   "kind": "model",
    "name": "obp_vsmokecard.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "f5f172626793f738d0cc796012c393ed2ec1f03f55adf48614a3cc6a247205e7",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    2843.0,
-    2785.1,
-    4170.8
+    2842.96,
+    2785.05,
+    4170.83
    ],
    "skinned": false,
+   "textureShares": {
+    "volcano_smoke.dds": 1.0
+   },
+   "textures": [
+    "volcano_smoke.dds"
+   ],
    "triangles": 624
   },
   "texture/ab_dg_youngtreebranches2.dds@3c70be2b": {
@@ -3345,6 +3571,6 @@
   "This EQ terrain zone's lights are not read"
  ],
  "source": "zone:shadowedmount",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "shadowedmount"
 }

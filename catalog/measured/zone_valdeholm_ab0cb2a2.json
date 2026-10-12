@@ -1,8 +1,8 @@
 {
  "archives": [
+  "valdeholm.eqg",
   "gus_anims.eqg",
-  "fgt_anims.eqg",
-  "valdeholm.eqg"
+  "fgt_anims.eqg"
  ],
  "assets": {
   "ecosystem/valdeholm/2ndll": {
@@ -536,23 +536,36 @@
   },
   "model/obj_rockb.mod@f82d02cb": {
    "archive": "valdeholm.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rockc.mod": 5,
+    "obj_rockd.mod": 8,
+    "obj_rocke.mod": 4,
+    "obj_rockf.mod": 6
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -23.74,
+     -29.31,
+     -2.74
+    ],
+    [
+     23.74,
+     22.44,
+     26.21
+    ]
+   ],
+   "bytes": 6703,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_snow.dds",
-      "e_TextureDiffuse0": "snowyrock_c.dds",
-      "e_TextureNormal0": "snowyrock_n10.dds"
-     }
-    },
-    {
+     "name": "rockbrushed",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_snow.dds",
@@ -561,40 +574,68 @@
      }
     }
    ],
+   "entry": "obj_rockb.mod",
+   "footprint": 2457.6,
+   "kind": "model",
    "name": "obj_rockb.mod",
+   "origin": "offset",
    "placements": 33,
    "scaleRange": [
     1.014,
     1.483
    ],
    "sha256": "f82d02cb47088013b04892c675409824f29e1967b6996038028bd5e1b356d4a0",
+   "sits": {
+    "upright": 33
+   },
    "size": [
-    47.5,
-    51.8,
-    28.9
+    47.49,
+    51.75,
+    28.95
    ],
    "skinned": false,
+   "textureShares": {
+    "di_valde_ground_snow.dds": 1.0
+   },
+   "textures": [
+    "coverage_snow.dds",
+    "di_valde_ground_snow.dds",
+    "di_valde_ground_snow_8n.dds"
+   ],
    "triangles": 128
   },
   "model/obj_rockc.mod@92d4ed0b": {
    "archive": "valdeholm.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rockb.mod": 5,
+    "obj_rockd.mod": 11,
+    "obj_rocke.mod": 10,
+    "obj_rockf.mod": 9
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -18.21,
+     -15.02,
+     -0.82
+    ],
+    [
+     18.21,
+     15.68,
+     20.37
+    ]
+   ],
+   "bytes": 6703,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_snow.dds",
-      "e_TextureDiffuse0": "snowyrock_c.dds",
-      "e_TextureNormal0": "snowyrock_n10.dds"
-     }
-    },
-    {
+     "name": "rockbrushed",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_snow.dds",
@@ -603,40 +644,68 @@
      }
     }
    ],
+   "entry": "obj_rockc.mod",
+   "footprint": 1117.9,
+   "kind": "model",
    "name": "obj_rockc.mod",
+   "origin": "offset",
    "placements": 47,
    "scaleRange": [
     1.001,
     1.498
    ],
    "sha256": "92d4ed0b8050511e3369c101d276af15d5b17edc1cd4c52face38d8926302676",
+   "sits": {
+    "upright": 47
+   },
    "size": [
-    36.4,
+    36.41,
     30.7,
-    21.2
+    21.19
    ],
    "skinned": false,
+   "textureShares": {
+    "di_valde_ground_snow.dds": 1.0
+   },
+   "textures": [
+    "coverage_snow.dds",
+    "di_valde_ground_snow.dds",
+    "di_valde_ground_snow_8n.dds"
+   ],
    "triangles": 128
   },
   "model/obj_rockd.mod@c451fa97": {
    "archive": "valdeholm.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rockb.mod": 8,
+    "obj_rockc.mod": 11,
+    "obj_rocke.mod": 11,
+    "obj_rockf.mod": 13
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -9.42,
+     -10.5,
+     -0.72
+    ],
+    [
+     9.42,
+     10.5,
+     19.26
+    ]
+   ],
+   "bytes": 6703,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_snow.dds",
-      "e_TextureDiffuse0": "snowyrock_c.dds",
-      "e_TextureNormal0": "snowyrock_n10.dds"
-     }
-    },
-    {
+     "name": "rockbrushed",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_snow.dds",
@@ -645,40 +714,68 @@
      }
     }
    ],
+   "entry": "obj_rockd.mod",
+   "footprint": 395.7,
+   "kind": "model",
    "name": "obj_rockd.mod",
+   "origin": "offset",
    "placements": 41,
    "scaleRange": [
     1.006,
     1.481
    ],
    "sha256": "c451fa979ab44468514856b51f6d730ef253e74e7d4d3b0c541712a047a8af50",
+   "sits": {
+    "upright": 41
+   },
    "size": [
-    18.8,
+    18.85,
     21.0,
-    20.0
+    19.98
    ],
    "skinned": false,
+   "textureShares": {
+    "di_valde_ground_snow.dds": 1.0
+   },
+   "textures": [
+    "coverage_snow.dds",
+    "di_valde_ground_snow.dds",
+    "di_valde_ground_snow_8n.dds"
+   ],
    "triangles": 128
   },
   "model/obj_rocke.mod@79f218f4": {
    "archive": "valdeholm.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rockb.mod": 4,
+    "obj_rockc.mod": 10,
+    "obj_rockd.mod": 11,
+    "obj_rockf.mod": 12
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -11.87,
+     -11.22,
+     -0.45
+    ],
+    [
+     11.87,
+     11.22,
+     11.83
+    ]
+   ],
+   "bytes": 6703,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_snow.dds",
-      "e_TextureDiffuse0": "snowyrock_c.dds",
-      "e_TextureNormal0": "snowyrock_n10.dds"
-     }
-    },
-    {
+     "name": "rockbrushed",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_snow.dds",
@@ -687,40 +784,68 @@
      }
     }
    ],
+   "entry": "obj_rocke.mod",
+   "footprint": 532.9,
+   "kind": "model",
    "name": "obj_rocke.mod",
+   "origin": "base",
    "placements": 54,
    "scaleRange": [
     1.005,
     1.5
    ],
    "sha256": "79f218f4965dd152f7e08b98c29dc4266ea16dd1885eceb36582e2f57688b007",
+   "sits": {
+    "upright": 54
+   },
    "size": [
-    23.7,
-    22.4,
-    12.3
+    23.74,
+    22.44,
+    12.29
    ],
    "skinned": false,
+   "textureShares": {
+    "di_valde_ground_snow.dds": 1.0
+   },
+   "textures": [
+    "coverage_snow.dds",
+    "di_valde_ground_snow.dds",
+    "di_valde_ground_snow_8n.dds"
+   ],
    "triangles": 128
   },
   "model/obj_rockf.mod@e7858588": {
    "archive": "valdeholm.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rockb.mod": 6,
+    "obj_rockc.mod": 9,
+    "obj_rockd.mod": 13,
+    "obj_rocke.mod": 12
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -9.1,
+     -7.84,
+     -0.25
+    ],
+    [
+     9.1,
+     7.84,
+     10.35
+    ]
+   ],
+   "bytes": 6703,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_snow.dds",
-      "e_TextureDiffuse0": "snowyrock_c.dds",
-      "e_TextureNormal0": "snowyrock_n10.dds"
-     }
-    },
-    {
+     "name": "rockbrushed",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_snow.dds",
@@ -729,32 +854,71 @@
      }
     }
    ],
+   "entry": "obj_rockf.mod",
+   "footprint": 285.5,
+   "kind": "model",
    "name": "obj_rockf.mod",
+   "origin": "base",
    "placements": 43,
    "scaleRange": [
     1.001,
     1.5
    ],
    "sha256": "e7858588aa02875ef44b7b1d4d2db3a061c2aab202f688942d6521b84851bbbd",
+   "sits": {
+    "upright": 43
+   },
    "size": [
-    18.2,
-    15.7,
-    10.6
+    18.21,
+    15.68,
+    10.59
    ],
    "skinned": false,
+   "textureShares": {
+    "di_valde_ground_snow.dds": 1.0
+   },
+   "textures": [
+    "coverage_snow.dds",
+    "di_valde_ground_snow.dds",
+    "di_valde_ground_snow_8n.dds"
+   ],
    "triangles": 128
   },
   "model/obj_rzek_statue.mod@c5a35f22": {
    "archive": "valdeholm.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -7.33,
+     -5.76,
+     -13.56
+    ],
+    [
+     9.15,
+     8.64,
+     13.91
+    ]
+   ],
+   "bytes": 211358,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "brown",
+     "share": 0.558
     },
     {
+     "color": "grey",
+     "share": 0.392
+    },
+    {
+     "color": "teal",
+     "share": 0.05
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "stone_a",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_light_b.dds",
@@ -763,6 +927,7 @@
      }
     },
     {
+     "name": "stone_b",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_light_b.dds",
@@ -771,6 +936,7 @@
      }
     },
     {
+     "name": "stone_c",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_light_b.dds",
@@ -779,6 +945,7 @@
      }
     },
     {
+     "name": "axe",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_light_b.dds",
@@ -786,6 +953,7 @@
      }
     },
     {
+     "name": "stone_d",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_light_b.dds",
@@ -794,6 +962,7 @@
      }
     },
     {
+     "name": "symbol",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_light_b.dds",
@@ -802,6 +971,7 @@
      }
     },
     {
+     "name": "snow",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_snow.dds",
@@ -810,19 +980,52 @@
      }
     }
    ],
+   "entry": "obj_rzek_statue.mod",
+   "footprint": 237.3,
+   "kind": "model",
    "name": "obj_rzek_statue.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     5.001,
     5.001
    ],
    "sha256": "c5a35f2276a524d141168e0616275917b7436dc0dae68d428100c34d011de0f2",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    16.5,
+    16.48,
     14.4,
-    27.5
+    27.47
    ],
    "skinned": false,
+   "textureShares": {
+    "di_sotg_snow.dds": 0.05,
+    "di_valde_rallos_symbol_glow.dds": 0.048,
+    "di_valde_trim02_h_c.dds": 0.344,
+    "rallos_stone_basic.dds": 0.157,
+    "rz_stone_a_01.dds": 0.148,
+    "rz_stone_b_01.dds": 0.158,
+    "rz_stone_c_01.dds": 0.095
+   },
+   "textures": [
+    "coverage_light_b.dds",
+    "coverage_snow.dds",
+    "di_sotg_ground_smooth_8n.dds",
+    "di_sotg_snow.dds",
+    "di_valde_rallos_symbol_8ng.dds",
+    "di_valde_rallos_symbol_glow.dds",
+    "di_valde_trim02_h_8n.dds",
+    "di_valde_trim02_h_c.dds",
+    "rallos_stone_basic.dds",
+    "rallos_zek_01_n.dds",
+    "rallos_zek_02_n.dds",
+    "rallos_zek_03_n.dds",
+    "rz_stone_a_01.dds",
+    "rz_stone_b_01.dds",
+    "rz_stone_c_01.dds"
+   ],
    "triangles": 3535
   },
   "texture/ab_chainlink_c.dds@64bedcf3": {
@@ -1352,24 +1555,23 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_rockb.mod": 66,
-     "obj_rockc.mod": 94,
-     "obj_rockd.mod": 82,
-     "obj_rocke.mod": 108,
-     "obj_rockf.mod": 86
+     "obj_rockb.mod": 33,
+     "obj_rockc.mod": 47,
+     "obj_rockd.mod": 41,
+     "obj_rocke.mod": 54,
+     "obj_rockf.mod": 43
     },
     "partners": {
+     "di_sotg_ground_smooth_8n.dds": 1,
      "di_sotg_snow.dds": 1,
      "di_valde_ground_snow.dds": 5,
-     "di_valde_ground_snow_8n.dds": 5,
-     "snowyrock_c.dds": 5,
-     "snowyrock_n10.dds": 5
+     "di_valde_ground_snow_8n.dds": 5
     },
     "roles": {
-     "e_TextureCoverage0": 11
+     "e_TextureCoverage0": 6
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 11
+     "Opaque_MPLBump.fx": 6
     }
    },
    "meanColor": [
@@ -3184,7 +3386,7 @@
    "tiles": true,
    "transparentShare": 0.0,
    "uses": {
-    "areaShare": 0.0098,
+    "areaShare": 0.0099,
     "objectShare": 1.0,
     "slopeShares": {
      "flat": 0.001,
@@ -6868,25 +7070,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_rockb.mod": 33,
-     "obj_rockc.mod": 47,
-     "obj_rockd.mod": 41,
-     "obj_rocke.mod": 54,
-     "obj_rockf.mod": 43
-    },
-    "partners": {
-     "coverage_snow.dds": 5,
-     "snowyrock_n10.dds": 5
-    },
-    "roles": {
-     "e_TextureDiffuse0": 5
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 5
-    }
-   },
    "meanColor": [
     115,
     116,
@@ -6917,25 +7100,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_rockb.mod": 33,
-     "obj_rockc.mod": 47,
-     "obj_rockd.mod": 41,
-     "obj_rocke.mod": 54,
-     "obj_rockf.mod": 43
-    },
-    "partners": {
-     "coverage_snow.dds": 5,
-     "snowyrock_c.dds": 5
-    },
-    "roles": {
-     "e_TextureNormal0": 5
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 5
-    }
-   },
    "meanColor": [
     129,
     129,
@@ -8317,6 +8481,6 @@
   "This EQ terrain zone's lights are not read"
  ],
  "source": "zone:valdeholm",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "valdeholm"
 }

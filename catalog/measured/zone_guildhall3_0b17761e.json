@@ -1,20 +1,51 @@
 {
  "archives": [
-  "guildhallsmldoor.eqg",
-  "guildhall3.eqg"
+  "guildhall3.eqg",
+  "guildhallsmldoor.eqg"
  ],
  "assets": {
   "model/ter_guildhall3.ter@c5c1b9a8": {
    "archive": "guildhall3.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -159.48,
+     18.26,
+     -23.77
+    ],
+    [
+     162.75,
+     267.43,
+     65.91
+    ]
+   ],
+   "bytes": 477589,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.834
+    },
+    {
+     "color": "brown",
+     "share": 0.104
+    },
+    {
+     "color": "tan",
+     "share": 0.061
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "01 - Default",
      "shader": "Opaque_MPLBasic.fx",
      "textures": {
       "e_TextureDiffuse0": "sgh_plain_stone_01.dds"
      }
     },
     {
+     "name": "base brick",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -23,6 +54,7 @@
      }
     },
     {
+     "name": "sgh_fancy_trim",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -31,6 +63,7 @@
      }
     },
     {
+     "name": "sgh_door",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -39,6 +72,7 @@
      }
     },
     {
+     "name": "sgh_trim_02",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -47,6 +81,7 @@
      }
     },
     {
+     "name": "floorstone",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -55,6 +90,7 @@
      }
     },
     {
+     "name": "sgh_trim03",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -63,6 +99,7 @@
      }
     },
     {
+     "name": "sgh_coblk",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -71,6 +108,7 @@
      }
     },
     {
+     "name": "sgh_dome",
      "shader": "Opaque_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "sgh_tak_dome_02.dds",
@@ -78,6 +116,7 @@
      }
     },
     {
+     "name": "sgh_metal_trim02",
      "shader": "Opaque_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "sgh_metal_trim_02.dds",
@@ -85,6 +124,7 @@
      }
     },
     {
+     "name": "sgh_base_brick01",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -93,6 +133,7 @@
      }
     },
     {
+     "name": "sgh_marble_01",
      "shader": "Opaque_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "sgh_base_marble_c.dds",
@@ -100,6 +141,7 @@
      }
     },
     {
+     "name": "sgh_marble_decor_01",
      "shader": "Opaque_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "sgh_marble_decor_01.dds",
@@ -107,20 +149,7 @@
      }
     },
     {
-     "shader": "Opaque_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "sgh_marble_decor_02.dds",
-      "e_TextureNormal0": "sgh_marble_decor_n_02.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "sgh_floortile_01.dds",
-      "e_TextureNormal0": "sgh_floortile_n_01.dds"
-     }
-    },
-    {
+     "name": "base blocks01",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -129,6 +158,7 @@
      }
     },
     {
+     "name": "wall_detail01",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -137,6 +167,7 @@
      }
     },
     {
+     "name": "metal_trim03",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sgh_coverage.dds",
@@ -145,19 +176,77 @@
      }
     }
    ],
+   "entry": "ter_guildhall3.ter",
+   "footprint": 80288.8,
+   "kind": "model",
    "name": "ter_guildhall3.ter",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "c5c1b9a8dd09b0db76e4f49c36fa377b2a852aacbbbe5c41a436232a4e189bf2",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    322.2,
-    249.2,
-    89.7
+    322.22,
+    249.17,
+    89.68
    ],
    "skinned": false,
+   "textureShares": {
+    "sgh_base_blocks_c.dds": 0.012,
+    "sgh_base_brick_c.dds": 0.392,
+    "sgh_base_marble_c.dds": 0.035,
+    "sgh_basebricks_01.dds": 0.029,
+    "sgh_colblk_01.dds": 0.012,
+    "sgh_entry_door_01.dds": 0.001,
+    "sgh_floorstone_01.dds": 0.106,
+    "sgh_marble_decor_01.dds": 0.001,
+    "sgh_metal_trim_02.dds": 0.028,
+    "sgh_metal_trim_03.dds": 0.0,
+    "sgh_plain_stone_01.dds": 0.02,
+    "sgh_tak_dome_02.dds": 0.107,
+    "sgh_trim_01.dds": 0.103,
+    "sgh_trim_02.dds": 0.086,
+    "sgh_trim_03.dds": 0.038,
+    "sgh_walldet_c_01.dds": 0.029
+   },
+   "textures": [
+    "sgh_base_blocks_c.dds",
+    "sgh_base_blocks_n.dds",
+    "sgh_base_brick_c.dds",
+    "sgh_base_brick_n.dds",
+    "sgh_base_marble_c.dds",
+    "sgh_base_marble_n.dds",
+    "sgh_basebricks_01.dds",
+    "sgh_basebricks_n_01.dds",
+    "sgh_colblk_01.dds",
+    "sgh_colblk_n_01.dds",
+    "sgh_coverage.dds",
+    "sgh_entry_door_01.dds",
+    "sgh_entry_door_n_01.dds",
+    "sgh_floorstone_01.dds",
+    "sgh_floorstone_n_01.dds",
+    "sgh_marble_decor_01.dds",
+    "sgh_marble_decor_n_01.dds",
+    "sgh_metal_trim_02.dds",
+    "sgh_metal_trim_03.dds",
+    "sgh_metal_trim_n_02.dds",
+    "sgh_plain_stone_01.dds",
+    "sgh_tak_dome_02.dds",
+    "sgh_tak_dome_n_02.dds",
+    "sgh_trim_01.dds",
+    "sgh_trim_02.dds",
+    "sgh_trim_03.dds",
+    "sgh_trim_n_01.dds",
+    "sgh_trim_n_02.dds",
+    "sgh_trim_n_03.dds",
+    "sgh_walldet_c_01.dds",
+    "sgh_walldet_n_01.dds"
+   ],
    "triangles": 5264
   },
   "texture/di_hg_roof.dds@1e742480": {
@@ -1252,20 +1341,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_guildhall3.ter": 1
-    },
-    "partners": {
-     "sgh_floortile_n_01.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MaxCBS1.fx": 1
-    }
-   },
    "meanColor": [
     202,
     206,
@@ -1296,20 +1371,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_guildhall3.ter": 1
-    },
-    "partners": {
-     "sgh_floortile_01.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MaxCBS1.fx": 1
-    }
-   },
    "meanColor": [
     127,
     127,
@@ -1429,20 +1490,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_guildhall3.ter": 1
-    },
-    "partners": {
-     "sgh_marble_decor_n_02.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MaxCBS1.fx": 1
-    }
-   },
    "meanColor": [
     161,
     150,
@@ -1517,20 +1564,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_guildhall3.ter": 1
-    },
-    "partners": {
-     "sgh_marble_decor_02.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MaxCBS1.fx": 1
-    }
-   },
    "meanColor": [
     128,
     129,
@@ -2665,6 +2698,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:guildhall3",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "guildhall3"
 }

@@ -5,77 +5,108 @@
  "assets": {
   "model/obj_darkelf_door.mod@5c61654f": {
    "archive": "plhdkeinteriors3a2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "ter_plhdkeinteriors3a2.ter": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.4,
+     -0.42,
+     0.0
+    ],
+    [
+     2.4,
+     0.42,
+     9.35
+    ]
+   ],
+   "bytes": 3745,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_tosk_ov2.dds",
-      "e_TextureDiffuse0": "drkelf_floor_wood_c.dds",
-      "e_TextureNormal0": "di_foe_floor_wood01_4n.dds"
-     }
-    },
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_tosk_ov2.dds",
-      "e_TextureDiffuse0": "evil_wood_drk_c.dds",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "erosion_ov_vert.dds",
-      "e_TextureDiffuse0": "evil_stone_int_c.dds",
-      "e_TextureNormal0": "evil_stone_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "erosion_ov_vert.dds",
-      "e_TextureDiffuse0": "evil_trim_wood_c.dds",
-      "e_TextureNormal0": "evil_trim_wood_n.dds"
-     }
-    },
-    {
+     "name": "evilwood_detail",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "erosion_ov_vert.dds",
       "e_TextureDiffuse0": "tower_wood_c.dds",
       "e_TextureNormal0": "tower_wood_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_tosk_ov2.dds",
-      "e_TextureDiffuse0": "evil_wood_drk_c.dds",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
     }
    ],
+   "entry": "obj_darkelf_door.mod",
+   "footprint": 4.0,
+   "kind": "model",
    "name": "obj_darkelf_door.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     0.945,
     0.945
    ],
    "sha256": "5c61654f22aea8080da08a7b41395562e9ba75f463d268fe201d4854a9d31628",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     4.8,
-    0.8,
-    9.3
+    0.84,
+    9.35
    ],
    "skinned": false,
+   "textureShares": {
+    "tower_wood_c.dds": 1.0
+   },
+   "textures": [
+    "erosion_ov_vert.dds",
+    "tower_wood_c.dds",
+    "tower_wood_n.dds"
+   ],
    "triangles": 32
   },
   "model/ter_plhdkeinteriors3a2.ter@51ccbd28": {
    "archive": "plhdkeinteriors3a2.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_darkelf_door.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -12.11,
+     -53.5,
+     0.03
+    ],
+    [
+     60.07,
+     53.5,
+     20.49
+    ]
+   ],
+   "bytes": 473169,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 0.695
+    },
+    {
+     "color": "grey",
+     "share": 0.2
+    },
+    {
+     "color": "brown",
+     "share": 0.106
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "darkelfwood_tile_interior",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_tosk_ov2.dds",
@@ -84,14 +115,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_tosk_ov2.dds",
-      "e_TextureDiffuse0": "evil_wood_drk_c.dds",
-      "e_TextureNormal0": "old_timber_n.dds"
-     }
-    },
-    {
+     "name": "evilwood_stcco",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "erosion_ov_vert.dds",
@@ -100,6 +124,7 @@
      }
     },
     {
+     "name": "evilwood_trim_wood",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "erosion_ov_vert.dds",
@@ -108,6 +133,7 @@
      }
     },
     {
+     "name": "evilwood_detail",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "erosion_ov_vert.dds",
@@ -116,6 +142,7 @@
      }
     },
     {
+     "name": "darkelfwood_int",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_tosk_ov2.dds",
@@ -124,19 +151,47 @@
      }
     }
    ],
+   "entry": "ter_plhdkeinteriors3a2.ter",
+   "footprint": 7723.7,
+   "kind": "model",
    "name": "ter_plhdkeinteriors3a2.ter",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "51ccbd289b9dd3ded2f288c698d947aa2221e25e50d0a1072aee4e07cd06d0c5",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    72.2,
+    72.18,
     107.0,
-    20.5
+    20.46
    ],
    "skinned": false,
+   "textureShares": {
+    "drkelf_floor_wood_c.dds": 0.106,
+    "evil_stone_int_c.dds": 0.2,
+    "evil_trim_wood_c.dds": 0.3,
+    "evil_wood_drk_c.dds": 0.356,
+    "tower_wood_c.dds": 0.039
+   },
+   "textures": [
+    "coverage_tosk_ov2.dds",
+    "di_foe_floor_wood01_4n.dds",
+    "drkelf_floor_wood_c.dds",
+    "erosion_ov_vert.dds",
+    "evil_stone_int_c.dds",
+    "evil_stone_n.dds",
+    "evil_trim_wood_c.dds",
+    "evil_trim_wood_n.dds",
+    "evil_wood_drk_c.dds",
+    "old_timber_n.dds",
+    "tower_wood_c.dds",
+    "tower_wood_n.dds"
+   ],
    "triangles": 6592
   },
   "texture/coverage_tosk_ov2.dds@19b0fbfe": {
@@ -152,20 +207,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_darkelf_door.mod": 3,
-     "ter_plhdkeinteriors3a2.ter": 3
+     "ter_plhdkeinteriors3a2.ter": 2
     },
     "partners": {
-     "di_foe_floor_wood01_4n.dds": 2,
-     "drkelf_floor_wood_c.dds": 2,
-     "evil_wood_drk_c.dds": 4,
-     "old_timber_n.dds": 4
+     "di_foe_floor_wood01_4n.dds": 1,
+     "drkelf_floor_wood_c.dds": 1,
+     "evil_wood_drk_c.dds": 1,
+     "old_timber_n.dds": 1
     },
     "roles": {
-     "e_TextureCoverage0": 6
+     "e_TextureCoverage0": 2
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump2UV.fx": 2
     }
    },
    "meanColor": [
@@ -200,18 +254,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_darkelf_door.mod": 1,
      "ter_plhdkeinteriors3a2.ter": 1
     },
     "partners": {
-     "coverage_tosk_ov2.dds": 2,
-     "drkelf_floor_wood_c.dds": 2
+     "coverage_tosk_ov2.dds": 1,
+     "drkelf_floor_wood_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 2
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 2
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -246,18 +299,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_darkelf_door.mod": 1,
      "ter_plhdkeinteriors3a2.ter": 1
     },
     "partners": {
-     "coverage_tosk_ov2.dds": 2,
-     "di_foe_floor_wood01_4n.dds": 2
+     "coverage_tosk_ov2.dds": 1,
+     "di_foe_floor_wood01_4n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 2
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -307,21 +359,21 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_darkelf_door.mod": 3,
+     "obj_darkelf_door.mod": 1,
      "ter_plhdkeinteriors3a2.ter": 3
     },
     "partners": {
-     "evil_stone_int_c.dds": 2,
-     "evil_stone_n.dds": 2,
-     "evil_trim_wood_c.dds": 2,
-     "evil_trim_wood_n.dds": 2,
-     "tower_wood_c.dds": 2
+     "evil_stone_int_c.dds": 1,
+     "evil_stone_n.dds": 1,
+     "evil_trim_wood_c.dds": 1,
+     "tower_wood_c.dds": 2,
+     "tower_wood_n.dds": 2
     },
     "roles": {
-     "e_TextureCoverage0": 6
+     "e_TextureCoverage0": 4
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump2UV.fx": 4
     }
    },
    "meanColor": [
@@ -356,18 +408,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_darkelf_door.mod": 1,
      "ter_plhdkeinteriors3a2.ter": 1
     },
     "partners": {
-     "erosion_ov_vert.dds": 2,
-     "evil_stone_n.dds": 2
+     "erosion_ov_vert.dds": 1,
+     "evil_stone_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 2
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -417,18 +468,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_darkelf_door.mod": 1,
      "ter_plhdkeinteriors3a2.ter": 1
     },
     "partners": {
-     "erosion_ov_vert.dds": 2,
-     "evil_stone_int_c.dds": 2
+     "erosion_ov_vert.dds": 1,
+     "evil_stone_int_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 2
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 2
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -463,18 +513,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_darkelf_door.mod": 1,
      "ter_plhdkeinteriors3a2.ter": 1
     },
     "partners": {
-     "erosion_ov_vert.dds": 2,
-     "evil_trim_wood_n.dds": 2
+     "erosion_ov_vert.dds": 1,
+     "evil_trim_wood_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 2
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -524,18 +573,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_darkelf_door.mod": 1,
      "ter_plhdkeinteriors3a2.ter": 1
     },
     "partners": {
-     "erosion_ov_vert.dds": 2,
-     "evil_trim_wood_c.dds": 2
+     "erosion_ov_vert.dds": 1,
+     "evil_trim_wood_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 2
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 2
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -570,18 +618,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_darkelf_door.mod": 2,
-     "ter_plhdkeinteriors3a2.ter": 2
+     "ter_plhdkeinteriors3a2.ter": 1
     },
     "partners": {
-     "coverage_tosk_ov2.dds": 4,
-     "old_timber_n.dds": 4
+     "coverage_tosk_ov2.dds": 1,
+     "old_timber_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 4
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -631,18 +678,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_darkelf_door.mod": 2,
-     "ter_plhdkeinteriors3a2.ter": 2
+     "ter_plhdkeinteriors3a2.ter": 1
     },
     "partners": {
-     "coverage_tosk_ov2.dds": 4,
-     "evil_wood_drk_c.dds": 4
+     "coverage_tosk_ov2.dds": 1,
+     "evil_wood_drk_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 4
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -779,6 +825,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:plhdkeinteriors3a2",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "plhdkeinteriors3a2"
 }

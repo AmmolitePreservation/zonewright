@@ -1,45 +1,42 @@
 {
  "archives": [
-  "pfpremium01.eqg",
-  "phinterior3a3.eqg"
+  "phinterior3a3.eqg",
+  "pfpremium01.eqg"
  ],
  "assets": {
   "model/obj_door_plha.mod@37fa4928": {
    "archive": "phinterior3a3.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "ter_phinterior3a3.ter": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -7.94,
+     -2.0,
+     0.0
+    ],
+    [
+     7.94,
+     0.0,
+     13.0
+    ]
+   ],
+   "bytes": 13420,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "interior_stucco_c.dds"
-     }
+     "color": "brown",
+     "share": 0.703
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "wood_beams_c.dds",
-      "e_TextureNormal0": "wood_beams_n.dds"
-     }
-    },
+     "color": "black",
+     "share": 0.296
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "ogv_stucco_plain_c.dds",
-      "e_TextureNormal0": "ogv_stucco_plain_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "hardwood_floor_c.dds",
-      "e_TextureNormal0": "hardwood_floor_n.dds"
-     }
-    },
-    {
+     "name": "Material #5",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -48,6 +45,7 @@
      }
     },
     {
+     "name": "Material #6",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -56,6 +54,7 @@
      }
     },
     {
+     "name": "Material #7",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -64,50 +63,91 @@
      }
     },
     {
+     "name": "Material #8",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
       "e_TextureDiffuse0": "plh_door_detail01_c.dds",
       "e_TextureNormal0": "plh_door_detail01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "plh_stone_wall_c.dds",
-      "e_TextureNormal0": "plh_stone_wall_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "plh_stucco_beams_c.dds",
-      "e_TextureNormal0": "plh_stucco_beams_n.dds"
-     }
     }
    ],
+   "entry": "obj_door_plha.mod",
+   "footprint": 31.7,
+   "kind": "model",
    "name": "obj_door_plha.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "37fa4928d3aa364e4ecd0f50dd07553173115e0d1fa6da7efc593be24c064ec5",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    15.9,
+    15.87,
     2.0,
     13.0
    ],
    "skinned": false,
+   "textureShares": {
+    "plh_column01_c.dds": 0.296,
+    "plh_door_detail01_c.dds": 0.19,
+    "plh_interior_drwinda.dds": 0.287,
+    "plh_woodpanel01_c.dds": 0.226
+   },
+   "textures": [
+    "coverage.dds",
+    "plh_column01_c.dds",
+    "plh_column01_n.dds",
+    "plh_door_detail01_c.dds",
+    "plh_door_detail01_n.dds",
+    "plh_interior_drwinda.dds",
+    "plh_interior_drwinda_n.dds",
+    "plh_woodpanel01_c.dds",
+    "plh_woodpanel01_n.dds"
+   ],
    "triangles": 112
   },
   "model/ter_phinterior3a3.ter@3697c9b8": {
    "archive": "phinterior3a3.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_door_plha.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -31.23,
+     -85.84,
+     0.0
+    ],
+    [
+     52.61,
+     29.94,
+     14.0
+    ]
+   ],
+   "bytes": 425224,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 0.416
+    },
+    {
+     "color": "black",
+     "share": 0.297
+    },
+    {
+     "color": "grey",
+     "share": 0.176
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Material #1",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -115,6 +155,7 @@
      }
     },
     {
+     "name": "Material #2",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -123,14 +164,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "ogv_stucco_plain_c.dds",
-      "e_TextureNormal0": "ogv_stucco_plain_n.dds"
-     }
-    },
-    {
+     "name": "Material #4",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -139,6 +173,7 @@
      }
     },
     {
+     "name": "Material #5",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -147,6 +182,7 @@
      }
     },
     {
+     "name": "Material #6",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -155,6 +191,7 @@
      }
     },
     {
+     "name": "Material #7",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -163,6 +200,7 @@
      }
     },
     {
+     "name": "Material #8",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -171,6 +209,7 @@
      }
     },
     {
+     "name": "Material #9",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -179,6 +218,7 @@
      }
     },
     {
+     "name": "Material #10",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -187,19 +227,57 @@
      }
     }
    ],
+   "entry": "ter_phinterior3a3.ter",
+   "footprint": 9707.9,
+   "kind": "model",
    "name": "ter_phinterior3a3.ter",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "3697c9b8975bb6c5ce155ef419bbe77e9a3d48806ec47ab5302623591ce635f5",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    83.8,
-    115.8,
+    83.84,
+    115.78,
     14.0
    ],
    "skinned": false,
+   "textureShares": {
+    "hardwood_floor_c.dds": 0.293,
+    "interior_stucco_c.dds": 0.112,
+    "plh_column01_c.dds": 0.042,
+    "plh_door_detail01_c.dds": 0.007,
+    "plh_interior_drwinda.dds": 0.009,
+    "plh_stone_wall_c.dds": 0.176,
+    "plh_stucco_beams_c.dds": 0.099,
+    "plh_woodpanel01_c.dds": 0.008,
+    "wood_beams_c.dds": 0.255
+   },
+   "textures": [
+    "coverage.dds",
+    "hardwood_floor_c.dds",
+    "hardwood_floor_n.dds",
+    "interior_stucco_c.dds",
+    "plh_column01_c.dds",
+    "plh_column01_n.dds",
+    "plh_door_detail01_c.dds",
+    "plh_door_detail01_n.dds",
+    "plh_interior_drwinda.dds",
+    "plh_interior_drwinda_n.dds",
+    "plh_stone_wall_c.dds",
+    "plh_stone_wall_n.dds",
+    "plh_stucco_beams_c.dds",
+    "plh_stucco_beams_n.dds",
+    "plh_woodpanel01_c.dds",
+    "plh_woodpanel01_n.dds",
+    "wood_beams_c.dds",
+    "wood_beams_n.dds"
+   ],
    "triangles": 4935
   },
   "texture/coverage.dds@67581168": {
@@ -215,21 +293,21 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_door_plha.mod": 10,
-     "ter_phinterior3a3.ter": 10
+     "obj_door_plha.mod": 4,
+     "ter_phinterior3a3.ter": 9
     },
     "partners": {
-     "interior_stucco_c.dds": 2,
-     "ogv_stucco_plain_c.dds": 2,
-     "ogv_stucco_plain_n.dds": 2,
-     "wood_beams_c.dds": 2,
-     "wood_beams_n.dds": 2
+     "plh_column01_c.dds": 2,
+     "plh_interior_drwinda.dds": 2,
+     "plh_interior_drwinda_n.dds": 2,
+     "plh_woodpanel01_c.dds": 2,
+     "plh_woodpanel01_n.dds": 2
     },
     "roles": {
-     "e_TextureCoverage0": 20
+     "e_TextureCoverage0": 13
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 20
+     "Opaque_MPLBump.fx": 13
     }
    },
    "meanColor": [
@@ -1164,18 +1242,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_door_plha.mod": 1,
      "ter_phinterior3a3.ter": 1
     },
     "partners": {
-     "coverage.dds": 2,
-     "hardwood_floor_n.dds": 2
+     "coverage.dds": 1,
+     "hardwood_floor_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -1225,18 +1302,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_door_plha.mod": 1,
      "ter_phinterior3a3.ter": 1
     },
     "partners": {
-     "coverage.dds": 2,
-     "hardwood_floor_c.dds": 2
+     "coverage.dds": 1,
+     "hardwood_floor_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 2
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -1271,17 +1347,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_door_plha.mod": 1,
      "ter_phinterior3a3.ter": 1
     },
     "partners": {
-     "coverage.dds": 2
+     "coverage.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -1802,18 +1877,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_door_plha.mod": 1,
      "ter_phinterior3a3.ter": 1
     },
     "partners": {
-     "coverage.dds": 2,
-     "plh_stone_wall_n.dds": 2
+     "coverage.dds": 1,
+     "plh_stone_wall_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -1863,18 +1937,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_door_plha.mod": 1,
      "ter_phinterior3a3.ter": 1
     },
     "partners": {
-     "coverage.dds": 2,
-     "plh_stone_wall_c.dds": 2
+     "coverage.dds": 1,
+     "plh_stone_wall_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 2
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -1909,18 +1982,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_door_plha.mod": 1,
      "ter_phinterior3a3.ter": 1
     },
     "partners": {
-     "coverage.dds": 2,
-     "plh_stucco_beams_n.dds": 2
+     "coverage.dds": 1,
+     "plh_stucco_beams_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -1970,18 +2042,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_door_plha.mod": 1,
      "ter_phinterior3a3.ter": 1
     },
     "partners": {
-     "coverage.dds": 2,
-     "plh_stucco_beams_c.dds": 2
+     "coverage.dds": 1,
+     "plh_stucco_beams_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 2
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2843,18 +2914,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_door_plha.mod": 1,
      "ter_phinterior3a3.ter": 1
     },
     "partners": {
-     "coverage.dds": 2,
-     "wood_beams_n.dds": 2
+     "coverage.dds": 1,
+     "wood_beams_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2904,18 +2974,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_door_plha.mod": 1,
      "ter_phinterior3a3.ter": 1
     },
     "partners": {
-     "coverage.dds": 2,
-     "wood_beams_c.dds": 2
+     "coverage.dds": 1,
+     "wood_beams_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 2
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -2946,6 +3015,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:phinterior3a3",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "phinterior3a3"
 }

@@ -17,18 +17,18 @@
    "count": 4,
    "examplePositions": [
     [
-     1.2,
      0.0,
+     -1.2,
      50.9
     ],
     [
      0.0,
-     0.0,
+     -0.0,
      124.8
     ],
     [
      0.0,
-     0.0,
+     -0.0,
      174.5
     ]
    ],
@@ -60,18 +60,18 @@
    "count": 25,
    "examplePositions": [
     [
-     74.8,
      -10.3,
+     -74.8,
      20.8
     ],
     [
-     114.9,
      -60.5,
+     -114.9,
      3.9
     ],
     [
-     181.2,
      -77.4,
+     -181.2,
      0.9
     ]
    ],
@@ -103,18 +103,18 @@
    "count": 8,
    "examplePositions": [
     [
-     354.5,
      -77.4,
+     -354.5,
      -72.4
     ],
     [
-     354.2,
      -51.2,
+     -354.2,
      -72.4
     ],
     [
-     341.2,
      -64.4,
+     -341.2,
      -72.4
     ]
    ],
@@ -146,18 +146,18 @@
    "count": 43,
    "examplePositions": [
     [
-     409.9,
      -334.2,
+     -409.9,
      58.7
     ],
     [
-     272.3,
      -279.9,
+     -272.3,
      57.1
     ],
     [
-     156.0,
      -321.2,
+     -156.0,
      63.4
     ]
    ],
@@ -189,18 +189,18 @@
    "count": 6,
    "examplePositions": [
     [
-     221.2,
      -462.4,
+     -221.2,
      94.7
     ],
     [
-     140.5,
      -474.9,
+     -140.5,
      118.8
     ],
     [
-     1064.9,
      -561.2,
+     -1064.9,
      147.5
     ]
    ],
@@ -232,18 +232,18 @@
    "count": 8,
    "examplePositions": [
     [
-     377.8,
      -43.5,
+     -377.8,
      -15.3
     ],
     [
-     366.9,
      -97.7,
+     -366.9,
      -15.3
     ],
     [
-     314.8,
      -77.3,
+     -314.8,
      -15.3
     ]
    ],
@@ -263,9 +263,35 @@
   },
   "model/obj_cave_rock_a.mod@55b2560d": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_rock_g.mod": 4,
+    "obj_cave_rock_h.mod": 4,
+    "obj_cave_rock_z.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.51,
+     -4.11,
+     -4.26
+    ],
+    [
+     3.99,
+     3.76,
+     4.79
+    ]
+   ],
+   "bytes": 14381,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -275,39 +301,72 @@
       "e_TextureNormal0": "rock_scorched_limestone_n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_ground02.dds",
-      "e_TextureDiffuse1": "di_well_mud01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_rock_a.mod",
+   "footprint": 66.9,
+   "kind": "model",
    "name": "obj_cave_rock_a.mod",
+   "origin": "center",
    "placements": 7,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "55b2560df594dbef5af9f5ec2c629ee6b1dd16d11c70be749257b4ab4455fc75",
+   "sits": {
+    "tilted": 3,
+    "upright": 4
+   },
    "size": [
     8.5,
-    7.9,
-    9.1
+    7.87,
+    9.05
    ],
    "skinned": false,
+   "textureShares": {
+    "rock_scorched_limestone.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 132
   },
   "model/obj_cave_rock_b.mod@d6f56ec3": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_rock_c.mod": 5,
+    "obj_cave_rock_d.mod": 4,
+    "obj_cave_rock_g.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.18,
+     -4.33,
+     -4.64
+    ],
+    [
+     4.11,
+     3.96,
+     4.64
+    ]
+   ],
+   "bytes": 6041,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -317,39 +376,71 @@
       "e_TextureNormal0": "rock_scorched_limestone_n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_ground02.dds",
-      "e_TextureDiffuse1": "di_well_mud01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_rock_b.mod",
+   "footprint": 68.7,
+   "kind": "model",
    "name": "obj_cave_rock_b.mod",
+   "origin": "center",
    "placements": 6,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "d6f56ec372b92016929a760a4ce6a7bd48a7ef12a82bf71e4e686808654d4da4",
+   "sits": {
+    "upright": 6
+   },
    "size": [
-    8.3,
-    8.3,
-    9.3
+    8.29,
+    8.29,
+    9.27
    ],
    "skinned": false,
+   "textureShares": {
+    "rock_scorched_limestone.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 122
   },
   "model/obj_cave_rock_c.mod@e0c07966": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_rock_b.mod": 5,
+    "obj_cave_rock_d.mod": 2,
+    "obj_cave_rock_g.mod": 4
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.28,
+     -2.32,
+     -2.37
+    ],
+    [
+     2.21,
+     2.36,
+     2.37
+    ]
+   ],
+   "bytes": 4865,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -359,39 +450,73 @@
       "e_TextureNormal0": "rock_scorched_limestone_n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_ground02.dds",
-      "e_TextureDiffuse1": "di_well_mud01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_rock_c.mod",
+   "footprint": 21.1,
+   "kind": "model",
    "name": "obj_cave_rock_c.mod",
+   "origin": "center",
    "placements": 7,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "e0c0796661be0fff101fa4bbe679e8b8cf8734bad6ad3d172e463194547b0401",
+   "sits": {
+    "upright": 7
+   },
    "size": [
     4.5,
-    4.7,
-    4.7
+    4.68,
+    4.73
    ],
    "skinned": false,
+   "textureShares": {
+    "rock_scorched_limestone.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 94
   },
   "model/obj_cave_rock_d.mod@8174c70f": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_rock_b.mod": 4,
+    "obj_cave_rock_c.mod": 2,
+    "obj_cave_rock_e.mod": 3,
+    "obj_cave_rock_f.mod": 1,
+    "obj_cave_rock_g.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -6.06,
+     -6.2,
+     -6.97
+    ],
+    [
+     6.19,
+     6.6,
+     6.97
+    ]
+   ],
+   "bytes": 6125,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -401,39 +526,71 @@
       "e_TextureNormal0": "rock_scorched_limestone_n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_ground02.dds",
-      "e_TextureDiffuse1": "di_well_mud01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_rock_d.mod",
+   "footprint": 157.0,
+   "kind": "model",
    "name": "obj_cave_rock_d.mod",
+   "origin": "center",
    "placements": 12,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "8174c70f1d68e080b5dc44aedd58b1eb86ed58a87efea59b29161522f6612423",
+   "sits": {
+    "tilted": 4,
+    "upright": 8
+   },
    "size": [
-    12.3,
-    12.8,
-    13.9
+    12.26,
+    12.81,
+    13.94
    ],
    "skinned": false,
+   "textureShares": {
+    "rock_scorched_limestone.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 124
   },
   "model/obj_cave_rock_e.mod@31a2cbe6": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_rock_d.mod": 3,
+    "obj_cave_rock_f.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.36,
+     -5.49,
+     -3.19
+    ],
+    [
+     4.33,
+     5.42,
+     3.19
+    ]
+   ],
+   "bytes": 6881,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -443,159 +600,141 @@
       "e_TextureNormal0": "rock_scorched_limestone_n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_ground02.dds",
-      "e_TextureDiffuse1": "di_well_mud01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_rock_e.mod",
+   "footprint": 94.9,
+   "kind": "model",
    "name": "obj_cave_rock_e.mod",
+   "origin": "center",
    "placements": 6,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "31a2cbe649449f8a1911b6efeab539820adb2cc899e79b888f8b94ae9338b245",
+   "sits": {
+    "tilted": 6
+   },
    "size": [
     8.7,
-    10.9,
-    6.4
+    10.91,
+    6.38
    ],
    "skinned": false,
+   "textureShares": {
+    "rock_scorched_limestone.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 142
   },
   "model/obj_cave_rock_f.mod@39f5aa2a": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_rock_d.mod": 1,
+    "obj_cave_rock_e.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.51,
+     -4.11,
+     -4.26
+    ],
+    [
+     3.99,
+     3.76,
+     4.79
+    ]
+   ],
+   "bytes": 8557,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_bcon_cave_wall_ov.dds",
-      "e_TextureDiffuse0": "well_stone_02_c.dds",
-      "e_TextureNormal0": "well_stone_01_n.dds"
-     }
-    },
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_stone_01_c.dds",
-      "e_TextureNormal0": "well_stone_01_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "rock_scorched_limestone.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxWater.fx",
-     "textures": {
-      "e_TextureDiffuse0": "uq_water_c.dds",
-      "e_TextureEnvironment0": "env_noswap_cave.dds",
-      "e_TextureNormal0": "uq_water_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_stone_02_c.dds",
-      "e_TextureNormal0": "di_zhizar_limestone_01_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_well_mud01.dds",
-      "e_TextureNormal0": "mudtestnew03.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "mudtest_09.dds",
-      "e_TextureNormal0": "mudtest_09_n.dds"
-     }
-    },
-    {
+     "name": "rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
       "e_TextureDiffuse0": "rock_scorched_limestone.dds",
       "e_TextureNormal0": "rock_scorched_limestone_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_cave01.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "normal_test.dds",
-      "e_TextureNormal1": "normal_test.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_mud01.dds",
-      "e_TextureDiffuse1": "well_cave_01_c.dds",
-      "e_TextureFallback0": "di_ruins_ceiling_ov.dds",
-      "e_TextureNormal0": "di_well_mud01_n.dds",
-      "e_TextureNormal1": "di_well_cave01_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_zhizar_limestone_02_c.dds",
-      "e_TextureDiffuse1": "di_well_ground02.dds",
-      "e_TextureFallback0": "coverage.dds",
-      "e_TextureNormal0": "di_well_mud01_n.dds",
-      "e_TextureNormal1": "di_well_ground02_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_rock_f.mod",
+   "footprint": 66.9,
+   "kind": "model",
    "name": "obj_cave_rock_f.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "39f5aa2a9686c1243b9b471ab4f4160d7c42aa8f450e7f9bb443614ec615db5b",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     8.5,
-    7.9,
-    9.1
+    7.87,
+    9.05
    ],
    "skinned": false,
+   "textureShares": {
+    "rock_scorched_limestone.dds": 1.0
+   },
+   "textures": [
+    "coverage.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 122
   },
   "model/obj_cave_rock_g.mod@a6771afe": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_rock_a.mod": 4,
+    "obj_cave_rock_b.mod": 3,
+    "obj_cave_rock_c.mod": 4,
+    "obj_cave_rock_h.mod": 46,
+    "obj_cave_rock_z.mod": 25
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.02,
+     -1.24,
+     -0.74
+    ],
+    [
+     1.48,
+     1.36,
+     1.9
+    ]
+   ],
+   "bytes": 4993,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -605,39 +744,72 @@
       "e_TextureNormal0": "rock_scorched_limestone_n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_ground02.dds",
-      "e_TextureDiffuse1": "di_well_mud01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_rock_g.mod",
+   "footprint": 6.5,
+   "kind": "model",
    "name": "obj_cave_rock_g.mod",
+   "origin": "offset",
    "placements": 68,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "a6771afe91eaddb110922529edd3bad841c8be56d5ffa3a56c676e4db797222d",
+   "sits": {
+    "tilted": 56,
+    "upright": 12
+   },
    "size": [
-    2.5,
+    2.49,
     2.6,
-    2.6
+    2.64
    ],
    "skinned": false,
+   "textureShares": {
+    "rock_scorched_limestone.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 96
   },
   "model/obj_cave_rock_h.mod@f5a9227c": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_rock_a.mod": 4,
+    "obj_cave_rock_g.mod": 46,
+    "obj_cave_rock_z.mod": 21
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.28,
+     -2.32,
+     -2.37
+    ],
+    [
+     2.21,
+     2.36,
+     2.37
+    ]
+   ],
+   "bytes": 5825,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -647,39 +819,72 @@
       "e_TextureNormal0": "rock_scorched_limestone_n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_ground02.dds",
-      "e_TextureDiffuse1": "di_well_mud01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_rock_h.mod",
+   "footprint": 21.1,
+   "kind": "model",
    "name": "obj_cave_rock_h.mod",
+   "origin": "center",
    "placements": 41,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "f5a9227ce2fe97679d177519b48c0b6762495493ade80bba7857b1c3eba91639",
+   "sits": {
+    "tilted": 19,
+    "upright": 22
+   },
    "size": [
     4.5,
-    4.7,
-    4.7
+    4.68,
+    4.73
    ],
    "skinned": false,
+   "textureShares": {
+    "rock_scorched_limestone.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 98
   },
   "model/obj_cave_rock_z.mod@1c53451f": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_rock_a.mod": 2,
+    "obj_cave_rock_g.mod": 25,
+    "obj_cave_rock_h.mod": 21
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.24,
+     -1.72,
+     -1.28
+    ],
+    [
+     2.06,
+     2.0,
+     1.18
+    ]
+   ],
+   "bytes": 6881,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -689,39 +894,68 @@
       "e_TextureNormal0": "rock_scorched_limestone_n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_ground02.dds",
-      "e_TextureDiffuse1": "di_well_mud01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_rock_z.mod",
+   "footprint": 12.3,
+   "kind": "model",
    "name": "obj_cave_rock_z.mod",
+   "origin": "center",
    "placements": 25,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "1c53451f77c2357a481ee2ffc026f2d41cbbb2cf86ea49d5e2cc97e4f8db2ebf",
+   "sits": {
+    "tilted": 24,
+    "upright": 1
+   },
    "size": [
     3.3,
-    3.7,
-    2.5
+    3.72,
+    2.46
    ],
    "skinned": false,
+   "textureShares": {
+    "rock_scorched_limestone.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 142
   },
   "model/obj_cave_stalagmite_a.mod@48a60ac3": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -15.29,
+     -16.31,
+     -26.53
+    ],
+    [
+     15.29,
+     16.31,
+     26.53
+    ]
+   ],
+   "bytes": 11584,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cave_stalag_a",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -731,39 +965,68 @@
       "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "di_well_cave01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "di_well_cave01_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_stalagmite_a.mod",
+   "footprint": 997.4,
+   "kind": "model",
    "name": "obj_cave_stalagmite_a.mod",
+   "origin": "center",
    "placements": 6,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "48a60ac3f51823f17b78dd0a10be9012ca5d7835471a1727912b3b7f450de614",
+   "sits": {
+    "tilted": 1,
+    "upright": 5
+   },
    "size": [
-    30.6,
-    32.6,
-    53.1
+    30.58,
+    32.62,
+    53.06
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds"
+   ],
    "triangles": 217
   },
   "model/obj_cave_stalagmite_b.mod@ced2892f": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -7.64,
+     -8.15,
+     -13.27
+    ],
+    [
+     7.64,
+     8.15,
+     13.27
+    ]
+   ],
+   "bytes": 11584,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cave_stalag_a",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -773,39 +1036,70 @@
       "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "di_well_cave01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "di_well_cave01_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_stalagmite_b.mod",
+   "footprint": 249.4,
+   "kind": "model",
    "name": "obj_cave_stalagmite_b.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "ced2892f1bba88314bf744b7869feb0f4cc65ffaf0cfc0e36556fa4d013e6f26",
+   "sits": {
+    "tilted": 1,
+    "upright": 2
+   },
    "size": [
-    15.3,
-    16.3,
-    26.5
+    15.29,
+    16.31,
+    26.53
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds"
+   ],
    "triangles": 217
   },
   "model/obj_cave_stalagmite_c.mod@3f07d6fc": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_stalagmite_d.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -11.47,
+     -12.23,
+     -19.9
+    ],
+    [
+     11.47,
+     12.23,
+     19.9
+    ]
+   ],
+   "bytes": 11584,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cave_stalag_a",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -815,39 +1109,71 @@
       "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "di_well_cave01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "di_well_cave01_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_stalagmite_c.mod",
+   "footprint": 561.1,
+   "kind": "model",
    "name": "obj_cave_stalagmite_c.mod",
+   "origin": "center",
    "placements": 6,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "3f07d6fc67216391e4f08a35d74c3d4670199c88fa3842d2a17e9358e4de1d0a",
+   "sits": {
+    "tilted": 3,
+    "upright": 3
+   },
    "size": [
-    22.9,
-    24.5,
+    22.93,
+    24.46,
     39.8
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds"
+   ],
    "triangles": 217
   },
   "model/obj_cave_stalagmite_d.mod@e2004a55": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_stalagmite_c.mod": 1,
+    "obj_cave_stalagmite_e.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -6.07,
+     -6.08,
+     -11.81
+    ],
+    [
+     6.07,
+     5.86,
+     11.81
+    ]
+   ],
+   "bytes": 10688,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cave_stalag_a",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -857,39 +1183,70 @@
       "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "di_well_cave01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "di_well_cave01_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_stalagmite_d.mod",
+   "footprint": 145.0,
+   "kind": "model",
    "name": "obj_cave_stalagmite_d.mod",
+   "origin": "center",
    "placements": 6,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "e2004a55174df8997b467322370818a662eb38db582c848667785721f256a66f",
+   "sits": {
+    "tilted": 1,
+    "upright": 5
+   },
    "size": [
-    12.1,
-    11.9,
-    23.6
+    12.15,
+    11.94,
+    23.61
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds"
+   ],
    "triangles": 225
   },
   "model/obj_cave_stalagmite_e.mod@f7140b1f": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_cave_stalagmite_d.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -9.72,
+     -9.73,
+     -18.89
+    ],
+    [
+     9.72,
+     9.37,
+     18.89
+    ]
+   ],
+   "bytes": 10732,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cave_stalag_a",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -899,39 +1256,68 @@
       "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "di_well_cave01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "di_well_cave01_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_stalagmite_e.mod",
+   "footprint": 371.2,
+   "kind": "model",
    "name": "obj_cave_stalagmite_e.mod",
+   "origin": "center",
    "placements": 6,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "f7140b1ff7b722d57391424c35230dd3517be137e2680ff9e5bb2c0eb1ca486e",
+   "sits": {
+    "tilted": 1,
+    "upright": 5
+   },
    "size": [
-    19.4,
+    19.43,
     19.1,
-    37.8
+    37.78
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds"
+   ],
    "triangles": 225
   },
   "model/obj_cave_stalagmite_f.mod@c990a88f": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -14.58,
+     -14.59,
+     -28.33
+    ],
+    [
+     14.58,
+     14.06,
+     28.33
+    ]
+   ],
+   "bytes": 10688,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cave_stalag_a",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -941,39 +1327,68 @@
       "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "di_well_cave01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "di_well_cave01_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_stalagmite_f.mod",
+   "footprint": 835.2,
+   "kind": "model",
    "name": "obj_cave_stalagmite_f.mod",
+   "origin": "center",
    "placements": 7,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "c990a88f1e62176f3d4319662fed6943b2675284b2edcf564a874c3022a0917f",
+   "sits": {
+    "tilted": 1,
+    "upright": 6
+   },
    "size": [
-    29.2,
-    28.6,
-    56.7
+    29.15,
+    28.65,
+    56.67
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds"
+   ],
    "triangles": 225
   },
   "model/obj_cave_stalagmite_g.mod@6f6d2e2c": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -19.48,
+     -15.33,
+     -33.17
+    ],
+    [
+     23.66,
+     18.33,
+     33.17
+    ]
+   ],
+   "bytes": 11584,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "cave_stalag_a",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -983,50 +1398,68 @@
       "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
       "e_TextureNormal1": "cavedirt_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "di_well_cave01.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "di_well_cave01_n.dds"
-     }
     }
    ],
+   "entry": "obj_cave_stalagmite_g.mod",
+   "footprint": 1451.9,
+   "kind": "model",
    "name": "obj_cave_stalagmite_g.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "6f6d2e2c9a0f956a1832bc945bb0fd15c8e5ceb8b6cb72af9c7081ecbc9ce4c0",
+   "sits": {
+    "tilted": 1,
+    "upright": 2
+   },
    "size": [
-    43.1,
-    33.7,
-    66.3
+    43.14,
+    33.66,
+    66.33
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds"
+   ],
    "triangles": 217
   },
   "model/obj_cave_stalagtite_a.mod@c1e2efdf": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -19.48,
+     -15.33,
+     -33.17
+    ],
+    [
+     23.66,
+     18.33,
+     33.17
+    ]
+   ],
+   "bytes": 11584,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "cave_stalag_b",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1038,37 +1471,66 @@
      }
     }
    ],
+   "entry": "obj_cave_stalagtite_a.mod",
+   "footprint": 1451.9,
+   "kind": "model",
    "name": "obj_cave_stalagtite_a.mod",
+   "origin": "center",
    "placements": 7,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "c1e2efdfbc664e309ae9d24cb26aeb2ea640510aa0349073b41dac4169593335",
+   "sits": {
+    "tilted": 7
+   },
    "size": [
-    43.1,
-    33.7,
-    66.3
+    43.14,
+    33.66,
+    66.33
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_well_cave01.dds",
+    "di_well_cave01_n.dds"
+   ],
    "triangles": 217
   },
   "model/obj_cave_stalagtite_b.mod@b0411d8d": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -14.58,
+     -14.59,
+     -28.33
+    ],
+    [
+     14.58,
+     14.06,
+     28.33
+    ]
+   ],
+   "bytes": 10688,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "cave_stalag_b",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1080,37 +1542,66 @@
      }
     }
    ],
+   "entry": "obj_cave_stalagtite_b.mod",
+   "footprint": 835.2,
+   "kind": "model",
    "name": "obj_cave_stalagtite_b.mod",
+   "origin": "center",
    "placements": 9,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "b0411d8dfca79339d289f300cc7212978edefce23cc8a67b9634a0345a3db22b",
+   "sits": {
+    "tilted": 9
+   },
    "size": [
-    29.2,
-    28.6,
-    56.7
+    29.15,
+    28.65,
+    56.67
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_well_cave01.dds",
+    "di_well_cave01_n.dds"
+   ],
    "triangles": 225
   },
   "model/obj_cave_stalagtite_c.mod@392aef48": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -19.48,
+     -15.33,
+     -33.17
+    ],
+    [
+     23.66,
+     18.33,
+     33.17
+    ]
+   ],
+   "bytes": 11584,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "cave_stalag_b",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1122,37 +1613,66 @@
      }
     }
    ],
+   "entry": "obj_cave_stalagtite_c.mod",
+   "footprint": 1451.9,
+   "kind": "model",
    "name": "obj_cave_stalagtite_c.mod",
+   "origin": "center",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "392aef487161187e7a683a7886833ea689264afa6a32a230d4949f7393612f92",
+   "sits": {
+    "tilted": 4
+   },
    "size": [
-    43.1,
-    33.7,
-    66.3
+    43.14,
+    33.66,
+    66.33
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_well_cave01.dds",
+    "di_well_cave01_n.dds"
+   ],
    "triangles": 217
   },
   "model/obj_cave_stalagtite_d.mod@730a46ee": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -20.54,
+     -17.81,
+     -35.24
+    ],
+    [
+     19.78,
+     15.77,
+     36.92
+    ]
+   ],
+   "bytes": 10688,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "cave_stalag_b",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1164,37 +1684,67 @@
      }
     }
    ],
+   "entry": "obj_cave_stalagtite_d.mod",
+   "footprint": 1354.0,
+   "kind": "model",
    "name": "obj_cave_stalagtite_d.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "730a46ee7773efc2644a44191ecb083d99f3b38e29d325f3bb4ce1cb217d4fd2",
+   "sits": {
+    "tilted": 2,
+    "upright": 1
+   },
    "size": [
-    40.3,
-    33.6,
-    72.2
+    40.32,
+    33.58,
+    72.17
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_well_cave01.dds",
+    "di_well_cave01_n.dds"
+   ],
    "triangles": 225
   },
   "model/obj_cave_stalagtite_e.mod@3f0c0ec8": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -11.47,
+     -12.23,
+     -19.9
+    ],
+    [
+     11.47,
+     12.23,
+     19.9
+    ]
+   ],
+   "bytes": 11584,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "cave_stalag_b",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1206,37 +1756,66 @@
      }
     }
    ],
+   "entry": "obj_cave_stalagtite_e.mod",
+   "footprint": 561.1,
+   "kind": "model",
    "name": "obj_cave_stalagtite_e.mod",
+   "origin": "center",
    "placements": 6,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "3f0c0ec822e2aec73aa46c20e2837305b51913ffa1b28334070c68f7edc5097c",
+   "sits": {
+    "tilted": 6
+   },
    "size": [
-    22.9,
-    24.5,
+    22.93,
+    24.46,
     39.8
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_well_cave01.dds",
+    "di_well_cave01_n.dds"
+   ],
    "triangles": 217
   },
   "model/obj_cave_stalagtite_f.mod@25acb3a5": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -19.48,
+     -15.33,
+     -33.17
+    ],
+    [
+     23.66,
+     18.33,
+     33.17
+    ]
+   ],
+   "bytes": 11584,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_cchamber_stalactite02.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "di_cchamber_stalactite01_12n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "cave_stalag_b",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1248,102 +1827,141 @@
      }
     }
    ],
+   "entry": "obj_cave_stalagtite_f.mod",
+   "footprint": 1451.9,
+   "kind": "model",
    "name": "obj_cave_stalagtite_f.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "25acb3a5771e1ecac972c67833e38c19f3a3fd542131126cb795b1a8bc49eb9a",
+   "sits": {
+    "tilted": 2
+   },
    "size": [
-    43.1,
-    33.7,
-    66.3
+    43.14,
+    33.66,
+    66.33
    ],
    "skinned": false,
+   "textureShares": {
+    "di_cchamber_stalactite02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "di_cchamber_stalactite01_12n.dds",
+    "di_cchamber_stalactite02.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_well_cave01.dds",
+    "di_well_cave01_n.dds"
+   ],
    "triangles": 217
   },
   "model/obj_coin_a.mod@1a4604e5": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_coin_d.mod": 4,
+    "obj_coin_e.mod": 3,
+    "obj_coin_f.mod": 2,
+    "ter_well.ter": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.02,
+     -1.99,
+     -0.25
+    ],
+    [
+     2.02,
+     1.99,
+     0.25
+    ]
+   ],
+   "bytes": 5048,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "yellow",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "coin_a",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
       "e_TextureDiffuse0": "well_coin_01_c.dds",
       "e_TextureNormal0": "well_coin_01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_02_c.dds",
-      "e_TextureNormal0": "well_coin_01_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_03_c.dds",
-      "e_TextureNormal0": "well_coin_02_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_04_c.dds",
-      "e_TextureNormal0": "well_coin_02_n.dds"
-     }
     }
    ],
+   "entry": "obj_coin_a.mod",
+   "footprint": 16.0,
+   "kind": "model",
    "name": "obj_coin_a.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "1a4604e512fb666ac2d08add8deefa2a589b42c99032fd520dc60cc189d82ebf",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    4.0,
-    4.0,
-    0.5
+    4.03,
+    3.97,
+    0.51
    ],
    "skinned": false,
+   "textureShares": {
+    "well_coin_01_c.dds": 1.0
+   },
+   "textures": [
+    "coverage.dds",
+    "well_coin_01_c.dds",
+    "well_coin_01_n.dds"
+   ],
    "triangles": 63
   },
   "model/obj_coin_d.mod@535cb4af": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_coin_a.mod": 4,
+    "obj_coin_e.mod": 4,
+    "obj_coin_f.mod": 2,
+    "ter_well.ter": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.02,
+     -1.99,
+     -0.25
+    ],
+    [
+     2.02,
+     1.99,
+     0.25
+    ]
+   ],
+   "bytes": 4564,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_01_c.dds",
-      "e_TextureNormal0": "well_coin_01_n.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_02_c.dds",
-      "e_TextureNormal0": "well_coin_01_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_03_c.dds",
-      "e_TextureNormal0": "well_coin_02_n.dds"
-     }
-    },
-    {
+     "name": "coin_d",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -1352,50 +1970,68 @@
      }
     }
    ],
+   "entry": "obj_coin_d.mod",
+   "footprint": 16.0,
+   "kind": "model",
    "name": "obj_coin_d.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "535cb4af1476bde8d726a0ccbbdfbc655f1702ff4a11adbf295f098d7ea91f44",
+   "sits": {
+    "upright": 3
+   },
    "size": [
-    4.0,
-    4.0,
-    0.5
+    4.03,
+    3.97,
+    0.51
    ],
    "skinned": false,
+   "textureShares": {
+    "well_coin_04_c.dds": 1.0
+   },
+   "textures": [
+    "coverage.dds",
+    "well_coin_02_n.dds",
+    "well_coin_04_c.dds"
+   ],
    "triangles": 52
   },
   "model/obj_coin_e.mod@535cb4af": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_coin_a.mod": 3,
+    "obj_coin_d.mod": 4,
+    "obj_coin_f.mod": 1,
+    "ter_well.ter": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.02,
+     -1.99,
+     -0.25
+    ],
+    [
+     2.02,
+     1.99,
+     0.25
+    ]
+   ],
+   "bytes": 4564,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_01_c.dds",
-      "e_TextureNormal0": "well_coin_01_n.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_02_c.dds",
-      "e_TextureNormal0": "well_coin_01_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_03_c.dds",
-      "e_TextureNormal0": "well_coin_02_n.dds"
-     }
-    },
-    {
+     "name": "coin_d",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -1404,94 +2040,137 @@
      }
     }
    ],
+   "entry": "obj_coin_e.mod",
+   "footprint": 16.0,
+   "kind": "model",
    "name": "obj_coin_e.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "535cb4af1476bde8d726a0ccbbdfbc655f1702ff4a11adbf295f098d7ea91f44",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    4.0,
-    4.0,
-    0.5
+    4.03,
+    3.97,
+    0.51
    ],
    "skinned": false,
+   "textureShares": {
+    "well_coin_04_c.dds": 1.0
+   },
+   "textures": [
+    "coverage.dds",
+    "well_coin_02_n.dds",
+    "well_coin_04_c.dds"
+   ],
    "triangles": 52
   },
   "model/obj_coin_f.mod@5c6d1c94": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_coin_a.mod": 2,
+    "obj_coin_d.mod": 2,
+    "obj_coin_e.mod": 1,
+    "ter_well.ter": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.03,
+     -1.99,
+     -0.6
+    ],
+    [
+     2.03,
+     1.99,
+     0.6
+    ]
+   ],
+   "bytes": 5676,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_01_c.dds",
-      "e_TextureNormal0": "well_coin_01_n.dds"
-     }
-    },
+     "color": "yellow",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_02_c.dds",
-      "e_TextureNormal0": "well_coin_01_n.dds"
-     }
-    },
-    {
+     "name": "coin_c",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
       "e_TextureDiffuse0": "well_coin_03_c.dds",
       "e_TextureNormal0": "well_coin_02_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_coin_04_c.dds",
-      "e_TextureNormal0": "well_coin_02_n.dds"
-     }
     }
    ],
+   "entry": "obj_coin_f.mod",
+   "footprint": 16.1,
+   "kind": "model",
    "name": "obj_coin_f.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "5c6d1c940a968dcd1845936498a609bd51b0210cd963b38f7f495522ee8ed168",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.1,
-    4.0,
+    4.06,
+    3.97,
     1.2
    ],
    "skinned": false,
+   "textureShares": {
+    "well_coin_03_c.dds": 1.0
+   },
+   "textures": [
+    "coverage.dds",
+    "well_coin_02_n.dds",
+    "well_coin_03_c.dds"
+   ],
    "triangles": 68
   },
   "model/obj_hum.mod@ebc44322": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -1.44,
+     -2.87,
+     -4.77
+    ],
+    [
+     1.07,
+     2.9,
+     3.58
+    ]
+   ],
+   "bytes": 138645,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_bcon_cave_wall_ov.dds",
-      "e_TextureDiffuse0": "well_stone_02_c.dds",
-      "e_TextureNormal0": "well_stone_01_n.dds"
-     }
+     "color": "green",
+     "share": 0.508
     },
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_stone_01_c.dds",
-      "e_TextureNormal0": "well_stone_01_n.dds"
-     }
-    },
+     "color": "grey",
+     "share": 0.492
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "cave_wall",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1503,110 +2182,81 @@
      }
     },
     {
-     "shader": "Opaque_MaxWater.fx",
-     "textures": {
-      "e_TextureDiffuse0": "uq_water_c.dds",
-      "e_TextureEnvironment0": "env_noswap_cave.dds",
-      "e_TextureNormal0": "uq_water_n.dds"
-     }
-    },
-    {
+     "name": "floor",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
       "e_TextureDiffuse0": "well_stone_02_c.dds",
       "e_TextureNormal0": "di_zhizar_limestone_01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_well_mud01.dds",
-      "e_TextureNormal0": "mudtestnew03.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "mudtest_09.dds",
-      "e_TextureNormal0": "mudtest_09_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "rock_scorched_limestone.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_cave01.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "normal_test.dds",
-      "e_TextureNormal1": "normal_test.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_mud01.dds",
-      "e_TextureDiffuse1": "well_cave_01_c.dds",
-      "e_TextureFallback0": "di_ruins_ceiling_ov.dds",
-      "e_TextureNormal0": "di_well_mud01_n.dds",
-      "e_TextureNormal1": "di_well_cave01_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_zhizar_limestone_02_c.dds",
-      "e_TextureDiffuse1": "di_well_ground02.dds",
-      "e_TextureFallback0": "coverage.dds",
-      "e_TextureNormal0": "di_well_mud01_n.dds",
-      "e_TextureNormal1": "di_well_ground02_n.dds"
-     }
     }
    ],
+   "entry": "obj_hum.mod",
+   "footprint": 14.4,
+   "kind": "model",
    "name": "obj_hum.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     0.993,
     0.993
    ],
    "sha256": "ebc44322d7026a1c424f4997eff9dc2f879e77ffa91a76974dcbdb5bc1887099",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     2.5,
-    5.8,
-    8.3
+    5.77,
+    8.34
    ],
    "skinned": false,
+   "textureShares": {
+    "rock_scorched_limestone.dds": 0.508,
+    "well_stone_02_c.dds": 0.492
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "coverage.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_zhizar_limestone_01_n.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds",
+    "well_stone_02_c.dds"
+   ],
    "triangles": 2068
   },
   "model/obj_mud_rock_a.mod@0980697f": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mud_rock_b.mod": 2,
+    "obj_mud_rock_c.mod": 18
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.28,
+     -2.32,
+     -2.37
+    ],
+    [
+     2.21,
+     2.36,
+     2.37
+    ]
+   ],
+   "bytes": 5825,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "rock_scorched_limestone.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "cave_wall",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1618,37 +2268,69 @@
      }
     }
    ],
+   "entry": "obj_mud_rock_a.mod",
+   "footprint": 21.1,
+   "kind": "model",
    "name": "obj_mud_rock_a.mod",
+   "origin": "center",
    "placements": 7,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "0980697f918958a9924b39a0a303cadcbeea241a59ac3f44217cb073bde858ae",
+   "sits": {
+    "tilted": 7
+   },
    "size": [
     4.5,
-    4.7,
-    4.7
+    4.68,
+    4.73
    ],
    "skinned": false,
+   "textureShares": {
+    "di_well_ground02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_well_ground02.dds",
+    "di_well_mud01.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 98
   },
   "model/obj_mud_rock_b.mod@e6317e4a": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mud_rock_a.mod": 2,
+    "obj_mud_rock_c.mod": 16
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.24,
+     -1.72,
+     -1.28
+    ],
+    [
+     2.06,
+     2.0,
+     1.18
+    ]
+   ],
+   "bytes": 6881,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "rock_scorched_limestone.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "cave_wall",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1660,37 +2342,69 @@
      }
     }
    ],
+   "entry": "obj_mud_rock_b.mod",
+   "footprint": 12.3,
+   "kind": "model",
    "name": "obj_mud_rock_b.mod",
+   "origin": "center",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "e6317e4a49d4818131c53bbb560fb7f2cda835f1d215d1bebc01587c6ef7fcd2",
+   "sits": {
+    "tilted": 4
+   },
    "size": [
     3.3,
-    3.7,
-    2.5
+    3.72,
+    2.46
    ],
    "skinned": false,
+   "textureShares": {
+    "di_well_ground02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_well_ground02.dds",
+    "di_well_mud01.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 142
   },
   "model/obj_mud_rock_c.mod@bae3ca83": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mud_rock_a.mod": 18,
+    "obj_mud_rock_b.mod": 16
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.02,
+     -1.24,
+     -0.74
+    ],
+    [
+     1.48,
+     1.36,
+     1.9
+    ]
+   ],
+   "bytes": 4993,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "rock_scorched_limestone.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "cave_wall",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1702,26 +2416,66 @@
      }
     }
    ],
+   "entry": "obj_mud_rock_c.mod",
+   "footprint": 6.5,
+   "kind": "model",
    "name": "obj_mud_rock_c.mod",
+   "origin": "offset",
    "placements": 20,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "bae3ca839ccf7ca6c976e2a0b54f9e22d57613094ff5bf7ea32ce173c8e02451",
+   "sits": {
+    "tilted": 20
+   },
    "size": [
-    2.5,
+    2.49,
     2.6,
-    2.6
+    2.64
    ],
    "skinned": false,
+   "textureShares": {
+    "di_well_ground02.dds": 1.0
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_well_ground02.dds",
+    "di_well_mud01.dds",
+    "rock_scorched_limestone_n.dds"
+   ],
    "triangles": 96
   },
   "model/obj_wellbucket.mod@8a7ac866": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -13.5,
+     -3.29,
+     -291.82
+    ],
+    [
+     3.3,
+     3.27,
+     2.26
+    ]
+   ],
+   "bytes": 18280,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "bucket",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_bcon_cave_wall_ov.dds",
@@ -1730,6 +2484,7 @@
      }
     },
     {
+     "name": "ropetie",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -1738,50 +2493,76 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "sp_housegarden_metal.dds",
-      "e_TextureNormal0": "sp_housegarden_metal_10n.dds"
-     }
-    },
-    {
+     "name": "ropelong",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
       "e_TextureDiffuse0": "sp_bucketwell_c.dds",
       "e_TextureNormal0": "sp_bucketwell_10n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "sp_housegarden_metal.dds",
-      "e_TextureNormal0": "sp_housegarden_metal_10n.dds"
-     }
     }
    ],
+   "entry": "obj_wellbucket.mod",
+   "footprint": 110.3,
+   "kind": "model",
    "name": "obj_wellbucket.mod",
+   "origin": "hanging",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "8a7ac8661894ebecfd61a15120fda72225c31714892bcdd7b77508445a969748",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     16.8,
-    6.6,
-    294.1
+    6.56,
+    294.08
    ],
    "skinned": false,
+   "textureShares": {
+    "sp_bucketwell_c.dds": 0.994,
+    "sp_hg_rope_tie.dds": 0.006
+   },
+   "textures": [
+    "coverage.dds",
+    "di_bcon_cave_wall_ov.dds",
+    "sp_bucketwell_10n.dds",
+    "sp_bucketwell_c.dds",
+    "sp_hg_rope_tie.dds",
+    "sp_hg_rope_tie_n.dds"
+   ],
    "triangles": 280
   },
   "model/obj_wellbucket_broken.mod@bf3c559c": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -2.27,
+     -3.65,
+     -0.96
+    ],
+    [
+     2.32,
+     3.78,
+     0.96
+    ]
+   ],
+   "bytes": 29148,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "bucket",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_bcon_cave_wall_ov.dds",
@@ -1790,6 +2571,7 @@
      }
     },
     {
+     "name": "ropetie",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -1798,170 +2580,154 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "sp_housegarden_metal.dds",
-      "e_TextureNormal0": "sp_housegarden_metal_10n.dds"
-     }
-    },
-    {
+     "name": "ropelong",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
       "e_TextureDiffuse0": "sp_bucketwell_c.dds",
       "e_TextureNormal0": "sp_bucketwell_10n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "sp_housegarden_metal.dds",
-      "e_TextureNormal0": "sp_housegarden_metal_10n.dds"
-     }
     }
    ],
+   "entry": "obj_wellbucket_broken.mod",
+   "footprint": 34.1,
+   "kind": "model",
    "name": "obj_wellbucket_broken.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "bf3c559ce11be7efdb7c70e78ebb5159ac1d75b1e3be37cb2eca75beba878ea9",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    4.6,
-    7.4,
-    1.9
+    4.59,
+    7.43,
+    1.91
    ],
    "skinned": false,
+   "textureShares": {
+    "sp_bucketwell_c.dds": 0.986,
+    "sp_hg_rope_tie.dds": 0.014
+   },
+   "textures": [
+    "coverage.dds",
+    "di_bcon_cave_wall_ov.dds",
+    "sp_bucketwell_10n.dds",
+    "sp_bucketwell_c.dds",
+    "sp_hg_rope_tie.dds",
+    "sp_hg_rope_tie_n.dds"
+   ],
    "triangles": 423
   },
   "model/obp_water_well.mod@2e660f07": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -38.36,
+     -38.36,
+     -0.1
+    ],
+    [
+     38.36,
+     38.36,
+     0.0
+    ]
+   ],
+   "bytes": 5993,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_bcon_cave_wall_ov.dds",
-      "e_TextureDiffuse0": "well_stone_02_c.dds",
-      "e_TextureNormal0": "well_stone_01_n.dds"
-     }
-    },
+     "color": "teal",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_stone_01_c.dds",
-      "e_TextureNormal0": "well_stone_01_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "rock_scorched_limestone.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds",
-      "e_TextureNormal1": "cavedirt_n.dds"
-     }
-    },
-    {
+     "name": "water",
      "shader": "Opaque_MaxWater.fx",
      "textures": {
       "e_TextureDiffuse0": "uq_water_c.dds",
       "e_TextureEnvironment0": "env_noswap_cave.dds",
       "e_TextureNormal0": "uq_water_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "well_stone_02_c.dds",
-      "e_TextureNormal0": "di_zhizar_limestone_01_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLSB.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_well_mud01.dds",
-      "e_TextureNormal0": "mudtestnew03.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "mudtest_09.dds",
-      "e_TextureNormal0": "mudtest_09_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "rock_scorched_limestone.dds",
-      "e_TextureNormal0": "rock_scorched_limestone_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_cave01.dds",
-      "e_TextureDiffuse1": "cavedirt.dds",
-      "e_TextureFallback0": "cavedirt.dds",
-      "e_TextureNormal0": "normal_test.dds",
-      "e_TextureNormal1": "normal_test.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
-      "e_TextureDiffuse0": "di_well_mud01.dds",
-      "e_TextureDiffuse1": "well_cave_01_c.dds",
-      "e_TextureFallback0": "di_ruins_ceiling_ov.dds",
-      "e_TextureNormal0": "di_well_mud01_n.dds",
-      "e_TextureNormal1": "di_well_cave01_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_zhizar_limestone_02_c.dds",
-      "e_TextureDiffuse1": "di_well_ground02.dds",
-      "e_TextureFallback0": "coverage.dds",
-      "e_TextureNormal0": "di_well_mud01_n.dds",
-      "e_TextureNormal1": "di_well_ground02_n.dds"
-     }
     }
    ],
+   "entry": "obp_water_well.mod",
+   "footprint": 5884.6,
+   "kind": "model",
    "name": "obp_water_well.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "2e660f072cd5ac74bd253d2fe0c1fd256805befe78efca8c4b8fc0cf0de9e538",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    76.7,
-    76.7,
+    76.71,
+    76.71,
     0.1
    ],
    "skinned": false,
+   "textureShares": {
+    "uq_water_c.dds": 1.0
+   },
+   "textures": [
+    "env_noswap_cave.dds",
+    "uq_water_c.dds",
+    "uq_water_n.dds"
+   ],
    "triangles": 40
   },
   "model/ter_well.ter@b203d84d": {
    "archive": "well.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_coin_a.mod": 2,
+    "obj_coin_d.mod": 3,
+    "obj_coin_e.mod": 2,
+    "obj_coin_f.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -619.03,
+     -1091.52,
+     -85.88
+    ],
+    [
+     108.18,
+     38.36,
+     352.13
+    ]
+   ],
+   "bytes": 982429,
+   "collisionShare": 0.988,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 0.841
+    },
+    {
+     "color": "brown",
+     "share": 0.091
+    },
+    {
+     "color": "blue",
+     "share": 0.052
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "well_a",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_bcon_cave_wall_ov.dds",
@@ -1970,6 +2736,7 @@
      }
     },
     {
+     "name": "well_b",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -1978,6 +2745,7 @@
      }
     },
     {
+     "name": "cave_wall",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -1989,14 +2757,7 @@
      }
     },
     {
-     "shader": "Opaque_MaxWater.fx",
-     "textures": {
-      "e_TextureDiffuse0": "uq_water_c.dds",
-      "e_TextureEnvironment0": "env_noswap_cave.dds",
-      "e_TextureNormal0": "uq_water_n.dds"
-     }
-    },
-    {
+     "name": "floor",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2005,6 +2766,7 @@
      }
     },
     {
+     "name": "mud_a",
      "shader": "Opaque_MPLSB.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2013,14 +2775,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "mudtest_09.dds",
-      "e_TextureNormal0": "mudtest_09_n.dds"
-     }
-    },
-    {
+     "name": "rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2029,6 +2784,7 @@
      }
     },
     {
+     "name": "stalag_wall",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -2040,6 +2796,7 @@
      }
     },
     {
+     "name": "mud_floor",
      "shader": "Opaque_MPLBlend.fx",
      "textures": {
       "e_TextureCoverage0": "di_ruins_ceiling_ov.dds",
@@ -2049,32 +2806,55 @@
       "e_TextureNormal0": "di_well_mud01_n.dds",
       "e_TextureNormal1": "di_well_cave01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBlend.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_zhizar_limestone_02_c.dds",
-      "e_TextureDiffuse1": "di_well_ground02.dds",
-      "e_TextureFallback0": "coverage.dds",
-      "e_TextureNormal0": "di_well_mud01_n.dds",
-      "e_TextureNormal1": "di_well_ground02_n.dds"
-     }
     }
    ],
+   "entry": "ter_well.ter",
+   "footprint": 821653.9,
+   "kind": "model",
    "name": "ter_well.ter",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "b203d84d4f40387f9122b437419e3937376380888e6480a20c59497bb113188d",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    727.2,
-    1129.9,
-    438.0
+    727.21,
+    1129.88,
+    438.01
    ],
    "skinned": false,
+   "textureShares": {
+    "di_well_cave01.dds": 0.461,
+    "di_well_mud01.dds": 0.091,
+    "rock_scorched_limestone.dds": 0.38,
+    "well_stone_01_c.dds": 0.052,
+    "well_stone_02_c.dds": 0.016
+   },
+   "textures": [
+    "cavedirt.dds",
+    "cavedirt_n.dds",
+    "coverage.dds",
+    "di_bcon_cave_wall_ov.dds",
+    "di_ruins_ceiling_ov.dds",
+    "di_well_cave01.dds",
+    "di_well_cave01_n.dds",
+    "di_well_mud01.dds",
+    "di_well_mud01_n.dds",
+    "di_zhizar_limestone_01_n.dds",
+    "mudtestnew03.dds",
+    "normal_test.dds",
+    "rock_scorched_limestone.dds",
+    "rock_scorched_limestone_n.dds",
+    "well_cave_01_c.dds",
+    "well_stone_01_c.dds",
+    "well_stone_01_n.dds",
+    "well_stone_02_c.dds"
+   ],
    "triangles": 19569
   },
   "texture/cavedirt.dds@2de263e0": {
@@ -2090,25 +2870,25 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_d.mod": 36,
-     "obj_cave_rock_g.mod": 204,
-     "obj_cave_rock_h.mod": 123,
-     "obj_cave_rock_z.mod": 75,
-     "obj_mud_rock_c.mod": 60
+     "obj_cave_rock_d.mod": 24,
+     "obj_cave_rock_g.mod": 136,
+     "obj_cave_rock_h.mod": 82,
+     "obj_cave_rock_z.mod": 50,
+     "obj_mud_rock_c.mod": 20
     },
     "partners": {
-     "cavedirt_n.dds": 67,
-     "di_cchamber_stalactite01_12n.dds": 39,
-     "di_cchamber_stalactite02.dds": 39,
-     "di_ruins_ceiling_ov.dds": 88,
-     "rock_scorched_limestone_n.dds": 41
+     "cavedirt_n.dds": 37,
+     "di_cchamber_stalactite02.dds": 20,
+     "di_ruins_ceiling_ov.dds": 45,
+     "rock_scorched_limestone.dds": 20,
+     "rock_scorched_limestone_n.dds": 23
     },
     "roles": {
-     "e_TextureDiffuse1": 32,
-     "e_TextureFallback0": 56
+     "e_TextureDiffuse1": 18,
+     "e_TextureFallback0": 27
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 88
+     "Opaque_MPLBlend.fx": 45
     }
    },
    "meanColor": [
@@ -2143,24 +2923,24 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_d.mod": 24,
-     "obj_cave_rock_g.mod": 136,
-     "obj_cave_rock_h.mod": 82,
-     "obj_cave_rock_z.mod": 50,
-     "obj_mud_rock_c.mod": 40
+     "obj_cave_rock_d.mod": 12,
+     "obj_cave_rock_g.mod": 68,
+     "obj_cave_rock_h.mod": 41,
+     "obj_cave_rock_z.mod": 25,
+     "obj_mud_rock_c.mod": 20
     },
     "partners": {
-     "cavedirt.dds": 67,
-     "di_cchamber_stalactite02.dds": 13,
-     "di_ruins_ceiling_ov.dds": 39,
-     "rock_scorched_limestone.dds": 15,
-     "rock_scorched_limestone_n.dds": 26
+     "cavedirt.dds": 37,
+     "di_cchamber_stalactite02.dds": 7,
+     "di_ruins_ceiling_ov.dds": 20,
+     "rock_scorched_limestone.dds": 10,
+     "rock_scorched_limestone_n.dds": 13
     },
     "roles": {
-     "e_TextureNormal1": 39
+     "e_TextureNormal1": 20
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 39
+     "Opaque_MPLBlend.fx": 20
     }
    },
    "meanColor": [
@@ -2195,28 +2975,26 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_coin_a.mod": 8,
-     "obj_coin_d.mod": 12,
-     "obj_coin_e.mod": 8,
-     "obj_hum.mod": 7,
-     "ter_well.ter": 7
+     "obj_coin_a.mod": 2,
+     "obj_coin_d.mod": 3,
+     "obj_coin_e.mod": 2,
+     "obj_wellbucket.mod": 2,
+     "ter_well.ter": 4
     },
     "partners": {
-     "di_well_ground02.dds": 8,
-     "di_well_ground02_n.dds": 8,
-     "di_well_mud01_n.dds": 8,
-     "di_zhizar_limestone_02_c.dds": 8,
-     "well_coin_01_n.dds": 8
+     "di_zhizar_limestone_01_n.dds": 2,
+     "rock_scorched_limestone.dds": 2,
+     "rock_scorched_limestone_n.dds": 2,
+     "well_coin_02_n.dds": 3,
+     "well_stone_02_c.dds": 2
     },
     "roles": {
-     "e_TextureCoverage0": 48,
-     "e_TextureFallback0": 4
+     "e_TextureCoverage0": 14
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 8,
-     "Opaque_MPLBump.fx": 16,
-     "Opaque_MPLBump2UV.fx": 8,
-     "Opaque_MPLSB.fx": 20
+     "Opaque_MPLBump.fx": 4,
+     "Opaque_MPLBump2UV.fx": 5,
+     "Opaque_MPLSB.fx": 5
     }
    },
    "meanColor": [
@@ -2281,8 +3059,6 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 1,
-     "obj_hum.mod": 1,
      "obj_wellbucket.mod": 1,
      "obj_wellbucket_broken.mod": 1,
      "ter_well.ter": 1
@@ -2290,14 +3066,14 @@
     "partners": {
      "sp_bucketwell_10n.dds": 2,
      "sp_bucketwell_c.dds": 2,
-     "well_stone_01_n.dds": 4,
-     "well_stone_02_c.dds": 4
+     "well_stone_01_n.dds": 1,
+     "well_stone_02_c.dds": 1
     },
     "roles": {
-     "e_TextureCoverage0": 6
+     "e_TextureCoverage0": 3
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 6
+     "Opaque_MPLBump2UV.fx": 3
     }
    },
    "meanColor": [
@@ -2332,24 +3108,24 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_stalagmite_a.mod": 12,
-     "obj_cave_stalagmite_c.mod": 12,
-     "obj_cave_stalagmite_f.mod": 14,
-     "obj_cave_stalagtite_a.mod": 14,
-     "obj_cave_stalagtite_b.mod": 18
+     "obj_cave_stalagmite_a.mod": 6,
+     "obj_cave_stalagmite_c.mod": 6,
+     "obj_cave_stalagmite_f.mod": 7,
+     "obj_cave_stalagtite_a.mod": 7,
+     "obj_cave_stalagtite_b.mod": 9
     },
     "partners": {
-     "cavedirt.dds": 39,
-     "cavedirt_n.dds": 13,
-     "di_cchamber_stalactite02.dds": 26,
-     "di_ruins_ceiling_ov.dds": 26,
-     "di_well_cave01.dds": 13
+     "cavedirt.dds": 20,
+     "cavedirt_n.dds": 7,
+     "di_cchamber_stalactite02.dds": 13,
+     "di_ruins_ceiling_ov.dds": 13,
+     "di_well_cave01.dds": 6
     },
     "roles": {
-     "e_TextureNormal0": 26
+     "e_TextureNormal0": 13
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 26
+     "Opaque_MPLBlend.fx": 13
     }
    },
    "meanColor": [
@@ -2384,24 +3160,24 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_stalagmite_a.mod": 12,
-     "obj_cave_stalagmite_c.mod": 12,
-     "obj_cave_stalagmite_f.mod": 14,
-     "obj_cave_stalagtite_a.mod": 14,
-     "obj_cave_stalagtite_b.mod": 18
+     "obj_cave_stalagmite_a.mod": 6,
+     "obj_cave_stalagmite_c.mod": 6,
+     "obj_cave_stalagmite_f.mod": 7,
+     "obj_cave_stalagtite_a.mod": 7,
+     "obj_cave_stalagtite_b.mod": 9
     },
     "partners": {
-     "cavedirt.dds": 39,
-     "cavedirt_n.dds": 13,
-     "di_cchamber_stalactite01_12n.dds": 26,
-     "di_ruins_ceiling_ov.dds": 26,
-     "di_well_cave01.dds": 13
+     "cavedirt.dds": 20,
+     "cavedirt_n.dds": 7,
+     "di_cchamber_stalactite01_12n.dds": 13,
+     "di_ruins_ceiling_ov.dds": 13,
+     "di_well_cave01.dds": 6
     },
     "roles": {
-     "e_TextureDiffuse0": 26
+     "e_TextureDiffuse0": 13
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 26
+     "Opaque_MPLBlend.fx": 13
     }
    },
    "meanColor": [
@@ -2451,25 +3227,25 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_d.mod": 24,
-     "obj_cave_rock_g.mod": 136,
-     "obj_cave_rock_h.mod": 82,
-     "obj_cave_rock_z.mod": 50,
-     "obj_mud_rock_c.mod": 40
+     "obj_cave_rock_d.mod": 12,
+     "obj_cave_rock_g.mod": 68,
+     "obj_cave_rock_h.mod": 41,
+     "obj_cave_rock_z.mod": 25,
+     "obj_mud_rock_c.mod": 20
     },
     "partners": {
-     "cavedirt.dds": 88,
-     "cavedirt_n.dds": 39,
-     "di_cchamber_stalactite01_12n.dds": 26,
-     "di_cchamber_stalactite02.dds": 26,
-     "rock_scorched_limestone_n.dds": 26
+     "cavedirt.dds": 45,
+     "cavedirt_n.dds": 20,
+     "di_cchamber_stalactite01_12n.dds": 13,
+     "di_cchamber_stalactite02.dds": 13,
+     "rock_scorched_limestone_n.dds": 13
     },
     "roles": {
-     "e_TextureCoverage0": 60,
-     "e_TextureFallback0": 4
+     "e_TextureCoverage0": 28,
+     "e_TextureFallback0": 1
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 64
+     "Opaque_MPLBlend.fx": 29
     }
    },
    "meanColor": [
@@ -2504,25 +3280,25 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_stalagmite_a.mod": 6,
-     "obj_cave_stalagmite_c.mod": 6,
-     "obj_cave_stalagmite_f.mod": 7,
      "obj_cave_stalagtite_a.mod": 7,
-     "obj_cave_stalagtite_b.mod": 9
+     "obj_cave_stalagtite_b.mod": 9,
+     "obj_cave_stalagtite_c.mod": 4,
+     "obj_cave_stalagtite_d.mod": 3,
+     "obj_cave_stalagtite_e.mod": 6
     },
     "partners": {
-     "cavedirt.dds": 21,
-     "di_cchamber_stalactite01_12n.dds": 13,
-     "di_cchamber_stalactite02.dds": 13,
-     "di_ruins_ceiling_ov.dds": 17,
-     "di_well_cave01_n.dds": 13
+     "cavedirt.dds": 8,
+     "di_cchamber_stalactite01_12n.dds": 6,
+     "di_cchamber_stalactite02.dds": 6,
+     "di_ruins_ceiling_ov.dds": 7,
+     "di_well_cave01_n.dds": 6
     },
     "roles": {
-     "e_TextureDiffuse0": 4,
-     "e_TextureDiffuse1": 13
+     "e_TextureDiffuse0": 1,
+     "e_TextureDiffuse1": 6
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 17
+     "Opaque_MPLBlend.fx": 7
     }
    },
    "meanColor": [
@@ -2573,24 +3349,24 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_stalagmite_a.mod": 6,
-     "obj_cave_stalagmite_c.mod": 6,
-     "obj_cave_stalagmite_f.mod": 7,
      "obj_cave_stalagtite_a.mod": 7,
-     "obj_cave_stalagtite_b.mod": 9
+     "obj_cave_stalagtite_b.mod": 9,
+     "obj_cave_stalagtite_c.mod": 4,
+     "obj_cave_stalagtite_d.mod": 3,
+     "obj_cave_stalagtite_e.mod": 6
     },
     "partners": {
-     "cavedirt.dds": 13,
-     "di_cchamber_stalactite01_12n.dds": 13,
-     "di_cchamber_stalactite02.dds": 13,
-     "di_ruins_ceiling_ov.dds": 21,
-     "di_well_cave01.dds": 13
+     "cavedirt.dds": 6,
+     "di_cchamber_stalactite01_12n.dds": 6,
+     "di_cchamber_stalactite02.dds": 6,
+     "di_ruins_ceiling_ov.dds": 8,
+     "di_well_cave01.dds": 6
     },
     "roles": {
-     "e_TextureNormal1": 17
+     "e_TextureNormal1": 7
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 17
+     "Opaque_MPLBlend.fx": 7
     }
    },
    "meanColor": [
@@ -2655,25 +3431,22 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_d.mod": 12,
-     "obj_cave_rock_g.mod": 68,
-     "obj_cave_rock_h.mod": 41,
-     "obj_cave_rock_z.mod": 25,
+     "obj_mud_rock_a.mod": 7,
+     "obj_mud_rock_b.mod": 4,
      "obj_mud_rock_c.mod": 20
     },
     "partners": {
-     "cavedirt.dds": 11,
-     "cavedirt_n.dds": 11,
-     "di_ruins_ceiling_ov.dds": 11,
-     "di_well_mud01.dds": 11,
-     "rock_scorched_limestone_n.dds": 11
+     "cavedirt.dds": 3,
+     "cavedirt_n.dds": 3,
+     "di_ruins_ceiling_ov.dds": 3,
+     "di_well_mud01.dds": 3,
+     "rock_scorched_limestone_n.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 11,
-     "e_TextureDiffuse1": 4
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 15
+     "Opaque_MPLBlend.fx": 3
     }
    },
    "meanColor": [
@@ -2721,26 +3494,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_cave_rock_f.mod": 1,
-     "obj_hum.mod": 1,
-     "obp_water_well.mod": 1,
-     "ter_well.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 8,
-     "di_well_ground02.dds": 4,
-     "di_well_mud01_n.dds": 4,
-     "di_zhizar_limestone_02_c.dds": 4
-    },
-    "roles": {
-     "e_TextureNormal1": 4
-    },
-    "shaders": {
-     "Opaque_MPLBlend.fx": 4
-    }
-   },
    "meanColor": [
     127,
     128,
@@ -2773,26 +3526,25 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_d.mod": 12,
-     "obj_cave_rock_g.mod": 68,
-     "obj_cave_rock_h.mod": 41,
-     "obj_cave_rock_z.mod": 25,
-     "obj_mud_rock_c.mod": 20
+     "obj_mud_rock_a.mod": 7,
+     "obj_mud_rock_b.mod": 4,
+     "obj_mud_rock_c.mod": 20,
+     "ter_well.ter": 2
     },
     "partners": {
-     "cavedirt.dds": 11,
-     "cavedirt_n.dds": 11,
-     "di_ruins_ceiling_ov.dds": 19,
-     "di_well_ground02.dds": 11,
-     "rock_scorched_limestone_n.dds": 11
+     "cavedirt.dds": 3,
+     "cavedirt_n.dds": 3,
+     "di_ruins_ceiling_ov.dds": 5,
+     "di_well_ground02.dds": 3,
+     "rock_scorched_limestone_n.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 8,
-     "e_TextureDiffuse1": 11
+     "e_TextureDiffuse0": 2,
+     "e_TextureDiffuse1": 3
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 15,
-     "Opaque_MPLSB.fx": 4
+     "Opaque_MPLBlend.fx": 4,
+     "Opaque_MPLSB.fx": 1
     }
    },
    "meanColor": [
@@ -2843,23 +3595,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 2,
-     "obj_hum.mod": 2,
-     "obp_water_well.mod": 2,
-     "ter_well.ter": 2
+     "ter_well.ter": 1
     },
     "partners": {
-     "coverage.dds": 8,
-     "di_ruins_ceiling_ov.dds": 8,
-     "di_well_cave01_n.dds": 4,
-     "di_well_mud01.dds": 4,
-     "well_cave_01_c.dds": 4
+     "di_ruins_ceiling_ov.dds": 2,
+     "di_well_cave01_n.dds": 1,
+     "di_well_mud01.dds": 1,
+     "well_cave_01_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 8
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 8
+     "Opaque_MPLBlend.fx": 1
     }
    },
    "meanColor": [
@@ -2924,20 +3672,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 1,
      "obj_hum.mod": 1,
-     "obp_water_well.mod": 1,
      "ter_well.ter": 1
     },
     "partners": {
-     "coverage.dds": 4,
-     "well_stone_02_c.dds": 4
+     "coverage.dds": 2,
+     "well_stone_02_c.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -2970,26 +3716,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_cave_rock_f.mod": 1,
-     "obj_hum.mod": 1,
-     "obp_water_well.mod": 1,
-     "ter_well.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 8,
-     "di_well_ground02.dds": 4,
-     "di_well_ground02_n.dds": 4,
-     "di_well_mud01_n.dds": 4
-    },
-    "roles": {
-     "e_TextureDiffuse0": 4
-    },
-    "shaders": {
-     "Opaque_MPLBlend.fx": 4
-    }
-   },
    "meanColor": [
     96,
     88,
@@ -3022,20 +3748,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 1,
-     "obj_hum.mod": 1,
-     "obp_water_well.mod": 1,
-     "ter_well.ter": 1
+     "obp_water_well.mod": 1
     },
     "partners": {
-     "uq_water_c.dds": 4,
-     "uq_water_n.dds": 4
+     "uq_water_c.dds": 1,
+     "uq_water_n.dds": 1
     },
     "roles": {
-     "e_TextureEnvironment0": 4
+     "e_TextureEnvironment0": 1
     },
     "shaders": {
-     "Opaque_MaxWater.fx": 4
+     "Opaque_MaxWater.fx": 1
     }
    },
    "meanColor": [
@@ -3068,24 +3791,6 @@
    "format": "ARGB32",
    "height": 512,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_cave_rock_f.mod": 1,
-     "obj_hum.mod": 1,
-     "obp_water_well.mod": 1,
-     "ter_well.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 4,
-     "mudtest_09.dds": 4
-    },
-    "roles": {
-     "e_TextureNormal0": 4
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 4
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -3178,20 +3883,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 1,
-     "obj_hum.mod": 1,
-     "obp_water_well.mod": 1,
      "ter_well.ter": 1
     },
     "partners": {
-     "coverage.dds": 4,
-     "di_well_mud01.dds": 4
+     "coverage.dds": 1,
+     "di_well_mud01.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 4
+     "Opaque_MPLSB.fx": 1
     }
    },
    "meanColor": [
@@ -3256,22 +3958,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 2,
-     "obj_hum.mod": 2,
-     "obp_water_well.mod": 2,
      "ter_well.ter": 2
     },
     "partners": {
-     "cavedirt.dds": 16,
-     "di_ruins_ceiling_ov.dds": 8,
-     "di_well_cave01.dds": 8
+     "cavedirt.dds": 4,
+     "di_ruins_ceiling_ov.dds": 2,
+     "di_well_cave01.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 4,
-     "e_TextureNormal1": 4
+     "e_TextureNormal0": 1,
+     "e_TextureNormal1": 1
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 8
+     "Opaque_MPLBlend.fx": 2
     }
    },
    "meanColor": [
@@ -3306,25 +4005,25 @@
    "kind": "texture",
    "materials": {
     "models": {
+     "obj_cave_rock_a.mod": 7,
      "obj_cave_rock_d.mod": 12,
      "obj_cave_rock_g.mod": 68,
      "obj_cave_rock_h.mod": 41,
-     "obj_cave_rock_z.mod": 25,
-     "obj_mud_rock_c.mod": 20
+     "obj_cave_rock_z.mod": 25
     },
     "partners": {
-     "cavedirt.dds": 30,
-     "cavedirt_n.dds": 15,
-     "coverage.dds": 4,
-     "di_ruins_ceiling_ov.dds": 15,
-     "rock_scorched_limestone_n.dds": 19
+     "cavedirt.dds": 20,
+     "cavedirt_n.dds": 10,
+     "coverage.dds": 2,
+     "di_ruins_ceiling_ov.dds": 10,
+     "rock_scorched_limestone_n.dds": 12
     },
     "roles": {
-     "e_TextureDiffuse0": 19
+     "e_TextureDiffuse0": 12
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 15,
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBlend.fx": 10,
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -3375,25 +4074,25 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_d.mod": 24,
-     "obj_cave_rock_g.mod": 136,
-     "obj_cave_rock_h.mod": 82,
-     "obj_cave_rock_z.mod": 50,
-     "obj_mud_rock_c.mod": 40
+     "obj_cave_rock_d.mod": 12,
+     "obj_cave_rock_g.mod": 68,
+     "obj_cave_rock_h.mod": 41,
+     "obj_cave_rock_z.mod": 25,
+     "obj_mud_rock_c.mod": 20
     },
     "partners": {
-     "cavedirt.dds": 41,
-     "cavedirt_n.dds": 26,
-     "di_ruins_ceiling_ov.dds": 26,
-     "di_well_ground02.dds": 11,
-     "rock_scorched_limestone.dds": 19
+     "cavedirt.dds": 23,
+     "cavedirt_n.dds": 13,
+     "di_ruins_ceiling_ov.dds": 13,
+     "di_well_ground02.dds": 3,
+     "rock_scorched_limestone.dds": 12
     },
     "roles": {
-     "e_TextureNormal0": 30
+     "e_TextureNormal0": 15
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 26,
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBlend.fx": 13,
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -3702,22 +4401,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_wellbucket.mod": 2,
-     "obj_wellbucket_broken.mod": 2
-    },
-    "partners": {
-     "coverage.dds": 4,
-     "sp_housegarden_metal_10n.dds": 4
-    },
-    "roles": {
-     "e_TextureDiffuse0": 4
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 4
-    }
-   },
    "meanColor": [
     57,
     65,
@@ -3748,22 +4431,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_wellbucket.mod": 2,
-     "obj_wellbucket_broken.mod": 2
-    },
-    "partners": {
-     "coverage.dds": 4,
-     "sp_housegarden_metal.dds": 4
-    },
-    "roles": {
-     "e_TextureNormal0": 4
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 4
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -3796,20 +4463,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 1,
-     "obj_hum.mod": 1,
-     "obp_water_well.mod": 1,
-     "ter_well.ter": 1
+     "obp_water_well.mod": 1
     },
     "partners": {
-     "env_noswap_cave.dds": 4,
-     "uq_water_n.dds": 4
+     "env_noswap_cave.dds": 1,
+     "uq_water_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxWater.fx": 4
+     "Opaque_MaxWater.fx": 1
     }
    },
    "meanColor": [
@@ -3859,20 +4523,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 1,
-     "obj_hum.mod": 1,
-     "obp_water_well.mod": 1,
-     "ter_well.ter": 1
+     "obp_water_well.mod": 1
     },
     "partners": {
-     "env_noswap_cave.dds": 4,
-     "uq_water_c.dds": 4
+     "env_noswap_cave.dds": 1,
+     "uq_water_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MaxWater.fx": 4
+     "Opaque_MaxWater.fx": 1
     }
    },
    "meanColor": [
@@ -3937,22 +4598,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 1,
-     "obj_hum.mod": 1,
-     "obp_water_well.mod": 1,
      "ter_well.ter": 1
     },
     "partners": {
-     "di_ruins_ceiling_ov.dds": 8,
-     "di_well_cave01_n.dds": 4,
-     "di_well_mud01.dds": 4,
-     "di_well_mud01_n.dds": 4
+     "di_ruins_ceiling_ov.dds": 2,
+     "di_well_cave01_n.dds": 1,
+     "di_well_mud01.dds": 1,
+     "di_well_mud01_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse1": 4
+     "e_TextureDiffuse1": 1
     },
     "shaders": {
-     "Opaque_MPLBlend.fx": 4
+     "Opaque_MPLBlend.fx": 1
     }
    },
    "meanColor": [
@@ -3987,20 +4645,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_coin_a.mod": 2,
-     "obj_coin_d.mod": 3,
-     "obj_coin_e.mod": 2,
-     "obj_coin_f.mod": 1
+     "obj_coin_a.mod": 2
     },
     "partners": {
-     "coverage.dds": 4,
-     "well_coin_01_n.dds": 4
+     "coverage.dds": 1,
+     "well_coin_01_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 4
+     "Opaque_MPLSB.fx": 1
     }
    },
    "meanColor": [
@@ -4050,21 +4705,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_coin_a.mod": 4,
-     "obj_coin_d.mod": 6,
-     "obj_coin_e.mod": 4,
-     "obj_coin_f.mod": 2
+     "obj_coin_a.mod": 2
     },
     "partners": {
-     "coverage.dds": 8,
-     "well_coin_01_c.dds": 4,
-     "well_coin_02_c.dds": 4
+     "coverage.dds": 1,
+     "well_coin_01_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 8
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 8
+     "Opaque_MPLSB.fx": 1
     }
    },
    "meanColor": [
@@ -4097,24 +4748,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_coin_a.mod": 2,
-     "obj_coin_d.mod": 3,
-     "obj_coin_e.mod": 2,
-     "obj_coin_f.mod": 1
-    },
-    "partners": {
-     "coverage.dds": 4,
-     "well_coin_01_n.dds": 4
-    },
-    "roles": {
-     "e_TextureDiffuse0": 4
-    },
-    "shaders": {
-     "Opaque_MPLSB.fx": 4
-    }
-   },
    "meanColor": [
     132,
     130,
@@ -4147,21 +4780,20 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_coin_a.mod": 4,
-     "obj_coin_d.mod": 6,
-     "obj_coin_e.mod": 4,
-     "obj_coin_f.mod": 2
+     "obj_coin_d.mod": 3,
+     "obj_coin_e.mod": 2,
+     "obj_coin_f.mod": 1
     },
     "partners": {
-     "coverage.dds": 8,
-     "well_coin_03_c.dds": 4,
-     "well_coin_04_c.dds": 4
+     "coverage.dds": 3,
+     "well_coin_03_c.dds": 1,
+     "well_coin_04_c.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 8
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 8
+     "Opaque_MPLSB.fx": 3
     }
    },
    "meanColor": [
@@ -4196,20 +4828,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_coin_a.mod": 2,
-     "obj_coin_d.mod": 3,
-     "obj_coin_e.mod": 2,
      "obj_coin_f.mod": 1
     },
     "partners": {
-     "coverage.dds": 4,
-     "well_coin_02_n.dds": 4
+     "coverage.dds": 1,
+     "well_coin_02_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 4
+     "Opaque_MPLSB.fx": 1
     }
    },
    "meanColor": [
@@ -4259,20 +4888,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_coin_a.mod": 2,
      "obj_coin_d.mod": 3,
-     "obj_coin_e.mod": 2,
-     "obj_coin_f.mod": 1
+     "obj_coin_e.mod": 2
     },
     "partners": {
-     "coverage.dds": 4,
-     "well_coin_02_n.dds": 4
+     "coverage.dds": 2,
+     "well_coin_02_n.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MPLSB.fx": 4
+     "Opaque_MPLSB.fx": 2
     }
    },
    "meanColor": [
@@ -4322,20 +4949,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 1,
-     "obj_hum.mod": 1,
-     "obp_water_well.mod": 1,
      "ter_well.ter": 1
     },
     "partners": {
-     "coverage.dds": 4,
-     "well_stone_01_n.dds": 4
+     "coverage.dds": 1,
+     "well_stone_01_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 4
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -4385,22 +5009,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 2,
-     "obj_hum.mod": 2,
-     "obp_water_well.mod": 2,
      "ter_well.ter": 2
     },
     "partners": {
-     "coverage.dds": 4,
-     "di_bcon_cave_wall_ov.dds": 4,
-     "well_stone_01_c.dds": 4,
-     "well_stone_02_c.dds": 4
+     "coverage.dds": 1,
+     "di_bcon_cave_wall_ov.dds": 1,
+     "well_stone_01_c.dds": 1,
+     "well_stone_02_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 8
+     "e_TextureNormal0": 2
     },
     "shaders": {
-     "Opaque_MPLBump2UV.fx": 8
+     "Opaque_MPLBump2UV.fx": 2
     }
    },
    "meanColor": [
@@ -4435,23 +5056,21 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_cave_rock_f.mod": 2,
-     "obj_hum.mod": 2,
-     "obp_water_well.mod": 2,
+     "obj_hum.mod": 1,
      "ter_well.ter": 2
     },
     "partners": {
-     "coverage.dds": 4,
-     "di_bcon_cave_wall_ov.dds": 4,
-     "di_zhizar_limestone_01_n.dds": 4,
-     "well_stone_01_n.dds": 4
+     "coverage.dds": 2,
+     "di_bcon_cave_wall_ov.dds": 1,
+     "di_zhizar_limestone_01_n.dds": 2,
+     "well_stone_01_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 8
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4,
-     "Opaque_MPLBump2UV.fx": 4
+     "Opaque_MPLBump.fx": 2,
+     "Opaque_MPLBump2UV.fx": 1
     }
    },
    "meanColor": [
@@ -4527,6 +5146,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:well",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "well"
 }

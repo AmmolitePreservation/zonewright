@@ -53,18 +53,18 @@
    "count": 4,
    "examplePositions": [
     [
-     517.4,
      227.0,
+     -517.4,
      -101.0
     ],
     [
-     826.9,
      635.9,
+     -826.9,
      -74.2
     ],
     [
-     279.4,
      807.8,
+     -279.4,
      -87.4
     ]
    ],
@@ -96,8 +96,8 @@
    "count": 1,
    "examplePositions": [
     [
-     1656.5,
      701.9,
+     -1656.5,
      -37.8
     ]
    ],
@@ -127,8 +127,8 @@
    "count": 1,
    "examplePositions": [
     [
-     1350.1,
      665.7,
+     -1350.1,
      -78.7
     ]
    ],
@@ -158,18 +158,18 @@
    "count": 5,
    "examplePositions": [
     [
-     786.0,
      621.6,
+     -786.0,
      -54.2
     ],
     [
-     866.9,
      608.1,
+     -866.9,
      -54.2
     ],
     [
-     828.4,
      679.3,
+     -828.4,
      -54.2
     ]
    ],
@@ -201,18 +201,18 @@
    "count": 80,
    "examplePositions": [
     [
-     143.9,
      791.8,
+     -143.9,
      -75.3
     ],
     [
-     163.6,
      750.1,
+     -163.6,
      -75.3
     ],
     [
-     215.2,
      747.9,
+     -215.2,
      -75.3
     ]
    ],
@@ -244,18 +244,18 @@
    "count": 30,
    "examplePositions": [
     [
-     -17.0,
      3.9,
+     17.0,
      -21.0
     ],
     [
-     78.6,
      -38.7,
+     -78.6,
      -58.0
     ],
     [
-     176.7,
      -25.8,
+     -176.7,
      -87.5
     ]
    ],
@@ -287,18 +287,18 @@
    "count": 45,
    "examplePositions": [
     [
-     42.3,
      -2.5,
+     -42.3,
      -38.2
     ],
     [
-     125.2,
      -59.8,
+     -125.2,
      -84.1
     ],
     [
-     214.1,
      20.2,
+     -214.1,
      -91.1
     ]
    ],
@@ -330,18 +330,18 @@
    "count": 37,
    "examplePositions": [
     [
-     -49.3,
      31.0,
+     49.3,
      -5.5
     ],
     [
-     -28.0,
      120.7,
+     28.0,
      12.5
     ],
     [
-     267.5,
      64.3,
+     -267.5,
      -84.2
     ]
    ],
@@ -362,15 +362,37 @@
   },
   "model/obj_crate_a.mod@85fe0dfb": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_c.mod": 18,
+    "obj_fp_bench_a.mod": 6,
+    "obj_fp_crate_k.mod": 26,
+    "obj_fp_table_b.mod": 5,
+    "obj_sewer_lamp.mod": 7
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.71,
+     -2.71,
+     -2.5
+    ],
+    [
+     2.71,
+     2.71,
+     2.5
+    ]
+   ],
+   "bytes": 2619,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "crateone",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -379,72 +401,79 @@
      }
     },
     {
+     "name": "cratetwo",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
       "e_TextureDiffuse0": "ab_crate02_brn_c.dds",
-      "e_TextureNormal0": "ab_crate_8_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "ab_crate02_grey_c.dds",
-      "e_TextureNormal0": "ab_crateslat_8_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "ab_crate02_grey_c.dds",
       "e_TextureNormal0": "ab_crate_8_n.dds"
      }
     }
    ],
+   "entry": "obj_crate_a.mod",
+   "footprint": 29.3,
+   "kind": "model",
    "name": "obj_crate_a.mod",
+   "origin": "center",
    "placements": 9,
    "scaleRange": [
     0.378,
     0.378
    ],
    "sha256": "85fe0dfb3a83cfb1e2a50bd00dbd91dfa7bf170a73d96b4ea47a60c00dad0f1b",
+   "sits": {
+    "upright": 9
+   },
    "size": [
-    5.4,
-    5.4,
+    5.42,
+    5.42,
     5.0
    ],
    "skinned": false,
+   "textureShares": {
+    "ab_crate02_brn_c.dds": 1.0
+   },
+   "textures": [
+    "ab_crate02_brn_c.dds",
+    "ab_crate_8_n.dds",
+    "ab_crateslat_8_n.dds",
+    "coverage.dds"
+   ],
    "triangles": 10
   },
   "model/obj_crate_c.mod@49ee4118": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 18,
+    "obj_fp_bench_a.mod": 7,
+    "obj_fp_crate_k.mod": 36,
+    "obj_fp_table_b.mod": 9,
+    "obj_sewer_lamp.mod": 10
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.5,
+     -2.5,
+     -3.5
+    ],
+    [
+     2.5,
+     2.5,
+     3.5
+    ]
+   ],
+   "bytes": 2619,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "ab_crate02_brn_c.dds",
-      "e_TextureNormal0": "ab_crateslat_8_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "ab_crate02_brn_c.dds",
-      "e_TextureNormal0": "ab_crate_8_n.dds"
-     }
-    },
-    {
+     "name": "cratethree",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -453,6 +482,7 @@
      }
     },
     {
+     "name": "cratefour",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -461,196 +491,341 @@
      }
     }
    ],
+   "entry": "obj_crate_c.mod",
+   "footprint": 25.0,
+   "kind": "model",
    "name": "obj_crate_c.mod",
+   "origin": "center",
    "placements": 12,
    "scaleRange": [
     0.378,
     0.378
    ],
    "sha256": "49ee41184b4fe482638c4f1299025e42b862d327b07d616d0df369638a4f81a9",
+   "sits": {
+    "upright": 12
+   },
    "size": [
     5.0,
     5.0,
     7.0
    ],
    "skinned": false,
+   "textureShares": {
+    "ab_crate02_grey_c.dds": 1.0
+   },
+   "textures": [
+    "ab_crate02_grey_c.dds",
+    "ab_crate_8_n.dds",
+    "ab_crateslat_8_n.dds",
+    "coverage.dds"
+   ],
    "triangles": 10
   },
   "model/obj_draina.mod@ca41a09f": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_drainpipea.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.75,
+     -2.89,
+     -0.53
+    ],
+    [
+     2.75,
+     2.89,
+     0.53
+    ]
+   ],
+   "bytes": 17382,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_draina.mod",
+   "footprint": 31.8,
+   "kind": "model",
    "name": "obj_draina.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "ca41a09f1cbd3b377003c7df10c6092ad7a19ed7a79d4c07df1750759c3ae876",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     5.5,
-    5.8,
-    1.1
+    5.78,
+    1.07
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 160
   },
   "model/obj_drainb.mod@3de4f016": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_piped.mod": 8,
+    "obj_pipeg.mod": 2,
+    "obj_pipek.mod": 8
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.75,
+     -2.89,
+     -0.53
+    ],
+    [
+     2.75,
+     2.89,
+     0.53
+    ]
+   ],
+   "bytes": 17382,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_drainb.mod",
+   "footprint": 31.8,
+   "kind": "model",
    "name": "obj_drainb.mod",
+   "origin": "center",
    "placements": 8,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "3de4f01610b666f49b0a2318a5e510d2a5df24619e9267833c848e8a6a399d9d",
+   "sits": {
+    "upright": 8
+   },
    "size": [
     5.5,
-    5.8,
-    1.1
+    5.78,
+    1.07
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 160
   },
   "model/obj_drainpipea.mod@1988a999": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_draina.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.16,
+     -10.58,
+     -3.32
+    ],
+    [
+     3.16,
+     0.0,
+     3.32
+    ]
+   ],
+   "bytes": 36578,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_drainpipea.mod",
+   "footprint": 66.9,
+   "kind": "model",
    "name": "obj_drainpipea.mod",
+   "origin": "wallBack",
    "placements": 5,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "1988a9996d800e759d2af59098970f8b033f7a87249f17c0742083c8ee27f73e",
+   "sits": {
+    "upright": 5
+   },
    "size": [
-    6.3,
-    10.6,
-    6.6
+    6.32,
+    10.58,
+    6.65
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 330
   },
   "model/obj_drainpipeb.mod@12e70552": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_ladder_b.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.16,
+     -10.58,
+     -3.32
+    ],
+    [
+     3.16,
+     0.0,
+     3.32
+    ]
+   ],
+   "bytes": 36578,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_drainpipeb.mod",
+   "footprint": 66.9,
+   "kind": "model",
    "name": "obj_drainpipeb.mod",
+   "origin": "wallBack",
    "placements": 7,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "12e70552389738f8598ff548672efe56b6bb6c54bee8590650f4b84b5e440ffe",
+   "sits": {
+    "tilted": 2,
+    "upright": 5
+   },
    "size": [
-    6.3,
-    10.6,
-    6.6
+    6.32,
+    10.58,
+    6.65
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 330
   },
   "model/obj_fp_barrel_b.mod@d55e4b2f": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 3,
+    "obj_crate_c.mod": 3,
+    "obj_fp_crate_k.mod": 4,
+    "obj_fp_rock_mound.mod": 1,
+    "obj_fp_table_b.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.4,
+     -1.35,
+     -1.94
+    ],
+    [
+     1.4,
+     1.35,
+     1.94
+    ]
+   ],
+   "bytes": 28755,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "planks",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -659,6 +834,7 @@
      }
     },
     {
+     "name": "plainwood",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -667,40 +843,69 @@
      }
     }
    ],
+   "entry": "obj_fp_barrel_b.mod",
+   "footprint": 7.6,
+   "kind": "model",
    "name": "obj_fp_barrel_b.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "d55e4b2ff60dc2652e981510327d95958e2014832d8f9c82874f21928546977b",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     2.8,
     2.7,
-    3.9
+    3.88
    ],
    "skinned": false,
+   "textureShares": {
+    "av_wood01a_c.dds": 1.0
+   },
+   "textures": [
+    "av_wood01a_c.dds",
+    "coverage.dds",
+    "rc_wood_8_n.dds"
+   ],
    "triangles": 308
   },
   "model/obj_fp_bench_a.mod@64116856": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 6,
+    "obj_crate_c.mod": 7,
+    "obj_fp_crate_k.mod": 13,
+    "obj_fp_table_b.mod": 3,
+    "obj_sewer_lamp.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.31,
+     -0.94,
+     -1.45
+    ],
+    [
+     2.4,
+     0.82,
+     -0.17
+    ]
+   ],
+   "bytes": 11372,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "tp_torture_wood_c.dds",
-      "e_TextureNormal0": "tp_torture_wood_n.dds"
-     }
-    },
-    {
+     "name": "wood_b",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -709,32 +914,70 @@
      }
     }
    ],
+   "entry": "obj_fp_bench_a.mod",
+   "footprint": 8.3,
+   "kind": "model",
    "name": "obj_fp_bench_a.mod",
+   "origin": "offset",
    "placements": 7,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "64116856603a58cf8be04d867f1d74fd8c44e41e77165fa7b2a9544bd3ea20ba",
+   "sits": {
+    "tilted": 2,
+    "upright": 5
+   },
    "size": [
-    4.7,
-    1.8,
-    1.3
+    4.71,
+    1.76,
+    1.29
    ],
    "skinned": false,
+   "textureShares": {
+    "book_stump_bark_01_c.dds": 1.0
+   },
+   "textures": [
+    "book_stump_bark_01_c.dds",
+    "fp_coverage_ov.dds",
+    "rockcave003b_n.dds"
+   ],
    "triangles": 80
   },
   "model/obj_fp_crate_k.mod@7bb7809b": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 26,
+    "obj_crate_c.mod": 36,
+    "obj_fp_bench_a.mod": 13,
+    "obj_fp_table_b.mod": 11,
+    "obj_sewer_lamp.mod": 17
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.2,
+     -1.36,
+     0.0
+    ],
+    [
+     1.2,
+     1.36,
+     3.61
+    ]
+   ],
+   "bytes": 1451,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "crate",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -743,32 +986,69 @@
      }
     }
    ],
+   "entry": "obj_fp_crate_k.mod",
+   "footprint": 6.5,
+   "kind": "model",
    "name": "obj_fp_crate_k.mod",
+   "origin": "base",
    "placements": 19,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "7bb7809b0f43ab78c53e8570f647fdcd7e165ae173e3ec35a37ca544c52fde7d",
+   "sits": {
+    "upright": 19
+   },
    "size": [
     2.4,
-    2.7,
-    3.6
+    2.72,
+    3.61
    ],
    "skinned": false,
+   "textureShares": {
+    "ra_scrollcase_01_c.dds": 1.0
+   },
+   "textures": [
+    "coverage.dds",
+    "ra_scrollcase_01_c.dds",
+    "ra_scrollcase_01_n.dds"
+   ],
    "triangles": 10
   },
   "model/obj_fp_dirtpile.mod@a82d2f88": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 1,
+    "obj_medrocka.mod": 4,
+    "obj_sewer_torcha.mod": 2,
+    "obp_sewer_debrisa.mod": 3,
+    "obp_sewer_debrisc.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.99,
+     -2.51,
+     -1.54
+    ],
+    [
+     3.62,
+     3.36,
+     1.54
+    ]
+   ],
+   "bytes": 5583,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "dirt",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -777,40 +1057,74 @@
      }
     }
    ],
+   "entry": "obj_fp_dirtpile.mod",
+   "footprint": 38.8,
+   "kind": "model",
    "name": "obj_fp_dirtpile.mod",
+   "origin": "center",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "a82d2f88fa02478c67f8b7bd443811b324e5df81bf506724c26d6f084708c3ac",
+   "sits": {
+    "tilted": 2,
+    "upright": 2
+   },
    "size": [
-    6.6,
-    5.9,
-    3.1
+    6.61,
+    5.87,
+    3.08
    ],
    "skinned": false,
+   "textureShares": {
+    "dirt_tunnel_floor_main.dds": 1.0
+   },
+   "textures": [
+    "cavefloor_n.dds",
+    "di_fp_sewers_wall_connecter.dds",
+    "dirt_tunnel_floor_main.dds"
+   ],
    "triangles": 116
   },
   "model/obj_fp_prison_bed.mod@f81f0f99": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 2,
+    "obj_crate_c.mod": 3,
+    "obj_fp_crate_k.mod": 5,
+    "obj_fp_table_b.mod": 1,
+    "obj_sewer_lamp.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.48,
+     -1.94,
+     -0.27
+    ],
+    [
+     3.48,
+     1.94,
+     0.27
+    ]
+   ],
+   "bytes": 11269,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "brown",
+     "share": 0.512
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "tp_torture_wood_c.dds",
-      "e_TextureNormal0": "tp_torture_wood_n.dds"
-     }
-    },
+     "color": "grey",
+     "share": 0.488
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "wood_b",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -819,6 +1133,7 @@
      }
     },
     {
+     "name": "P_S",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -827,32 +1142,72 @@
      }
     }
    ],
+   "entry": "obj_fp_prison_bed.mod",
+   "footprint": 27.0,
+   "kind": "model",
    "name": "obj_fp_prison_bed.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.322,
     1.322
    ],
    "sha256": "f81f0f99dfc4da5e0c08a15e9cabe5e2dddd9d3c4107a240d337bbebeed286fa",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    7.0,
-    3.9,
-    0.5
+    6.95,
+    3.88,
+    0.55
    ],
    "skinned": false,
+   "textureShares": {
+    "av_tentmerchant01_c.dds": 0.488,
+    "book_stump_bark_01_c.dds": 0.512
+   },
+   "textures": [
+    "av_tentmerchant01_c.dds",
+    "av_tentmerchant01_n.dds",
+    "book_stump_bark_01_c.dds",
+    "fp_coverage_ov.dds",
+    "rockcave003b_n.dds"
+   ],
    "triangles": 106
   },
   "model/obj_fp_rock_mound.mod@f922061c": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 1,
+    "obj_crate_c.mod": 1,
+    "obj_fp_barrel_b.mod": 1,
+    "obj_fp_crate_k.mod": 1,
+    "obj_fp_dirtpile.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.99,
+     -2.51,
+     -1.54
+    ],
+    [
+     3.62,
+     3.36,
+     1.54
+    ]
+   ],
+   "bytes": 5606,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "Material #26",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -861,40 +1216,69 @@
      }
     }
    ],
+   "entry": "obj_fp_rock_mound.mod",
+   "footprint": 38.8,
+   "kind": "model",
    "name": "obj_fp_rock_mound.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "f922061c3b0804e05c347c23ba7856d7361358433d9ba039bd8fd6a82e50d536",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    6.6,
-    5.9,
-    3.1
+    6.61,
+    5.87,
+    3.08
    ],
    "skinned": false,
+   "textureShares": {
+    "dirt_tunnel_walls_main.dds": 1.0
+   },
+   "textures": [
+    "dirt_tunnel_walls_main.dds",
+    "fp_coverage_ov.dds",
+    "minewall01_n.dds"
+   ],
    "triangles": 116
   },
   "model/obj_fp_table_b.mod@3ec6391c": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 5,
+    "obj_crate_c.mod": 9,
+    "obj_fp_bench_a.mod": 3,
+    "obj_fp_crate_k.mod": 11,
+    "obj_sewer_lamp.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.4,
+     -2.01,
+     -1.41
+    ],
+    [
+     3.4,
+     2.01,
+     1.41
+    ]
+   ],
+   "bytes": 19948,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "tp_torture_wood_c.dds",
-      "e_TextureNormal0": "tp_torture_wood_n.dds"
-     }
-    },
-    {
+     "name": "wood_b",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -903,32 +1287,73 @@
      }
     }
    ],
+   "entry": "obj_fp_table_b.mod",
+   "footprint": 27.3,
+   "kind": "model",
    "name": "obj_fp_table_b.mod",
+   "origin": "center",
    "placements": 5,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "3ec6391ca5f3f756aa0c9c1748e988ec5a149a89fb20b88d07f4b4468263f35a",
+   "sits": {
+    "upright": 5
+   },
    "size": [
-    6.8,
-    4.0,
-    2.8
+    6.81,
+    4.01,
+    2.82
    ],
    "skinned": false,
+   "textureShares": {
+    "book_stump_bark_01_c.dds": 1.0
+   },
+   "textures": [
+    "book_stump_bark_01_c.dds",
+    "fp_coverage_ov.dds",
+    "rockcave003b_n.dds"
+   ],
    "triangles": 181
   },
   "model/obj_fp_tent_a.mod@f695f41e": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 1,
+    "obj_crate_c.mod": 1,
+    "obj_fp_dirtpile.mod": 1,
+    "obj_sewer_lamp.mod": 3,
+    "obp_sewer_debrisb.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -7.26,
+     -5.98,
+     -5.1
+    ],
+    [
+     7.26,
+     5.98,
+     5.1
+    ]
+   ],
+   "bytes": 37465,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "grey",
+     "share": 0.652
     },
     {
+     "color": "brown",
+     "share": 0.348
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "tentA",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -937,6 +1362,7 @@
      }
     },
     {
+     "name": "wood",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -945,32 +1371,76 @@
      }
     }
    ],
+   "entry": "obj_fp_tent_a.mod",
+   "footprint": 173.7,
+   "kind": "model",
    "name": "obj_fp_tent_a.mod",
+   "origin": "center",
    "placements": 5,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "f695f41ef0cd17cc0ba0e744d1c231c0985779b14939413cb606fd7d61d9578f",
+   "sits": {
+    "upright": 5
+   },
    "size": [
-    14.5,
-    12.0,
-    10.2
+    14.52,
+    11.96,
+    10.21
    ],
    "skinned": false,
+   "textureShares": {
+    "av_tentmerchant01_c.dds": 0.652,
+    "book_stump_bark_01_c.dds": 0.348
+   },
+   "textures": [
+    "av_tentmerchant01_c.dds",
+    "av_tentmerchant01_n.dds",
+    "book_stump_bark_01_c.dds",
+    "book_stump_bark_01_n.dds",
+    "fp_coverage_ov.dds"
+   ],
    "triangles": 416
   },
   "model/obj_fp_tent_b.mod@c977fe68": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_fp_bench_a.mod": 1,
+    "obj_fp_dirtpile.mod": 1,
+    "obj_fp_rock_mound.mod": 1,
+    "obj_fp_table_b.mod": 1,
+    "obj_fp_tent_a.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -5.63,
+     -8.18,
+     -4.82
+    ],
+    [
+     5.63,
+     8.18,
+     4.82
+    ]
+   ],
+   "bytes": 18705,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "grey",
+     "share": 0.894
     },
     {
+     "color": "brown",
+     "share": 0.106
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "tentA",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -979,6 +1449,7 @@
      }
     },
     {
+     "name": "wood",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -987,32 +1458,73 @@
      }
     }
    ],
+   "entry": "obj_fp_tent_b.mod",
+   "footprint": 184.3,
+   "kind": "model",
    "name": "obj_fp_tent_b.mod",
+   "origin": "center",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "c977fe684e257c351bdff1a44f69bde081ae71cd22b16ad144e08d2ddf1e9b48",
+   "sits": {
+    "tilted": 1,
+    "upright": 3
+   },
    "size": [
-    11.3,
-    16.4,
-    9.6
+    11.27,
+    16.36,
+    9.64
    ],
    "skinned": false,
+   "textureShares": {
+    "av_tentmerchant01_c.dds": 0.894,
+    "book_stump_bark_01_c.dds": 0.106
+   },
+   "textures": [
+    "av_tentmerchant01_c.dds",
+    "av_tentmerchant01_n.dds",
+    "book_stump_bark_01_c.dds",
+    "book_stump_bark_01_n.dds",
+    "fp_coverage_ov.dds"
+   ],
    "triangles": 270
   },
   "model/obj_gate.mod@64aa1c63": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_piper.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.31,
+     -11.34,
+     -9.0
+    ],
+    [
+     0.31,
+     11.35,
+     9.06
+    ]
+   ],
+   "bytes": 24106,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "grey",
+     "share": 0.6
     },
     {
+     "color": "tan",
+     "share": 0.4
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -1021,6 +1533,7 @@
      }
     },
     {
+     "name": "wood_b",
      "shader": "Chroma_MPLBumpAT.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -1028,40 +1541,74 @@
      }
     }
    ],
+   "entry": "obj_gate.mod",
+   "footprint": 14.2,
+   "kind": "model",
    "name": "obj_gate.mod",
+   "origin": "wallBack",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "64aa1c63f78c1d0fbd9c94ff7c2ee1e4b35c5beb84a167d4c1ebce3574d0ac65",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    0.6,
-    22.7,
-    18.1
+    0.63,
+    22.69,
+    18.06
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 0.4,
+    "fence.dds": 0.6
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds",
+    "fence.dds",
+    "fp_coverage_ov.dds"
+   ],
    "triangles": 186
   },
   "model/obj_ladder_a.mod@61b05cf4": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_pipeb.mod": 1,
+    "obj_piper.mod": 1,
+    "obj_sewer_lamp.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.59,
+     -0.23,
+     -38.95
+    ],
+    [
+     0.21,
+     4.09,
+     0.2
+    ]
+   ],
+   "bytes": 28221,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "black",
+     "share": 0.649
     },
     {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
-      "e_TextureDiffuse0": "ab_cltorch02_c.dds",
-      "e_TextureNormal0": "ab_cltorch02_n12.dds"
-     }
-    },
+     "color": "tan",
+     "share": 0.351
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -1070,6 +1617,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -1078,6 +1626,7 @@
      }
     },
     {
+     "name": "alpha",
      "shader": "Alpha_MPLBasicA.fx",
      "textures": {
       "e_TextureDiffuse0": "transp.dds",
@@ -1085,40 +1634,75 @@
      }
     }
    ],
+   "entry": "obj_ladder_a.mod",
+   "footprint": 12.1,
+   "kind": "model",
    "name": "obj_ladder_a.mod",
+   "origin": "hanging",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "61b05cf444c07d7cd01554cb6d9858513cd5ffcd27adc06baa613ab8a568a817",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     2.8,
-    4.3,
-    39.1
+    4.32,
+    39.15
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_ext_stucco.dds": 0.073,
+    "di_fp_sewers_metal01.dds": 0.278,
+    "transp.dds": 0.649
+   },
+   "textures": [
+    "di_fp_ext_stucco.dds",
+    "di_fp_ext_stucco_18n.dds",
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds",
+    "transp.dds"
+   ],
    "triangles": 312
   },
   "model/obj_ladder_b.mod@7a046d55": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_drainpipeb.mod": 1,
+    "obj_pipey.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.4,
+     -2.16,
+     -19.06
+    ],
+    [
+     1.4,
+     2.16,
+     15.92
+    ]
+   ],
+   "bytes": 26633,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "black",
+     "share": 0.68
     },
     {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
-      "e_TextureDiffuse0": "ab_cltorch02_c.dds",
-      "e_TextureNormal0": "ab_cltorch02_n12.dds"
-     }
-    },
+     "color": "tan",
+     "share": 0.319
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -1127,6 +1711,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -1135,6 +1720,7 @@
      }
     },
     {
+     "name": "alpha",
      "shader": "Alpha_MPLBasicA.fx",
      "textures": {
       "e_TextureDiffuse0": "transp.dds",
@@ -1142,40 +1728,72 @@
      }
     }
    ],
+   "entry": "obj_ladder_b.mod",
+   "footprint": 12.1,
+   "kind": "model",
    "name": "obj_ladder_b.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "7a046d55229d397fec24e9f46c9a32c9e22e2a57ecb1e7505308658824082ed7",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     2.8,
-    4.3,
-    35.0
+    4.32,
+    34.97
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_ext_stucco.dds": 0.08,
+    "di_fp_sewers_metal01.dds": 0.239,
+    "transp.dds": 0.68
+   },
+   "textures": [
+    "di_fp_ext_stucco.dds",
+    "di_fp_ext_stucco_18n.dds",
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds",
+    "transp.dds"
+   ],
    "triangles": 292
   },
   "model/obj_ladder_c.mod@ccb71ed1": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -1.4,
+     -2.16,
+     -19.06
+    ],
+    [
+     1.4,
+     2.18,
+     15.92
+    ]
+   ],
+   "bytes": 26633,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "black",
+     "share": 0.677
     },
     {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
-      "e_TextureDiffuse0": "ab_cltorch02_c.dds",
-      "e_TextureNormal0": "ab_cltorch02_n12.dds"
-     }
-    },
+     "color": "tan",
+     "share": 0.323
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -1184,6 +1802,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -1192,6 +1811,7 @@
      }
     },
     {
+     "name": "alpha",
      "shader": "Alpha_MPLBasicA.fx",
      "textures": {
       "e_TextureDiffuse0": "transp.dds",
@@ -1199,40 +1819,72 @@
      }
     }
    ],
+   "entry": "obj_ladder_c.mod",
+   "footprint": 12.2,
+   "kind": "model",
    "name": "obj_ladder_c.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "ccb71ed1527e1504fa99104b759117f874c499b7b164496439f8eeadacf3b223",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     2.8,
-    4.3,
-    35.0
+    4.34,
+    34.97
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_ext_stucco.dds": 0.085,
+    "di_fp_sewers_metal01.dds": 0.238,
+    "transp.dds": 0.677
+   },
+   "textures": [
+    "di_fp_ext_stucco.dds",
+    "di_fp_ext_stucco_18n.dds",
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds",
+    "transp.dds"
+   ],
    "triangles": 292
   },
   "model/obj_ladder_d.mod@671cc4e6": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -2.59,
+     -0.23,
+     -38.95
+    ],
+    [
+     0.21,
+     4.09,
+     0.2
+    ]
+   ],
+   "bytes": 28221,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "black",
+     "share": 0.673
     },
     {
-     "shader": "Opaque_MPLGB.fx",
-     "textures": {
-      "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
-      "e_TextureDiffuse0": "ab_cltorch02_c.dds",
-      "e_TextureNormal0": "ab_cltorch02_n12.dds"
-     }
-    },
+     "color": "tan",
+     "share": 0.327
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -1241,6 +1893,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -1249,6 +1902,7 @@
      }
     },
     {
+     "name": "alpha",
      "shader": "Alpha_MPLBasicA.fx",
      "textures": {
       "e_TextureDiffuse0": "transp.dds",
@@ -1256,32 +1910,74 @@
      }
     }
    ],
+   "entry": "obj_ladder_d.mod",
+   "footprint": 12.1,
+   "kind": "model",
    "name": "obj_ladder_d.mod",
+   "origin": "hanging",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "671cc4e67e4ca8a91bd2bc8bb6b3a5ed165110f386a6d5859f8018cca0bca38d",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     2.8,
-    4.3,
-    39.1
+    4.32,
+    39.15
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_ext_stucco.dds": 0.068,
+    "di_fp_sewers_metal01.dds": 0.259,
+    "transp.dds": 0.673
+   },
+   "textures": [
+    "di_fp_ext_stucco.dds",
+    "di_fp_ext_stucco_18n.dds",
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds",
+    "transp.dds"
+   ],
    "triangles": 312
   },
   "model/obj_lrgrocka.mod@129fb6f8": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_lrgrockb.mod": 2,
+    "obj_medrocka.mod": 1,
+    "obj_medrockb.mod": 3,
+    "obj_medrockd.mod": 3,
+    "obj_sewer_torcha.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -6.62,
+     -7.11,
+     -2.09
+    ],
+    [
+     6.59,
+     5.63,
+     11.69
+    ]
+   ],
+   "bytes": 4641,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "dirt",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
@@ -1290,32 +1986,68 @@
      }
     }
    ],
+   "entry": "obj_lrgrocka.mod",
+   "footprint": 168.3,
+   "kind": "model",
    "name": "obj_lrgrocka.mod",
+   "origin": "offset",
    "placements": 7,
    "scaleRange": [
     0.343,
     0.343
    ],
    "sha256": "129fb6f8520a57e88d324b9e95c5aeadf84b458f9a54e15ef743fc1f304bd40d",
+   "sits": {
+    "upright": 7
+   },
    "size": [
-    13.2,
-    12.7,
-    13.8
+    13.21,
+    12.74,
+    13.78
    ],
    "skinned": false,
+   "textureShares": {
+    "dirt_tunnel_walls_main.dds": 1.0
+   },
+   "textures": [
+    "dirt_tunnel_floor_ov.dds",
+    "dirt_tunnel_walls_main.dds",
+    "minewall01_n.dds"
+   ],
    "triangles": 100
   },
   "model/obj_lrgrockb.mod@5ec35f81": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_lrgrocka.mod": 2,
+    "obj_sewer_torcha.mod": 1,
+    "obp_sewer_debrisa.mod": 1,
+    "obp_sewer_debrisd.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.94,
+     -5.19,
+     -1.7
+    ],
+    [
+     5.59,
+     5.19,
+     11.03
+    ]
+   ],
+   "bytes": 4641,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "dirt",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
@@ -1324,32 +2056,69 @@
      }
     }
    ],
+   "entry": "obj_lrgrockb.mod",
+   "footprint": 109.3,
+   "kind": "model",
    "name": "obj_lrgrockb.mod",
+   "origin": "offset",
    "placements": 3,
    "scaleRange": [
     0.343,
     0.343
    ],
    "sha256": "5ec35f81948647e6712d64a8d783f5b31738519c93dac47183b50e859e1a739b",
+   "sits": {
+    "tilted": 3
+   },
    "size": [
-    10.5,
-    10.4,
-    12.7
+    10.53,
+    10.38,
+    12.73
    ],
    "skinned": false,
+   "textureShares": {
+    "dirt_tunnel_walls_main.dds": 1.0
+   },
+   "textures": [
+    "dirt_tunnel_floor_ov.dds",
+    "dirt_tunnel_walls_main.dds",
+    "minewall01_n.dds"
+   ],
    "triangles": 100
   },
   "model/obj_medrocka.mod@e25720d9": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_fp_dirtpile.mod": 4,
+    "obj_pipei.mod": 3,
+    "obj_sewer_torcha.mod": 13,
+    "obp_sewer_debrisa.mod": 3,
+    "obp_sewer_debrisb.mod": 8
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.46,
+     -5.01,
+     -4.02
+    ],
+    [
+     6.57,
+     4.59,
+     6.51
+    ]
+   ],
+   "bytes": 4641,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "dirt",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
@@ -1358,32 +2127,69 @@
      }
     }
    ],
+   "entry": "obj_medrocka.mod",
+   "footprint": 96.3,
+   "kind": "model",
    "name": "obj_medrocka.mod",
+   "origin": "center",
    "placements": 34,
    "scaleRange": [
     0.343,
     0.343
    ],
    "sha256": "e25720d9321ae92063c2357f42ff05ff721517de48f1b20bd4d4b6dc131e05de",
+   "sits": {
+    "tilted": 34
+   },
    "size": [
-    10.0,
+    10.03,
     9.6,
-    10.5
+    10.53
    ],
    "skinned": false,
+   "textureShares": {
+    "dirt_tunnel_walls_main.dds": 1.0
+   },
+   "textures": [
+    "dirt_tunnel_floor_ov.dds",
+    "dirt_tunnel_walls_main.dds",
+    "minewall01_n.dds"
+   ],
    "triangles": 100
   },
   "model/obj_medrockb.mod@d0d81429": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_lrgrocka.mod": 3,
+    "obj_medrocka.mod": 1,
+    "obj_medrockd.mod": 13,
+    "obj_sewer_torcha.mod": 6,
+    "obp_sewer_debrisb.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.17,
+     -5.27,
+     0.86
+    ],
+    [
+     5.87,
+     3.99,
+     10.91
+    ]
+   ],
+   "bytes": 4641,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "dirt",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
@@ -1392,32 +2198,69 @@
      }
     }
    ],
+   "entry": "obj_medrockb.mod",
+   "footprint": 92.9,
+   "kind": "model",
    "name": "obj_medrockb.mod",
+   "origin": "offset",
    "placements": 15,
    "scaleRange": [
     0.343,
     0.343
    ],
    "sha256": "d0d81429abf375b986b07029a702fc24d3201334ddbee23d204e0ccb2845a4ef",
+   "sits": {
+    "tilted": 3,
+    "upright": 12
+   },
    "size": [
-    10.0,
-    9.3,
-    10.1
+    10.03,
+    9.26,
+    10.06
    ],
    "skinned": false,
+   "textureShares": {
+    "dirt_tunnel_walls_main.dds": 1.0
+   },
+   "textures": [
+    "dirt_tunnel_floor_ov.dds",
+    "dirt_tunnel_walls_main.dds",
+    "minewall01_n.dds"
+   ],
    "triangles": 100
   },
   "model/obj_medrockc.mod@5f017eb6": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_fp_bench_a.mod": 1,
+    "obj_fp_tent_b.mod": 1,
+    "obj_sewer_torcha.mod": 2,
+    "obp_sewer_debrisc.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -5.84,
+     -6.04,
+     -0.85
+    ],
+    [
+     5.9,
+     6.34,
+     11.06
+    ]
+   ],
+   "bytes": 4641,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "dirt",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
@@ -1426,32 +2269,69 @@
      }
     }
    ],
+   "entry": "obj_medrockc.mod",
+   "footprint": 145.4,
+   "kind": "model",
    "name": "obj_medrockc.mod",
+   "origin": "offset",
    "placements": 2,
    "scaleRange": [
     0.343,
     0.343
    ],
    "sha256": "5f017eb6a3cfa92e02bdcfdd3c826f79c69a85dd2e9a54a5f893db41e1b5f87e",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    11.7,
-    12.4,
-    11.9
+    11.74,
+    12.38,
+    11.91
    ],
    "skinned": false,
+   "textureShares": {
+    "dirt_tunnel_walls_main.dds": 1.0
+   },
+   "textures": [
+    "dirt_tunnel_floor_ov.dds",
+    "dirt_tunnel_walls_main.dds",
+    "minewall01_n.dds"
+   ],
    "triangles": 100
   },
   "model/obj_medrockd.mod@9394d25e": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_lrgrocka.mod": 3,
+    "obj_medrockb.mod": 13,
+    "obj_sewer_torcha.mod": 5,
+    "obp_sewer_debrisb.mod": 2,
+    "obp_sewer_debrisc.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.98,
+     -4.99,
+     0.16
+    ],
+    [
+     5.0,
+     4.99,
+     10.0
+    ]
+   ],
+   "bytes": 4641,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "dirt",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
@@ -1460,401 +2340,682 @@
      }
     }
    ],
+   "entry": "obj_medrockd.mod",
+   "footprint": 99.5,
+   "kind": "model",
    "name": "obj_medrockd.mod",
+   "origin": "base",
    "placements": 13,
    "scaleRange": [
     0.343,
     0.343
    ],
    "sha256": "9394d25e0a7856177447c690b58f4b16b3c9d4d0c51d70dce6eca01d2eda4cec",
+   "sits": {
+    "upright": 13
+   },
    "size": [
-    10.0,
-    10.0,
-    9.8
+    9.98,
+    9.97,
+    9.84
    ],
    "skinned": false,
+   "textureShares": {
+    "dirt_tunnel_walls_main.dds": 1.0
+   },
+   "textures": [
+    "dirt_tunnel_floor_ov.dds",
+    "dirt_tunnel_walls_main.dds",
+    "minewall01_n.dds"
+   ],
    "triangles": 100
   },
   "model/obj_pipea.mod@3d9c273a": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_sewer_lamp.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -17.13,
+     -9.08,
+     -9.91
+    ],
+    [
+     17.13,
+     9.08,
+     9.91
+    ]
+   ],
+   "bytes": 62418,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_pipea.mod",
+   "footprint": 622.6,
+   "kind": "model",
    "name": "obj_pipea.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     0.714,
     0.714
    ],
    "sha256": "3d9c273a08de0fcd8f4dc024914d58bfa57ac617ecb74044d9b325690789cba5",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    34.3,
-    18.2,
-    19.8
+    34.27,
+    18.17,
+    19.82
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 632
   },
   "model/obj_pipeb.mod@a7bd8288": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_ladder_a.mod": 1,
+    "obj_sewer_lamp.mod": 21,
+    "obj_sewer_torcha.mod": 1,
+    "obp_sewer_debrisb.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.18,
+     -1.24,
+     -5.12
+    ],
+    [
+     1.18,
+     1.24,
+     12.84
+    ]
+   ],
+   "bytes": 19806,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_pipeb.mod",
+   "footprint": 5.9,
+   "kind": "model",
    "name": "obj_pipeb.mod",
+   "origin": "offset",
    "placements": 19,
    "scaleRange": [
     0.576,
     0.576
    ],
    "sha256": "a7bd8288aa76f945d7a2b0a9e54c45a6877b019800a2133f6feda897ef95db96",
+   "sits": {
+    "upright": 19
+   },
    "size": [
-    2.4,
-    2.5,
-    18.0
+    2.36,
+    2.48,
+    17.96
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 180
   },
   "model/obj_piped.mod@1372708c": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_drainb.mod": 8
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.23,
+     -9.08,
+     -9.91
+    ],
+    [
+     4.23,
+     9.08,
+     9.91
+    ]
+   ],
+   "bytes": 47650,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_piped.mod",
+   "footprint": 153.7,
+   "kind": "model",
    "name": "obj_piped.mod",
+   "origin": "center",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "1372708cfbef69c715904dcbce38c8f47b80c463a2f4ae68e898b0c6aeea1be2",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    8.5,
-    18.2,
-    19.8
+    8.46,
+    18.17,
+    19.82
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 492
   },
   "model/obj_pipeg.mod@8c083172": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_drainb.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.18,
+     -21.24,
+     -1.24
+    ],
+    [
+     1.18,
+     21.41,
+     1.24
+    ]
+   ],
+   "bytes": 19806,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_pipeg.mod",
+   "footprint": 100.8,
+   "kind": "model",
    "name": "obj_pipeg.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "8c083172f222c1cd98c89f513c0a2ae2687c854b1e0f923acc08c5b656f25a7b",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    2.4,
-    42.6,
-    2.5
+    2.36,
+    42.65,
+    2.48
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 180
   },
   "model/obj_pipei.mod@9668f276": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_fp_dirtpile.mod": 1,
+    "obj_medrocka.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.68,
+     -0.72,
+     -5.18
+    ],
+    [
+     0.68,
+     0.72,
+     5.18
+    ]
+   ],
+   "bytes": 31750,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_pipei.mod",
+   "footprint": 1.9,
+   "kind": "model",
    "name": "obj_pipei.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "9668f2769cee642b57f5224dcc6d5964cf0531508c1a89414790b9dd395d8bce",
+   "sits": {
+    "tilted": 3
+   },
    "size": [
-    1.4,
-    1.4,
-    10.4
+    1.36,
+    1.43,
+    10.35
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 280
   },
   "model/obj_pipek.mod@95aeef41": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_drainb.mod": 8
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.66,
+     -8.4,
+     -9.91
+    ],
+    [
+     8.4,
+     8.66,
+     9.91
+    ]
+   ],
+   "bytes": 47650,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_pipek.mod",
+   "footprint": 291.1,
+   "kind": "model",
    "name": "obj_pipek.mod",
+   "origin": "center",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "95aeef4162724c26f7dc81844cc43042c12e063feea6169fef5998cfb3c4111f",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    17.1,
-    17.1,
-    19.8
+    17.06,
+    17.06,
+    19.82
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 492
   },
   "model/obj_piper.mod@43a61bdf": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_gate.mod": 1,
+    "obj_ladder_a.mod": 1,
+    "obj_sewer_lamp.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -21.24,
+     -1.18,
+     -1.24
+    ],
+    [
+     23.04,
+     1.18,
+     1.24
+    ]
+   ],
+   "bytes": 19806,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_piper.mod",
+   "footprint": 104.6,
+   "kind": "model",
    "name": "obj_piper.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "43a61bdf9b39f2b3435f565d4d77afdde641d7f24e1ed4ca043a94cd9c756301",
+   "sits": {
+    "upright": 3
+   },
    "size": [
-    44.3,
-    2.4,
-    2.5
+    44.28,
+    2.36,
+    2.48
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 180
   },
   "model/obj_pipey.mod@a51815ea": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_ladder_b.mod": 1,
+    "obj_sewer_lamp.mod": 1,
+    "obj_sewer_torcha.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.24,
+     -1.18,
+     -21.24
+    ],
+    [
+     1.24,
+     1.18,
+     34.47
+    ]
+   ],
+   "bytes": 19806,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_pipey.mod",
+   "footprint": 5.9,
+   "kind": "model",
    "name": "obj_pipey.mod",
+   "origin": "center",
    "placements": 13,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "a51815eacf618350cd41f712d1b75587f0623a7bb496b2efd1281329282ad583",
+   "sits": {
+    "upright": 13
+   },
    "size": [
-    2.5,
-    2.4,
-    55.7
+    2.48,
+    2.36,
+    55.71
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 180
   },
   "model/obj_pipez.mod@0c29fac1": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -1.18,
+     -21.24,
+     -1.24
+    ],
+    [
+     1.18,
+     21.41,
+     1.24
+    ]
+   ],
+   "bytes": 19806,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
       "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBumpAT.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "fence.dds"
-     }
     }
    ],
+   "entry": "obj_pipez.mod",
+   "footprint": 100.8,
+   "kind": "model",
    "name": "obj_pipez.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "0c29fac1b5ecccd0f78c3d01d705a778121d9cf2220d8f63d13ceb90eaace28f",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    2.4,
-    42.6,
-    2.5
+    2.36,
+    42.65,
+    2.48
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 1.0
+   },
+   "textures": [
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds"
+   ],
    "triangles": 180
   },
   "model/obj_sewer_lamp.mod@cbadaaf5": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 7,
+    "obj_crate_c.mod": 10,
+    "obj_fp_bench_a.mod": 5,
+    "obj_fp_crate_k.mod": 17,
+    "obj_pipeb.mod": 21
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.44,
+     -0.42,
+     -0.45
+    ],
+    [
+     0.44,
+     0.42,
+     0.63
+    ]
+   ],
+   "bytes": 14099,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "green",
+     "share": 0.691
     },
     {
+     "color": "tan",
+     "share": 0.309
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "parchment",
      "shader": "Opaque_MPLGB.fx",
      "textures": {
       "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
@@ -1863,6 +3024,7 @@
      }
     },
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -1871,32 +3033,78 @@
      }
     }
    ],
+   "entry": "obj_sewer_lamp.mod",
+   "footprint": 0.7,
+   "kind": "model",
    "name": "obj_sewer_lamp.mod",
+   "origin": "center",
    "placements": 81,
    "scaleRange": [
     1.532,
     1.532
    ],
    "sha256": "cbadaaf590cedbc137cbf18e7041209e2339adf98bb0292174018e0ae07e4fe8",
+   "sits": {
+    "tilted": 8,
+    "upright": 73
+   },
    "size": [
-    0.9,
-    0.8,
-    1.1
+    0.88,
+    0.85,
+    1.08
    ],
    "skinned": false,
+   "textureShares": {
+    "di_fp_sewers_metal01.dds": 0.309,
+    "ra_aframe_01_c.dds": 0.691
+   },
+   "textures": [
+    "coverage.dds",
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "dirt_tunnel_floor_ov.dds",
+    "ra_aframe_01_c.dds",
+    "ra_aframe_01_n.dds"
+   ],
    "triangles": 94
   },
   "model/obj_sewer_torcha.mod@75ff0b74": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_medrocka.mod": 13,
+    "obj_medrockb.mod": 6,
+    "obj_medrockd.mod": 5,
+    "obp_sewer_debrisb.mod": 7,
+    "obp_sewer_debrisd.mod": 6
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.59,
+     -1.22,
+     -1.51
+    ],
+    [
+     0.6,
+     1.22,
+     1.53
+    ]
+   ],
+   "bytes": 13389,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "tan",
+     "share": 0.688
     },
     {
+     "color": "brown",
+     "share": 0.312
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "torch",
      "shader": "Opaque_MPLGB.fx",
      "textures": {
       "e_TextureCoverage0": "dirt_tunnel_floor_ov.dds",
@@ -1905,6 +3113,7 @@
      }
     },
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -1913,105 +3122,164 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
       "e_TextureDiffuse0": "di_fp_ext_stucco.dds",
       "e_TextureNormal0": "di_fp_ext_stucco_18n.dds"
      }
-    },
-    {
-     "shader": "Alpha_MPLBasicA.fx",
-     "textures": {
-      "e_TextureDiffuse0": "transp.dds",
-      "e_TextureFallback0": "transp.dds"
-     }
     }
    ],
+   "entry": "obj_sewer_torcha.mod",
+   "footprint": 2.9,
+   "kind": "model",
    "name": "obj_sewer_torcha.mod",
+   "origin": "center",
    "placements": 46,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "75ff0b745a333758933bc25e714e7731687e254136eb2748b2844adad0210fe6",
+   "sits": {
+    "upright": 46
+   },
    "size": [
-    1.2,
-    2.4,
-    3.0
+    1.19,
+    2.45,
+    3.04
    ],
    "skinned": false,
+   "textureShares": {
+    "ab_cltorch02_c.dds": 0.312,
+    "di_fp_ext_stucco.dds": 0.384,
+    "di_fp_sewers_metal01.dds": 0.304
+   },
+   "textures": [
+    "ab_cltorch02_c.dds",
+    "ab_cltorch02_n12.dds",
+    "di_fp_ext_stucco.dds",
+    "di_fp_ext_stucco_18n.dds",
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_connecter.dds",
+    "dirt_tunnel_floor_ov.dds"
+   ],
    "triangles": 138
   },
   "model/obp_planka.mod@815e7522": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 3,
+    "obj_crate_c.mod": 6,
+    "obj_fp_crate_k.mod": 8,
+    "obj_sewer_lamp.mod": 5,
+    "obp_sewer_debrisa.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.63,
+     -1.94,
+     -0.1
+    ],
+    [
+     0.63,
+     1.94,
+     0.1
+    ]
+   ],
+   "bytes": 2173,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "tp_torture_wood_c.dds",
-      "e_TextureNormal0": "tp_torture_wood_n.dds"
-     }
-    },
-    {
+     "name": "wood_b",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
       "e_TextureDiffuse0": "book_stump_bark_01_c.dds",
       "e_TextureNormal0": "rockcave003b_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "av_tentmerchant01_c.dds",
-      "e_TextureNormal0": "av_tentmerchant01_n.dds"
-     }
     }
    ],
+   "entry": "obp_planka.mod",
+   "footprint": 4.9,
+   "kind": "model",
    "name": "obp_planka.mod",
+   "origin": "center",
    "placements": 10,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "815e7522fb098627015416e48570090eb72661a75903363a0e699b3d3db1d3c2",
+   "sits": {
+    "upright": 10
+   },
    "size": [
-    1.3,
-    3.9,
+    1.26,
+    3.88,
     0.2
    ],
    "skinned": false,
+   "textureShares": {
+    "book_stump_bark_01_c.dds": 1.0
+   },
+   "textures": [
+    "book_stump_bark_01_c.dds",
+    "fp_coverage_ov.dds",
+    "rockcave003b_n.dds"
+   ],
    "triangles": 12
   },
   "model/obp_sewer_debrisa.mod@1446495d": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 4,
+    "obj_crate_c.mod": 4,
+    "obj_fp_crate_k.mod": 6,
+    "obp_planka.mod": 5,
+    "obp_sewer_debrisc.mod": 8
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.34,
+     -3.52,
+     -0.76
+    ],
+    [
+     3.35,
+     3.52,
+     0.76
+    ]
+   ],
+   "bytes": 24315,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "tan",
+     "share": 0.645
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "tp_torture_wood_c.dds",
-      "e_TextureNormal0": "tp_torture_wood_n.dds"
-     }
+     "color": "brown",
+     "share": 0.244
     },
     {
+     "color": "grey",
+     "share": 0.112
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "wood_b",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -2020,6 +3288,7 @@
      }
     },
     {
+     "name": "r_metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2028,6 +3297,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2036,6 +3306,7 @@
      }
     },
     {
+     "name": "broken_cement",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2044,40 +3315,88 @@
      }
     }
    ],
+   "entry": "obp_sewer_debrisa.mod",
+   "footprint": 47.0,
+   "kind": "model",
    "name": "obp_sewer_debrisa.mod",
+   "origin": "center",
    "placements": 14,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "1446495de9c6afc6a6de7d2624b29f6eea8779dec3f8e41a69ac26b5483b2760",
+   "sits": {
+    "tilted": 11,
+    "upright": 3
+   },
    "size": [
-    6.7,
-    7.0,
-    1.5
+    6.69,
+    7.03,
+    1.52
    ],
    "skinned": false,
+   "textureShares": {
+    "book_stump_bark_01_c.dds": 0.244,
+    "cementwallbrk.dds": 0.112,
+    "di_fp_sewers_metal01.dds": 0.231,
+    "di_fp_sewers_wall_ceiling.dds": 0.414
+   },
+   "textures": [
+    "book_stump_bark_01_c.dds",
+    "cementwallbrk.dds",
+    "cementwallbrk_n.dds",
+    "coverage.dds",
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_ceiling.dds",
+    "di_fp_sewers_wall_ceiling_10n.dds",
+    "fp_coverage_ov.dds",
+    "rockcave003b_n.dds"
+   ],
    "triangles": 220
   },
   "model/obp_sewer_debrisb.mod@cd7cedd3": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_fp_crate_k.mod": 6,
+    "obj_medrocka.mod": 8,
+    "obj_sewer_torcha.mod": 7,
+    "obp_sewer_debrisa.mod": 4,
+    "obp_sewer_debrisd.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.57,
+     -3.4,
+     -0.24
+    ],
+    [
+     3.57,
+     3.4,
+     0.24
+    ]
+   ],
+   "bytes": 20175,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "tan",
+     "share": 0.666
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "tp_torture_wood_c.dds",
-      "e_TextureNormal0": "tp_torture_wood_n.dds"
-     }
+     "color": "brown",
+     "share": 0.247
     },
     {
+     "color": "grey",
+     "share": 0.087
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "wood_b",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -2086,6 +3405,7 @@
      }
     },
     {
+     "name": "r_metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2094,6 +3414,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2102,6 +3423,7 @@
      }
     },
     {
+     "name": "broken_cement",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2110,40 +3432,88 @@
      }
     }
    ],
+   "entry": "obp_sewer_debrisb.mod",
+   "footprint": 48.5,
+   "kind": "model",
    "name": "obp_sewer_debrisb.mod",
+   "origin": "center",
    "placements": 23,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "cd7cedd3c8fd460f4b8f2ef7331e66596b16a3a08e32ae8a38aaaca2847f7493",
+   "sits": {
+    "tilted": 15,
+    "upright": 8
+   },
    "size": [
-    7.1,
+    7.13,
     6.8,
-    0.5
+    0.48
    ],
    "skinned": false,
+   "textureShares": {
+    "book_stump_bark_01_c.dds": 0.247,
+    "cementwallbrk.dds": 0.087,
+    "di_fp_sewers_metal01.dds": 0.151,
+    "di_fp_sewers_wall_ceiling.dds": 0.515
+   },
+   "textures": [
+    "book_stump_bark_01_c.dds",
+    "cementwallbrk.dds",
+    "cementwallbrk_n.dds",
+    "coverage.dds",
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_ceiling.dds",
+    "di_fp_sewers_wall_ceiling_10n.dds",
+    "fp_coverage_ov.dds",
+    "rockcave003b_n.dds"
+   ],
    "triangles": 200
   },
   "model/obp_sewer_debrisc.mod@26bf3bfa": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 4,
+    "obj_crate_c.mod": 4,
+    "obj_fp_crate_k.mod": 6,
+    "obj_sewer_torcha.mod": 4,
+    "obp_sewer_debrisa.mod": 8
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.76,
+     -3.9,
+     -0.8
+    ],
+    [
+     2.08,
+     1.56,
+     0.06
+    ]
+   ],
+   "bytes": 19731,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "tan",
+     "share": 0.708
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "tp_torture_wood_c.dds",
-      "e_TextureNormal0": "tp_torture_wood_n.dds"
-     }
+     "color": "brown",
+     "share": 0.164
     },
     {
+     "color": "grey",
+     "share": 0.127
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "wood_b",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -2152,6 +3522,7 @@
      }
     },
     {
+     "name": "r_metal",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2160,6 +3531,7 @@
      }
     },
     {
+     "name": "concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2168,6 +3540,7 @@
      }
     },
     {
+     "name": "broken_cement",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2176,40 +3549,88 @@
      }
     }
    ],
+   "entry": "obp_sewer_debrisc.mod",
+   "footprint": 21.0,
+   "kind": "model",
    "name": "obp_sewer_debrisc.mod",
+   "origin": "hanging",
    "placements": 10,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "26bf3bfad61b84ed80ed603746dcf2bd386b2205976a82c78065edcbcae36f54",
+   "sits": {
+    "tilted": 8,
+    "upright": 2
+   },
    "size": [
-    3.8,
-    5.5,
-    0.9
+    3.84,
+    5.46,
+    0.86
    ],
    "skinned": false,
+   "textureShares": {
+    "book_stump_bark_01_c.dds": 0.164,
+    "cementwallbrk.dds": 0.127,
+    "di_fp_sewers_metal01.dds": 0.238,
+    "di_fp_sewers_wall_ceiling.dds": 0.47
+   },
+   "textures": [
+    "book_stump_bark_01_c.dds",
+    "cementwallbrk.dds",
+    "cementwallbrk_n.dds",
+    "coverage.dds",
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_wall_ceiling.dds",
+    "di_fp_sewers_wall_ceiling_10n.dds",
+    "fp_coverage_ov.dds",
+    "rockcave003b_n.dds"
+   ],
    "triangles": 180
   },
   "model/obp_sewer_debrisd.mod@495106f8": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_crate_a.mod": 3,
+    "obj_crate_c.mod": 3,
+    "obj_fp_crate_k.mod": 4,
+    "obj_sewer_torcha.mod": 6,
+    "obp_sewer_debrisb.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.06,
+     -1.94,
+     -0.15
+    ],
+    [
+     3.06,
+     1.94,
+     0.15
+    ]
+   ],
+   "bytes": 30691,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "tan",
+     "share": 0.659
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "fp_coverage_ov.dds",
-      "e_TextureDiffuse0": "tp_torture_wood_c.dds",
-      "e_TextureNormal0": "tp_torture_wood_n.dds"
-     }
+     "color": "brown",
+     "share": 0.191
     },
     {
+     "color": "grey",
+     "share": 0.15
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "wood_b",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "fp_coverage_ov.dds",
@@ -2218,14 +3639,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_fp_sewers_metal01.dds",
-      "e_TextureNormal0": "di_fp_sewers_metal01_3n.dds"
-     }
-    },
-    {
+     "name": "concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2234,6 +3648,7 @@
      }
     },
     {
+     "name": "broken_cement",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2242,32 +3657,79 @@
      }
     }
    ],
+   "entry": "obp_sewer_debrisd.mod",
+   "footprint": 23.7,
+   "kind": "model",
    "name": "obp_sewer_debrisd.mod",
+   "origin": "center",
    "placements": 15,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "495106f81486ca34ee3210301bb258fab910d576d1cb6afd0eca3a799fd8138b",
+   "sits": {
+    "tilted": 11,
+    "upright": 4
+   },
    "size": [
-    6.1,
-    3.9,
+    6.11,
+    3.88,
     0.3
    ],
    "skinned": false,
+   "textureShares": {
+    "book_stump_bark_01_c.dds": 0.191,
+    "cementwallbrk.dds": 0.15,
+    "di_fp_sewers_wall_ceiling.dds": 0.659
+   },
+   "textures": [
+    "book_stump_bark_01_c.dds",
+    "cementwallbrk.dds",
+    "cementwallbrk_n.dds",
+    "coverage.dds",
+    "di_fp_sewers_wall_ceiling.dds",
+    "di_fp_sewers_wall_ceiling_10n.dds",
+    "fp_coverage_ov.dds",
+    "rockcave003b_n.dds"
+   ],
    "triangles": 266
   },
   "model/ter_main.ter@34edecf3": {
    "archive": "freeportsewers.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -185.78,
+     -1905.93,
+     -144.1
+    ],
+    [
+     1297.61,
+     80.88,
+     43.17
+    ]
+   ],
+   "bytes": 8178710,
+   "collisionShare": 0.998,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "tan",
+     "share": 0.452
     },
     {
+     "color": "grey",
+     "share": 0.227
+    },
+    {
+     "color": "teal",
+     "share": 0.164
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "floortex",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "sw_ov.dds",
@@ -2276,6 +3738,7 @@
      }
     },
     {
+     "name": "wallbrick",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "sewerb_ov.dds",
@@ -2284,6 +3747,7 @@
      }
     },
     {
+     "name": "n2w_grime",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "sw_ov.dds",
@@ -2292,6 +3756,7 @@
      }
     },
     {
+     "name": "ceiling",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "sw_ov.dds",
@@ -2300,6 +3765,7 @@
      }
     },
     {
+     "name": "trim_concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sw_ov.dds",
@@ -2308,6 +3774,7 @@
      }
     },
     {
+     "name": "trim_tex1",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "canvas_cover.dds",
@@ -2316,6 +3783,7 @@
      }
     },
     {
+     "name": "n2w_new2uv",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sw_ov.dds",
@@ -2324,6 +3792,7 @@
      }
     },
     {
+     "name": "n4w_new2uv",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_connecter.dds",
@@ -2332,6 +3801,7 @@
      }
     },
     {
+     "name": "metal",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "sewerb_ov.dds",
@@ -2340,6 +3810,7 @@
      }
     },
     {
+     "name": "sewer_water",
      "shader": "Opaque_MaxWater.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_cavewater_c.dds",
@@ -2348,6 +3819,7 @@
      }
     },
     {
+     "name": "TUN_ground",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_ceiling.dds",
@@ -2356,6 +3828,7 @@
      }
     },
     {
+     "name": "TUN_walls",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_ceiling.dds",
@@ -2364,6 +3837,7 @@
      }
     },
     {
+     "name": "TUN_GW_Trans",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_fp_sewers_wall_ceiling.dds",
@@ -2372,6 +3846,7 @@
      }
     },
     {
+     "name": "Room_concrete",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2380,6 +3855,7 @@
      }
     },
     {
+     "name": "Room_wallbrick",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "sw_ov.dds",
@@ -2388,14 +3864,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_fp_ext_woodbeam_dark2.dds",
-      "e_TextureNormal0": "di_fp_ext_woodbeam_16n.dds"
-     }
-    },
-    {
+     "name": "Room_brick",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "sw_ov.dds",
@@ -2404,6 +3873,7 @@
      }
     },
     {
+     "name": "Decor",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "sw_ov.dds",
@@ -2412,6 +3882,7 @@
      }
     },
     {
+     "name": "n1wN2UV",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -2420,6 +3891,7 @@
      }
     },
     {
+     "name": "ENDPC_grnd",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -2428,6 +3900,7 @@
      }
     },
     {
+     "name": "ENDPC_brick",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "canvas_cover.dds",
@@ -2436,14 +3909,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage.dds",
-      "e_TextureDiffuse0": "di_fp_ext_stucco.dds",
-      "e_TextureNormal0": "di_fp_ext_stucco_18n.dds"
-     }
-    },
-    {
+     "name": "trim_tex2",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "canvas_cover.dds",
@@ -2452,6 +3918,7 @@
      }
     },
     {
+     "name": "trim_tex3",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "canvas_cover.dds",
@@ -2460,6 +3927,7 @@
      }
     },
     {
+     "name": "N3n2uv",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "sw_ov.dds",
@@ -2468,20 +3936,91 @@
      }
     }
    ],
+   "entry": "ter_main.ter",
+   "footprint": 2947221.4,
+   "kind": "model",
    "name": "ter_main.ter",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "34edecf36b1a646bfcb0bcef9da937aa2bd16191a522b72e33c817cdc3eadd1e",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    1483.4,
-    1986.8,
-    187.3
+    1483.39,
+    1986.81,
+    187.26
    ],
    "skinned": false,
-   "triangles": 76877
+   "textureShares": {
+    "cavefloor.dds": 0.026,
+    "di_et_ext_concrete_c.dds": 0.011,
+    "di_fp_ext_stonewall.dds": 0.003,
+    "di_fp_ext_stucco.dds": 0.083,
+    "di_fp_sewers_metal01.dds": 0.009,
+    "di_fp_sewers_trim01.dds": 0.003,
+    "di_fp_sewers_trim02.dds": 0.002,
+    "di_fp_sewers_trim03.dds": 0.002,
+    "di_fp_sewers_wall_ceiling.dds": 0.115,
+    "di_fp_sewers_wall_cinderblock.dds": 0.128,
+    "di_fp_sewers_wall_cinderblock_lower.dds": 0.016,
+    "di_fp_sewers_wall_decor.dds": 0.023,
+    "di_fp_sewers_wall_floor_tile.dds": 0.042,
+    "dirt_tunnel_floor_main.dds": 0.079,
+    "dirt_tunnel_floorwall_main.dds": 0.056,
+    "dirt_tunnel_walls_main.dds": 0.227,
+    "kl_stucco_c.dds": 0.01,
+    "rc_cavewater_c.dds": 0.164
+   },
+   "textures": [
+    "canvas_cover.dds",
+    "cavefloor.dds",
+    "cavefloor_n.dds",
+    "coverage.dds",
+    "di_et_ext_concrete_c.dds",
+    "di_fp_ext_concrete_10n.dds",
+    "di_fp_ext_stonewall.dds",
+    "di_fp_ext_stonewall_6n.dds",
+    "di_fp_ext_stucco.dds",
+    "di_fp_ext_stucco_18n.dds",
+    "di_fp_sewers_metal01.dds",
+    "di_fp_sewers_metal01_3n.dds",
+    "di_fp_sewers_trim01.dds",
+    "di_fp_sewers_trim01_8n.dds",
+    "di_fp_sewers_trim02.dds",
+    "di_fp_sewers_trim02_8n.dds",
+    "di_fp_sewers_trim03.dds",
+    "di_fp_sewers_trim03_8n.dds",
+    "di_fp_sewers_wall_ceiling.dds",
+    "di_fp_sewers_wall_ceiling_10n.dds",
+    "di_fp_sewers_wall_cinderblock.dds",
+    "di_fp_sewers_wall_cinderblock_8n.dds",
+    "di_fp_sewers_wall_cinderblock_lower.dds",
+    "di_fp_sewers_wall_cinderblock_lower_8n.dds",
+    "di_fp_sewers_wall_connecter.dds",
+    "di_fp_sewers_wall_decor.dds",
+    "di_fp_sewers_wall_decor_8n.dds",
+    "di_fp_sewers_wall_floor_tile.dds",
+    "di_fp_sewers_wall_floor_tile_12n.dds",
+    "dirt_tunnel_floor_main.dds",
+    "dirt_tunnel_floorwall_main.dds",
+    "dirt_tunnel_walls_main.dds",
+    "kl_stucco_c.dds",
+    "kl_stucco_n.dds",
+    "minefloor01_n.dds",
+    "minefloorwall_n.dds",
+    "minewall01_n.dds",
+    "nek_erosion_ov_4tile.dds",
+    "rc_cavewater_c.dds",
+    "rc_cavewater_n.dds",
+    "sewerb_ov.dds",
+    "sw_ov.dds"
+   ],
+   "triangles": 76597
   },
   "texture/ab_cltorch02_c.dds@50ec0ec3": {
    "archives": [
@@ -2496,21 +4035,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_ladder_a.mod": 1,
-     "obj_ladder_b.mod": 1,
-     "obj_ladder_c.mod": 1,
-     "obj_ladder_d.mod": 1,
      "obj_sewer_torcha.mod": 46
     },
     "partners": {
-     "ab_cltorch02_n12.dds": 5,
-     "dirt_tunnel_floor_ov.dds": 5
+     "ab_cltorch02_n12.dds": 1,
+     "dirt_tunnel_floor_ov.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLGB.fx": 5
+     "Opaque_MPLGB.fx": 1
     }
    },
    "meanColor": [
@@ -2560,21 +4095,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_ladder_a.mod": 1,
-     "obj_ladder_b.mod": 1,
-     "obj_ladder_c.mod": 1,
-     "obj_ladder_d.mod": 1,
      "obj_sewer_torcha.mod": 46
     },
     "partners": {
-     "ab_cltorch02_c.dds": 5,
-     "dirt_tunnel_floor_ov.dds": 5
+     "ab_cltorch02_c.dds": 1,
+     "dirt_tunnel_floor_ov.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 5
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLGB.fx": 5
+     "Opaque_MPLGB.fx": 1
     }
    },
    "meanColor": [
@@ -2609,19 +4140,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crate_a.mod": 18,
-     "obj_crate_c.mod": 24
+     "obj_crate_a.mod": 18
     },
     "partners": {
-     "ab_crate_8_n.dds": 2,
-     "ab_crateslat_8_n.dds": 2,
-     "coverage.dds": 4
+     "ab_crate_8_n.dds": 1,
+     "ab_crateslat_8_n.dds": 1,
+     "coverage.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -2671,19 +4201,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crate_a.mod": 18,
      "obj_crate_c.mod": 24
     },
     "partners": {
-     "ab_crate_8_n.dds": 2,
-     "ab_crateslat_8_n.dds": 2,
-     "coverage.dds": 4
+     "ab_crate_8_n.dds": 1,
+     "ab_crateslat_8_n.dds": 1,
+     "coverage.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -2733,19 +4262,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crate_a.mod": 18,
-     "obj_crate_c.mod": 24
+     "obj_crate_a.mod": 9,
+     "obj_crate_c.mod": 12
     },
     "partners": {
-     "ab_crate02_brn_c.dds": 2,
-     "ab_crate02_grey_c.dds": 2,
-     "coverage.dds": 4
+     "ab_crate02_brn_c.dds": 1,
+     "ab_crate02_grey_c.dds": 1,
+     "coverage.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -2780,19 +4309,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crate_a.mod": 18,
-     "obj_crate_c.mod": 24
+     "obj_crate_a.mod": 9,
+     "obj_crate_c.mod": 12
     },
     "partners": {
-     "ab_crate02_brn_c.dds": 2,
-     "ab_crate02_grey_c.dds": 2,
-     "coverage.dds": 4
+     "ab_crate02_brn_c.dds": 1,
+     "ab_crate02_grey_c.dds": 1,
+     "coverage.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -2829,18 +4358,17 @@
     "models": {
      "obj_fp_prison_bed.mod": 2,
      "obj_fp_tent_a.mod": 5,
-     "obj_fp_tent_b.mod": 4,
-     "obp_planka.mod": 10
+     "obj_fp_tent_b.mod": 4
     },
     "partners": {
-     "av_tentmerchant01_n.dds": 4,
-     "fp_coverage_ov.dds": 4
+     "av_tentmerchant01_n.dds": 3,
+     "fp_coverage_ov.dds": 3
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 3
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 3
     }
    },
    "meanColor": [
@@ -2892,18 +4420,17 @@
     "models": {
      "obj_fp_prison_bed.mod": 2,
      "obj_fp_tent_a.mod": 5,
-     "obj_fp_tent_b.mod": 4,
-     "obp_planka.mod": 10
+     "obj_fp_tent_b.mod": 4
     },
     "partners": {
-     "av_tentmerchant01_c.dds": 4,
-     "fp_coverage_ov.dds": 4
+     "av_tentmerchant01_c.dds": 3,
+     "fp_coverage_ov.dds": 3
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 3
     }
    },
    "meanColor": [
@@ -3379,24 +4906,24 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_crate_c.mod": 48,
      "obj_sewer_lamp.mod": 81,
      "obp_sewer_debrisa.mod": 42,
      "obp_sewer_debrisb.mod": 69,
-     "obp_sewer_debrisd.mod": 45
+     "obp_sewer_debrisc.mod": 30,
+     "obp_sewer_debrisd.mod": 30
     },
     "partners": {
-     "ab_crate02_brn_c.dds": 4,
-     "ab_crate_8_n.dds": 4,
-     "ab_crateslat_8_n.dds": 4,
-     "di_fp_sewers_metal01.dds": 5,
-     "di_fp_sewers_metal01_3n.dds": 5
+     "cementwallbrk.dds": 4,
+     "di_fp_sewers_metal01.dds": 4,
+     "di_fp_sewers_metal01_3n.dds": 4,
+     "di_fp_sewers_wall_ceiling.dds": 4,
+     "di_fp_sewers_wall_ceiling_10n.dds": 4
     },
     "roles": {
-     "e_TextureCoverage0": 30
+     "e_TextureCoverage0": 21
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 30
+     "Opaque_MPLBump.fx": 21
     }
    },
    "meanColor": [
@@ -3765,19 +5292,18 @@
      "obj_ladder_c.mod": 1,
      "obj_ladder_d.mod": 1,
      "obj_sewer_torcha.mod": 46,
-     "ter_main.ter": 2
+     "ter_main.ter": 1
     },
     "partners": {
      "canvas_cover.dds": 1,
-     "coverage.dds": 1,
-     "di_fp_ext_stucco_18n.dds": 7,
+     "di_fp_ext_stucco_18n.dds": 6,
      "di_fp_sewers_wall_connecter.dds": 5
     },
     "roles": {
-     "e_TextureDiffuse0": 7
+     "e_TextureDiffuse0": 6
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6,
+     "Opaque_MPLBump.fx": 5,
      "Opaque_MPLBump2UV.fx": 1
     }
    },
@@ -3832,19 +5358,18 @@
      "obj_ladder_c.mod": 1,
      "obj_ladder_d.mod": 1,
      "obj_sewer_torcha.mod": 46,
-     "ter_main.ter": 2
+     "ter_main.ter": 1
     },
     "partners": {
      "canvas_cover.dds": 1,
-     "coverage.dds": 1,
-     "di_fp_ext_stucco.dds": 7,
+     "di_fp_ext_stucco.dds": 6,
      "di_fp_sewers_wall_connecter.dds": 5
     },
     "roles": {
-     "e_TextureNormal0": 7
+     "e_TextureNormal0": 6
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6,
+     "Opaque_MPLBump.fx": 5,
      "Opaque_MPLBump2UV.fx": 1
     }
    },
@@ -3878,21 +5403,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_main.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_fp_ext_woodbeam_dark2.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -3923,21 +5433,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_main.ter": 1
-    },
-    "partners": {
-     "coverage.dds": 1,
-     "di_fp_ext_woodbeam_16n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 1
-    }
-   },
    "meanColor": [
     81,
     74,
@@ -3973,20 +5468,20 @@
      "obj_pipeb.mod": 19,
      "obj_sewer_lamp.mod": 81,
      "obj_sewer_torcha.mod": 46,
-     "obp_sewer_debrisb.mod": 23,
-     "obp_sewer_debrisd.mod": 15
+     "obp_sewer_debrisa.mod": 14,
+     "obp_sewer_debrisb.mod": 23
     },
     "partners": {
-     "coverage.dds": 5,
-     "di_fp_sewers_metal01_3n.dds": 25,
+     "coverage.dds": 4,
+     "di_fp_sewers_metal01_3n.dds": 24,
      "di_fp_sewers_wall_connecter.dds": 19,
      "sewerb_ov.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 25
+     "e_TextureDiffuse0": 24
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 24,
+     "Opaque_MPLBump.fx": 23,
      "Opaque_MPLBump2UV.fx": 1
     }
    },
@@ -4041,20 +5536,20 @@
      "obj_pipeb.mod": 19,
      "obj_sewer_lamp.mod": 81,
      "obj_sewer_torcha.mod": 46,
-     "obp_sewer_debrisb.mod": 23,
-     "obp_sewer_debrisd.mod": 15
+     "obp_sewer_debrisa.mod": 14,
+     "obp_sewer_debrisb.mod": 23
     },
     "partners": {
-     "coverage.dds": 5,
-     "di_fp_sewers_metal01.dds": 25,
+     "coverage.dds": 4,
+     "di_fp_sewers_metal01.dds": 24,
      "di_fp_sewers_wall_connecter.dds": 19,
      "sewerb_ov.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 25
+     "e_TextureNormal0": 24
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 24,
+     "Opaque_MPLBump.fx": 23,
      "Opaque_MPLBump2UV.fx": 1
     }
    },
@@ -5084,18 +6579,18 @@
      "obj_sewer_torcha.mod": 46
     },
     "partners": {
-     "ab_cltorch02_c.dds": 5,
-     "ab_cltorch02_n12.dds": 5,
+     "ab_cltorch02_c.dds": 1,
      "dirt_tunnel_walls_main.dds": 6,
      "minewall01_n.dds": 6,
-     "ra_aframe_01_c.dds": 1
+     "ra_aframe_01_c.dds": 1,
+     "ra_aframe_01_n.dds": 1
     },
     "roles": {
-     "e_TextureCoverage0": 12
+     "e_TextureCoverage0": 8
     },
     "shaders": {
      "Opaque_MPLBump2UV.fx": 6,
-     "Opaque_MPLGB.fx": 6
+     "Opaque_MPLGB.fx": 2
     }
    },
    "meanColor": [
@@ -5257,20 +6752,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_drainb.mod": 8,
-     "obj_drainpipea.mod": 5,
-     "obj_drainpipeb.mod": 7,
-     "obj_pipeb.mod": 19,
-     "obj_pipey.mod": 13
+     "obj_gate.mod": 1
     },
     "partners": {
-     "fp_coverage_ov.dds": 14
+     "fp_coverage_ov.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 14
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Chroma_MPLBumpAT.fx": 14
+     "Chroma_MPLBumpAT.fx": 1
     }
    },
    "meanColor": [
@@ -5350,25 +6841,25 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obp_planka.mod": 30,
-     "obp_sewer_debrisa.mod": 28,
-     "obp_sewer_debrisb.mod": 46,
-     "obp_sewer_debrisc.mod": 20,
-     "obp_sewer_debrisd.mod": 30
+     "obj_fp_tent_a.mod": 10,
+     "obp_sewer_debrisa.mod": 14,
+     "obp_sewer_debrisb.mod": 23,
+     "obp_sewer_debrisc.mod": 10,
+     "obp_sewer_debrisd.mod": 15
     },
     "partners": {
+     "av_tentmerchant01_c.dds": 3,
+     "av_tentmerchant01_n.dds": 3,
      "book_stump_bark_01_c.dds": 10,
-     "fence.dds": 14,
-     "rockcave003b_n.dds": 8,
-     "tp_torture_wood_c.dds": 6,
-     "tp_torture_wood_n.dds": 6
+     "book_stump_bark_01_n.dds": 2,
+     "rockcave003b_n.dds": 8
     },
     "roles": {
-     "e_TextureCoverage0": 35
+     "e_TextureCoverage0": 15
     },
     "shaders": {
-     "Chroma_MPLBumpAT.fx": 14,
-     "Opaque_MPLBump.fx": 21
+     "Chroma_MPLBumpAT.fx": 1,
+     "Opaque_MPLBump.fx": 14
     }
    },
    "meanColor": [
@@ -6198,26 +7689,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obp_planka.mod": 10,
-     "obp_sewer_debrisa.mod": 14,
-     "obp_sewer_debrisb.mod": 23,
-     "obp_sewer_debrisc.mod": 10,
-     "obp_sewer_debrisd.mod": 15
-    },
-    "partners": {
-     "coverage.dds": 2,
-     "fp_coverage_ov.dds": 6,
-     "tp_torture_wood_n.dds": 8
-    },
-    "roles": {
-     "e_TextureDiffuse0": 8
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 8
-    }
-   },
    "meanColor": [
     52,
     34,
@@ -6248,26 +7719,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obp_planka.mod": 10,
-     "obp_sewer_debrisa.mod": 14,
-     "obp_sewer_debrisb.mod": 23,
-     "obp_sewer_debrisc.mod": 10,
-     "obp_sewer_debrisd.mod": 15
-    },
-    "partners": {
-     "coverage.dds": 2,
-     "fp_coverage_ov.dds": 6,
-     "tp_torture_wood_c.dds": 8
-    },
-    "roles": {
-     "e_TextureNormal0": 8
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 8
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -6303,16 +7754,15 @@
      "obj_ladder_a.mod": 2,
      "obj_ladder_b.mod": 2,
      "obj_ladder_c.mod": 2,
-     "obj_ladder_d.mod": 2,
-     "obj_sewer_torcha.mod": 92
+     "obj_ladder_d.mod": 2
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5,
-     "e_TextureFallback0": 5
+     "e_TextureDiffuse0": 4,
+     "e_TextureFallback0": 4
     },
     "shaders": {
-     "Alpha_MPLBasicA.fx": 10
+     "Alpha_MPLBasicA.fx": 8
     }
    },
    "meanColor": [
@@ -6358,6 +7808,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:freeportsewers",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "freeportsewers"
 }

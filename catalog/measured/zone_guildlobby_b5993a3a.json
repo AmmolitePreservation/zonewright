@@ -17,18 +17,18 @@
    "count": 64,
    "examplePositions": [
     [
-     -187.4,
      234.7,
+     187.4,
      8.1
     ],
     [
-     -198.2,
      249.4,
+     198.2,
      8.1
     ],
     [
-     -229.9,
      249.4,
+     229.9,
      8.1
     ]
    ],
@@ -60,18 +60,18 @@
    "count": 4,
    "examplePositions": [
     [
+     398.1,
+     22.7,
+     17.5
+    ],
+    [
+     398.1,
      -22.7,
-     398.1,
      17.5
     ],
     [
-     22.7,
-     398.1,
-     17.5
-    ],
-    [
-     22.7,
      438.2,
+     -22.7,
      17.5
     ]
    ],
@@ -103,18 +103,18 @@
    "count": 16,
    "examplePositions": [
     [
-     -300.9,
      475.7,
+     300.9,
      9.7
     ],
     [
-     -300.9,
      461.9,
+     300.9,
      9.7
     ],
     [
-     -300.9,
      361.8,
+     300.9,
      9.7
     ]
    ],
@@ -146,18 +146,18 @@
    "count": 64,
    "examplePositions": [
     [
-     184.3,
      512.4,
+     -184.3,
      10.0
     ],
     [
-     184.3,
      492.1,
+     -184.3,
      10.0
     ],
     [
-     184.3,
      471.8,
+     -184.3,
      10.0
     ]
    ],
@@ -189,18 +189,18 @@
    "count": 44,
    "examplePositions": [
     [
-     159.3,
      442.0,
+     -159.3,
      8.1
     ],
     [
-     159.3,
      395.4,
+     -159.3,
      8.1
     ],
     [
-     116.5,
      350.6,
+     -116.5,
      8.1
     ]
    ],
@@ -232,18 +232,18 @@
    "count": 12,
    "examplePositions": [
     [
-     -183.7,
      501.3,
+     183.7,
      8.1
     ],
     [
-     -183.7,
      481.2,
+     183.7,
      8.1
     ],
     [
-     -183.7,
      460.1,
+     183.7,
      8.1
     ]
    ],
@@ -275,18 +275,18 @@
    "count": 3,
    "examplePositions": [
     [
-     -3.1,
      16.5,
+     3.1,
      10.4
     ],
     [
-     -9.4,
      -14.3,
+     9.4,
      11.8
     ],
     [
-     -16.4,
      -48.4,
+     16.4,
      12.5
     ]
    ],
@@ -306,9 +306,35 @@
   },
   "model/obj_altar_.mod@bd31d2b9": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -8.0,
+     -8.0,
+     0.0
+    ],
+    [
+     8.0,
+     8.0,
+     9.55
+    ]
+   ],
+   "bytes": 34052,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.504
+    },
+    {
+     "color": "red",
+     "share": 0.496
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "altar_top",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "altar_top_c.dds",
@@ -316,6 +342,7 @@
      }
     },
     {
+     "name": "altar_side",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "altar_side_c.dds",
@@ -323,18 +350,21 @@
      }
     },
     {
+     "name": "marble_warm",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_warm.dds"
      }
     },
     {
+     "name": "altar_torch",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "altar_torch_c.dds"
      }
     },
     {
+     "name": "symbols",
      "shader": "Opaque_MaxCBSG1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbols_c.dds",
@@ -342,26 +372,74 @@
      }
     }
    ],
+   "entry": "obj_altar_.mod",
+   "footprint": 256.0,
+   "kind": "model",
    "name": "obj_altar_.mod",
+   "origin": "base",
    "placements": 8,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "bd31d2b91f81741d48275670d34e059678c12e688289291b25d53da7126bde9d",
+   "sits": {
+    "upright": 8
+   },
    "size": [
     16.0,
     16.0,
-    9.6
+    9.55
    ],
    "skinned": false,
+   "textureShares": {
+    "altar_side_c.dds": 0.229,
+    "altar_top_c.dds": 0.18,
+    "altar_torch_c.dds": 0.075,
+    "marble_medium_warm.dds": 0.496,
+    "symbols_c.dds": 0.02
+   },
+   "textures": [
+    "altar_side_c.dds",
+    "altar_side_n.dds",
+    "altar_top_c.dds",
+    "altar_top_n.dds",
+    "altar_torch_c.dds",
+    "marble_medium_warm.dds",
+    "symbols_c.dds",
+    "symbols_g.dds"
+   ],
    "triangles": 592
   },
   "model/obj_bench_guild_b_.mod@b36406c2": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_candle_torch_.mod": 50
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.22,
+     -6.22,
+     -0.01
+    ],
+    [
+     1.22,
+     6.22,
+     4.31
+    ]
+   ],
+   "bytes": 7984,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "bench",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_guild_bench_c.dds",
@@ -369,186 +447,343 @@
      }
     }
    ],
+   "entry": "obj_bench_guild_b_.mod",
+   "footprint": 30.3,
+   "kind": "model",
    "name": "obj_bench_guild_b_.mod",
+   "origin": "base",
    "placements": 26,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "b36406c2ddc825b54877d940a1eaa3afe4ebec9a0d8870b272ae486e21cd4f4b",
+   "sits": {
+    "upright": 26
+   },
    "size": [
-    2.4,
-    12.4,
-    4.3
+    2.44,
+    12.45,
+    4.32
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_guild_bench_c.dds": 1.0
+   },
+   "textures": [
+    "ew_guild_bench_c.dds",
+    "ew_guild_bench_n.dds"
+   ],
    "triangles": 122
   },
   "model/obj_brazier_guild_.mod@b11ffd79": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier_stand_guild_.mod": 4,
+    "obj_guild_torchstand_.mod": 1,
+    "obj_shield_throne_guild_.mod": 1,
+    "obj_sword_throne_guild_.mod": 2,
+    "obj_throne_guild_.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.37,
+     -4.37,
+     -0.01
+    ],
+    [
+     4.37,
+     4.37,
+     5.57
+    ]
+   ],
+   "bytes": 28699,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "brazier",
      "shader": "Opaque_MaxCBSG1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_guild_brazier_throne_c.dds",
       "e_TextureNormal0": "ew_guild_brazier_throne_n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_flagtorch_c.dds",
-      "e_TextureNormal0": "ew_guild_flagtorch_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_brazier_stand_c.dds",
-      "e_TextureNormal0": "ew_guild_brazier_stand_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_throne_base_c.dds",
-      "e_TextureNormal0": "ew_guild_throne_base_n.dds"
-     }
     }
    ],
+   "entry": "obj_brazier_guild_.mod",
+   "footprint": 76.5,
+   "kind": "model",
    "name": "obj_brazier_guild_.mod",
+   "origin": "base",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "b11ffd79ef5beb3a037325ec6d40c9deab995004618600f0f50a8972e4233316",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    8.7,
-    8.7,
-    5.6
+    8.75,
+    8.75,
+    5.58
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_guild_brazier_throne_c.dds": 1.0
+   },
+   "textures": [
+    "ew_guild_brazier_throne_c.dds",
+    "ew_guild_brazier_throne_n.dds"
+   ],
    "triangles": 480
   },
   "model/obj_brazier_stand_guild_.mod@861cbdec": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier_guild_.mod": 4,
+    "obj_guild_torchstand_.mod": 1,
+    "obj_shield_throne_guild_.mod": 1,
+    "obj_throne_base_guild_.mod": 1,
+    "obj_treec_.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.52,
+     -4.67,
+     -0.04
+    ],
+    [
+     4.52,
+     4.36,
+     8.89
+    ]
+   ],
+   "bytes": 8067,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCBSG1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_brazier_throne_c.dds",
-      "e_TextureNormal0": "ew_guild_brazier_throne_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Chroma_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_flagtorch_c.dds",
-      "e_TextureNormal0": "ew_guild_flagtorch_n.dds"
-     }
-    },
-    {
+     "name": "brzStand",
      "shader": "Opaque_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_guild_brazier_stand_c.dds",
       "e_TextureNormal0": "ew_guild_brazier_stand_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_throne_base_c.dds",
-      "e_TextureNormal0": "ew_guild_throne_base_n.dds"
-     }
     }
    ],
+   "entry": "obj_brazier_stand_guild_.mod",
+   "footprint": 81.6,
+   "kind": "model",
    "name": "obj_brazier_stand_guild_.mod",
+   "origin": "base",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "861cbdec697813087945089d38d0d0c89491a5a52ebad8cda759308956792fec",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    9.0,
-    9.0,
-    8.9
+    9.03,
+    9.03,
+    8.92
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_guild_brazier_stand_c.dds": 1.0
+   },
+   "textures": [
+    "ew_guild_brazier_stand_c.dds",
+    "ew_guild_brazier_stand_n.dds"
+   ],
    "triangles": 90
   },
   "model/obj_candle_table_.mod@be249496": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_candle_torch_.mod": 20,
+    "obj_dragon_lamp_.mod": 4
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.5,
+     -5.0,
+     0.0
+    ],
+    [
+     1.5,
+     5.0,
+     5.52
+    ]
+   ],
+   "bytes": 92304,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "tan",
+     "share": 0.857
+    },
+    {
+     "color": "grey",
+     "share": 0.143
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "candle_torch",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "candle_torch_c.dds"
      }
     },
     {
+     "name": "wood",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "wood_c.dds"
      }
     }
    ],
+   "entry": "obj_candle_table_.mod",
+   "footprint": 30.0,
+   "kind": "model",
    "name": "obj_candle_table_.mod",
+   "origin": "base",
    "placements": 12,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "be249496fa449154df46eccf86ac0fbcc152baa7037e6cd1e9c4c5b84a66d9f5",
+   "sits": {
+    "upright": 12
+   },
    "size": [
     3.0,
     10.0,
-    5.5
+    5.52
    ],
    "skinned": false,
+   "textureShares": {
+    "candle_torch_c.dds": 0.143,
+    "wood_c.dds": 0.857
+   },
+   "textures": [
+    "candle_torch_c.dds",
+    "wood_c.dds"
+   ],
    "triangles": 1242
   },
   "model/obj_candle_torch_.mod@6a2bafe9": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_bench_guild_b_.mod": 50,
+    "obj_candle_table_.mod": 20
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.76,
+     -1.59,
+     -0.01
+    ],
+    [
+     1.13,
+     1.59,
+     9.38
+    ]
+   ],
+   "bytes": 60608,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "candle_torch",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "candle_torch_c.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "wood_c.dds"
-     }
     }
    ],
+   "entry": "obj_candle_torch_.mod",
+   "footprint": 9.2,
+   "kind": "model",
    "name": "obj_candle_torch_.mod",
+   "origin": "base",
    "placements": 63,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "6a2bafe9ffd8f46e96beea89ef12c10481b8cb42521ac0362599eeb5b766bbac",
+   "sits": {
+    "upright": 63
+   },
    "size": [
-    2.9,
-    3.2,
-    9.4
+    2.89,
+    3.18,
+    9.39
    ],
    "skinned": false,
+   "textureShares": {
+    "candle_torch_c.dds": 1.0
+   },
+   "textures": [
+    "candle_torch_c.dds"
+   ],
    "triangles": 1006
   },
   "model/obj_dragon_lamp_.mod@a9fa9054": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_candle_table_.mod": 4
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.42,
+     -4.22,
+     -0.01
+    ],
+    [
+     4.11,
+     3.82,
+     13.49
+    ]
+   ],
+   "bytes": 37059,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "dragon_lamp",
      "shader": "Opaque_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "dragon_lamp_c.dds",
@@ -556,123 +791,194 @@
      }
     }
    ],
+   "entry": "obj_dragon_lamp_.mod",
+   "footprint": 68.6,
+   "kind": "model",
    "name": "obj_dragon_lamp_.mod",
+   "origin": "base",
    "placements": 46,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "a9fa9054b378e9aa664e8c2f79fe6d0d0299b68d515ce1532b4606ec8cb17fe2",
+   "sits": {
+    "upright": 46
+   },
    "size": [
-    8.5,
-    8.0,
+    8.53,
+    8.04,
     13.5
    ],
    "skinned": false,
+   "textureShares": {
+    "dragon_lamp_c.dds": 1.0
+   },
+   "textures": [
+    "dragon_lamp_c.dds",
+    "dragon_lamp_n.dds"
+   ],
    "triangles": 744
   },
   "model/obj_framedagger.mod@57f70959": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -0.38,
+     -1.38,
+     -0.0
+    ],
+    [
+     0.38,
+     1.29,
+     0.09
+    ]
+   ],
+   "bytes": 4095,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ra_woodenslats_01_c.dds",
-      "e_TextureNormal0": "ra_woodenslats_01_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "parchment",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "ra_aframe_01_c.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ra_aframe_02_c.dds",
-      "e_TextureNormal0": "ra_aframe_02_n.dds",
-      "e_TextureSecond0": "ra_aframe_coverage_01.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1_2UV.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ra_aframe_02_c.dds",
-      "e_TextureNormal0": "ra_aframe_02_n.dds",
-      "e_TextureSecond0": "ra_aframe_coverage_02.dds"
-     }
     }
    ],
+   "entry": "obj_framedagger.mod",
+   "footprint": 2.0,
+   "kind": "model",
    "name": "obj_framedagger.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "57f7095915e2bcf42fc6e5a32c26e8633c1b37e960af08399379a5e9325e8a7f",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    0.8,
-    2.7,
+    0.77,
+    2.67,
     0.1
    ],
    "skinned": false,
+   "textureShares": {
+    "ra_aframe_01_c.dds": 1.0
+   },
+   "textures": [
+    "ra_aframe_01_c.dds"
+   ],
    "triangles": 46
   },
   "model/obj_guild_torchstand_.mod@f652b671": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier_guild_.mod": 1,
+    "obj_brazier_stand_guild_.mod": 1,
+    "obj_shield_throne_guild_.mod": 1,
+    "obj_sword_throne_guild_.mod": 1,
+    "obj_throne_base_guild_.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -6.39,
+     -6.46,
+     0.32
+    ],
+    [
+     6.34,
+     6.48,
+     32.91
+    ]
+   ],
+   "bytes": 111387,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCBSG1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_brazier_throne_c.dds",
-      "e_TextureNormal0": "ew_guild_brazier_throne_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "flagtorch",
      "shader": "Chroma_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_guild_flagtorch_c.dds",
       "e_TextureNormal0": "ew_guild_flagtorch_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_brazier_stand_c.dds",
-      "e_TextureNormal0": "ew_guild_brazier_stand_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_throne_base_c.dds",
-      "e_TextureNormal0": "ew_guild_throne_base_n.dds"
-     }
     }
    ],
+   "entry": "obj_guild_torchstand_.mod",
+   "footprint": 164.8,
+   "kind": "model",
    "name": "obj_guild_torchstand_.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "f652b6715f41f12700f2c3f1446038305e72415d8a3f12dbc971286fe94e99ed",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    12.7,
-    12.9,
-    32.6
+    12.73,
+    12.94,
+    32.59
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_guild_flagtorch_c.dds": 1.0
+   },
+   "textures": [
+    "ew_guild_flagtorch_c.dds",
+    "ew_guild_flagtorch_n.dds"
+   ],
    "triangles": 1024
   },
   "model/obj_pillar_.mod@89332fe0": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_pillar_outer_.mod": 14
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.17,
+     -3.73,
+     -65.06
+    ],
+    [
+     11.83,
+     3.73,
+     30.98
+    ]
+   ],
+   "bytes": 9747,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "pillar",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_pillar_c.dds",
@@ -680,26 +986,64 @@
      }
     }
    ],
+   "entry": "obj_pillar_.mod",
+   "footprint": 104.5,
+   "kind": "model",
    "name": "obj_pillar_.mod",
+   "origin": "offset",
    "placements": 30,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "89332fe0acdce573ab14c0f10ad9b9740089ccf600325cc5004da38a6bbd8b68",
+   "sits": {
+    "upright": 30
+   },
    "size": [
-    14.0,
-    7.5,
-    96.0
+    14.01,
+    7.46,
+    96.04
    ],
    "skinned": false,
+   "textureShares": {
+    "marble_pillar_c.dds": 1.0
+   },
+   "textures": [
+    "marble_pillar_c.dds",
+    "marble_pillar_n.dds"
+   ],
    "triangles": 159
   },
   "model/obj_pillar_core_.mod@5e520d3f": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_pillar_inner_.mod": 12
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.17,
+     -3.73,
+     -65.06
+    ],
+    [
+     11.83,
+     3.73,
+     60.58
+    ]
+   ],
+   "bytes": 11211,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "pillar",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_pillar_c.dds",
@@ -707,26 +1051,64 @@
      }
     }
    ],
+   "entry": "obj_pillar_core_.mod",
+   "footprint": 104.5,
+   "kind": "model",
    "name": "obj_pillar_core_.mod",
+   "origin": "wallBack",
    "placements": 12,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "5e520d3f86417f697b4ff4261ac15387be45dea27713048dc1aa8cf36c846834",
+   "sits": {
+    "upright": 12
+   },
    "size": [
-    14.0,
-    7.5,
-    125.6
+    14.01,
+    7.46,
+    125.64
    ],
    "skinned": false,
+   "textureShares": {
+    "marble_pillar_c.dds": 1.0
+   },
+   "textures": [
+    "marble_pillar_c.dds",
+    "marble_pillar_n.dds"
+   ],
    "triangles": 160
   },
   "model/obj_pillar_inner_.mod@8c6e4b48": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_pillar_core_.mod": 12
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.17,
+     -3.73,
+     -65.06
+    ],
+    [
+     11.83,
+     3.73,
+     55.31
+    ]
+   ],
+   "bytes": 11371,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "pillar",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_pillar_c.dds",
@@ -734,26 +1116,64 @@
      }
     }
    ],
+   "entry": "obj_pillar_inner_.mod",
+   "footprint": 104.5,
+   "kind": "model",
    "name": "obj_pillar_inner_.mod",
+   "origin": "wallBack",
    "placements": 12,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "8c6e4b48975f739989e78b2c9ef6a941a715e90b0dbc622a065f6c7ee3c5d6fa",
+   "sits": {
+    "upright": 12
+   },
    "size": [
-    14.0,
-    7.5,
-    120.4
+    14.01,
+    7.46,
+    120.37
    ],
    "skinned": false,
+   "textureShares": {
+    "marble_pillar_c.dds": 1.0
+   },
+   "textures": [
+    "marble_pillar_c.dds",
+    "marble_pillar_n.dds"
+   ],
    "triangles": 160
   },
   "model/obj_pillar_outer_.mod@ab1161dc": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_pillar_.mod": 14
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -2.17,
+     -3.73,
+     -65.06
+    ],
+    [
+     11.83,
+     3.73,
+     35.16
+    ]
+   ],
+   "bytes": 11431,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "pillar",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_pillar_c.dds",
@@ -761,33 +1181,68 @@
      }
     }
    ],
+   "entry": "obj_pillar_outer_.mod",
+   "footprint": 104.5,
+   "kind": "model",
    "name": "obj_pillar_outer_.mod",
+   "origin": "offset",
    "placements": 18,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "ab1161dc8b4a5562bdbcdb00641891ddec348ad9e718cfaa16f02a42107f4d6b",
+   "sits": {
+    "upright": 18
+   },
    "size": [
-    14.0,
-    7.5,
-    100.2
+    14.01,
+    7.46,
+    100.21
    ],
    "skinned": false,
+   "textureShares": {
+    "marble_pillar_c.dds": 1.0
+   },
+   "textures": [
+    "marble_pillar_c.dds",
+    "marble_pillar_n.dds"
+   ],
    "triangles": 159
   },
   "model/obj_shield_throne_guild_.mod@67bc6f1f": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier_guild_.mod": 1,
+    "obj_brazier_stand_guild_.mod": 1,
+    "obj_guild_torchstand_.mod": 1,
+    "obj_sword_throne_guild_.mod": 1,
+    "obj_throne_base_guild_.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -10.09,
+     -2.26,
+     10.82
+    ],
+    [
+     10.09,
+     2.26,
+     37.75
+    ]
+   ],
+   "bytes": 20232,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Chroma_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_throne_chair_c.dds",
-      "e_TextureNormal0": "ew_guild_throne_chair_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "swordshield",
      "shader": "Opaque_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_guild_throne_swordshield_c.dds",
@@ -795,26 +1250,68 @@
      }
     }
    ],
+   "entry": "obj_shield_throne_guild_.mod",
+   "footprint": 91.3,
+   "kind": "model",
    "name": "obj_shield_throne_guild_.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "67bc6f1f9d711420e5962c2cb0d9f9ff93d7d4db4beb08b26bee5ec1bcc543fd",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    20.2,
-    4.5,
-    26.9
+    20.18,
+    4.53,
+    26.92
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_guild_throne_swordshield_c.dds": 1.0
+   },
+   "textures": [
+    "ew_guild_throne_swordshield_c.dds",
+    "ew_guild_throne_swordshield_n.dds"
+   ],
    "triangles": 412
   },
   "model/obj_sword_throne_guild_.mod@40d80a00": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier_guild_.mod": 2,
+    "obj_guild_torchstand_.mod": 1,
+    "obj_shield_throne_guild_.mod": 1,
+    "obj_throne_base_guild_.mod": 1,
+    "obj_throne_guild_.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -9.3,
+     -3.89,
+     -0.02
+    ],
+    [
+     9.3,
+     3.89,
+     32.65
+    ]
+   ],
+   "bytes": 22240,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "chair",
      "shader": "Chroma_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_guild_throne_chair_c.dds",
@@ -822,6 +1319,7 @@
      }
     },
     {
+     "name": "swordshield",
      "shader": "Opaque_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_guild_throne_swordshield_c.dds",
@@ -829,47 +1327,71 @@
      }
     }
    ],
+   "entry": "obj_sword_throne_guild_.mod",
+   "footprint": 144.9,
+   "kind": "model",
    "name": "obj_sword_throne_guild_.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "40d80a007e7007c9ce35a80db5e8efdb7654149f2fd5fa21b17b9f7272561ded",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     18.6,
-    7.8,
-    32.7
+    7.79,
+    32.67
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_guild_throne_chair_c.dds": 0.56,
+    "ew_guild_throne_swordshield_c.dds": 0.44
+   },
+   "textures": [
+    "ew_guild_throne_chair_c.dds",
+    "ew_guild_throne_chair_n.dds",
+    "ew_guild_throne_swordshield_c.dds",
+    "ew_guild_throne_swordshield_n.dds"
+   ],
    "triangles": 434
   },
   "model/obj_throne_base_guild_.mod@c06d7921": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier_stand_guild_.mod": 1,
+    "obj_guild_torchstand_.mod": 1,
+    "obj_shield_throne_guild_.mod": 1,
+    "obj_sword_throne_guild_.mod": 1,
+    "obj_throne_guild_.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -17.79,
+     -17.62,
+     -0.96
+    ],
+    [
+     16.67,
+     16.36,
+     10.98
+    ]
+   ],
+   "bytes": 9515,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MaxCBSG1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_brazier_throne_c.dds",
-      "e_TextureNormal0": "ew_guild_brazier_throne_n.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
-     "shader": "Chroma_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_flagtorch_c.dds",
-      "e_TextureNormal0": "ew_guild_flagtorch_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_brazier_stand_c.dds",
-      "e_TextureNormal0": "ew_guild_brazier_stand_n.dds"
-     }
-    },
-    {
+     "name": "thrnBase",
      "shader": "Opaque_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_guild_throne_base_c.dds",
@@ -877,136 +1399,307 @@
      }
     }
    ],
+   "entry": "obj_throne_base_guild_.mod",
+   "footprint": 1171.2,
+   "kind": "model",
    "name": "obj_throne_base_guild_.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "c06d792122c9b133f0f99eb7f0b9e887c951f2a1f52f641bb7f3922a63150a5f",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    34.5,
-    34.0,
-    11.9
+    34.46,
+    33.98,
+    11.94
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_guild_throne_base_c.dds": 1.0
+   },
+   "textures": [
+    "ew_guild_throne_base_c.dds",
+    "ew_guild_throne_base_n.dds"
+   ],
    "triangles": 108
   },
   "model/obj_throne_guild_.mod@11c3ded1": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier_guild_.mod": 2,
+    "obj_guild_torchstand_.mod": 1,
+    "obj_shield_throne_guild_.mod": 1,
+    "obj_sword_throne_guild_.mod": 1,
+    "obj_throne_base_guild_.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.34,
+     -10.03,
+     -0.23
+    ],
+    [
+     8.34,
+     10.03,
+     38.18
+    ]
+   ],
+   "bytes": 78352,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "chair",
      "shader": "Chroma_MaxCBS1.fx",
      "textures": {
       "e_TextureDiffuse0": "ew_guild_throne_chair_c.dds",
       "e_TextureNormal0": "ew_guild_throne_chair_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MaxCBS1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ew_guild_throne_swordshield_c.dds",
-      "e_TextureNormal0": "ew_guild_throne_swordshield_n.dds"
-     }
     }
    ],
+   "entry": "obj_throne_guild_.mod",
+   "footprint": 334.6,
+   "kind": "model",
    "name": "obj_throne_guild_.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "11c3ded1c3069d705596d560e47520c15fa0f3f68ba019c702c216bb321ebbda",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    16.7,
-    20.1,
-    38.4
+    16.68,
+    20.06,
+    38.41
    ],
    "skinned": false,
+   "textureShares": {
+    "ew_guild_throne_chair_c.dds": 1.0
+   },
+   "textures": [
+    "ew_guild_throne_chair_c.dds",
+    "ew_guild_throne_chair_n.dds"
+   ],
    "triangles": 1358
   },
   "model/obj_treeb_.mod@38acbfa2": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -7.97,
+     -9.02,
+     -0.83
+    ],
+    [
+     8.74,
+     7.5,
+     29.94
+    ]
+   ],
+   "bytes": 49020,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "yellow",
+     "share": 0.757
+    },
+    {
+     "color": "brown",
+     "share": 0.244
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "trunk",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "bark01.dds"
      }
     },
     {
+     "name": "branches02",
      "shader": "Chroma_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "branches02.dds"
      }
     },
     {
+     "name": "leaves",
      "shader": "Alpha_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "leaves01.dds"
      }
     }
    ],
+   "entry": "obj_treeb_.mod",
+   "footprint": 276.1,
+   "kind": "model",
    "name": "obj_treeb_.mod",
+   "origin": "offset",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "38acbfa29a9e10d6f2926d065de64646492dda2bdadf2c8ae3a26c43b9090178",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    16.7,
-    16.5,
-    30.8
+    16.71,
+    16.52,
+    30.77
    ],
    "skinned": false,
+   "textureShares": {
+    "bark01.dds": 0.016,
+    "branches02.dds": 0.228,
+    "leaves01.dds": 0.757
+   },
+   "textures": [
+    "bark01.dds",
+    "branches02.dds",
+    "leaves01.dds"
+   ],
    "triangles": 583
   },
   "model/obj_treec_.mod@6a934361": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_brazier_stand_guild_.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.46,
+     -7.74,
+     -0.94
+    ],
+    [
+     7.97,
+     9.7,
+     32.85
+    ]
+   ],
+   "bytes": 32100,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "yellow",
+     "share": 0.795
+    },
+    {
+     "color": "brown",
+     "share": 0.205
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "trunk",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "bark01.dds"
      }
     },
     {
+     "name": "branches01",
      "shader": "Chroma_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "branches01.dds"
      }
     },
     {
+     "name": "leaves",
      "shader": "Alpha_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "leaves01.dds"
      }
     }
    ],
+   "entry": "obj_treec_.mod",
+   "footprint": 286.8,
+   "kind": "model",
    "name": "obj_treec_.mod",
+   "origin": "offset",
    "placements": 4,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "6a934361b6555ef549d4afe1c6a84937bedeb28dc70fc7f188f61efcd44078ad",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    16.4,
-    17.4,
-    33.8
+    16.44,
+    17.45,
+    33.79
    ],
    "skinned": false,
+   "textureShares": {
+    "bark01.dds": 0.028,
+    "branches01.dds": 0.177,
+    "leaves01.dds": 0.795
+   },
+   "textures": [
+    "bark01.dds",
+    "branches01.dds",
+    "leaves01.dds"
+   ],
    "triangles": 421
   },
   "model/ter_guildlobby.ter@45eff9a4": {
    "archive": "guildlobby.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -63.81,
+     -321.12,
+     -2.49
+    ],
+    [
+     684.28,
+     321.12,
+     124.0
+    ]
+   ],
+   "bytes": 2885007,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 0.556
+    },
+    {
+     "color": "red",
+     "share": 0.409
+    },
+    {
+     "color": "brown",
+     "share": 0.02
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "marble_blocks",
      "shader": "Opaque_MaxC1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_blocks_c.dds",
@@ -1014,18 +1707,21 @@
      }
     },
     {
+     "name": "marble_warm",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_warm.dds"
      }
     },
     {
+     "name": "floor_stone",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "floor_stone_c.dds"
      }
     },
     {
+     "name": "marble_black",
      "shader": "Opaque_MaxCE1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_black_c.dds",
@@ -1033,20 +1729,7 @@
      }
     },
     {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "iron_door_c.dds",
-      "e_TextureNormal0": "iron_door_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "dragon_knocker_c.dds",
-      "e_TextureNormal0": "dragon_knocker_n.dds"
-     }
-    },
-    {
+     "name": "marble_medium_carved",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_carved_c.dds",
@@ -1054,128 +1737,49 @@
      }
     },
     {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "altar_panel_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ceiling_dragon_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCBSG1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbols_c.dds",
-      "e_TextureNormal0": "symbols_g.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol01_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol02_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol03_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol04_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol05_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol06_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol07_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol08_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol09_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol10_c.dds"
-     }
-    },
-    {
+     "name": "symbol11",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol11_c.dds"
      }
     },
     {
+     "name": "symbol12",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol12_c.dds"
      }
     },
     {
+     "name": "symbol13",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol13_c.dds"
      }
     },
     {
+     "name": "symbol14",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol14_c.dds"
      }
     },
     {
+     "name": "symbol15",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol15_c.dds"
      }
     },
     {
+     "name": "symbol16",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol16_c.dds"
      }
     },
     {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "portcullis_c.dds",
-      "e_TextureNormal0": "portcullis_n.dds"
-     }
-    },
-    {
+     "name": "marble_blocks",
      "shader": "Opaque_MaxC1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_blocks_c.dds",
@@ -1183,18 +1787,21 @@
      }
     },
     {
+     "name": "marble_warm",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_warm.dds"
      }
     },
     {
+     "name": "floor_stone",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "floor_stone_c.dds"
      }
     },
     {
+     "name": "marble_black",
      "shader": "Opaque_MaxCE1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_black_c.dds",
@@ -1202,6 +1809,7 @@
      }
     },
     {
+     "name": "iron_door",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "iron_door_c.dds",
@@ -1209,13 +1817,7 @@
      }
     },
     {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "dragon_knocker_c.dds",
-      "e_TextureNormal0": "dragon_knocker_n.dds"
-     }
-    },
-    {
+     "name": "marble_medium_carved",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_carved_c.dds",
@@ -1223,128 +1825,77 @@
      }
     },
     {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "altar_panel_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ceiling_dragon_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCBSG1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbols_c.dds",
-      "e_TextureNormal0": "symbols_g.dds"
-     }
-    },
-    {
+     "name": "symbol01",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol01_c.dds"
      }
     },
     {
+     "name": "symbol02",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol02_c.dds"
      }
     },
     {
+     "name": "symbol03",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol03_c.dds"
      }
     },
     {
+     "name": "symbol04",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol04_c.dds"
      }
     },
     {
+     "name": "symbol05",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol05_c.dds"
      }
     },
     {
+     "name": "symbol06",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol06_c.dds"
      }
     },
     {
+     "name": "symbol07",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol07_c.dds"
      }
     },
     {
+     "name": "symbol08",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol08_c.dds"
      }
     },
     {
+     "name": "symbol09",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol09_c.dds"
      }
     },
     {
+     "name": "symbol10",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbol10_c.dds"
      }
     },
     {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol11_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol12_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol13_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol14_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol15_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol16_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "portcullis_c.dds",
-      "e_TextureNormal0": "portcullis_n.dds"
-     }
-    },
-    {
+     "name": "marble_blocks",
      "shader": "Opaque_MaxC1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_blocks_c.dds",
@@ -1352,18 +1903,21 @@
      }
     },
     {
+     "name": "marble_warm",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_warm.dds"
      }
     },
     {
+     "name": "floor_stone",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "floor_stone_c.dds"
      }
     },
     {
+     "name": "marble_black",
      "shader": "Opaque_MaxCE1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_black_c.dds",
@@ -1371,20 +1925,7 @@
      }
     },
     {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "iron_door_c.dds",
-      "e_TextureNormal0": "iron_door_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "dragon_knocker_c.dds",
-      "e_TextureNormal0": "dragon_knocker_n.dds"
-     }
-    },
-    {
+     "name": "marble_medium_carved",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_carved_c.dds",
@@ -1392,128 +1933,7 @@
      }
     },
     {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "altar_panel_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ceiling_dragon_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCBSG1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbols_c.dds",
-      "e_TextureNormal0": "symbols_g.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol01_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol02_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol03_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol04_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol05_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol06_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol07_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol08_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol09_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol10_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol11_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol12_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol13_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol14_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol15_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol16_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "portcullis_c.dds",
-      "e_TextureNormal0": "portcullis_n.dds"
-     }
-    },
-    {
+     "name": "marble_blocks",
      "shader": "Opaque_MaxC1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_blocks_c.dds",
@@ -1521,18 +1941,21 @@
      }
     },
     {
+     "name": "marble_warm",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_warm.dds"
      }
     },
     {
+     "name": "floor_stone",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "floor_stone_c.dds"
      }
     },
     {
+     "name": "marble_black",
      "shader": "Opaque_MaxCE1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_black_c.dds",
@@ -1540,20 +1963,7 @@
      }
     },
     {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "iron_door_c.dds",
-      "e_TextureNormal0": "iron_door_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "dragon_knocker_c.dds",
-      "e_TextureNormal0": "dragon_knocker_n.dds"
-     }
-    },
-    {
+     "name": "marble_medium_carved",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_carved_c.dds",
@@ -1561,121 +1971,14 @@
      }
     },
     {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "altar_panel_c.dds"
-     }
-    },
-    {
+     "name": "ceiling_dragon",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "ceiling_dragon_c.dds"
      }
     },
     {
-     "shader": "Opaque_MaxCBSG1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbols_c.dds",
-      "e_TextureNormal0": "symbols_g.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol01_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol02_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol03_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol04_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol05_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol06_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol07_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol08_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol09_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol10_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol11_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol12_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol13_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol14_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol15_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol16_c.dds"
-     }
-    },
-    {
+     "name": "portcullis",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "portcullis_c.dds",
@@ -1683,6 +1986,7 @@
      }
     },
     {
+     "name": "marble_blocks",
      "shader": "Opaque_MaxC1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_blocks_c.dds",
@@ -1690,18 +1994,21 @@
      }
     },
     {
+     "name": "marble_warm",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_warm.dds"
      }
     },
     {
+     "name": "floor_stone",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "floor_stone_c.dds"
      }
     },
     {
+     "name": "marble_black",
      "shader": "Opaque_MaxCE1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_black_c.dds",
@@ -1709,20 +2016,7 @@
      }
     },
     {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "iron_door_c.dds",
-      "e_TextureNormal0": "iron_door_n.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "dragon_knocker_c.dds",
-      "e_TextureNormal0": "dragon_knocker_n.dds"
-     }
-    },
-    {
+     "name": "marble_medium_carved",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "marble_medium_carved_c.dds",
@@ -1730,18 +2024,14 @@
      }
     },
     {
+     "name": "altar_panel",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "altar_panel_c.dds"
      }
     },
     {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ceiling_dragon_c.dds"
-     }
-    },
-    {
+     "name": "symbols",
      "shader": "Opaque_MaxCBSG1.fx",
      "textures": {
       "e_TextureDiffuse0": "symbols_c.dds",
@@ -1749,164 +2039,35 @@
      }
     },
     {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol01_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol02_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol03_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol04_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol05_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol06_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol07_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol08_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol09_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol10_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol11_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol12_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol13_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol14_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol15_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "symbol16_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "portcullis_c.dds",
-      "e_TextureNormal0": "portcullis_n.dds"
-     }
-    },
-    {
+     "name": "wall",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "tunnel_bricks_c.dds"
      }
     },
     {
+     "name": "walltrim",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "wall_stone_trim_c.dds"
      }
     },
     {
+     "name": "tunnel_floor",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "tunnel_floor_c.dds"
      }
     },
     {
+     "name": "cavewall",
      "shader": "Opaque_MaxC1.fx",
      "textures": {
       "e_TextureDiffuse0": "ceiling_rock_c.dds"
      }
     },
     {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "pok_trim.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "cementwallb.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "marble_medium_gray.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxC1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "cementwallc.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MaxCB1.fx",
-     "textures": {
-      "e_TextureDiffuse0": "iron_door_c.dds",
-      "e_TextureNormal0": "iron_door_n.dds"
-     }
-    },
-    {
+     "name": "tunnel_brace",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "brace_c.dds",
@@ -1914,6 +2075,7 @@
      }
     },
     {
+     "name": "tunnel_brace",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "brace_c.dds",
@@ -1921,6 +2083,7 @@
      }
     },
     {
+     "name": "tunnel_brace",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "brace_c.dds",
@@ -1928,6 +2091,7 @@
      }
     },
     {
+     "name": "tunnel_brace",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "brace_c.dds",
@@ -1935,6 +2099,7 @@
      }
     },
     {
+     "name": "tunnel_brace",
      "shader": "Opaque_MaxCB1.fx",
      "textures": {
       "e_TextureDiffuse0": "brace_c.dds",
@@ -1942,6 +2107,7 @@
      }
     },
     {
+     "name": "statue",
      "shader": "Opaque_MaxC1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "statue_c.dds",
@@ -1949,6 +2115,7 @@
      }
     },
     {
+     "name": "statue",
      "shader": "Opaque_MaxC1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "statue_c.dds",
@@ -1956,6 +2123,7 @@
      }
     },
     {
+     "name": "statue",
      "shader": "Opaque_MaxC1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "statue_c.dds",
@@ -1963,6 +2131,7 @@
      }
     },
     {
+     "name": "statue",
      "shader": "Opaque_MaxC1_2UV.fx",
      "textures": {
       "e_TextureDiffuse0": "statue_c.dds",
@@ -1970,20 +2139,103 @@
      }
     }
    ],
+   "entry": "ter_guildlobby.ter",
+   "footprint": 480461.7,
+   "kind": "model",
    "name": "ter_guildlobby.ter",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "45eff9a4aa965129621c7399ee6ed4d18583bb9fad2205421715e7556044839f",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     748.1,
-    642.2,
-    126.5
+    642.24,
+    126.49
    ],
    "skinned": false,
-   "triangles": 21218
+   "textureShares": {
+    "altar_panel_c.dds": 0.015,
+    "brace_c.dds": 0.001,
+    "ceiling_dragon_c.dds": 0.002,
+    "ceiling_rock_c.dds": 0.002,
+    "floor_stone_c.dds": 0.125,
+    "iron_door_c.dds": 0.003,
+    "marble_black_c.dds": 0.01,
+    "marble_blocks_c.dds": 0.398,
+    "marble_medium_carved_c.dds": 0.055,
+    "marble_medium_warm.dds": 0.352,
+    "portcullis_c.dds": 0.0,
+    "statue_c.dds": 0.032,
+    "symbol01_c.dds": 0.0,
+    "symbol02_c.dds": 0.0,
+    "symbol03_c.dds": 0.0,
+    "symbol04_c.dds": 0.0,
+    "symbol05_c.dds": 0.0,
+    "symbol06_c.dds": 0.0,
+    "symbol07_c.dds": 0.0,
+    "symbol08_c.dds": 0.0,
+    "symbol09_c.dds": 0.0,
+    "symbol10_c.dds": 0.0,
+    "symbol11_c.dds": 0.0,
+    "symbol12_c.dds": 0.0,
+    "symbol13_c.dds": 0.0,
+    "symbol14_c.dds": 0.0,
+    "symbol15_c.dds": 0.0,
+    "symbol16_c.dds": 0.0,
+    "symbols_c.dds": 0.0,
+    "tunnel_bricks_c.dds": 0.001,
+    "tunnel_floor_c.dds": 0.001,
+    "wall_stone_trim_c.dds": 0.0
+   },
+   "textures": [
+    "altar_panel_c.dds",
+    "brace_c.dds",
+    "brace_n.dds",
+    "ceiling_dragon_c.dds",
+    "ceiling_rock_c.dds",
+    "coverage.dds",
+    "floor_stone_c.dds",
+    "hotness_e.dds",
+    "iron_door_c.dds",
+    "iron_door_n.dds",
+    "marble_black_c.dds",
+    "marble_blocks_c.dds",
+    "marble_light_warm.dds",
+    "marble_medium_carved_c.dds",
+    "marble_medium_carved_n.dds",
+    "marble_medium_warm.dds",
+    "portcullis_c.dds",
+    "portcullis_n.dds",
+    "statue_c.dds",
+    "symbol01_c.dds",
+    "symbol02_c.dds",
+    "symbol03_c.dds",
+    "symbol04_c.dds",
+    "symbol05_c.dds",
+    "symbol06_c.dds",
+    "symbol07_c.dds",
+    "symbol08_c.dds",
+    "symbol09_c.dds",
+    "symbol10_c.dds",
+    "symbol11_c.dds",
+    "symbol12_c.dds",
+    "symbol13_c.dds",
+    "symbol14_c.dds",
+    "symbol15_c.dds",
+    "symbol16_c.dds",
+    "symbols_c.dds",
+    "symbols_g.dds",
+    "tunnel_bricks_c.dds",
+    "tunnel_floor_c.dds",
+    "wall_stone_trim_c.dds"
+   ],
+   "triangles": 21160
   },
   "texture/altar_panel_c.dds@45c29b64": {
    "archives": [
@@ -1998,14 +2250,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -2711,14 +2963,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -2823,18 +3075,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_guildlobby.ter": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MaxC1.fx": 1
-    }
-   },
    "meanColor": [
     152,
     147,
@@ -2865,18 +3105,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_guildlobby.ter": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MaxC1.fx": 1
-    }
-   },
    "meanColor": [
     152,
     147,
@@ -2951,20 +3179,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_guildlobby.ter": 5
-    },
-    "partners": {
-     "dragon_knocker_n.dds": 5
-    },
-    "roles": {
-     "e_TextureDiffuse0": 5
-    },
-    "shaders": {
-     "Opaque_MaxCB1.fx": 5
-    }
-   },
    "meanColor": [
     62,
     53,
@@ -2995,20 +3209,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_guildlobby.ter": 5
-    },
-    "partners": {
-     "dragon_knocker_c.dds": 5
-    },
-    "roles": {
-     "e_TextureNormal0": 5
-    },
-    "shaders": {
-     "Opaque_MaxCB1.fx": 5
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -3247,19 +3447,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_brazier_guild_.mod": 4,
-     "obj_brazier_stand_guild_.mod": 4,
-     "obj_guild_torchstand_.mod": 1,
-     "obj_throne_base_guild_.mod": 1
+     "obj_brazier_stand_guild_.mod": 4
     },
     "partners": {
-     "ew_guild_brazier_stand_n.dds": 4
+     "ew_guild_brazier_stand_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxCBS1.fx": 4
+     "Opaque_MaxCBS1.fx": 1
     }
    },
    "meanColor": [
@@ -3309,19 +3506,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_brazier_guild_.mod": 4,
-     "obj_brazier_stand_guild_.mod": 4,
-     "obj_guild_torchstand_.mod": 1,
-     "obj_throne_base_guild_.mod": 1
+     "obj_brazier_stand_guild_.mod": 4
     },
     "partners": {
-     "ew_guild_brazier_stand_c.dds": 4
+     "ew_guild_brazier_stand_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MaxCBS1.fx": 4
+     "Opaque_MaxCBS1.fx": 1
     }
    },
    "meanColor": [
@@ -3356,19 +3550,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_brazier_guild_.mod": 4,
-     "obj_brazier_stand_guild_.mod": 4,
-     "obj_guild_torchstand_.mod": 1,
-     "obj_throne_base_guild_.mod": 1
+     "obj_brazier_guild_.mod": 4
     },
     "partners": {
-     "ew_guild_brazier_throne_n.dds": 4
+     "ew_guild_brazier_throne_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxCBSG1.fx": 4
+     "Opaque_MaxCBSG1.fx": 1
     }
    },
    "meanColor": [
@@ -3418,19 +3609,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_brazier_guild_.mod": 4,
-     "obj_brazier_stand_guild_.mod": 4,
-     "obj_guild_torchstand_.mod": 1,
-     "obj_throne_base_guild_.mod": 1
+     "obj_brazier_guild_.mod": 4
     },
     "partners": {
-     "ew_guild_brazier_throne_c.dds": 4
+     "ew_guild_brazier_throne_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MaxCBSG1.fx": 4
+     "Opaque_MaxCBSG1.fx": 1
     }
    },
    "meanColor": [
@@ -3465,19 +3653,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_brazier_guild_.mod": 4,
-     "obj_brazier_stand_guild_.mod": 4,
-     "obj_guild_torchstand_.mod": 1,
-     "obj_throne_base_guild_.mod": 1
+     "obj_guild_torchstand_.mod": 1
     },
     "partners": {
-     "ew_guild_flagtorch_n.dds": 4
+     "ew_guild_flagtorch_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Chroma_MaxCBS1.fx": 4
+     "Chroma_MaxCBS1.fx": 1
     }
    },
    "meanColor": [
@@ -3527,19 +3712,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_brazier_guild_.mod": 4,
-     "obj_brazier_stand_guild_.mod": 4,
-     "obj_guild_torchstand_.mod": 1,
-     "obj_throne_base_guild_.mod": 1
+     "obj_guild_torchstand_.mod": 1
     },
     "partners": {
-     "ew_guild_flagtorch_c.dds": 4
+     "ew_guild_flagtorch_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Chroma_MaxCBS1.fx": 4
+     "Chroma_MaxCBS1.fx": 1
     }
    },
    "meanColor": [
@@ -3574,19 +3756,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_brazier_guild_.mod": 4,
-     "obj_brazier_stand_guild_.mod": 4,
-     "obj_guild_torchstand_.mod": 1,
      "obj_throne_base_guild_.mod": 1
     },
     "partners": {
-     "ew_guild_throne_base_n.dds": 4
+     "ew_guild_throne_base_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 4
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxCBS1.fx": 4
+     "Opaque_MaxCBS1.fx": 1
     }
    },
    "meanColor": [
@@ -3636,19 +3815,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_brazier_guild_.mod": 4,
-     "obj_brazier_stand_guild_.mod": 4,
-     "obj_guild_torchstand_.mod": 1,
      "obj_throne_base_guild_.mod": 1
     },
     "partners": {
-     "ew_guild_throne_base_c.dds": 4
+     "ew_guild_throne_base_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MaxCBS1.fx": 4
+     "Opaque_MaxCBS1.fx": 1
     }
    },
    "meanColor": [
@@ -3683,18 +3859,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_shield_throne_guild_.mod": 1,
      "obj_sword_throne_guild_.mod": 1,
      "obj_throne_guild_.mod": 1
     },
     "partners": {
-     "ew_guild_throne_chair_n.dds": 3
+     "ew_guild_throne_chair_n.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 3
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Chroma_MaxCBS1.fx": 3
+     "Chroma_MaxCBS1.fx": 2
     }
    },
    "meanColor": [
@@ -3744,18 +3919,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_shield_throne_guild_.mod": 1,
      "obj_sword_throne_guild_.mod": 1,
      "obj_throne_guild_.mod": 1
     },
     "partners": {
-     "ew_guild_throne_chair_c.dds": 3
+     "ew_guild_throne_chair_c.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 3
+     "e_TextureNormal0": 2
     },
     "shaders": {
-     "Chroma_MaxCBS1.fx": 3
+     "Chroma_MaxCBS1.fx": 2
     }
    },
    "meanColor": [
@@ -3791,17 +3965,16 @@
    "materials": {
     "models": {
      "obj_shield_throne_guild_.mod": 1,
-     "obj_sword_throne_guild_.mod": 1,
-     "obj_throne_guild_.mod": 1
+     "obj_sword_throne_guild_.mod": 1
     },
     "partners": {
-     "ew_guild_throne_swordshield_n.dds": 3
+     "ew_guild_throne_swordshield_n.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 3
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MaxCBS1.fx": 3
+     "Opaque_MaxCBS1.fx": 2
     }
    },
    "meanColor": [
@@ -3852,17 +4025,16 @@
    "materials": {
     "models": {
      "obj_shield_throne_guild_.mod": 1,
-     "obj_sword_throne_guild_.mod": 1,
-     "obj_throne_guild_.mod": 1
+     "obj_sword_throne_guild_.mod": 1
     },
     "partners": {
-     "ew_guild_throne_swordshield_c.dds": 3
+     "ew_guild_throne_swordshield_c.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 3
+     "e_TextureNormal0": 2
     },
     "shaders": {
-     "Opaque_MaxCBS1.fx": 3
+     "Opaque_MaxCBS1.fx": 2
     }
    },
    "meanColor": [
@@ -4028,16 +4200,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 6
+     "ter_guildlobby.ter": 1
     },
     "partners": {
-     "iron_door_n.dds": 6
+     "iron_door_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxCB1.fx": 6
+     "Opaque_MaxCB1.fx": 1
     }
    },
    "meanColor": [
@@ -4087,16 +4259,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 6
+     "ter_guildlobby.ter": 1
     },
     "partners": {
-     "iron_door_c.dds": 6
+     "iron_door_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MaxCB1.fx": 6
+     "Opaque_MaxCB1.fx": 1
     }
    },
    "meanColor": [
@@ -4512,18 +4684,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_guildlobby.ter": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MaxC1.fx": 1
-    }
-   },
    "meanColor": [
     87,
     79,
@@ -4721,18 +4881,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "ter_guildlobby.ter": 1
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MaxC1.fx": 1
-    }
-   },
    "meanColor": [
     68,
     67,
@@ -4765,16 +4913,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {
-     "portcullis_n.dds": 5
+     "portcullis_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxCB1.fx": 5
+     "Opaque_MaxCB1.fx": 1
     }
    },
    "meanColor": [
@@ -4824,16 +4972,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {
-     "portcullis_c.dds": 5
+     "portcullis_c.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 5
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MaxCB1.fx": 5
+     "Opaque_MaxCB1.fx": 1
     }
    },
    "meanColor": [
@@ -4923,22 +5071,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_framedagger.mod": 2
-    },
-    "partners": {
-     "ra_aframe_02_n.dds": 2,
-     "ra_aframe_coverage_01.dds": 1,
-     "ra_aframe_coverage_02.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 2
-    },
-    "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 2
-    }
-   },
    "meanColor": [
     171,
     147,
@@ -4969,22 +5101,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_framedagger.mod": 2
-    },
-    "partners": {
-     "ra_aframe_02_c.dds": 2,
-     "ra_aframe_coverage_01.dds": 1,
-     "ra_aframe_coverage_02.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 2
-    },
-    "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 2
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -5015,21 +5131,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_framedagger.mod": 1
-    },
-    "partners": {
-     "ra_aframe_02_c.dds": 1,
-     "ra_aframe_02_n.dds": 1
-    },
-    "roles": {
-     "e_TextureSecond0": 1
-    },
-    "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 1
-    }
-   },
    "meanColor": [
     121,
     115,
@@ -5060,21 +5161,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_framedagger.mod": 1
-    },
-    "partners": {
-     "ra_aframe_02_c.dds": 1,
-     "ra_aframe_02_n.dds": 1
-    },
-    "roles": {
-     "e_TextureSecond0": 1
-    },
-    "shaders": {
-     "Opaque_MaxCB1_2UV.fx": 1
-    }
-   },
    "meanColor": [
     113,
     109,
@@ -5105,20 +5191,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_framedagger.mod": 1
-    },
-    "partners": {
-     "ra_woodenslats_01_n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Opaque_MaxCB1.fx": 1
-    }
-   },
    "meanColor": [
     83,
     79,
@@ -5149,20 +5221,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_framedagger.mod": 1
-    },
-    "partners": {
-     "ra_woodenslats_01_c.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "Opaque_MaxCB1.fx": 1
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -5254,14 +5312,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5311,14 +5369,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5368,14 +5426,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5425,14 +5483,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5482,14 +5540,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5539,14 +5597,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5596,14 +5654,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5653,14 +5711,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5710,14 +5768,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5767,14 +5825,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5824,14 +5882,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5881,14 +5939,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5938,14 +5996,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -5995,14 +6053,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -6052,14 +6110,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -6109,14 +6167,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 5
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 5
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -6167,16 +6225,16 @@
    "materials": {
     "models": {
      "obj_altar_.mod": 8,
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {
-     "symbols_g.dds": 6
+     "symbols_g.dds": 2
     },
     "roles": {
-     "e_TextureDiffuse0": 6
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "Opaque_MaxCBSG1.fx": 6
+     "Opaque_MaxCBSG1.fx": 2
     }
    },
    "meanColor": [
@@ -6227,16 +6285,16 @@
    "materials": {
     "models": {
      "obj_altar_.mod": 8,
-     "ter_guildlobby.ter": 5
+     "ter_guildlobby.ter": 1
     },
     "partners": {
-     "symbols_c.dds": 6
+     "symbols_c.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 6
+     "e_TextureNormal0": 2
     },
     "shaders": {
-     "Opaque_MaxCBSG1.fx": 6
+     "Opaque_MaxCBSG1.fx": 2
     }
    },
    "meanColor": [
@@ -6472,15 +6530,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_candle_table_.mod": 12,
-     "obj_candle_torch_.mod": 63
+     "obj_candle_table_.mod": 12
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MaxC1.fx": 2
+     "Opaque_MaxC1.fx": 1
     }
    },
    "meanColor": [
@@ -6525,6 +6582,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:guildlobby",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "guildlobby"
 }

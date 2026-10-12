@@ -1,7 +1,7 @@
 {
  "archives": [
-  "buriedswitches.eqg",
-  "maidensgrave.eqg"
+  "maidensgrave.eqg",
+  "buriedswitches.eqg"
  ],
  "assets": {
   "ecosystem/maidensgrave/base": {
@@ -422,259 +422,518 @@
   },
   "model/obj_bgrocka_dk.mod@023ebd49": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -58.42,
+     -88.18,
+     -2.73
+    ],
+    [
+     58.42,
+     88.18,
+     101.98
+    ]
+   ],
+   "bytes": 15896,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocksdark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_ocean_beach_cave.dds",
       "e_TextureDiffuse0": "sb_rock01_c.dds",
       "e_TextureNormal0": "sb_rock01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ocean_beach_rock.dds",
-      "e_TextureDiffuse0": "di_ocean_beach_rock.dds",
-      "e_TextureNormal0": "di_ocean_beach_rock_8n.dds"
-     }
     }
    ],
+   "entry": "obj_bgrocka_dk.mod",
+   "footprint": 20606.0,
+   "kind": "model",
    "name": "obj_bgrocka_dk.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "023ebd49a5384446549df04ec98e06a28f983ffa41f1efa4814b4ad4e99f1d9b",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    116.8,
-    176.4,
-    104.7
+    116.85,
+    176.35,
+    104.71
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_ocean_beach_cave.dds",
+    "sb_rock01_c.dds",
+    "sb_rock01_n.dds"
+   ],
    "triangles": 346
   },
   "model/obj_bgrockb_dk.mod@b838cdb0": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_camp_bones_a.mod": 1,
+    "obj_smrocka_dk.mod": 1,
+    "obj_smrockb_dk.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -65.0,
+     -91.86,
+     -2.84
+    ],
+    [
+     65.0,
+     91.86,
+     59.33
+    ]
+   ],
+   "bytes": 19348,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocksdark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_ocean_beach_cave.dds",
       "e_TextureDiffuse0": "sb_rock01_c.dds",
       "e_TextureNormal0": "sb_rock01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ocean_beach_rock.dds",
-      "e_TextureDiffuse0": "di_ocean_beach_rock.dds",
-      "e_TextureNormal0": "di_ocean_beach_rock_8n.dds"
-     }
     }
    ],
+   "entry": "obj_bgrockb_dk.mod",
+   "footprint": 23883.9,
+   "kind": "model",
    "name": "obj_bgrockb_dk.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "b838cdb0a6d95cffa8ffaccba4ae00121404fb219ee7bd6dbe8c16199c32c206",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     130.0,
-    183.7,
-    62.2
+    183.72,
+    62.17
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_ocean_beach_cave.dds",
+    "sb_rock01_c.dds",
+    "sb_rock01_n.dds"
+   ],
    "triangles": 424
   },
   "model/obj_camp_bones_a.mod@cc4f56a0": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_bgrockb_dk.mod": 1,
+    "obj_camp_bones_b.mod": 275,
+    "obj_smrocka_dk.mod": 54,
+    "obj_smrockb_dk.mod": 33,
+    "obj_smrockc_dk.mod": 55
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.95,
+     -2.14,
+     -0.2
+    ],
+    [
+     1.95,
+     2.14,
+     0.2
+    ]
+   ],
+   "bytes": 20680,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "sktbody",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "hp_skull05_c.dds",
       "e_TextureNormal0": "hp_skull05_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureNormal0": "hp_skull06_n.dds"
-     }
     }
    ],
+   "entry": "obj_camp_bones_a.mod",
+   "footprint": 16.8,
+   "kind": "model",
    "name": "obj_camp_bones_a.mod",
+   "origin": "center",
    "placements": 176,
    "scaleRange": [
     1.0,
     1.492
    ],
    "sha256": "cc4f56a015942acb6745b987091a43e363701b5711e9826de1ea604e543f8291",
+   "sits": {
+    "tilted": 2,
+    "upright": 174
+   },
    "size": [
-    3.9,
-    4.3,
-    0.4
+    3.91,
+    4.29,
+    0.41
    ],
    "skinned": false,
+   "textureShares": {
+    "hp_skull05_c.dds": 1.0
+   },
+   "textures": [
+    "hp_skull05_c.dds",
+    "hp_skull05_n.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 476
   },
   "model/obj_camp_bones_b.mod@a7638fea": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_camp_bones_a.mod": 275,
+    "obj_rockarcha_dk.mod": 2,
+    "obj_smrocka_dk.mod": 51,
+    "obj_smrockb_dk.mod": 52,
+    "obj_smrockc_dk.mod": 63
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.17,
+     -1.5,
+     -0.35
+    ],
+    [
+     1.17,
+     1.5,
+     0.35
+    ]
+   ],
+   "bytes": 30088,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "sktbody",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
       "e_TextureDiffuse0": "hp_skull05_c.dds",
       "e_TextureNormal0": "hp_skull05_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
-      "e_TextureNormal0": "hp_skull06_n.dds"
-     }
     }
    ],
+   "entry": "obj_camp_bones_b.mod",
+   "footprint": 7.0,
+   "kind": "model",
    "name": "obj_camp_bones_b.mod",
+   "origin": "center",
    "placements": 182,
    "scaleRange": [
     1.0,
     1.5
    ],
    "sha256": "a7638fea6bb4b3331dd5f6c5df6fbc07798dd8c9808a8ca256bc52c252bb1605",
+   "sits": {
+    "tilted": 3,
+    "upright": 179
+   },
    "size": [
-    2.3,
-    3.0,
+    2.34,
+    3.01,
     0.7
    ],
    "skinned": false,
+   "textureShares": {
+    "hp_skull05_c.dds": 1.0
+   },
+   "textures": [
+    "hp_skull05_c.dds",
+    "hp_skull05_n.dds",
+    "nek_erosion_ov_4tile.dds"
+   ],
    "triangles": 612
   },
   "model/obj_mdrocka_dk.mod@93004823": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_camp_bones_a.mod": 1,
+    "obj_mdrockb_dk.mod": 1,
+    "obj_mdrockc_dk.mod": 2,
+    "obj_smrockb_dk.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -24.08,
+     -21.67,
+     -3.09
+    ],
+    [
+     23.15,
+     21.67,
+     40.23
+    ]
+   ],
+   "bytes": 10064,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocksdark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_ocean_beach_cave.dds",
       "e_TextureDiffuse0": "sb_rock01_c.dds",
       "e_TextureNormal0": "sb_rock01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ocean_beach_rock.dds",
-      "e_TextureDiffuse0": "di_ocean_beach_rock.dds",
-      "e_TextureNormal0": "di_ocean_beach_rock_8n.dds"
-     }
     }
    ],
+   "entry": "obj_mdrocka_dk.mod",
+   "footprint": 2047.6,
+   "kind": "model",
    "name": "obj_mdrocka_dk.mod",
+   "origin": "offset",
    "placements": 21,
    "scaleRange": [
     0.118,
     2.001
    ],
    "sha256": "930048239b61424d8eda1078eca753ab1bb0af82cf5d08e92dcc1e67351b3734",
+   "sits": {
+    "upright": 21
+   },
    "size": [
-    47.2,
-    43.3,
-    43.3
+    47.24,
+    43.35,
+    43.31
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_ocean_beach_cave.dds",
+    "sb_rock01_c.dds",
+    "sb_rock01_n.dds"
+   ],
    "triangles": 204
   },
   "model/obj_mdrockb_dk.mod@c98f8f51": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mdrocka_dk.mod": 1,
+    "obj_mdrockc_dk.mod": 2,
+    "obj_smrocka_dk.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -25.51,
+     -24.29,
+     -2.5
+    ],
+    [
+     25.51,
+     24.29,
+     32.96
+    ]
+   ],
+   "bytes": 12736,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocksdark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_ocean_beach_cave.dds",
       "e_TextureDiffuse0": "sb_rock01_c.dds",
       "e_TextureNormal0": "sb_rock01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ocean_beach_rock.dds",
-      "e_TextureDiffuse0": "di_ocean_beach_rock.dds",
-      "e_TextureNormal0": "di_ocean_beach_rock_8n.dds"
-     }
     }
    ],
+   "entry": "obj_mdrockb_dk.mod",
+   "footprint": 2478.7,
+   "kind": "model",
    "name": "obj_mdrockb_dk.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     0.501,
     0.501
    ],
    "sha256": "c98f8f51a0e77ef9807ee06ff05bb483c50d2281dae0da501d5c2127dedfa633",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    51.0,
-    48.6,
-    35.5
+    51.02,
+    48.59,
+    35.46
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_ocean_beach_cave.dds",
+    "sb_rock01_c.dds",
+    "sb_rock01_n.dds"
+   ],
    "triangles": 276
   },
   "model/obj_mdrockc_dk.mod@e770365d": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_camp_bones_a.mod": 1,
+    "obj_mdrocka_dk.mod": 2,
+    "obj_mdrockb_dk.mod": 2,
+    "obj_smrocka_dk.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -26.35,
+     -26.35,
+     -2.5
+    ],
+    [
+     26.35,
+     26.35,
+     50.96
+    ]
+   ],
+   "bytes": 13528,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocksdark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_ocean_beach_cave.dds",
       "e_TextureDiffuse0": "sb_rock01_c.dds",
       "e_TextureNormal0": "sb_rock01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ocean_beach_rock.dds",
-      "e_TextureDiffuse0": "di_ocean_beach_rock.dds",
-      "e_TextureNormal0": "di_ocean_beach_rock_8n.dds"
-     }
     }
    ],
+   "entry": "obj_mdrockc_dk.mod",
+   "footprint": 2778.0,
+   "kind": "model",
    "name": "obj_mdrockc_dk.mod",
+   "origin": "offset",
    "placements": 2,
    "scaleRange": [
     0.501,
     0.501
    ],
    "sha256": "e770365dd042a6fddd18026b339f502675cec76624e821963556e61d160e1bf1",
+   "sits": {
+    "upright": 2
+   },
    "size": [
+    52.71,
     52.7,
-    52.7,
-    53.5
+    53.46
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_ocean_beach_cave.dds",
+    "sb_rock01_c.dds",
+    "sb_rock01_n.dds"
+   ],
    "triangles": 276
   },
   "model/obj_rock_arch.mod@5f679679": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -29.27,
+     -53.93,
+     -0.28
+    ],
+    [
+     27.24,
+     64.34,
+     89.69
+    ]
+   ],
+   "bytes": 162319,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "rock",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_desert.dds",
@@ -683,170 +942,342 @@
      }
     }
    ],
+   "entry": "obj_rock_arch.mod",
+   "footprint": 6683.7,
+   "kind": "model",
    "name": "obj_rock_arch.mod",
+   "origin": "base",
    "placements": 4,
    "scaleRange": [
     1.0,
     2.001
    ],
    "sha256": "5f6796790610bf9f8f37c660cf47e0d6ebb9d959a036fa62ac2f9ebc42f89367",
+   "sits": {
+    "upright": 4
+   },
    "size": [
-    56.5,
-    118.3,
-    90.0
+    56.51,
+    118.28,
+    89.97
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "coverage_desert.dds",
+    "sb_rock01_c.dds",
+    "sb_rock01_n.dds"
+   ],
    "triangles": 1812
   },
   "model/obj_rockarcha_dk.mod@d57fd2e1": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_camp_bones_b.mod": 2
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -156.28,
+     -90.3,
+     -3.67
+    ],
+    [
+     156.28,
+     90.3,
+     109.75
+    ]
+   ],
+   "bytes": 40324,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocksdark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_ocean_beach_cave.dds",
       "e_TextureDiffuse0": "sb_rock01_c.dds",
       "e_TextureNormal0": "sb_rock01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ocean_beach_rock.dds",
-      "e_TextureDiffuse0": "di_ocean_beach_rock.dds",
-      "e_TextureNormal0": "di_ocean_beach_rock_8n.dds"
-     }
     }
    ],
+   "entry": "obj_rockarcha_dk.mod",
+   "footprint": 56451.3,
+   "kind": "model",
    "name": "obj_rockarcha_dk.mod",
+   "origin": "base",
    "placements": 5,
    "scaleRange": [
     1.0,
     2.001
    ],
    "sha256": "d57fd2e16f0dfceb97a39ecf6446bd28635391450591f81573d5c0d02f33a8a9",
+   "sits": {
+    "upright": 5
+   },
    "size": [
-    312.6,
-    180.6,
-    113.4
+    312.56,
+    180.61,
+    113.42
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_ocean_beach_cave.dds",
+    "sb_rock01_c.dds",
+    "sb_rock01_n.dds"
+   ],
    "triangles": 848
   },
   "model/obj_smrocka_dk.mod@94684055": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_bgrockb_dk.mod": 1,
+    "obj_camp_bones_a.mod": 54,
+    "obj_camp_bones_b.mod": 51,
+    "obj_smrockb_dk.mod": 74,
+    "obj_smrockc_dk.mod": 64
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.91,
+     -7.32,
+     -3.0
+    ],
+    [
+     8.91,
+     7.32,
+     4.85
+    ]
+   ],
+   "bytes": 4528,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocksdark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_ocean_beach_cave.dds",
       "e_TextureDiffuse0": "sb_rock01_c.dds",
       "e_TextureNormal0": "sb_rock01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ocean_beach_rock.dds",
-      "e_TextureDiffuse0": "di_ocean_beach_rock.dds",
-      "e_TextureNormal0": "di_ocean_beach_rock_8n.dds"
-     }
     }
    ],
+   "entry": "obj_smrocka_dk.mod",
+   "footprint": 261.0,
+   "kind": "model",
    "name": "obj_smrocka_dk.mod",
+   "origin": "center",
    "placements": 134,
    "scaleRange": [
     0.113,
     0.985
    ],
    "sha256": "94684055031a8ea6a3a2b4a9446b6e9393915488932e6216e135c7db5382052e",
+   "sits": {
+    "upright": 134
+   },
    "size": [
-    17.8,
-    14.6,
-    7.9
+    17.83,
+    14.64,
+    7.85
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_ocean_beach_cave.dds",
+    "sb_rock01_c.dds",
+    "sb_rock01_n.dds"
+   ],
    "triangles": 90
   },
   "model/obj_smrockb_dk.mod@f76e414e": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_camp_bones_a.mod": 33,
+    "obj_camp_bones_b.mod": 52,
+    "obj_mdrocka_dk.mod": 2,
+    "obj_smrocka_dk.mod": 74,
+    "obj_smrockc_dk.mod": 69
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -8.34,
+     -7.32,
+     -3.0
+    ],
+    [
+     8.34,
+     7.32,
+     7.98
+    ]
+   ],
+   "bytes": 4528,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocksdark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_ocean_beach_cave.dds",
       "e_TextureDiffuse0": "sb_rock01_c.dds",
       "e_TextureNormal0": "sb_rock01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ocean_beach_rock.dds",
-      "e_TextureDiffuse0": "di_ocean_beach_rock.dds",
-      "e_TextureNormal0": "di_ocean_beach_rock_8n.dds"
-     }
     }
    ],
+   "entry": "obj_smrockb_dk.mod",
+   "footprint": 244.2,
+   "kind": "model",
    "name": "obj_smrockb_dk.mod",
+   "origin": "offset",
    "placements": 140,
    "scaleRange": [
     0.101,
     0.996
    ],
    "sha256": "f76e414e9af52d9c8ed1c75dc1ab3b1ab40b57078405dbd5defd6f4aa52556f5",
+   "sits": {
+    "upright": 140
+   },
    "size": [
-    16.7,
-    14.6,
-    11.0
+    16.69,
+    14.64,
+    10.98
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_ocean_beach_cave.dds",
+    "sb_rock01_c.dds",
+    "sb_rock01_n.dds"
+   ],
    "triangles": 90
   },
   "model/obj_smrockc_dk.mod@670586ec": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_camp_bones_a.mod": 55,
+    "obj_camp_bones_b.mod": 63,
+    "obj_smrocka_dk.mod": 64,
+    "obj_smrockb_dk.mod": 69
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -7.3,
+     -9.39,
+     -2.95
+    ],
+    [
+     7.3,
+     9.44,
+     5.02
+    ]
+   ],
+   "bytes": 11300,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocksdark",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_ocean_beach_cave.dds",
       "e_TextureDiffuse0": "sb_rock01_c.dds",
       "e_TextureNormal0": "sb_rock01_n.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump2UV.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_ocean_beach_rock.dds",
-      "e_TextureDiffuse0": "di_ocean_beach_rock.dds",
-      "e_TextureNormal0": "di_ocean_beach_rock_8n.dds"
-     }
     }
    ],
+   "entry": "obj_smrockc_dk.mod",
+   "footprint": 275.1,
+   "kind": "model",
    "name": "obj_smrockc_dk.mod",
+   "origin": "center",
    "placements": 129,
    "scaleRange": [
     0.104,
     0.991
    ],
    "sha256": "670586ec5d9ddf1870dc51eb97551cd55b411802ae53036419176c705bb36de5",
+   "sits": {
+    "upright": 129
+   },
    "size": [
-    14.6,
-    18.8,
-    8.0
+    14.61,
+    18.83,
+    7.97
    ],
    "skinned": false,
+   "textureShares": {
+    "sb_rock01_c.dds": 1.0
+   },
+   "textures": [
+    "di_ocean_beach_cave.dds",
+    "sb_rock01_c.dds",
+    "sb_rock01_n.dds"
+   ],
    "triangles": 246
   },
   "model/obj_wreckbk.mod@0f0d7d63": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -100.56,
+     -48.39,
+     -23.9
+    ],
+    [
+     64.94,
+     48.72,
+     77.33
+    ]
+   ],
+   "bytes": 299933,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "jar_planks",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_desert.dds",
@@ -855,20 +1286,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_desert.dds",
-      "e_TextureDiffuse0": "di_ocean_wood_plank_barnacles2.dds",
-      "e_TextureNormal0": "di_ocean_wood_plank_barnacles2_8n.dds"
-     }
-    },
-    {
-     "shader": "Alpha_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "cb_rail_alpha_c.dds"
-     }
-    },
-    {
+     "name": "plainwood",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_desert.dds",
@@ -877,6 +1295,7 @@
      }
     },
     {
+     "name": "plankwall",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_desert.dds",
@@ -885,26 +1304,69 @@
      }
     }
    ],
+   "entry": "obj_wreckbk.mod",
+   "footprint": 16071.6,
+   "kind": "model",
    "name": "obj_wreckbk.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "0f0d7d6347c2b6ae1a0a45627fe4b8fbd91a0ff22ab216a244116593f0a11c35",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    165.5,
-    97.1,
-    101.2
+    165.49,
+    97.11,
+    101.23
    ],
    "skinned": false,
+   "textureShares": {
+    "adl_plankwall_c.dds": 0.515,
+    "di_fp_ext_woodbeam_dark.dds": 0.057,
+    "di_ocean_wood_plank.dds": 0.428
+   },
+   "textures": [
+    "adl_plankwall.dds",
+    "adl_plankwall_c.dds",
+    "coverage_desert.dds",
+    "di_fp_ext_woodbeam_16n.dds",
+    "di_fp_ext_woodbeam_dark.dds",
+    "di_ocean_wood_plank.dds",
+    "di_ocean_wood_plank_8n.dds"
+   ],
    "triangles": 4906
   },
   "model/obj_wreckfrnt.mod@db7f3de5": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -84.82,
+     -44.73,
+     -43.14
+    ],
+    [
+     203.08,
+     45.66,
+     61.56
+    ]
+   ],
+   "bytes": 174425,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "jar_planks",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_desert.dds",
@@ -913,20 +1375,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_desert.dds",
-      "e_TextureDiffuse0": "di_ocean_wood_plank_barnacles2.dds",
-      "e_TextureNormal0": "di_ocean_wood_plank_barnacles2_8n.dds"
-     }
-    },
-    {
-     "shader": "Alpha_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "cb_rail_alpha_c.dds"
-     }
-    },
-    {
+     "name": "plainwood",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_desert.dds",
@@ -935,6 +1384,7 @@
      }
     },
     {
+     "name": "plankwall",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_desert.dds",
@@ -943,26 +1393,76 @@
      }
     }
    ],
+   "entry": "obj_wreckfrnt.mod",
+   "footprint": 26023.9,
+   "kind": "model",
    "name": "obj_wreckfrnt.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "db7f3de558f60fb094d9d8936d552f41ee56c6441c9823aebd92221fdc603b6b",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
     287.9,
-    90.4,
-    104.7
+    90.39,
+    104.71
    ],
    "skinned": false,
+   "textureShares": {
+    "adl_plankwall_c.dds": 0.505,
+    "di_fp_ext_woodbeam_dark.dds": 0.092,
+    "di_ocean_wood_plank.dds": 0.403
+   },
+   "textures": [
+    "adl_plankwall.dds",
+    "adl_plankwall_c.dds",
+    "coverage_desert.dds",
+    "di_fp_ext_woodbeam_16n.dds",
+    "di_fp_ext_woodbeam_dark.dds",
+    "di_ocean_wood_plank.dds",
+    "di_ocean_wood_plank_8n.dds"
+   ],
    "triangles": 2914
   },
   "model/obp_dsrt_palm_b_.mod@a66d3b04": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obp_fernsa.mod": 41,
+    "obp_fernsb.mod": 49
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -29.13,
+     -17.89,
+     -14.78
+    ],
+    [
+     29.13,
+     44.8,
+     111.86
+    ]
+   ],
+   "bytes": 26593,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 0.807
+    },
+    {
+     "color": "tan",
+     "share": 0.193
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Material#1",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_desert.dds",
@@ -971,64 +1471,93 @@
      }
     },
     {
+     "name": "Material#2",
      "shader": "Chroma_MPLBasicA.fx",
      "textures": {
       "e_TextureDiffuse0": "di_ro_palm_frond01.ddsd01_c.dds"
      }
     }
    ],
+   "entry": "obp_dsrt_palm_b_.mod",
+   "footprint": 3652.8,
+   "kind": "model",
    "name": "obp_dsrt_palm_b_.mod",
+   "origin": "offset",
    "placements": 84,
    "scaleRange": [
     0.103,
     0.495
    ],
    "sha256": "a66d3b0459b134199d2212cce4b6a53af5189364eb9511467a8bd09cd780c244",
+   "sits": {
+    "upright": 84
+   },
    "size": [
-    58.3,
-    62.7,
-    126.6
+    58.27,
+    62.69,
+    126.64
    ],
    "skinned": false,
+   "textureShares": {
+    "di_ro_palm_frond01.ddsd01_c.dds": 0.807,
+    "palmtrunk2.dds": 0.193
+   },
+   "textures": [
+    "coverage_desert.dds",
+    "di_ro_palm_frond01.ddsd01_c.dds",
+    "palmtrunk2.dds",
+    "palmtrunk2_bump.dds"
+   ],
    "triangles": 456
   },
   "model/obp_fernsa.mod@b8a916e8": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obp_dsrt_palm_b_.mod": 41,
+    "obp_fernsb.mod": 23
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -11.95,
+     -13.71,
+     -2.53
+    ],
+    [
+     13.75,
+     13.58,
+     12.3
+    ]
+   ],
+   "bytes": 12788,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ferns03.dds"
-     }
+     "color": "green",
+     "share": 0.854
     },
     {
+     "color": "pink",
+     "share": 0.146
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "oc_fern2",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "ferns02.dds"
      }
     },
     {
-     "shader": "Chroma_MPLBasicA.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grass01.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_desert.dds",
-      "e_TextureDiffuse0": "palmtrunk2.dds",
-      "e_TextureNormal0": "palmtrunk2_bump.dds"
-     }
-    },
-    {
+     "name": "Material #8787",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "flowerbuds.dds"
      }
     },
     {
+     "name": "Material #8789",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_desert.dds",
@@ -1037,58 +1566,78 @@
      }
     }
    ],
+   "entry": "obp_fernsa.mod",
+   "footprint": 701.5,
+   "kind": "model",
    "name": "obp_fernsa.mod",
+   "origin": "offset",
    "placements": 48,
    "scaleRange": [
     0.251,
     0.966
    ],
    "sha256": "b8a916e816df3214f03c11e1902ddfe1afd1629f6223b82088ec8bd2f905ee36",
+   "sits": {
+    "tilted": 1,
+    "upright": 47
+   },
    "size": [
     25.7,
     27.3,
-    14.8
+    14.83
    ],
    "skinned": false,
+   "textureShares": {
+    "ab_junglefloor03_c.dds": 0.02,
+    "ferns02.dds": 0.834,
+    "flowerbuds.dds": 0.146
+   },
+   "textures": [
+    "ab_junglefloor03_c.dds",
+    "ab_junglefloor_n.dds",
+    "coverage_desert.dds",
+    "ferns02.dds",
+    "flowerbuds.dds"
+   ],
    "triangles": 186
   },
   "model/obp_fernsb.mod@57c0b1d1": {
    "archive": "maidensgrave.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obp_dsrt_palm_b_.mod": 49,
+    "obp_fernsa.mod": 23
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -14.41,
+     -16.23,
+     -2.42
+    ],
+    [
+     14.38,
+     12.32,
+     15.91
+    ]
+   ],
+   "bytes": 16100,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "oc_fern",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "ferns03.dds"
      }
     },
     {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ferns02.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicA.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grass01.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_desert.dds",
-      "e_TextureDiffuse0": "palmtrunk2.dds",
-      "e_TextureNormal0": "palmtrunk2_bump.dds"
-     }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "flowerbuds.dds"
-     }
-    },
-    {
+     "name": "Material #8789",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_desert.dds",
@@ -1097,19 +1646,36 @@
      }
     }
    ],
+   "entry": "obp_fernsb.mod",
+   "footprint": 822.1,
+   "kind": "model",
    "name": "obp_fernsb.mod",
+   "origin": "offset",
    "placements": 43,
    "scaleRange": [
     0.264,
     0.995
    ],
    "sha256": "57c0b1d1789214bbf16d8568228db7ad5e098c39e56b7a9b7b9600c10a65b6d3",
+   "sits": {
+    "upright": 43
+   },
    "size": [
-    28.8,
-    28.6,
-    18.3
+    28.79,
+    28.55,
+    18.32
    ],
    "skinned": false,
+   "textureShares": {
+    "ab_junglefloor03_c.dds": 0.018,
+    "ferns03.dds": 0.982
+   },
+   "textures": [
+    "ab_junglefloor03_c.dds",
+    "ab_junglefloor_n.dds",
+    "coverage_desert.dds",
+    "ferns03.dds"
+   ],
    "triangles": 246
   },
   "texture/ab_hematite_c.dds@dfc563d3": {
@@ -1144,8 +1710,8 @@
   },
   "texture/ab_junglefloor03_c.dds@9c8b23c3": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.25,
    "colorName": "green",
@@ -1252,8 +1818,8 @@
   },
   "texture/ab_junglefloor_n.dds@d8e92ec3": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.556,
    "colorName": "blue",
@@ -1375,8 +1941,8 @@
   },
   "texture/adl_plankwall.dds@6b220e63": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.553,
    "colorName": "blue",
@@ -1422,8 +1988,8 @@
   },
   "texture/adl_plankwall_c.dds@a46dcc31": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.252,
    "colorName": "brown",
@@ -1688,8 +2254,8 @@
   },
   "texture/coverage4.dds@f2ee9629": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.504,
    "colorName": "grey",
@@ -1809,8 +2375,8 @@
   },
   "texture/coverage_desert.dds@ce0646f8": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.691,
    "colorName": "grey",
@@ -1999,24 +2565,24 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_wreckbk.mod": 4,
-     "obj_wreckfrnt.mod": 4,
+     "obj_rock_arch.mod": 4,
+     "obj_wreckfrnt.mod": 3,
      "obp_dsrt_palm_b_.mod": 84,
-     "obp_fernsa.mod": 96,
-     "obp_fernsb.mod": 86
+     "obp_fernsa.mod": 48,
+     "obp_fernsb.mod": 43
     },
     "partners": {
      "ab_junglefloor03_c.dds": 2,
      "ab_junglefloor_n.dds": 2,
+     "di_fp_ext_woodbeam_dark.dds": 2,
      "di_ocean_wood_plank.dds": 2,
-     "palmtrunk2.dds": 3,
-     "palmtrunk2_bump.dds": 3
+     "di_ocean_wood_plank_8n.dds": 2
     },
     "roles": {
-     "e_TextureCoverage0": 14
+     "e_TextureCoverage0": 10
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 14
+     "Opaque_MPLBump.fx": 10
     }
    },
    "meanColor": [
@@ -2220,8 +2786,8 @@
   },
   "texture/di_fp_ext_woodbeam_16n.dds@02ccd4f8": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.556,
    "colorName": "blue",
@@ -2267,8 +2833,8 @@
   },
   "texture/di_fp_ext_woodbeam_dark.dds@9c4e1f83": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.371,
    "colorName": "brown",
@@ -2747,25 +3313,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_mdrocka_dk.mod": 42,
-     "obj_rockarcha_dk.mod": 10,
-     "obj_smrocka_dk.mod": 268,
-     "obj_smrockb_dk.mod": 280,
-     "obj_smrockc_dk.mod": 258
-    },
-    "partners": {
-     "di_ocean_beach_rock_8n.dds": 18
-    },
-    "roles": {
-     "e_TextureCoverage0": 9,
-     "e_TextureDiffuse0": 9
-    },
-    "shaders": {
-     "Opaque_MPLBump2UV.fx": 18
-    }
-   },
    "meanColor": [
     145,
     142,
@@ -2796,24 +3343,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_mdrocka_dk.mod": 21,
-     "obj_rockarcha_dk.mod": 5,
-     "obj_smrocka_dk.mod": 134,
-     "obj_smrockb_dk.mod": 140,
-     "obj_smrockc_dk.mod": 129
-    },
-    "partners": {
-     "di_ocean_beach_rock.dds": 18
-    },
-    "roles": {
-     "e_TextureNormal0": 9
-    },
-    "shaders": {
-     "Opaque_MPLBump2UV.fx": 9
-    }
-   },
    "meanColor": [
     128,
     128,
@@ -3427,8 +3956,8 @@
   },
   "texture/di_ocean_wood_plank.dds@5540c40d": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.321,
    "colorName": "brown",
@@ -3489,8 +4018,8 @@
   },
   "texture/di_ocean_wood_plank_8n.dds@ac19534a": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.553,
    "colorName": "blue",
@@ -3575,22 +4104,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_wreckbk.mod": 1,
-     "obj_wreckfrnt.mod": 1
-    },
-    "partners": {
-     "coverage_desert.dds": 2,
-     "di_ocean_wood_plank_barnacles2_8n.dds": 2
-    },
-    "roles": {
-     "e_TextureDiffuse0": 2
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 2
-    }
-   },
    "meanColor": [
     92,
     84,
@@ -3621,22 +4134,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_wreckbk.mod": 1,
-     "obj_wreckfrnt.mod": 1
-    },
-    "partners": {
-     "coverage_desert.dds": 2,
-     "di_ocean_wood_plank_barnacles2.dds": 2
-    },
-    "roles": {
-     "e_TextureNormal0": 2
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 2
-    }
-   },
    "meanColor": [
     127,
     128,
@@ -3688,8 +4185,8 @@
   },
   "texture/di_ocean_wood_plank_paint.dds@b3bd49a6": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.323,
    "colorName": "red",
@@ -3719,8 +4216,8 @@
   },
   "texture/di_ocean_wood_plank_paint_8n.dds@2c14def0": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.552,
    "colorName": "blue",
@@ -4137,8 +4634,8 @@
   },
   "texture/ferns02.dds@f9caaffe": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.258,
    "colorName": "green",
@@ -4149,15 +4646,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obp_fernsa.mod": 48,
-     "obp_fernsb.mod": 43
+     "obp_fernsa.mod": 48
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Chroma_MPLBasicAT.fx": 2
+     "Chroma_MPLBasicAT.fx": 1
     }
    },
    "meanColor": [
@@ -4196,8 +4692,8 @@
   },
   "texture/ferns03.dds@01e347aa": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.251,
    "colorName": "green",
@@ -4208,15 +4704,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obp_fernsa.mod": 48,
      "obp_fernsb.mod": 43
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Chroma_MPLBasicAT.fx": 2
+     "Chroma_MPLBasicAT.fx": 1
     }
    },
    "meanColor": [
@@ -4255,8 +4750,8 @@
   },
   "texture/flowerbuds.dds@d582abdb": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.286,
    "colorName": "pink",
@@ -4267,15 +4762,14 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obp_fernsa.mod": 48,
-     "obp_fernsb.mod": 43
+     "obp_fernsa.mod": 48
     },
     "partners": {},
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Chroma_MPLBasicAT.fx": 2
+     "Chroma_MPLBasicAT.fx": 1
     }
    },
    "meanColor": [
@@ -4554,8 +5048,8 @@
   },
   "texture/hp_roostwooda01_c.dds@d4ac2339": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.308,
    "colorName": "brown",
@@ -4585,8 +5079,8 @@
   },
   "texture/hp_roostwooda01_n.dds@72b4586e": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.556,
    "colorName": "blue",
@@ -4616,8 +5110,8 @@
   },
   "texture/hp_skull05_c.dds@62c2ada9": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.352,
    "colorName": "brown",
@@ -4678,8 +5172,8 @@
   },
   "texture/hp_skull05_n.dds@74c0574b": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.546,
    "colorName": "blue",
@@ -4725,8 +5219,8 @@
   },
   "texture/hp_skull06_n.dds@057706ce": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.547,
    "colorName": "blue",
@@ -4735,21 +5229,6 @@
    "format": "XRGB24",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_camp_bones_a.mod": 176,
-     "obj_camp_bones_b.mod": 182
-    },
-    "partners": {
-     "nek_erosion_ov_4tile.dds": 2
-    },
-    "roles": {
-     "e_TextureNormal0": 2
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 2
-    }
-   },
    "meanColor": [
     129,
     128,
@@ -5071,8 +5550,8 @@
   },
   "texture/nek_erosion_ov_4tile.dds@7d2136e7": {
    "archives": [
-    "buriedswitches.eqg",
-    "maidensgrave.eqg"
+    "maidensgrave.eqg",
+    "buriedswitches.eqg"
    ],
    "brightness": 0.356,
    "colorName": "grey",
@@ -5083,19 +5562,18 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_camp_bones_a.mod": 352,
-     "obj_camp_bones_b.mod": 364
+     "obj_camp_bones_a.mod": 176,
+     "obj_camp_bones_b.mod": 182
     },
     "partners": {
      "hp_skull05_c.dds": 2,
-     "hp_skull05_n.dds": 2,
-     "hp_skull06_n.dds": 2
+     "hp_skull05_n.dds": 2
     },
     "roles": {
-     "e_TextureCoverage0": 4
+     "e_TextureCoverage0": 2
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 2
     }
    },
    "meanColor": [
@@ -5280,19 +5758,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obp_dsrt_palm_b_.mod": 84,
-     "obp_fernsa.mod": 48,
-     "obp_fernsb.mod": 43
+     "obp_dsrt_palm_b_.mod": 84
     },
     "partners": {
-     "coverage_desert.dds": 3,
-     "palmtrunk2_bump.dds": 3
+     "coverage_desert.dds": 1,
+     "palmtrunk2_bump.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 3
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 3
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -5342,19 +5818,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obp_dsrt_palm_b_.mod": 84,
-     "obp_fernsa.mod": 48,
-     "obp_fernsb.mod": 43
+     "obp_dsrt_palm_b_.mod": 84
     },
     "partners": {
-     "coverage_desert.dds": 3,
-     "palmtrunk2.dds": 3
+     "coverage_desert.dds": 1,
+     "palmtrunk2.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 3
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 3
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -6053,6 +6527,6 @@
   "This EQ terrain zone's lights are not read"
  ],
  "source": "zone:maidensgrave",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "maidensgrave"
 }

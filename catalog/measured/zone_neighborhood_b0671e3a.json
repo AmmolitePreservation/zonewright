@@ -1,5 +1,6 @@
 {
  "archives": [
+  "neighborhood.eqg",
   "stonesquare.eqg",
   "tradeskill_objects.eqg",
   "phteleporting.eqg",
@@ -11,8 +12,7 @@
   "furniture12.eqg",
   "furniture03.eqg",
   "furniture07.eqg",
-  "it23651.eqg",
-  "neighborhood.eqg"
+  "it23651.eqg"
  ],
  "assets": {
   "ecosystem/neighborhood/dirtpath": {
@@ -499,7 +499,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "void_portal01": 1
@@ -521,7 +521,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "void_portal_rift": 1
@@ -543,7 +543,7 @@
       ]
      ],
      "lifespans": [
-      0
+      4000000
      ],
      "names": {
       "void_portal02": 1
@@ -553,9 +553,38 @@
   },
   "model/obj_mapletreebig.mod@3dbe6aee": {
    "archive": "neighborhood.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obp_swamp_busha.mod": 16,
+    "obp_treem.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -82.21,
+     -68.47,
+     -10.71
+    ],
+    [
+     83.81,
+     71.48,
+     111.83
+    ]
+   ],
+   "bytes": 45050,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 0.962
+    },
+    {
+     "color": "grey",
+     "share": 0.038
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Material #1",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base.dds",
@@ -564,32 +593,78 @@
      }
     },
     {
+     "name": "Material #2",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "td_oak_branches01_c.dds"
      }
     }
    ],
+   "entry": "obj_mapletreebig.mod",
+   "footprint": 23234.0,
+   "kind": "model",
    "name": "obj_mapletreebig.mod",
+   "origin": "offset",
    "placements": 7,
    "scaleRange": [
     0.401,
     0.701
    ],
    "sha256": "3dbe6aee3334195403ca3be763a3b19061ad7932f58292a10e91d5896367ea2a",
+   "sits": {
+    "tilted": 5,
+    "upright": 2
+   },
    "size": [
-    166.0,
-    140.0,
-    122.5
+    166.01,
+    139.95,
+    122.54
    ],
    "skinned": false,
+   "textureShares": {
+    "td_oak_branches01_c.dds": 0.962,
+    "td_pine_bark_c.dds": 0.038
+   },
+   "textures": [
+    "coverage_base.dds",
+    "td_oak_branches01_c.dds",
+    "td_pine_bark_c.dds",
+    "td_pine_bark_n.dds"
+   ],
    "triangles": 518
   },
   "model/obj_mdrocka.mod@19578623": {
    "archive": "neighborhood.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mdrockb.mod": 14,
+    "obj_mdrockc.mod": 3,
+    "obp_decidtreea.mod": 2,
+    "obp_swamp_busha.mod": 50
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -24.08,
+     -21.67,
+     -3.09
+    ],
+    [
+     24.08,
+     21.67,
+     43.67
+    ]
+   ],
+   "bytes": 9405,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocks",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base.dds",
@@ -598,26 +673,70 @@
      }
     }
    ],
+   "entry": "obj_mdrocka.mod",
+   "footprint": 2088.0,
+   "kind": "model",
    "name": "obj_mdrocka.mod",
+   "origin": "offset",
    "placements": 33,
    "scaleRange": [
     0.17,
     1.23
    ],
    "sha256": "19578623754defd6202cc81ee5bbb46a1e83a4a259fc018b8943e3a3b37de777",
+   "sits": {
+    "tilted": 3,
+    "upright": 30
+   },
    "size": [
-    48.2,
-    43.3,
-    46.8
+    48.17,
+    43.35,
+    46.76
    ],
    "skinned": false,
+   "textureShares": {
+    "adl_rckwall01.dds": 1.0
+   },
+   "textures": [
+    "adl_rckwall01.dds",
+    "adl_rckwall01_n.dds",
+    "coverage_base.dds"
+   ],
    "triangles": 204
   },
   "model/obj_mdrockb.mod@b611056b": {
    "archive": "neighborhood.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mdrocka.mod": 14,
+    "obj_mdrockc.mod": 11,
+    "obp_decidtreea.mod": 11,
+    "obp_swamp_busha.mod": 191,
+    "obp_treem.mod": 4
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -25.51,
+     -24.29,
+     -2.5
+    ],
+    [
+     25.51,
+     24.29,
+     32.96
+    ]
+   ],
+   "bytes": 12517,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocks",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base.dds",
@@ -626,26 +745,70 @@
      }
     }
    ],
+   "entry": "obj_mdrockb.mod",
+   "footprint": 2478.7,
+   "kind": "model",
    "name": "obj_mdrockb.mod",
+   "origin": "offset",
    "placements": 101,
    "scaleRange": [
     0.05,
     1.0
    ],
    "sha256": "b611056b37611aff841370bf32479d31c9fa264af477161989fded5eab9a8cbc",
+   "sits": {
+    "tilted": 23,
+    "upright": 78
+   },
    "size": [
-    51.0,
-    48.6,
-    35.5
+    51.02,
+    48.59,
+    35.46
    ],
    "skinned": false,
+   "textureShares": {
+    "adl_rckwall01.dds": 1.0
+   },
+   "textures": [
+    "adl_rckwall01.dds",
+    "adl_rckwall01_n.dds",
+    "coverage_base.dds"
+   ],
    "triangles": 276
   },
   "model/obj_mdrockc.mod@1673e1fa": {
    "archive": "neighborhood.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mdrocka.mod": 3,
+    "obj_mdrockb.mod": 11,
+    "obj_pinetree.mod": 3,
+    "obp_decidtreea.mod": 1,
+    "obp_swamp_busha.mod": 53
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -26.35,
+     -26.35,
+     -2.5
+    ],
+    [
+     26.35,
+     26.35,
+     50.96
+    ]
+   ],
+   "bytes": 13309,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "tan",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "JAR_rocks",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base.dds",
@@ -654,26 +817,75 @@
      }
     }
    ],
+   "entry": "obj_mdrockc.mod",
+   "footprint": 2778.0,
+   "kind": "model",
    "name": "obj_mdrockc.mod",
+   "origin": "offset",
    "placements": 27,
    "scaleRange": [
     0.11,
     1.201
    ],
    "sha256": "1673e1faa39cef00343ed9c00112226f748bb9a903d8f710bfb05a9010fae0fc",
+   "sits": {
+    "tilted": 6,
+    "upright": 21
+   },
    "size": [
+    52.71,
     52.7,
-    52.7,
-    53.5
+    53.46
    ],
    "skinned": false,
+   "textureShares": {
+    "adl_rckwall01.dds": 1.0
+   },
+   "textures": [
+    "adl_rckwall01.dds",
+    "adl_rckwall01_n.dds",
+    "coverage_base.dds"
+   ],
    "triangles": 276
   },
   "model/obj_og_pine.mod@99b5799b": {
    "archive": "neighborhood.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obp_decidtreea.mod": 2,
+    "obp_swamp_busha.mod": 36
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -36.03,
+     -37.93,
+     -10.85
+    ],
+    [
+     36.03,
+     37.93,
+     139.01
+    ]
+   ],
+   "bytes": 59372,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 0.974
+    },
+    {
+     "color": "brown",
+     "share": 0.018
+    },
+    {
+     "color": "black",
+     "share": 0.008
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Material #1",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base2.dds",
@@ -682,12 +894,14 @@
      }
     },
     {
+     "name": "Material #2",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "ab_pinetree02_c.dds"
      }
     },
     {
+     "name": "Material #3",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base2.dds",
@@ -696,26 +910,81 @@
      }
     }
    ],
+   "entry": "obj_og_pine.mod",
+   "footprint": 5467.0,
+   "kind": "model",
    "name": "obj_og_pine.mod",
+   "origin": "offset",
    "placements": 12,
    "scaleRange": [
     0.301,
     0.65
    ],
    "sha256": "99b5799ba2277313fba1786559635001a2cf023029f74aaf5ce3d67425b0b165",
+   "sits": {
+    "upright": 12
+   },
    "size": [
-    72.1,
-    75.9,
-    149.9
+    72.07,
+    75.86,
+    149.86
    ],
    "skinned": false,
+   "textureShares": {
+    "ab_pinebark02_c.dds": 0.018,
+    "ab_pinebark_bottom02_c.dds": 0.008,
+    "ab_pinetree02_c.dds": 0.974
+   },
+   "textures": [
+    "ab_pinebark01_n.dds",
+    "ab_pinebark02_c.dds",
+    "ab_pinebark_bottom02_c.dds",
+    "ab_pinetree02_c.dds",
+    "coverage_base2.dds"
+   ],
    "triangles": 438
   },
   "model/obj_pinetree.mod@c483ec23": {
    "archive": "neighborhood.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mdrockb.mod": 3,
+    "obj_mdrockc.mod": 3,
+    "obp_decidtreea.mod": 61,
+    "obp_swamp_busha.mod": 233,
+    "obp_treem.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -36.03,
+     -37.93,
+     -10.85
+    ],
+    [
+     36.03,
+     37.93,
+     139.01
+    ]
+   ],
+   "bytes": 59613,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 0.977
+    },
+    {
+     "color": "brown",
+     "share": 0.018
+    },
+    {
+     "color": "black",
+     "share": 0.005
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "LODpinebark",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base.dds",
@@ -724,46 +993,97 @@
      }
     },
     {
+     "name": "LODpinetree",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "ab_pinetree02_c.dds"
      }
     },
     {
+     "name": "LODpinebarkbot",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base.dds",
       "e_TextureDiffuse0": "ab_pinebark_bottom02_c.dds",
       "e_TextureNormal0": "ab_pinebark01_n.dds"
      }
-    },
-    {
-     "shader": "Alpha_MPLBasicA.fx",
-     "textures": {
-      "e_TextureDiffuse0": "ab_pinelod1_c.dds"
-     }
     }
    ],
+   "entry": "obj_pinetree.mod",
+   "footprint": 5467.0,
+   "kind": "model",
    "name": "obj_pinetree.mod",
+   "origin": "offset",
    "placements": 2525,
    "scaleRange": [
     0.05,
     0.96
    ],
    "sha256": "c483ec230ca5092150f381a7ff3078aa55d05a18f18ad742fe68676fbf9b3e8b",
+   "sits": {
+    "upright": 2525
+   },
    "size": [
-    72.1,
-    75.9,
-    149.9
+    72.07,
+    75.86,
+    149.86
    ],
    "skinned": false,
+   "textureShares": {
+    "ab_pinebark02_c.dds": 0.018,
+    "ab_pinebark_bottom02_c.dds": 0.005,
+    "ab_pinetree02_c.dds": 0.977
+   },
+   "textures": [
+    "ab_pinebark01_n.dds",
+    "ab_pinebark02_c.dds",
+    "ab_pinebark_bottom02_c.dds",
+    "ab_pinetree02_c.dds",
+    "coverage_base.dds"
+   ],
    "triangles": 432
   },
   "model/obp_decidtreea.mod@fd2d39ca": {
    "archive": "neighborhood.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mdrocka.mod": 2,
+    "obj_mdrockb.mod": 11,
+    "obj_pinetree.mod": 61,
+    "obp_swamp_busha.mod": 156,
+    "obp_treem.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -38.46,
+     -38.23,
+     -5.7
+    ],
+    [
+     43.98,
+     37.3,
+     97.76
+    ]
+   ],
+   "bytes": 23159,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "yellow",
+     "share": 0.981
+    },
+    {
+     "color": "brown",
+     "share": 0.017
+    },
+    {
+     "color": "green",
+     "share": 0.002
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Material #1",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base.dds",
@@ -772,90 +1092,179 @@
      }
     },
     {
+     "name": "Material #2",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "leafcanopy1.dds"
      }
     },
     {
+     "name": "Material #3",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base.dds",
       "e_TextureDiffuse0": "ab_maplebark_bottom01_c.dds",
       "e_TextureNormal0": "ab_pinebark01_n.dds"
      }
-    },
-    {
-     "shader": "Chroma_MPLBasicAT.fx",
-     "textures": {
-      "e_TextureDiffuse0": "decid4lodcard.dds"
-     }
     }
    ],
+   "entry": "obp_decidtreea.mod",
+   "footprint": 6226.8,
+   "kind": "model",
    "name": "obp_decidtreea.mod",
+   "origin": "offset",
    "placements": 102,
    "scaleRange": [
     0.1,
     1.8
    ],
    "sha256": "fd2d39ca3d7075e28624a3320aaabb6f4c16dbd987b479eb03b701b8210098a1",
+   "sits": {
+    "tilted": 2,
+    "upright": 100
+   },
    "size": [
-    82.4,
-    75.5,
-    103.5
+    82.44,
+    75.53,
+    103.46
    ],
    "skinned": false,
+   "textureShares": {
+    "ab_maplebark01_c.dds": 0.017,
+    "ab_maplebark_bottom01_c.dds": 0.002,
+    "leafcanopy1.dds": 0.981
+   },
+   "textures": [
+    "ab_maplebark01_c.dds",
+    "ab_maplebark_bottom01_c.dds",
+    "ab_pinebark01_n.dds",
+    "coverage_base.dds",
+    "leafcanopy1.dds"
+   ],
    "triangles": 310
   },
   "model/obp_swamp_busha.mod@865e18a9": {
    "archive": "neighborhood.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mdrocka.mod": 50,
+    "obj_mdrockb.mod": 191,
+    "obj_mdrockc.mod": 53,
+    "obj_pinetree.mod": 233,
+    "obp_decidtreea.mod": 156
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -23.3,
+     -29.47,
+     -6.12
+    ],
+    [
+     28.42,
+     26.21,
+     25.2
+    ]
+   ],
+   "bytes": 43546,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "trnk",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "di_bark_moss.dds"
      }
     },
     {
+     "name": "brnch",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "branches_grn.dds"
      }
     },
     {
+     "name": "lvs",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "leaves_drkgrn.dds"
      }
     }
    ],
+   "entry": "obp_swamp_busha.mod",
+   "footprint": 2880.2,
+   "kind": "model",
    "name": "obp_swamp_busha.mod",
+   "origin": "offset",
    "placements": 2902,
    "scaleRange": [
     0.05,
     0.67
    ],
    "sha256": "865e18a9d312fad615d4df5218dccb2fff1d0b87c3b1f436a1ae9e16440de07f",
+   "sits": {
+    "upright": 2902
+   },
    "size": [
-    51.7,
-    55.7,
-    31.3
+    51.72,
+    55.69,
+    31.32
    ],
    "skinned": false,
+   "textureShares": {
+    "branches_grn.dds": 0.089,
+    "di_bark_moss.dds": 0.001,
+    "leaves_drkgrn.dds": 0.91
+   },
+   "textures": [
+    "branches_grn.dds",
+    "di_bark_moss.dds",
+    "leaves_drkgrn.dds"
+   ],
    "triangles": 391
   },
   "model/obp_treem.mod@1702f8af": {
    "archive": "neighborhood.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_mapletreebig.mod": 1,
+    "obj_mdrockb.mod": 4,
+    "obj_pinetree.mod": 3,
+    "obp_decidtreea.mod": 5,
+    "obp_swamp_busha.mod": 36
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -9.72,
+     -9.46,
+     -1.54
+    ],
+    [
+     10.17,
+     10.29,
+     25.3
+    ]
+   ],
+   "bytes": 22159,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 0.982
+    },
+    {
+     "color": "brown",
+     "share": 0.018
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Material #1",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_base.dds",
@@ -864,33 +1273,44 @@
      }
     },
     {
+     "name": "treeM_canopy",
      "shader": "Chroma_MPLBasicAT.fx",
      "textures": {
       "e_TextureDiffuse0": "leaf1.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_base.dds",
-      "e_TextureDiffuse0": "ab_maplebark_bottom01_c.dds",
-      "e_TextureNormal0": "ab_pinebark01_n.dds"
-     }
     }
    ],
+   "entry": "obp_treem.mod",
+   "footprint": 392.8,
+   "kind": "model",
    "name": "obp_treem.mod",
+   "origin": "offset",
    "placements": 21,
    "scaleRange": [
     1.001,
     3.001
    ],
    "sha256": "1702f8af0e479f6f9691525b0c22079bbe4b376fc09b55bf726a0b3d2805c74a",
+   "sits": {
+    "tilted": 1,
+    "upright": 20
+   },
    "size": [
     19.9,
-    19.7,
-    26.8
+    19.74,
+    26.84
    ],
    "skinned": false,
+   "textureShares": {
+    "ab_maplebark01_c.dds": 0.018,
+    "leaf1.dds": 0.982
+   },
+   "textures": [
+    "ab_maplebark01_c.dds",
+    "ab_pinebark01_n.dds",
+    "coverage_base.dds",
+    "leaf1.dds"
+   ],
    "triangles": 318
   },
   "texture/12285_c.dds@065d4fb1": {
@@ -1638,7 +2058,7 @@
     0.13
    ],
    "sha256": "5ee74565326c27234a42291c54dea2780d290e90167cbd35877ef5bfa89b3fe0",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.642,
    "width": 256
@@ -1668,15 +2088,15 @@
     0.15
    ],
    "sha256": "9afc78683dd390816f7aa3a46ff060fccce51e9beb7f1e6086cbd0bad64ba354",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": true,
    "transparentShare": 0.642,
    "width": 256
   },
   "texture/ab_maplebark01_c.dds@c75cb045": {
    "archives": [
-    "furniture06.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture06.eqg"
    ],
    "brightness": 0.201,
    "colorName": "brown",
@@ -1737,8 +2157,8 @@
   },
   "texture/ab_maplebark_bottom01_c.dds@52269c23": {
    "archives": [
-    "furniture06.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture06.eqg"
    ],
    "brightness": 0.226,
    "colorName": "green",
@@ -1749,18 +2169,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obp_decidtreea.mod": 102,
-     "obp_treem.mod": 21
+     "obp_decidtreea.mod": 102
     },
     "partners": {
-     "ab_pinebark01_n.dds": 2,
-     "coverage_base.dds": 2
+     "ab_pinebark01_n.dds": 1,
+     "coverage_base.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -1822,7 +2241,7 @@
     0.18
    ],
    "sha256": "a740360322f013be5fc03bec4ddcaa210dccf195c29ecf581a93a00b0521e971",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": true,
    "transparentShare": 0.665,
    "width": 512
@@ -1852,7 +2271,7 @@
     0.16
    ],
    "sha256": "bc22fed86df7016e2d810968c37f710926d6ca1acd14051720d3a7303904cbec",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.665,
    "width": 512
@@ -1882,7 +2301,7 @@
     0.23
    ],
    "sha256": "d04306f8a8db668462698e3850316672393814c652ebb24eb8eedc36f10953f3",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": true,
    "transparentShare": 0.682,
    "width": 256
@@ -1912,15 +2331,15 @@
     0.29
    ],
    "sha256": "e5a60326f2d856d08bf7289a1aef5bb88a9c8dcbf56c69526bd89496d64b7125",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.682,
    "width": 256
   },
   "texture/ab_pinebark01_n.dds@e326be95": {
    "archives": [
-    "furniture06.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture06.eqg"
    ],
    "brightness": 0.552,
    "colorName": "blue",
@@ -1934,20 +2353,20 @@
      "obj_og_pine.mod": 24,
      "obj_pinetree.mod": 5050,
      "obp_decidtreea.mod": 204,
-     "obp_treem.mod": 42
+     "obp_treem.mod": 21
     },
     "partners": {
      "ab_maplebark01_c.dds": 2,
-     "ab_maplebark_bottom01_c.dds": 2,
      "ab_pinebark02_c.dds": 2,
      "ab_pinebark_bottom02_c.dds": 2,
-     "coverage_base.dds": 6
+     "coverage_base.dds": 5,
+     "coverage_base2.dds": 2
     },
     "roles": {
-     "e_TextureNormal0": 8
+     "e_TextureNormal0": 7
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 8
+     "Opaque_MPLBump.fx": 7
     }
    },
    "meanColor": [
@@ -1971,8 +2390,8 @@
   },
   "texture/ab_pinebark02_c.dds@d33b2ded": {
    "archives": [
-    "furniture06.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture06.eqg"
    ],
    "brightness": 0.127,
    "colorName": "brown",
@@ -2043,6 +2462,36 @@
    "format": "DXT5",
    "height": 512,
    "kind": "texture",
+   "meanColor": [
+    46,
+    53,
+    28
+   ],
+   "name": "ab_pinebark_bottom02_c.dds",
+   "nameSaysNormalMap": false,
+   "normalMapLike": false,
+   "partialAlphaShare": 0.0,
+   "seamRatios": [
+    0.86,
+    1.02
+   ],
+   "sha256": "64b0f187b938b81651f86ba68dca16de4b0bbf526bcdbda6a279386d9a99c5e0",
+   "shadowed": true,
+   "tiles": true,
+   "transparentShare": 0.0,
+   "width": 256
+  },
+  "texture/ab_pinebark_bottom02_c.dds@acd0bf06": {
+   "archives": [
+    "neighborhood.eqg"
+   ],
+   "brightness": 0.123,
+   "colorName": "black",
+   "contrast": 0.064,
+   "fileName": "ab_pinebark_bottom02_c.dds",
+   "format": "DXT5",
+   "height": 256,
+   "kind": "texture",
    "materials": {
     "models": {
      "obj_og_pine.mod": 12,
@@ -2061,21 +2510,21 @@
     }
    },
    "meanColor": [
-    46,
-    53,
-    28
+    33,
+    33,
+    21
    ],
    "name": "ab_pinebark_bottom02_c.dds",
    "nameSaysNormalMap": false,
    "normalMapLike": false,
    "partialAlphaShare": 0.0,
    "seamRatios": [
-    0.86,
-    1.02
+    0.87,
+    1.76
    ],
-   "sha256": "64b0f187b938b81651f86ba68dca16de4b0bbf526bcdbda6a279386d9a99c5e0",
+   "sha256": "acd0bf064f61e7c7c454c9b17b2961470ca1e159d74db55e58d2e45e0f0c1635",
    "shadowed": false,
-   "tiles": true,
+   "tiles": false,
    "transparentShare": 0.0,
    "uses": {
     "areaShare": 0.001,
@@ -2092,36 +2541,6 @@
     },
     "unitsPerRepeat": 2.9
    },
-   "width": 256
-  },
-  "texture/ab_pinebark_bottom02_c.dds@acd0bf06": {
-   "archives": [
-    "neighborhood.eqg"
-   ],
-   "brightness": 0.123,
-   "colorName": "black",
-   "contrast": 0.064,
-   "fileName": "ab_pinebark_bottom02_c.dds",
-   "format": "DXT5",
-   "height": 256,
-   "kind": "texture",
-   "meanColor": [
-    33,
-    33,
-    21
-   ],
-   "name": "ab_pinebark_bottom02_c.dds",
-   "nameSaysNormalMap": false,
-   "normalMapLike": false,
-   "partialAlphaShare": 0.0,
-   "seamRatios": [
-    0.87,
-    1.76
-   ],
-   "sha256": "acd0bf064f61e7c7c454c9b17b2961470ca1e159d74db55e58d2e45e0f0c1635",
-   "shadowed": true,
-   "tiles": false,
-   "transparentShare": 0.0,
    "width": 256
   },
   "texture/ab_pinelod1_c.dds@5aed3503": {
@@ -2149,7 +2568,7 @@
     0.53
    ],
    "sha256": "5aed3503b7eb4ad21815eaf529ae40b2b846e5597317d773d6a5f04ea6917d27",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": false,
    "transparentShare": 0.828,
    "width": 256
@@ -2165,18 +2584,6 @@
    "format": "DXT5",
    "height": 512,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_pinetree.mod": 2525
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Alpha_MPLBasicA.fx": 1
-    }
-   },
    "meanColor": [
     32,
     46,
@@ -2191,7 +2598,7 @@
     0.53
    ],
    "sha256": "fffc4f7f437c8cd41c37915e24c00537531fdeac555a0e7be50ab6eb4f5d2341",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": false,
    "transparentShare": 0.829,
    "width": 256
@@ -2237,19 +2644,6 @@
    "format": "DXT5",
    "height": 512,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_og_pine.mod": 12,
-     "obj_pinetree.mod": 2525
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 2
-    },
-    "shaders": {
-     "Chroma_MPLBasicAT.fx": 2
-    }
-   },
    "meanColor": [
     27,
     41,
@@ -2264,6 +2658,49 @@
     4.08
    ],
    "sha256": "7e443af3d2164561f91906f6d68003a419b788edc672ed8518d7df88a3abf768",
+   "shadowed": true,
+   "tiles": false,
+   "transparentShare": 0.779,
+   "width": 256
+  },
+  "texture/ab_pinetree02_c.dds@e9254215": {
+   "archives": [
+    "neighborhood.eqg"
+   ],
+   "brightness": 0.117,
+   "colorName": "green",
+   "contrast": 0.053,
+   "fileName": "ab_pinetree02_c.dds",
+   "format": "DXT5",
+   "height": 512,
+   "kind": "texture",
+   "materials": {
+    "models": {
+     "obj_og_pine.mod": 12,
+     "obj_pinetree.mod": 2525
+    },
+    "partners": {},
+    "roles": {
+     "e_TextureDiffuse0": 2
+    },
+    "shaders": {
+     "Chroma_MPLBasicAT.fx": 2
+    }
+   },
+   "meanColor": [
+    30,
+    45,
+    26
+   ],
+   "name": "ab_pinetree02_c.dds",
+   "nameSaysNormalMap": false,
+   "normalMapLike": false,
+   "partialAlphaShare": 0.194,
+   "seamRatios": [
+    0.0,
+    3.68
+   ],
+   "sha256": "e9254215e5f69e01a60999ae57299f32fd5a393ad7d1712f4c7f0f6b96531708",
    "shadowed": false,
    "tiles": false,
    "transparentShare": 0.779,
@@ -2284,40 +2721,10 @@
    },
    "width": 256
   },
-  "texture/ab_pinetree02_c.dds@e9254215": {
-   "archives": [
-    "neighborhood.eqg"
-   ],
-   "brightness": 0.117,
-   "colorName": "green",
-   "contrast": 0.053,
-   "fileName": "ab_pinetree02_c.dds",
-   "format": "DXT5",
-   "height": 512,
-   "kind": "texture",
-   "meanColor": [
-    30,
-    45,
-    26
-   ],
-   "name": "ab_pinetree02_c.dds",
-   "nameSaysNormalMap": false,
-   "normalMapLike": false,
-   "partialAlphaShare": 0.194,
-   "seamRatios": [
-    0.0,
-    3.68
-   ],
-   "sha256": "e9254215e5f69e01a60999ae57299f32fd5a393ad7d1712f4c7f0f6b96531708",
-   "shadowed": true,
-   "tiles": false,
-   "transparentShare": 0.779,
-   "width": 256
-  },
   "texture/ab_sparse_bush_c.dds@64e4c875": {
    "archives": [
-    "furniture06.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture06.eqg"
    ],
    "brightness": 0.17,
    "colorName": "green",
@@ -2347,8 +2754,8 @@
   },
   "texture/ab_spiked_bush_c.dds@4fe6706e": {
    "archives": [
-    "furniture06.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture06.eqg"
    ],
    "brightness": 0.271,
    "colorName": "green",
@@ -4527,8 +4934,8 @@
   },
   "texture/clz_marble_trim_4s_n.dds@cd617523": {
    "archives": [
-    "phteleporting.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "phteleporting.eqg"
    ],
    "brightness": 0.576,
    "colorName": "blue",
@@ -4558,8 +4965,8 @@
   },
   "texture/clz_marble_trim_c.dds@87f8eca5": {
    "archives": [
-    "phteleporting.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "phteleporting.eqg"
    ],
    "brightness": 0.534,
    "colorName": "tan",
@@ -4769,9 +5176,9 @@
   },
   "texture/cover_b.dds@984eabb6": {
    "archives": [
+    "neighborhood.eqg",
     "furniture06.eqg",
-    "furniture07.eqg",
-    "neighborhood.eqg"
+    "furniture07.eqg"
    ],
    "brightness": 0.301,
    "colorName": "brown",
@@ -4854,7 +5261,7 @@
     1.63
    ],
    "sha256": "8316ddd5790e1dd8204db55b4380400549ecc7797bbcee47d02c1e36c87dacde",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": false,
    "transparentShare": 0.0,
    "width": 256
@@ -4884,7 +5291,7 @@
     1.13
    ],
    "sha256": "a2e764e8b5cc669ffc538f5f660629162b8dca06f4c63f7af38997d919c495c7",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.0,
    "width": 256
@@ -5017,6 +5424,36 @@
    "brightness": 0.613,
    "colorName": "grey",
    "contrast": 0.071,
+   "fileName": "coverage2_rock.dds",
+   "format": "DXT5",
+   "height": 256,
+   "kind": "texture",
+   "meanColor": [
+    154,
+    157,
+    157
+   ],
+   "name": "coverage2_rock.dds",
+   "nameSaysNormalMap": false,
+   "normalMapLike": false,
+   "partialAlphaShare": 0.0,
+   "seamRatios": [
+    0.86,
+    0.95
+   ],
+   "sha256": "6eabbe40e0719166dfa307eb07ac5b1bdce3be231c970ceb481c2a1b97e6b7a8",
+   "shadowed": true,
+   "tiles": true,
+   "transparentShare": 0.0,
+   "width": 256
+  },
+  "texture/coverage2_rock.dds@e228f1a6": {
+   "archives": [
+    "neighborhood.eqg"
+   ],
+   "brightness": 0.496,
+   "colorName": "grey",
+   "contrast": 0.143,
    "ecosystemLayers": [
     {
      "as": "coverMap",
@@ -5079,36 +5516,6 @@
    "height": 256,
    "kind": "texture",
    "meanColor": [
-    154,
-    157,
-    157
-   ],
-   "name": "coverage2_rock.dds",
-   "nameSaysNormalMap": false,
-   "normalMapLike": false,
-   "partialAlphaShare": 0.0,
-   "seamRatios": [
-    0.86,
-    0.95
-   ],
-   "sha256": "6eabbe40e0719166dfa307eb07ac5b1bdce3be231c970ceb481c2a1b97e6b7a8",
-   "shadowed": false,
-   "tiles": true,
-   "transparentShare": 0.0,
-   "width": 256
-  },
-  "texture/coverage2_rock.dds@e228f1a6": {
-   "archives": [
-    "neighborhood.eqg"
-   ],
-   "brightness": 0.496,
-   "colorName": "grey",
-   "contrast": 0.143,
-   "fileName": "coverage2_rock.dds",
-   "format": "DXT5",
-   "height": 256,
-   "kind": "texture",
-   "meanColor": [
     126,
     127,
     125
@@ -5122,7 +5529,7 @@
     0.92
    ],
    "sha256": "e228f1a69938e3902afd3272cd0cb6baa765f1b67f46964668648a0dde71e8b0",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.0,
    "width": 256
@@ -5189,10 +5596,10 @@
   },
   "texture/coverage_base.dds@18accd8d": {
    "archives": [
+    "neighborhood.eqg",
     "furniture01.eqg",
     "furniture06.eqg",
-    "furniture07.eqg",
-    "neighborhood.eqg"
+    "furniture07.eqg"
    ],
    "brightness": 0.469,
    "colorName": "grey",
@@ -5201,6 +5608,29 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
+   "materials": {
+    "models": {
+     "obj_mdrocka.mod": 33,
+     "obj_mdrockb.mod": 101,
+     "obj_mdrockc.mod": 27,
+     "obj_pinetree.mod": 5050,
+     "obp_decidtreea.mod": 204
+    },
+    "partners": {
+     "ab_maplebark01_c.dds": 2,
+     "ab_pinebark01_n.dds": 5,
+     "ab_pinebark02_c.dds": 1,
+     "adl_rckwall01.dds": 3,
+     "adl_rckwall01_n.dds": 3
+    },
+    "roles": {
+     "e_TextureCoverage0": 9
+    },
+    "shaders": {
+     "Opaque_MPLBump.fx": 5,
+     "Opaque_MPLBump2UV.fx": 4
+    }
+   },
    "meanColor": [
     120,
     120,
@@ -5215,7 +5645,7 @@
     1.03
    ],
    "sha256": "18accd8d9f05e8d67ee16abbec9a75f5c0c66a370ce16304167470b2d9b8fa0e",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.0,
    "width": 256
@@ -5231,29 +5661,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_mdrocka.mod": 33,
-     "obj_mdrockb.mod": 101,
-     "obj_pinetree.mod": 5050,
-     "obp_decidtreea.mod": 204,
-     "obp_treem.mod": 42
-    },
-    "partners": {
-     "ab_maplebark01_c.dds": 2,
-     "ab_maplebark_bottom01_c.dds": 2,
-     "ab_pinebark01_n.dds": 6,
-     "adl_rckwall01.dds": 3,
-     "adl_rckwall01_n.dds": 3
-    },
-    "roles": {
-     "e_TextureCoverage0": 10
-    },
-    "shaders": {
-     "Opaque_MPLBump.fx": 6,
-     "Opaque_MPLBump2UV.fx": 4
-    }
-   },
    "meanColor": [
     148,
     149,
@@ -5268,7 +5675,7 @@
     0.98
    ],
    "sha256": "955791d3359d8b76c1072dd3989ce289b7960484b391f058fee483a9e337423e",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": true,
    "transparentShare": 0.0,
    "width": 256
@@ -5335,8 +5742,8 @@
   },
   "texture/coverage_gen.dds@04649d48": {
    "archives": [
-    "furniture07.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture07.eqg"
    ],
    "brightness": 0.497,
    "colorName": "grey",
@@ -5366,10 +5773,10 @@
   },
   "texture/coverage_light_b.dds@6d154f85": {
    "archives": [
+    "neighborhood.eqg",
     "furniture01.eqg",
     "furniture06.eqg",
-    "furniture03.eqg",
-    "neighborhood.eqg"
+    "furniture03.eqg"
    ],
    "brightness": 0.392,
    "colorName": "grey",
@@ -5728,7 +6135,7 @@
     0.79
    ],
    "sha256": "87bb7ac6a6ddbbcce6d0745b3f64e336bf6891cfa538ccda38e9c1ec090ad721",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": true,
    "transparentShare": 0.0,
    "width": 256
@@ -5758,7 +6165,7 @@
     0.81
    ],
    "sha256": "cd2ca3dcebdbd32f5bc6bac014cc1d6a06b5846cee24abe9d7bed3ff43e8e040",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.0,
    "width": 256
@@ -5975,8 +6382,8 @@
   },
   "texture/decid2_card.dds@caaff622": {
    "archives": [
-    "furniture06.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture06.eqg"
    ],
    "brightness": 0.373,
    "colorName": "green",
@@ -6029,7 +6436,7 @@
     0.88
    ],
    "sha256": "79c2f91ecdb11d6ec2f57746199c3bc74b722ec3fb1e681193db5f683578854c",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.715,
    "width": 256
@@ -6045,18 +6452,6 @@
    "format": "DXT5",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obp_decidtreea.mod": 102
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Chroma_MPLBasicAT.fx": 1
-    }
-   },
    "meanColor": [
     45,
     48,
@@ -6071,7 +6466,7 @@
     0.04
    ],
    "sha256": "b3cf8ef81aff917cdb3aa85497b69785ea0391e7048b3731edf3f0bcc758755f",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": true,
    "transparentShare": 0.755,
    "width": 256
@@ -6917,8 +7312,8 @@
   },
   "texture/di_fp_ext_stonewall_6n.dds@2dbd967e": {
    "archives": [
-    "furniture10.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture10.eqg"
    ],
    "brightness": 0.553,
    "colorName": "blue",
@@ -7931,9 +8326,9 @@
   },
   "texture/di_morel_ext_stone_6n.dds@0d6dc8db": {
    "archives": [
+    "neighborhood.eqg",
     "furniture06.eqg",
-    "furniture07.eqg",
-    "neighborhood.eqg"
+    "furniture07.eqg"
    ],
    "brightness": 0.557,
    "colorName": "blue",
@@ -11386,8 +11781,8 @@
   },
   "texture/leaf1.dds@f54c4d8a": {
    "archives": [
-    "furniture06.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture06.eqg"
    ],
    "brightness": 0.262,
    "colorName": "green",
@@ -11444,8 +11839,8 @@
   },
   "texture/leafcanopy1.dds@aee6e135": {
    "archives": [
-    "furniture06.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture06.eqg"
    ],
    "brightness": 0.32,
    "colorName": "yellow",
@@ -11679,8 +12074,8 @@
   },
   "texture/lot_square_rocks.dds@50d68216": {
    "archives": [
-    "stonesquare.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "stonesquare.eqg"
    ],
    "brightness": 0.48,
    "colorName": "tan",
@@ -11860,8 +12255,8 @@
   },
   "texture/marker_marble_rough_c.dds@87233e99": {
    "archives": [
-    "stonesquare.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "stonesquare.eqg"
    ],
    "brightness": 0.482,
    "colorName": "tan",
@@ -11891,8 +12286,8 @@
   },
   "texture/marker_marble_rough_n.dds@cb868d95": {
    "archives": [
-    "stonesquare.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "stonesquare.eqg"
    ],
    "brightness": 0.556,
    "colorName": "blue",
@@ -13154,8 +13549,8 @@
   },
   "texture/plh_stonea.dds@d8ff3aa3": {
    "archives": [
-    "stonesquare.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "stonesquare.eqg"
    ],
    "brightness": 0.235,
    "colorName": "tan",
@@ -14562,7 +14957,7 @@
     1.0
    ],
    "sha256": "34d934e00995c9ca8646a05a6fc4d280ff72d6042e76afe94f2356117128cdb6",
-   "shadowed": false,
+   "shadowed": true,
    "tiles": true,
    "transparentShare": 0.0,
    "width": 256
@@ -14592,7 +14987,7 @@
     0.93
    ],
    "sha256": "e009eb30b91b212457d2cfab8e8fab819314ac28b65fbf56e7b544f581f1a062",
-   "shadowed": true,
+   "shadowed": false,
    "tiles": true,
    "transparentShare": 0.0,
    "width": 256
@@ -14668,6 +15063,18 @@
    "format": "DXT5",
    "height": 512,
    "kind": "texture",
+   "materials": {
+    "models": {
+     "obj_mapletreebig.mod": 7
+    },
+    "partners": {},
+    "roles": {
+     "e_TextureDiffuse0": 1
+    },
+    "shaders": {
+     "Chroma_MPLBasicAT.fx": 1
+    }
+   },
    "meanColor": [
     49,
     54,
@@ -14682,48 +15089,6 @@
     0.1
    ],
    "sha256": "6d2c2ee2a76b7adffb0de9902d5b3360289dd19e8d1f2cf366e1a54a62171e7d",
-   "shadowed": true,
-   "tiles": true,
-   "transparentShare": 0.699,
-   "width": 512
-  },
-  "texture/td_oak_branches01_c.dds@a5914ef5": {
-   "archives": [
-    "furniture06.eqg"
-   ],
-   "brightness": 0.08,
-   "colorName": "black",
-   "contrast": 0.045,
-   "fileName": "td_oak_branches01_c.dds",
-   "format": "DXT5",
-   "height": 512,
-   "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_mapletreebig.mod": 7
-    },
-    "partners": {},
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "Chroma_MPLBasicAT.fx": 1
-    }
-   },
-   "meanColor": [
-    31,
-    30,
-    21
-   ],
-   "name": "td_oak_branches01_c.dds",
-   "nameSaysNormalMap": false,
-   "normalMapLike": false,
-   "partialAlphaShare": 0.172,
-   "seamRatios": [
-    0.01,
-    0.08
-   ],
-   "sha256": "a5914ef519a502b360ea6dc4fe37eb2c7657950c92394bb2fc8af1074d76c038",
    "shadowed": false,
    "tiles": true,
    "transparentShare": 0.699,
@@ -14744,6 +15109,36 @@
    },
    "width": 512
   },
+  "texture/td_oak_branches01_c.dds@a5914ef5": {
+   "archives": [
+    "furniture06.eqg"
+   ],
+   "brightness": 0.08,
+   "colorName": "black",
+   "contrast": 0.045,
+   "fileName": "td_oak_branches01_c.dds",
+   "format": "DXT5",
+   "height": 512,
+   "kind": "texture",
+   "meanColor": [
+    31,
+    30,
+    21
+   ],
+   "name": "td_oak_branches01_c.dds",
+   "nameSaysNormalMap": false,
+   "normalMapLike": false,
+   "partialAlphaShare": 0.172,
+   "seamRatios": [
+    0.01,
+    0.08
+   ],
+   "sha256": "a5914ef519a502b360ea6dc4fe37eb2c7657950c92394bb2fc8af1074d76c038",
+   "shadowed": true,
+   "tiles": true,
+   "transparentShare": 0.699,
+   "width": 512
+  },
   "texture/td_pine_bark_c.dds@271aee9e": {
    "archives": [
     "neighborhood.eqg"
@@ -14751,36 +15146,6 @@
    "brightness": 0.324,
    "colorName": "grey",
    "contrast": 0.085,
-   "fileName": "td_pine_bark_c.dds",
-   "format": "DXT5",
-   "height": 256,
-   "kind": "texture",
-   "meanColor": [
-    89,
-    81,
-    75
-   ],
-   "name": "td_pine_bark_c.dds",
-   "nameSaysNormalMap": false,
-   "normalMapLike": false,
-   "partialAlphaShare": 0.0,
-   "seamRatios": [
-    0.98,
-    1.04
-   ],
-   "sha256": "271aee9e4ea8235a463bee939413c34106f4df7f1789150146fceea611d558c6",
-   "shadowed": true,
-   "tiles": true,
-   "transparentShare": 0.0,
-   "width": 256
-  },
-  "texture/td_pine_bark_c.dds@6062334a": {
-   "archives": [
-    "furniture06.eqg"
-   ],
-   "brightness": 0.087,
-   "colorName": "black",
-   "contrast": 0.023,
    "fileName": "td_pine_bark_c.dds",
    "format": "DXT5",
    "height": 256,
@@ -14801,19 +15166,19 @@
     }
    },
    "meanColor": [
-    24,
-    22,
-    20
+    89,
+    81,
+    75
    ],
    "name": "td_pine_bark_c.dds",
    "nameSaysNormalMap": false,
    "normalMapLike": false,
    "partialAlphaShare": 0.0,
    "seamRatios": [
-    1.0,
-    1.03
+    0.98,
+    1.04
    ],
-   "sha256": "6062334aa022ee47eef70f5343525fa44adbc156d601f947d6b3f66ad077a1c1",
+   "sha256": "271aee9e4ea8235a463bee939413c34106f4df7f1789150146fceea611d558c6",
    "shadowed": false,
    "tiles": true,
    "transparentShare": 0.0,
@@ -14834,10 +15199,40 @@
    },
    "width": 256
   },
+  "texture/td_pine_bark_c.dds@6062334a": {
+   "archives": [
+    "furniture06.eqg"
+   ],
+   "brightness": 0.087,
+   "colorName": "black",
+   "contrast": 0.023,
+   "fileName": "td_pine_bark_c.dds",
+   "format": "DXT5",
+   "height": 256,
+   "kind": "texture",
+   "meanColor": [
+    24,
+    22,
+    20
+   ],
+   "name": "td_pine_bark_c.dds",
+   "nameSaysNormalMap": false,
+   "normalMapLike": false,
+   "partialAlphaShare": 0.0,
+   "seamRatios": [
+    1.0,
+    1.03
+   ],
+   "sha256": "6062334aa022ee47eef70f5343525fa44adbc156d601f947d6b3f66ad077a1c1",
+   "shadowed": true,
+   "tiles": true,
+   "transparentShare": 0.0,
+   "width": 256
+  },
   "texture/td_pine_bark_n.dds@be410fb1": {
    "archives": [
-    "furniture06.eqg",
-    "neighborhood.eqg"
+    "neighborhood.eqg",
+    "furniture06.eqg"
    ],
    "brightness": 0.553,
    "colorName": "blue",
@@ -16135,6 +16530,6 @@
   "This EQ terrain zone's lights are not read"
  ],
  "source": "zone:neighborhood",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "neighborhood"
 }

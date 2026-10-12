@@ -169,18 +169,18 @@
    "count": 21,
    "examplePositions": [
     [
-     51.6,
      -19.3,
+     -51.6,
      19.7
     ],
     [
-     31.2,
      43.1,
+     -31.2,
      19.7
     ],
     [
-     -30.4,
      42.9,
+     30.4,
      19.7
     ]
    ],
@@ -230,18 +230,18 @@
    "count": 53,
    "examplePositions": [
     [
-     0.9,
      -268.3,
+     -0.9,
      26.0
     ],
     [
-     0.9,
      -228.6,
+     -0.9,
      26.0
     ],
     [
-     34.6,
      -48.6,
+     -34.6,
      36.0
     ]
    ],
@@ -265,9 +265,33 @@
   },
   "model/obj_barrel_talosian01.mod@96eb0b27": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_urntalla01.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.06,
+     0.0,
+     -0.06
+    ],
+    [
+     0.06,
+     0.16,
+     0.06
+    ]
+   ],
+   "bytes": 12019,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Wood",
      "shader": "OpaqueSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_wood_crate01_c.dds",
@@ -275,6 +299,7 @@
      }
     },
     {
+     "name": "Metal",
      "shader": "OpaqueSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_metal_crate01_c.dds",
@@ -282,26 +307,65 @@
      }
     }
    ],
+   "entry": "obj_barrel_talosian01.mod",
+   "footprint": 0.0,
+   "kind": "model",
    "name": "obj_barrel_talosian01.mod",
+   "origin": "wallBack",
    "placements": 3,
    "scaleRange": [
     38.262,
     38.262
    ],
    "sha256": "96eb0b27efd8148cc193d5a0f9d99198c00cd09531d5f758fd78af192baa1191",
+   "sits": {
+    "tilted": 3
+   },
    "size": [
-    0.1,
-    0.2,
-    0.1
+    0.12,
+    0.16,
+    0.12
    ],
    "skinned": false,
+   "textureShares": {
+    "di_metal_crate01_c.dds": 0.253,
+    "di_wood_crate01_c.dds": 0.747
+   },
+   "textures": [
+    "di_metal_crate01_c.dds",
+    "di_metal_crate01_n.dds",
+    "di_wood_crate01_c.dds",
+    "di_wood_crate01_n.dds"
+   ],
    "triangles": 164
   },
   "model/obj_htisland01.mod@0b3d136d": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -32.19,
+     -27.24,
+     -57.62
+    ],
+    [
+     27.59,
+     32.07,
+     72.99
+    ]
+   ],
+   "bytes": 16226,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "htisland1a",
      "shader": "OpaqueSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "av_tunnel03_c.dds",
@@ -309,6 +373,7 @@
      }
     },
     {
+     "name": "htisland1b",
      "shader": "OpaqueSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "av_cliff02_c.dds",
@@ -316,60 +381,130 @@
      }
     }
    ],
+   "entry": "obj_htisland01.mod",
+   "footprint": 3545.4,
+   "kind": "model",
    "name": "obj_htisland01.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     0.586,
     0.986
    ],
    "sha256": "0b3d136dc6a4ec7d278964feda8a96d7900045dc2602cca8eb04ca15360d06a8",
+   "sits": {
+    "upright": 3
+   },
    "size": [
-    59.8,
-    59.3,
-    130.6
+    59.77,
+    59.31,
+    130.61
    ],
    "skinned": false,
+   "textureShares": {
+    "av_cliff02_c.dds": 0.304,
+    "av_tunnel03_c.dds": 0.696
+   },
+   "textures": [
+    "av_cliff02_c.dds",
+    "av_cliff02_n.dds",
+    "av_tunnel03_c.dds",
+    "av_tunnel03_n.dds"
+   ],
    "triangles": 394
   },
   "model/obj_htislandvines.mod@f36f130b": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     17.97,
+     -11.61,
+     -19.64
+    ],
+    [
+     37.56,
+     8.51,
+     22.05
+    ]
+   ],
+   "bytes": 32160,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "htislandvines1a",
      "shader": "AlphaSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "av_rock16a_c.dds",
       "e_TextureNormal0": "av_rock23_n.dds"
      }
-    },
-    {
-     "shader": "OpaqueSModelCB1Max.fx",
-     "textures": {
-      "e_TextureDiffuse0": "av_skull01_c.dds",
-      "e_TextureNormal0": "av_skull01_n.dds"
-     }
     }
    ],
+   "entry": "obj_htislandvines.mod",
+   "footprint": 394.0,
+   "kind": "model",
    "name": "obj_htislandvines.mod",
+   "origin": "offset",
    "placements": 3,
    "scaleRange": [
     1.535,
     2.585
    ],
    "sha256": "f36f130b04c46c9c574ecd3e6fa69d6b6d41ee4aa2c3e4a146ae99ba295e1a9e",
+   "sits": {
+    "upright": 3
+   },
    "size": [
-    19.6,
-    20.1,
-    41.7
+    19.58,
+    20.12,
+    41.69
    ],
    "skinned": false,
+   "textureShares": {
+    "av_rock16a_c.dds": 1.0
+   },
+   "textures": [
+    "av_rock16a_c.dds",
+    "av_rock23_n.dds"
+   ],
    "triangles": 440
   },
   "model/obj_rugpiec01.mod@53740389": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "ter_temple01.ter": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -3.09,
+     50.26,
+     -9.64
+    ],
+    [
+     3.09,
+     50.74,
+     -9.16
+    ]
+   ],
+   "bytes": 8394,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "red",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Tapestriez",
      "shader": "OpaqueSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "tapestry01_c.dds",
@@ -377,26 +512,62 @@
      }
     }
    ],
+   "entry": "obj_rugpiec01.mod",
+   "footprint": 3.0,
+   "kind": "model",
    "name": "obj_rugpiec01.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "53740389fa01ebc2ea562807dd81b18c8d3ee0e9460a317cc9c185c6e852adfb",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    6.2,
-    0.5,
-    0.5
+    6.18,
+    0.48,
+    0.48
    ],
    "skinned": false,
+   "textureShares": {
+    "tapestry01_c.dds": 1.0
+   },
+   "textures": [
+    "tapestry01_c.dds",
+    "tapestry01_n.dds"
+   ],
    "triangles": 192
   },
   "model/obj_sarcophagus.mod@71d453bd": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -5.6,
+     -1.98,
+     -1.43
+    ],
+    [
+     5.6,
+     1.98,
+     1.26
+    ]
+   ],
+   "bytes": 44729,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Sarcoph",
      "shader": "OpaqueSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "av_sarcophagus_de01_c.dds",
@@ -404,104 +575,259 @@
      }
     }
    ],
+   "entry": "obj_sarcophagus.mod",
+   "footprint": 44.3,
+   "kind": "model",
    "name": "obj_sarcophagus.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.997,
     1.997
    ],
    "sha256": "71d453bd944d717c6e619d25edcbe988848e4a55220f2e3a086babaaba5268ff",
+   "sits": {
+    "upright": 3
+   },
    "size": [
     11.2,
-    4.0,
+    3.95,
     2.7
    ],
    "skinned": false,
+   "textureShares": {
+    "av_sarcophagus_de01_c.dds": 1.0
+   },
+   "textures": [
+    "av_sarcophagus_de01_c.dds",
+    "av_sarcophagus_de01_n.dds"
+   ],
    "triangles": 464
   },
   "model/obj_smplant01.mod@a9d7f3e1": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_smplant02.mod": 1864,
+    "obj_smplant03.mod": 1863
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.57,
+     -0.57,
+     -0.57
+    ],
+    [
+     0.57,
+     0.57,
+     0.57
+    ]
+   ],
+   "bytes": 1056,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "red",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Material #33",
      "shader": "AlphaSModelC1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_smplants01b_c.dds"
      }
     }
    ],
+   "entry": "obj_smplant01.mod",
+   "footprint": 1.3,
+   "kind": "model",
    "name": "obj_smplant01.mod",
+   "origin": "center",
    "placements": 172,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "a9d7f3e12c176c959ae6c96b3f45a15f9dd92069973adb477a1a6dc89c1ced9e",
+   "sits": {
+    "tilted": 168,
+    "upright": 4
+   },
    "size": [
-    1.1,
-    1.1,
-    1.1
+    1.15,
+    1.15,
+    1.15
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_smplants01b_c.dds": 1.0
+   },
+   "textures": [
+    "rc_smplants01b_c.dds"
+   ],
    "triangles": 8
   },
   "model/obj_smplant02.mod@70a5f4e8": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_smplant01.mod": 1864,
+    "obj_smplant03.mod": 1864
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.0,
+     -1.0,
+     -1.0
+    ],
+    [
+     1.0,
+     1.0,
+     1.0
+    ]
+   ],
+   "bytes": 1055,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "red",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Material #31",
      "shader": "AlphaSModelC1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_smplants02_c.dds"
      }
     }
    ],
+   "entry": "obj_smplant02.mod",
+   "footprint": 4.0,
+   "kind": "model",
    "name": "obj_smplant02.mod",
+   "origin": "center",
    "placements": 172,
    "scaleRange": [
     0.576,
     1.0
    ],
    "sha256": "70a5f4e8cdab289a6d6ebe13ce0de7cb176aef4a75ac69ee6a2ad4a5867bcf52",
+   "sits": {
+    "tilted": 169,
+    "upright": 3
+   },
    "size": [
-    2.0,
-    2.0,
-    2.0
+    1.99,
+    1.99,
+    1.99
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_smplants02_c.dds": 1.0
+   },
+   "textures": [
+    "rc_smplants02_c.dds"
+   ],
    "triangles": 8
   },
   "model/obj_smplant03.mod@db3002a3": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_smplant01.mod": 1863,
+    "obj_smplant02.mod": 1864
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -1.0,
+     -1.0,
+     -1.0
+    ],
+    [
+     1.0,
+     1.0,
+     1.0
+    ]
+   ],
+   "bytes": 1055,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "black",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Material #31",
      "shader": "AlphaSModelC1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "rc_smplants03_c.dds"
      }
     }
    ],
+   "entry": "obj_smplant03.mod",
+   "footprint": 4.0,
+   "kind": "model",
    "name": "obj_smplant03.mod",
+   "origin": "center",
    "placements": 172,
    "scaleRange": [
     0.576,
     1.0
    ],
    "sha256": "db3002a315052373fdec032608273fd7d84752d5950f89d2f0dc525ea11e0d3e",
+   "sits": {
+    "tilted": 169,
+    "upright": 3
+   },
    "size": [
-    2.0,
-    2.0,
-    2.0
+    1.99,
+    1.99,
+    1.99
    ],
    "skinned": false,
+   "textureShares": {
+    "rc_smplants03_c.dds": 1.0
+   },
+   "textures": [
+    "rc_smplants03_c.dds"
+   ],
    "triangles": 8
   },
   "model/obj_statuepedestal01.mod@db274fa5": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obp_tlnstatue01.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -6.67,
+     -6.67,
+     4.43
+    ],
+    [
+     6.67,
+     6.67,
+     8.57
+    ]
+   ],
+   "bytes": 1517,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Base01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "walltrim01_c.dds",
@@ -509,32 +835,75 @@
      }
     },
     {
+     "name": "Waltrimmy",
      "shader": "OpaqueRegionC1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "plaintrim01_c.dds"
      }
     }
    ],
+   "entry": "obj_statuepedestal01.mod",
+   "footprint": 177.8,
+   "kind": "model",
    "name": "obj_statuepedestal01.mod",
+   "origin": "offset",
    "placements": 5,
    "scaleRange": [
     0.75,
     0.75
    ],
    "sha256": "db274fa5c0e03790faf3e378f6b22fd1502f874b22c1a63dfa97c1d6f8819d53",
+   "sits": {
+    "upright": 5
+   },
    "size": [
-    13.3,
-    13.3,
-    4.1
+    13.33,
+    13.33,
+    4.14
    ],
    "skinned": false,
+   "textureShares": {
+    "plaintrim01_c.dds": 0.417,
+    "walltrim01_c.dds": 0.583
+   },
+   "textures": [
+    "plaintrim01_c.dds",
+    "walltrim01_c.dds",
+    "walltrim01_n.dds"
+   ],
    "triangles": 18
   },
   "model/obj_urntalla01.mod@5bd1fb38": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_barrel_talosian01.mod": 1,
+    "obp_generaltorch01.mod": 3,
+    "obp_tlntorch01.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -119.44,
+     -119.42,
+     -285.67
+    ],
+    [
+     119.41,
+     119.42,
+     131.25
+    ]
+   ],
+   "bytes": 49651,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "UrnTall01",
      "shader": "OpaqueSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "av_urntall_de01_c.dds",
@@ -542,26 +911,68 @@
      }
     }
    ],
+   "entry": "obj_urntalla01.mod",
+   "footprint": 57046.2,
+   "kind": "model",
    "name": "obj_urntalla01.mod",
+   "origin": "offset",
    "placements": 31,
    "scaleRange": [
     0.012,
     0.021
    ],
    "sha256": "5bd1fb388271bdacb58b9f656920bc59c55c51d95c6c739d54705ddc2bda9ef8",
+   "sits": {
+    "upright": 31
+   },
    "size": [
-    238.8,
-    238.8,
-    416.9
+    238.84,
+    238.84,
+    416.92
    ],
    "skinned": false,
+   "textureShares": {
+    "av_urntall_de01_c.dds": 1.0
+   },
+   "textures": [
+    "av_urntall_de01_c.dds",
+    "av_urntall_de01_n.dds"
+   ],
    "triangles": 712
   },
   "model/obp_generaltorch01.mod@50bd2925": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_urntalla01.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -0.02,
+     -0.0,
+     -0.0
+    ],
+    [
+     0.02,
+     0.08,
+     0.08
+    ]
+   ],
+   "bytes": 10634,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 0.924
+    },
+    {
+     "color": "tan",
+     "share": 0.076
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Metal1",
      "shader": "OpaqueSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_metal_crate01_c.dds",
@@ -569,6 +980,7 @@
      }
     },
     {
+     "name": "Metal2",
      "shader": "OpaqueSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_metal_01_c.dds",
@@ -576,6 +988,7 @@
      }
     },
     {
+     "name": "Torch",
      "shader": "OpaqueSModelCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_wood_torch_128_c.dds",
@@ -583,26 +996,67 @@
      }
     }
    ],
+   "entry": "obp_generaltorch01.mod",
+   "footprint": 0.0,
+   "kind": "model",
    "name": "obp_generaltorch01.mod",
+   "origin": "base",
    "placements": 41,
    "scaleRange": [
     15.66,
     15.66
    ],
    "sha256": "50bd2925a765912d0df212be24b06d0f7249a6baf57b5d1f0a5ad85223fde869",
+   "sits": {
+    "tilted": 41
+   },
    "size": [
-    0.0,
-    0.1,
-    0.1
+    0.04,
+    0.08,
+    0.08
    ],
    "skinned": false,
+   "textureShares": {
+    "di_metal_01_c.dds": 0.622,
+    "di_metal_crate01_c.dds": 0.302,
+    "di_wood_torch_128_c.dds": 0.076
+   },
+   "textures": [
+    "di_metal_01_c.dds",
+    "di_metal_crate01_c.dds",
+    "di_metal_crate01_n.dds",
+    "di_wood_torch_128_c.dds",
+    "di_wood_torch_128_n.dds"
+   ],
    "triangles": 124
   },
   "model/obp_geode01.mod@11d0600d": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -33.76,
+     -72.09,
+     -15.17
+    ],
+    [
+     36.54,
+     28.86,
+     57.03
+    ]
+   ],
+   "bytes": 51088,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "blue",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "OBP_930D3",
      "shader": "OpaqueSModelCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "o_geode01_c.dds",
@@ -610,32 +1064,71 @@
      }
     },
     {
+     "name": "Material #0",
      "shader": "AddAlphaC1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "o_geode01_c.dds"
      }
     }
    ],
+   "entry": "obp_geode01.mod",
+   "footprint": 7097.5,
+   "kind": "model",
    "name": "obp_geode01.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     0.9,
     0.9
    ],
    "sha256": "11d0600da06dbd71f252fa108f75ee5fa93983163abe9c2cd7576f657ebb69b9",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
     70.3,
-    101.0,
+    100.95,
     72.2
    ],
    "skinned": false,
+   "textureShares": {
+    "o_geode01_c.dds": 1.0
+   },
+   "textures": [
+    "o_geode01_c.dds",
+    "o_geode01_n.dds"
+   ],
    "triangles": 702
   },
   "model/obp_tlnstatue01.mod@25243779": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_statuepedestal01.mod": 5
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -4.55,
+     -6.59,
+     8.42
+    ],
+    [
+     13.53,
+     6.52,
+     50.64
+    ]
+   ],
+   "bytes": 63269,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "StatColor",
      "shader": "OpaqueSModelCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "o_tlnstatue01_c.dds",
@@ -643,26 +1136,64 @@
      }
     }
    ],
+   "entry": "obp_tlnstatue01.mod",
+   "footprint": 237.0,
+   "kind": "model",
    "name": "obp_tlnstatue01.mod",
+   "origin": "offset",
    "placements": 8,
    "scaleRange": [
     0.75,
     0.75
    ],
    "sha256": "25243779496e7b7e0daf0953e1693714f81366a21dd195dee34c7c0c7066b343",
+   "sits": {
+    "upright": 8
+   },
    "size": [
-    18.1,
-    13.1,
-    42.2
+    18.08,
+    13.11,
+    42.22
    ],
    "skinned": false,
+   "textureShares": {
+    "o_tlnstatue01_c.dds": 1.0
+   },
+   "textures": [
+    "o_tlnstatue01_c.dds",
+    "o_tlnstatue01_n.dds"
+   ],
    "triangles": 1384
   },
   "model/obp_tlntorch01.mod@a941e650": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_urntalla01.mod": 3
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -68.7,
+     -121.53,
+     -463.41
+    ],
+    [
+     72.78,
+     287.01,
+     189.47
+    ]
+   ],
+   "bytes": 34290,
+   "collisionShare": 0.0,
+   "dominantColors": [
     {
+     "color": "green",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "TorchColor",
      "shader": "OpaqueSModelCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "o_torch_c.dds",
@@ -670,26 +1201,72 @@
      }
     }
    ],
+   "entry": "obp_tlntorch01.mod",
+   "footprint": 57798.0,
+   "kind": "model",
    "name": "obp_tlntorch01.mod",
+   "origin": "offset",
    "placements": 28,
    "scaleRange": [
     0.007,
     0.007
    ],
    "sha256": "a941e650eca3650aa9d0b4f2c488e398ebe7a0b1998135476976cf3e315aa8f0",
+   "sits": {
+    "upright": 28
+   },
    "size": [
-    141.5,
-    408.5,
-    652.9
+    141.47,
+    408.54,
+    652.88
    ],
    "skinned": false,
+   "textureShares": {
+    "o_torch_c.dds": 1.0
+   },
+   "textures": [
+    "o_torch_c.dds",
+    "o_torch_n.dds"
+   ],
    "triangles": 622
   },
   "model/ter_temple01.ter@3e27bffd": {
    "archive": "fhalls.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {
+    "obj_rugpiec01.mod": 1
+   },
+   "bones": 0,
+   "bounds": [
+    [
+     -973.0,
+     -391.07,
+     -55.83
+    ],
+    [
+     84.41,
+     620.0,
+     132.44
+    ]
+   ],
+   "bytes": 3054200,
+   "collisionShare": 0.964,
+   "dominantColors": [
     {
+     "color": "brown",
+     "share": 0.688
+    },
+    {
+     "color": "grey",
+     "share": 0.146
+    },
+    {
+     "color": "tan",
+     "share": 0.118
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "Rock01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "dn_rockwall01_c.dds",
@@ -697,6 +1274,7 @@
      }
     },
     {
+     "name": "Floor01",
      "shader": "OpaqueRegionCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "brickfloor01_c.dds",
@@ -704,6 +1282,7 @@
      }
     },
     {
+     "name": "Ramp01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "tapestry01_c.dds",
@@ -711,6 +1290,7 @@
      }
     },
     {
+     "name": "CenterPedestal",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "pedestal01_c.dds",
@@ -718,6 +1298,7 @@
      }
     },
     {
+     "name": "BigStepTop",
      "shader": "OpaqueRegionCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "cobblefloor01_c.dds",
@@ -725,6 +1306,7 @@
      }
     },
     {
+     "name": "ColumnRing",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "ceiling01_c.dds",
@@ -732,6 +1314,7 @@
      }
     },
     {
+     "name": "Spire01",
      "shader": "OpaqueRegionCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "geodeprong01_c.dds",
@@ -739,6 +1322,7 @@
      }
     },
     {
+     "name": "CoryStairsUVWUnrwap",
      "shader": "OpaqueRegionCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "stairs01_c.dds",
@@ -746,6 +1330,7 @@
      }
     },
     {
+     "name": "WallTrimNew",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "walltrim01_c.dds",
@@ -753,12 +1338,14 @@
      }
     },
     {
+     "name": "PlainTrim01",
      "shader": "OpaqueRegionC1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "plaintrim01_c.dds"
      }
     },
     {
+     "name": "Column",
      "shader": "OpaqueRegionCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "column01_c.dds",
@@ -766,6 +1353,7 @@
      }
     },
     {
+     "name": "DomeTerrain",
      "shader": "OpaqueRegionC1DTPMax.fx",
      "textures": {
       "e_TextureDetail0": "detail_rock01.dds",
@@ -776,6 +1364,7 @@
      }
     },
     {
+     "name": "CB_Di_floor_stair_trim_tile01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_floor_stair_trim_tile01_c.dds",
@@ -783,6 +1372,7 @@
      }
     },
     {
+     "name": "Di_floor_large_tile01",
      "shader": "OpaqueRegionCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_floor_ctr_tile_c.dds",
@@ -790,6 +1380,7 @@
      }
     },
     {
+     "name": "Di_floor_small_tile01",
      "shader": "OpaqueRegionCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_floor_small_tile_c.dds",
@@ -797,6 +1388,7 @@
      }
     },
     {
+     "name": "CB_Di_floor_plain01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_floor_plain01_c.dds",
@@ -804,6 +1396,7 @@
      }
     },
     {
+     "name": "Di_plain_red_wall_upper01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_red_wall_upper01_c.dds",
@@ -811,6 +1404,7 @@
      }
     },
     {
+     "name": "Di_plain_red_wall_center01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_red_wall_center01_c.dds",
@@ -818,6 +1412,7 @@
      }
     },
     {
+     "name": "Di_plain_red_wall_lower01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_red_wall_lower01_c.dds",
@@ -825,6 +1420,7 @@
      }
     },
     {
+     "name": "CB_Di_plain_blue_wall_upper01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_blue_wall_upper01_c.dds",
@@ -832,6 +1428,7 @@
      }
     },
     {
+     "name": "CB_Di_plain_blue_wall_lower01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_blue_wall_lower01_c.dds",
@@ -839,6 +1436,7 @@
      }
     },
     {
+     "name": "CB_Di_plain_blue_wall_center01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_blue_wall_center01_c.dds",
@@ -846,6 +1444,7 @@
      }
     },
     {
+     "name": "CBGG_Di_floor_large_tile_c",
      "shader": "OpaqueRegionCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_floor_large_tile_c.dds",
@@ -853,6 +1452,7 @@
      }
     },
     {
+     "name": "CB_dn_trimbrick01_c",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_trimbrick01_c.dds",
@@ -860,6 +1460,7 @@
      }
     },
     {
+     "name": "CB_Di_plain_wall_upper01_c",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_wall_upper01_c.dds",
@@ -867,6 +1468,7 @@
      }
     },
     {
+     "name": "CB_Di_plain_wall_lower01_c",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_wall_lower01_c.dds",
@@ -874,6 +1476,7 @@
      }
     },
     {
+     "name": "CB_Di_trimlower_column01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_trimlower_column01_c.dds",
@@ -881,6 +1484,7 @@
      }
     },
     {
+     "name": "CBGG_Di_mosaic_lg01_trim_c",
      "shader": "OpaqueRegionCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_mosaic_lg01_trim_c.dds",
@@ -888,6 +1492,7 @@
      }
     },
     {
+     "name": "CBGG_Di_mosaic_lg01_c",
      "shader": "OpaqueRegionCBGG1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_mosaic_lg01_c.dds",
@@ -895,6 +1500,7 @@
      }
     },
     {
+     "name": "CE_Di_metal_bronze01_c",
      "shader": "OpaqueRegionCE1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_metal_bronze01_c.dds",
@@ -902,6 +1508,7 @@
      }
     },
     {
+     "name": "CBGG_Di_trimupper_column01",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_trimupper_column01_c.dds",
@@ -909,6 +1516,7 @@
      }
     },
     {
+     "name": "Water",
      "shader": "AlphaRegionCE1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "water01.dds",
@@ -916,6 +1524,7 @@
      }
     },
     {
+     "name": "CB_Di_trimbrick02",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_trimbrick02_c.dds",
@@ -923,6 +1532,7 @@
      }
     },
     {
+     "name": "CE_Di_arch_trim01",
      "shader": "OpaqueRegionCE1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_arch_trim01_c.dds",
@@ -930,13 +1540,7 @@
      }
     },
     {
-     "shader": "AlphaRegionCE1Max.fx",
-     "textures": {
-      "e_TextureDiffuse0": "di_plain_blue_wall_center01_c.dds",
-      "e_TextureEnvironment": "tileroom3_e.dds"
-     }
-    },
-    {
+     "name": "CB_Di_plain_red_wall_center02",
      "shader": "OpaqueRegionCB1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_red_wall_center02_c.dds",
@@ -944,6 +1548,7 @@
      }
     },
     {
+     "name": "OutsideWater",
      "shader": "AlphaRegionCE1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "water01.dds",
@@ -951,6 +1556,7 @@
      }
     },
     {
+     "name": "StepHalwayENV",
      "shader": "OpaqueRegionCE1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_metal_bronze01_c.dds",
@@ -958,6 +1564,7 @@
      }
     },
     {
+     "name": "SquareBoxENV",
      "shader": "OpaqueRegionCE1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_metal_bronze01_c.dds",
@@ -965,6 +1572,7 @@
      }
     },
     {
+     "name": "OpenRoomENV",
      "shader": "OpaqueRegionCE1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_blue_wall_center01_c.dds",
@@ -972,6 +1580,7 @@
      }
     },
     {
+     "name": "BeforeBigENV",
      "shader": "OpaqueRegionCE1Max.fx",
      "textures": {
       "e_TextureDiffuse0": "di_plain_red_wall_center01_c.dds",
@@ -979,20 +1588,134 @@
      }
     }
    ],
+   "entry": "ter_temple01.ter",
+   "footprint": 1069121.6,
+   "kind": "model",
    "name": "ter_temple01.ter",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "3e27bffd5ab9a7fb2c12f6ea9df98bd44f656e792fba1b6e785b5b0bd07a0941",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    1057.4,
-    1011.1,
-    188.3
+    1057.41,
+    1011.07,
+    188.28
    ],
    "skinned": false,
-   "triangles": 41138
+   "textureShares": {
+    "brickfloor01_c.dds": 0.019,
+    "ceiling01_c.dds": 0.01,
+    "cobblefloor01_c.dds": 0.021,
+    "column01_c.dds": 0.003,
+    "di_arch_trim01_c.dds": 0.003,
+    "di_floor_ctr_tile_c.dds": 0.003,
+    "di_floor_large_tile_c.dds": 0.019,
+    "di_floor_plain01_c.dds": 0.042,
+    "di_floor_small_tile_c.dds": 0.036,
+    "di_floor_stair_trim_tile01_c.dds": 0.011,
+    "di_metal_bronze01_c.dds": 0.008,
+    "di_mosaic_lg01_c.dds": 0.006,
+    "di_mosaic_lg01_trim_c.dds": 0.001,
+    "di_plain_blue_wall_center01_c.dds": 0.019,
+    "di_plain_blue_wall_lower01_c.dds": 0.006,
+    "di_plain_blue_wall_upper01_c.dds": 0.008,
+    "di_plain_red_wall_center01_c.dds": 0.04,
+    "di_plain_red_wall_center02_c.dds": 0.014,
+    "di_plain_red_wall_lower01_c.dds": 0.015,
+    "di_plain_red_wall_upper01_c.dds": 0.022,
+    "di_plain_wall_lower01_c.dds": 0.004,
+    "di_plain_wall_upper01_c.dds": 0.005,
+    "di_trimbrick01_c.dds": 0.004,
+    "di_trimbrick02_c.dds": 0.013,
+    "di_trimlower_column01_c.dds": 0.009,
+    "di_trimupper_column01_c.dds": 0.004,
+    "dn_rockwall01_c.dds": 0.448,
+    "geodeprong01_c.dds": 0.001,
+    "globeterrain.dds": 0.045,
+    "pedestal01_c.dds": 0.0,
+    "plaintrim01_c.dds": 0.017,
+    "stairs01_c.dds": 0.003,
+    "tapestry01_c.dds": 0.002,
+    "walltrim01_c.dds": 0.003,
+    "water01.dds": 0.135
+   },
+   "textures": [
+    "befbigenv01.dds",
+    "brickfloor01_c.dds",
+    "brickfloor01_n.dds",
+    "ceiling01_c.dds",
+    "ceiling01_n.dds",
+    "cobblefloor01_c.dds",
+    "cobblefloor01_n.dds",
+    "column01_c.dds",
+    "column01_n.dds",
+    "detail_rock01.dds",
+    "detail_rock03.dds",
+    "detail_sand01.dds",
+    "di_arch_trim01_c.dds",
+    "di_floor_ctr_tile_c.dds",
+    "di_floor_large_tile01_n.dds",
+    "di_floor_large_tile_c.dds",
+    "di_floor_plain01_c.dds",
+    "di_floor_plain01_n.dds",
+    "di_floor_small_tile01_n.dds",
+    "di_floor_small_tile_c.dds",
+    "di_floor_stair_trim_tile01_c.dds",
+    "di_floor_stair_trim_tile01_n.dds",
+    "di_metal_bronze01_c.dds",
+    "di_mosaic_lg01_c.dds",
+    "di_mosaic_lg01_n.dds",
+    "di_mosaic_lg01_trim_c.dds",
+    "di_mosaic_lg01_trim_n.dds",
+    "di_plain_blue_wall_center01_c.dds",
+    "di_plain_blue_wall_lower01_c.dds",
+    "di_plain_blue_wall_upper01_c.dds",
+    "di_plain_red_wall_center01_c.dds",
+    "di_plain_red_wall_center02_c.dds",
+    "di_plain_red_wall_center02_n.dds",
+    "di_plain_red_wall_lower01_c.dds",
+    "di_plain_red_wall_upper01_c.dds",
+    "di_plain_wall01_n.dds",
+    "di_plain_wall_lower01_c.dds",
+    "di_plain_wall_upper01_c.dds",
+    "di_trimbrick01_c.dds",
+    "di_trimbrick02_c.dds",
+    "di_trimbrick02_n.dds",
+    "di_trimlower_column01_c.dds",
+    "di_trimlower_column01_n.dds",
+    "di_trimupper_column01_c.dds",
+    "di_trimupper_column01_n.dds",
+    "dn_rockwall01_c.dds",
+    "dn_rockwall01_n.dds",
+    "dn_trimbrick01_n.dds",
+    "eq000024.dds",
+    "geodeprong01_c.dds",
+    "geodeprong01_n.dds",
+    "globeterrain.dds",
+    "globeterrain_pal.bmp",
+    "hallwayenv01.dds",
+    "hallwayenv02.dds",
+    "openceilenv01.dds",
+    "pedestal01_c.dds",
+    "pedestal01_n.dds",
+    "plaintrim01_c.dds",
+    "squaretempleenv01.dds",
+    "stairs01_c.dds",
+    "stairs01_n.dds",
+    "tapestry01_c.dds",
+    "tapestry01_n.dds",
+    "tileroom3_e.dds",
+    "walltrim01_c.dds",
+    "walltrim01_n.dds",
+    "water01.dds"
+   ],
+   "triangles": 40124
   },
   "texture/av_cliff02_c.dds@9eced61b": {
    "archives": [
@@ -1314,20 +2037,6 @@
    "format": "DXT1",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_htislandvines.mod": 3
-    },
-    "partners": {
-     "av_skull01_n.dds": 1
-    },
-    "roles": {
-     "e_TextureDiffuse0": 1
-    },
-    "shaders": {
-     "OpaqueSModelCB1Max.fx": 1
-    }
-   },
    "meanColor": [
     43,
     47,
@@ -1358,20 +2067,6 @@
    "format": "ARGB32",
    "height": 256,
    "kind": "texture",
-   "materials": {
-    "models": {
-     "obj_htislandvines.mod": 3
-    },
-    "partners": {
-     "av_skull01_c.dds": 1
-    },
-    "roles": {
-     "e_TextureNormal0": 1
-    },
-    "shaders": {
-     "OpaqueSModelCB1Max.fx": 1
-    }
-   },
    "meanColor": [
     128,
     130,
@@ -3681,18 +4376,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_temple01.ter": 3
+     "ter_temple01.ter": 2
     },
     "partners": {
      "di_plain_wall01_n.dds": 1,
-     "openceilenv01.dds": 1,
-     "tileroom3_e.dds": 1
+     "openceilenv01.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 3
+     "e_TextureDiffuse0": 2
     },
     "shaders": {
-     "AlphaRegionCE1Max.fx": 1,
      "OpaqueRegionCB1Max.fx": 1,
      "OpaqueRegionCE1Max.fx": 1
     }
@@ -6616,18 +7309,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "ter_temple01.ter": 3
+     "ter_temple01.ter": 2
     },
     "partners": {
      "di_arch_trim01_c.dds": 1,
-     "di_plain_blue_wall_center01_c.dds": 1,
      "water01.dds": 1
     },
     "roles": {
-     "e_TextureEnvironment": 3
+     "e_TextureEnvironment": 2
     },
     "shaders": {
-     "AlphaRegionCE1Max.fx": 2,
+     "AlphaRegionCE1Max.fx": 1,
      "OpaqueRegionCE1Max.fx": 1
     }
    },
@@ -7183,6 +7875,6 @@
  "format": "eqgz",
  "problems": [],
  "source": "zone:fhalls",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "fhalls"
 }

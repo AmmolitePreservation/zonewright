@@ -1,8 +1,8 @@
 {
  "archives": [
+  "icefall.eqg",
   "fgt_anims.eqg",
-  "dest_cgw.eqg",
-  "icefall.eqg"
+  "dest_cgw.eqg"
  ],
  "assets": {
   "ecosystem/icefall/glacier": {
@@ -495,15 +495,31 @@
   },
   "model/obj_fence.mod@92593a70": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -24.55,
+     -33.09,
+     -0.46
+    ],
+    [
+     20.73,
+     27.87,
+     16.89
+    ]
+   ],
+   "bytes": 59413,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "brown",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "fence",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage.dds",
@@ -512,32 +528,67 @@
      }
     }
    ],
+   "entry": "obj_fence.mod",
+   "footprint": 2760.1,
+   "kind": "model",
    "name": "obj_fence.mod",
+   "origin": "base",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "92593a706e07195b3e75486ade68415a03510b5edade3ad2c8d0fc0a29287a4b",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    45.3,
-    61.0,
-    17.3
+    45.28,
+    60.96,
+    17.35
    ],
    "skinned": false,
+   "textureShares": {
+    "stumpnewa.dds": 1.0
+   },
+   "textures": [
+    "barka_n.dds",
+    "coverage.dds",
+    "stumpnewa.dds"
+   ],
    "triangles": 552
   },
   "model/obj_gianttotem00.mod@dec06592": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -28.46,
+     -34.02,
+     -1.58
+    ],
+    [
+     29.13,
+     42.9,
+     83.07
+    ]
+   ],
+   "bytes": 103733,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "grey",
+     "share": 0.909
     },
     {
+     "color": "brown",
+     "share": 0.091
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "head",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "totem_coverage.dds",
@@ -546,6 +597,7 @@
      }
     },
     {
+     "name": "hrns",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "totem_coverage.dds",
@@ -554,6 +606,7 @@
      }
     },
     {
+     "name": "rock",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "moss2.dds",
@@ -562,6 +615,7 @@
      }
     },
     {
+     "name": "ax",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "moss2.dds",
@@ -570,6 +624,7 @@
      }
     },
     {
+     "name": "engraving",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "moss2.dds",
@@ -578,6 +633,7 @@
      }
     },
     {
+     "name": "rust",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "totem_coverage.dds",
@@ -586,82 +642,167 @@
      }
     }
    ],
+   "entry": "obj_gianttotem00.mod",
+   "footprint": 4429.8,
+   "kind": "model",
    "name": "obj_gianttotem00.mod",
+   "origin": "base",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "dec0659288c9a46481fdfe0dc208680f3d7340fa06e9c4ca7cdae7e11bfe8578",
+   "sits": {
+    "upright": 2
+   },
    "size": [
-    57.6,
-    76.9,
-    84.7
+    57.59,
+    76.92,
+    84.65
    ],
    "skinned": false,
+   "textureShares": {
+    "adl_giant_totem_engraving.dds": 0.028,
+    "adl_totem_rust.dds": 0.207,
+    "ax.dds": 0.063,
+    "di_feast_totem_rock03.dds": 0.685,
+    "razhe0001.dds": 0.008,
+    "razhrn_hrns.dds": 0.009
+   },
+   "textures": [
+    "adl_giant_totem_engraving.dds",
+    "adl_giant_totem_engraving_n.dds",
+    "adl_totem_rust.dds",
+    "adl_totem_rust_n.dds",
+    "ax.dds",
+    "ax_n.dds",
+    "di_feast_totem_rock03.dds",
+    "di_feast_totem_rock03_n.dds",
+    "moss2.dds",
+    "razhe0001.dds",
+    "razhe0001_n.dds",
+    "razhrn_hrns.dds",
+    "razhrn_hrns_n.dds",
+    "totem_coverage.dds"
+   ],
    "triangles": 1442
   },
   "model/obj_icefall_mural.mod@105280bb": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -35.67,
+     -132.87,
+     -74.5
+    ],
+    [
+     12.06,
+     132.87,
+     74.5
+    ]
+   ],
+   "bytes": 44278,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 0.999
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "blocks",
      "shader": "Opaque_MPLBasic.fx",
      "textures": {
       "e_TextureDiffuse0": "di_icefall_cinderblock.dds"
      }
     },
     {
+     "name": "crumble",
      "shader": "Opaque_MPLBasic.fx",
      "textures": {
       "e_TextureDiffuse0": "marr_rock_c.dds"
      }
     },
     {
+     "name": "top",
      "shader": "Opaque_MPLBasic.fx",
      "textures": {
       "e_TextureDiffuse0": "di_icefall_giant01.dds"
      }
     },
     {
+     "name": "btm",
      "shader": "Opaque_MPLBasic.fx",
      "textures": {
       "e_TextureDiffuse0": "di_icefall_giant02.dds"
      }
     }
    ],
+   "entry": "obj_icefall_mural.mod",
+   "footprint": 12683.4,
+   "kind": "model",
    "name": "obj_icefall_mural.mod",
+   "origin": "offset",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "105280bb237fcea14943df275208b158ff449aa32fbaafb0ff258467d031951a",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    47.7,
-    265.7,
+    47.73,
+    265.74,
     149.0
    ],
    "skinned": false,
+   "textureShares": {
+    "di_icefall_cinderblock.dds": 0.746,
+    "di_icefall_giant01.dds": 0.124,
+    "di_icefall_giant02.dds": 0.124,
+    "marr_rock_c.dds": 0.005
+   },
+   "textures": [
+    "di_icefall_cinderblock.dds",
+    "di_icefall_giant01.dds",
+    "di_icefall_giant02.dds",
+    "marr_rock_c.dds"
+   ],
    "triangles": 561
   },
   "model/obj_ruin_wall_a.mod@93b00591": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -78.27,
+     -149.31,
+     -50.64
+    ],
+    [
+     78.27,
+     149.31,
+     50.64
+    ]
+   ],
+   "bytes": 107303,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "blocks",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_neutral.dds",
@@ -670,6 +811,7 @@
      }
     },
     {
+     "name": "crumble",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "deathcloud06_ov.dds",
@@ -678,32 +820,67 @@
      }
     }
    ],
+   "entry": "obj_ruin_wall_a.mod",
+   "footprint": 46743.1,
+   "kind": "model",
    "name": "obj_ruin_wall_a.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "93b00591a1430080e0e4ea5688ff4f3a65f2c38f1ee17f0162c224923195c234",
+   "sits": {
+    "tilted": 2
+   },
    "size": [
-    156.5,
-    298.6,
-    101.3
+    156.54,
+    298.61,
+    101.28
    ],
    "skinned": false,
+   "textureShares": {
+    "marr_rock_c.dds": 0.083,
+    "marr_tower_blockb_c.dds": 0.917
+   },
+   "textures": [
+    "coverage_wallstains_neutral.dds",
+    "deathcloud06_ov.dds",
+    "marr_rock_c.dds",
+    "marr_rock_ns.dds",
+    "marr_tower_blockb_c.dds",
+    "marr_tower_blockb_n.dds"
+   ],
    "triangles": 1395
   },
   "model/obj_ruin_wall_b.mod@04448103": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -88.0,
+     -66.0,
+     -50.64
+    ],
+    [
+     88.0,
+     66.0,
+     50.64
+    ]
+   ],
+   "bytes": 39987,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "blocks",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_neutral.dds",
@@ -712,6 +889,7 @@
      }
     },
     {
+     "name": "crumble",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "deathcloud06_ov.dds",
@@ -720,32 +898,67 @@
      }
     }
    ],
+   "entry": "obj_ruin_wall_b.mod",
+   "footprint": 23230.7,
+   "kind": "model",
    "name": "obj_ruin_wall_b.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "04448103ba1a1b43183d524c2157dc05ad76542a8cda78488b9825560058a25c",
+   "sits": {
+    "upright": 1
+   },
    "size": [
     176.0,
-    132.0,
-    101.3
+    131.99,
+    101.28
    ],
    "skinned": false,
+   "textureShares": {
+    "marr_rock_c.dds": 0.054,
+    "marr_tower_blockb_c.dds": 0.946
+   },
+   "textures": [
+    "coverage_wallstains_neutral.dds",
+    "deathcloud06_ov.dds",
+    "marr_rock_c.dds",
+    "marr_rock_ns.dds",
+    "marr_tower_blockb_c.dds",
+    "marr_tower_blockb_n.dds"
+   ],
    "triangles": 491
   },
   "model/obj_ruin_wall_d.mod@7c6e18e6": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -65.23,
+     -54.78,
+     -50.64
+    ],
+    [
+     65.23,
+     54.78,
+     50.64
+    ]
+   ],
+   "bytes": 37487,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "blocks",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_neutral.dds",
@@ -754,6 +967,7 @@
      }
     },
     {
+     "name": "crumble",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "deathcloud06_ov.dds",
@@ -762,32 +976,67 @@
      }
     }
    ],
+   "entry": "obj_ruin_wall_d.mod",
+   "footprint": 14292.4,
+   "kind": "model",
    "name": "obj_ruin_wall_d.mod",
+   "origin": "center",
    "placements": 3,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "7c6e18e6bcddcf83a4fc3430f07bac2fbf00a436fc8244a5887093ef3be9eda8",
+   "sits": {
+    "tilted": 3
+   },
    "size": [
-    130.5,
-    109.6,
-    101.3
+    130.46,
+    109.55,
+    101.28
    ],
    "skinned": false,
+   "textureShares": {
+    "marr_rock_c.dds": 0.096,
+    "marr_tower_blockb_c.dds": 0.904
+   },
+   "textures": [
+    "coverage_wallstains_neutral.dds",
+    "deathcloud06_ov.dds",
+    "marr_rock_c.dds",
+    "marr_rock_ns.dds",
+    "marr_tower_blockb_c.dds",
+    "marr_tower_blockb_n.dds"
+   ],
    "triangles": 498
   },
   "model/obj_ruinbridge_bg.mod@2aecb659": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -16.08,
+     -266.01,
+     -74.5
+    ],
+    [
+     105.38,
+     266.01,
+     74.5
+    ]
+   ],
+   "bytes": 156619,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "blocks",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_neutral.dds",
@@ -796,6 +1045,7 @@
      }
     },
     {
+     "name": "crumble",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "deathcloud06_ov.dds",
@@ -804,32 +1054,68 @@
      }
     }
    ],
+   "entry": "obj_ruinbridge_bg.mod",
+   "footprint": 64620.6,
+   "kind": "model",
    "name": "obj_ruinbridge_bg.mod",
+   "origin": "offset",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "2aecb659278c7c9b71e5c1c82c821db153c76f70a9120504ee7421941a6eb834",
+   "sits": {
+    "tilted": 1,
+    "upright": 1
+   },
    "size": [
-    121.5,
-    532.0,
+    121.46,
+    532.03,
     149.0
    ],
    "skinned": false,
+   "textureShares": {
+    "marr_rock_c.dds": 0.008,
+    "marr_tower_blockb_c.dds": 0.992
+   },
+   "textures": [
+    "coverage_wallstains_neutral.dds",
+    "deathcloud06_ov.dds",
+    "marr_rock_c.dds",
+    "marr_rock_ns.dds",
+    "marr_tower_blockb_c.dds",
+    "marr_tower_blockb_n.dds"
+   ],
    "triangles": 1960
   },
   "model/obj_ruinbridge_sgl_a.mod@c0750128": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -16.08,
+     -28.26,
+     -74.5
+    ],
+    [
+     16.08,
+     28.26,
+     74.5
+    ]
+   ],
+   "bytes": 19771,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "blocks",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_neutral.dds",
@@ -838,6 +1124,7 @@
      }
     },
     {
+     "name": "crumble",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "deathcloud06_ov.dds",
@@ -846,32 +1133,67 @@
      }
     }
    ],
+   "entry": "obj_ruinbridge_sgl_a.mod",
+   "footprint": 1818.2,
+   "kind": "model",
    "name": "obj_ruinbridge_sgl_a.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "c07501283eb5bbd885410f21303fee85e26b674bb58d30941e0fcf4acd7ac388",
+   "sits": {
+    "tilted": 2
+   },
    "size": [
-    32.2,
-    56.5,
+    32.16,
+    56.53,
     149.0
    ],
    "skinned": false,
+   "textureShares": {
+    "marr_rock_c.dds": 0.063,
+    "marr_tower_blockb_c.dds": 0.937
+   },
+   "textures": [
+    "coverage_wallstains_neutral.dds",
+    "deathcloud06_ov.dds",
+    "marr_rock_c.dds",
+    "marr_rock_ns.dds",
+    "marr_tower_blockb_c.dds",
+    "marr_tower_blockb_n.dds"
+   ],
    "triangles": 248
   },
   "model/obj_ruinbridge_sgl_b.mod@9a284fe2": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -16.08,
+     -31.11,
+     -74.5
+    ],
+    [
+     16.08,
+     31.11,
+     74.5
+    ]
+   ],
+   "bytes": 23111,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "blocks",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_neutral.dds",
@@ -880,6 +1202,7 @@
      }
     },
     {
+     "name": "crumble",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "deathcloud06_ov.dds",
@@ -888,32 +1211,67 @@
      }
     }
    ],
+   "entry": "obj_ruinbridge_sgl_b.mod",
+   "footprint": 2001.3,
+   "kind": "model",
    "name": "obj_ruinbridge_sgl_b.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "9a284fe22fdd414cc437ffbf2d064b57271192f7afda4e8e52a95a2580859799",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    32.2,
-    62.2,
+    32.16,
+    62.22,
     149.0
    ],
    "skinned": false,
+   "textureShares": {
+    "marr_rock_c.dds": 0.103,
+    "marr_tower_blockb_c.dds": 0.897
+   },
+   "textures": [
+    "coverage_wallstains_neutral.dds",
+    "deathcloud06_ov.dds",
+    "marr_rock_c.dds",
+    "marr_rock_ns.dds",
+    "marr_tower_blockb_c.dds",
+    "marr_tower_blockb_n.dds"
+   ],
    "triangles": 272
   },
   "model/obj_ruinbridge_sm.mod@5b240d4d": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -16.08,
+     -168.13,
+     -74.5
+    ],
+    [
+     16.08,
+     168.13,
+     74.5
+    ]
+   ],
+   "bytes": 96767,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
-    },
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
     {
+     "name": "blocks",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_wallstains_neutral.dds",
@@ -922,6 +1280,7 @@
      }
     },
     {
+     "name": "crumble",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "deathcloud06_ov.dds",
@@ -930,32 +1289,71 @@
      }
     }
    ],
+   "entry": "obj_ruinbridge_sm.mod",
+   "footprint": 10815.8,
+   "kind": "model",
    "name": "obj_ruinbridge_sm.mod",
+   "origin": "center",
    "placements": 2,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "5b240d4d5f7795915381e33846cfe22cb1c5f586de4adb2f98f23166ad43ac74",
+   "sits": {
+    "tilted": 2
+   },
    "size": [
-    32.2,
-    336.3,
+    32.16,
+    336.27,
     149.0
    ],
    "skinned": false,
+   "textureShares": {
+    "marr_rock_c.dds": 0.008,
+    "marr_tower_blockb_c.dds": 0.992
+   },
+   "textures": [
+    "coverage_wallstains_neutral.dds",
+    "deathcloud06_ov.dds",
+    "marr_rock_c.dds",
+    "marr_rock_ns.dds",
+    "marr_tower_blockb_c.dds",
+    "marr_tower_blockb_n.dds"
+   ],
    "triangles": 1218
   },
   "model/obj_wizard_spire.mod@3ef17d71": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -162.77,
+     -162.77,
+     -47.13
+    ],
+    [
+     162.77,
+     162.77,
+     47.13
+    ]
+   ],
+   "bytes": 162381,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "blue",
+     "share": 0.788
     },
     {
+     "color": "grey",
+     "share": 0.212
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "wall_a",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_nest_desert_ov02_c.dds",
@@ -964,14 +1362,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "di_nest_desert_ov02_c.dds",
-      "e_TextureDiffuse0": "spire_brick_06.dds",
-      "e_TextureNormal0": "spire_brick_n.dds"
-     }
-    },
-    {
+     "name": "wall_c",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_light_b.dds",
@@ -980,6 +1371,7 @@
      }
     },
     {
+     "name": "snow_brick",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_nest_desert_ov02_c.dds",
@@ -988,6 +1380,7 @@
      }
     },
     {
+     "name": "detail",
      "shader": "Opaque_MPLGB2UV.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -996,6 +1389,7 @@
      }
     },
     {
+     "name": "detail_b",
      "shader": "Opaque_MPLGB2UV.fx",
      "textures": {
       "e_TextureCoverage0": "nek_erosion_ov_4tile.dds",
@@ -1004,6 +1398,7 @@
      }
     },
     {
+     "name": "wall_d",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_light_b.dds",
@@ -1012,6 +1407,7 @@
      }
     },
     {
+     "name": "wall_e",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_light_b.dds",
@@ -1020,32 +1416,86 @@
      }
     }
    ],
+   "entry": "obj_wizard_spire.mod",
+   "footprint": 105981.4,
+   "kind": "model",
    "name": "obj_wizard_spire.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "3ef17d7143c09181c2f2cbe57c1373710773e6605f68f15cf800c2b37ce7a774",
+   "sits": {
+    "upright": 1
+   },
    "size": [
-    325.5,
-    325.5,
-    94.3
+    325.55,
+    325.55,
+    94.26
    ],
    "skinned": false,
+   "textureShares": {
+    "icefall_spire_trim_01_c.dds": 0.015,
+    "icefall_spire_trim_02_c.dds": 0.027,
+    "marr_marble_plain_c.dds": 0.146,
+    "spire_brick_05.dds": 0.622,
+    "spire_brick_snow_05.dds": 0.124,
+    "spire_steps_04.dds": 0.061,
+    "spire_symbol.dds": 0.005
+   },
+   "textures": [
+    "coverage_light_b.dds",
+    "di_nest_desert_ov02_c.dds",
+    "icefall_spire_trim_01_c.dds",
+    "icefall_spire_trim_01_n.dds",
+    "icefall_spire_trim_02_c.dds",
+    "icefall_spire_trim_02_n.dds",
+    "marr_marble_plain_c.dds",
+    "marr_marble_plain_n2.dds",
+    "nek_erosion_ov_4tile.dds",
+    "spire_brick_05.dds",
+    "spire_brick_n.dds",
+    "spire_brick_snow_05.dds",
+    "spire_brick_snow_n.dds",
+    "spire_steps_04.dds",
+    "spire_symbol.dds",
+    "spire_symbol_n.dds"
+   ],
    "triangles": 1690
   },
   "model/obj_wizard_spire_ruined.mod@d7a191df": {
    "archive": "icefall.eqg",
-   "kind": "model",
-   "materials": [
+   "beside": {},
+   "bones": 0,
+   "bounds": [
+    [
+     -174.0,
+     -174.09,
+     -53.45
+    ],
+    [
+     174.24,
+     174.15,
+     47.48
+    ]
+   ],
+   "bytes": 62115,
+   "collisionShare": 1.0,
+   "dominantColors": [
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "grid_standard.dds"
-     }
+     "color": "blue",
+     "share": 0.837
     },
     {
+     "color": "grey",
+     "share": 0.162
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "wall_a",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_nest_desert_ov02_c.dds",
@@ -1054,6 +1504,7 @@
      }
     },
     {
+     "name": "wall_b",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "di_nest_desert_ov02_c.dds",
@@ -1062,14 +1513,7 @@
      }
     },
     {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_light_b.dds",
-      "e_TextureDiffuse0": "spire_steps_04.dds",
-      "e_TextureNormal0": "marr_marble_plain_n2.dds"
-     }
-    },
-    {
+     "name": "snow_brick",
      "shader": "Opaque_MPLBump2UV.fx",
      "textures": {
       "e_TextureCoverage0": "di_nest_desert_ov02_c.dds",
@@ -1078,47 +1522,52 @@
      }
     },
     {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "icefall_spire_trim_01_c.dds"
-     }
-    },
-    {
-     "shader": "Opaque_MPLBasic.fx",
-     "textures": {
-      "e_TextureDiffuse0": "icefall_spire_trim_02_c.dds"
-     }
-    },
-    {
+     "name": "wall_d",
      "shader": "Opaque_MPLBump.fx",
      "textures": {
       "e_TextureCoverage0": "coverage_light_b.dds",
       "e_TextureDiffuse0": "marr_marble_plain_c.dds",
       "e_TextureNormal0": "marr_marble_plain_n2.dds"
      }
-    },
-    {
-     "shader": "Opaque_MPLBump.fx",
-     "textures": {
-      "e_TextureCoverage0": "coverage_light_b.dds",
-      "e_TextureDiffuse0": "spire_symbol.dds",
-      "e_TextureNormal0": "spire_symbol_n.dds"
-     }
     }
    ],
+   "entry": "obj_wizard_spire_ruined.mod",
+   "footprint": 121272.2,
+   "kind": "model",
    "name": "obj_wizard_spire_ruined.mod",
+   "origin": "center",
    "placements": 1,
    "scaleRange": [
     1.0,
     1.0
    ],
    "sha256": "d7a191df216f8fee8d1717c3e1b6e4dea414ed869d882134bd80e784033c1189",
+   "sits": {
+    "tilted": 1
+   },
    "size": [
-    348.2,
-    348.2,
-    100.9
+    348.24,
+    348.24,
+    100.93
    ],
    "skinned": false,
+   "textureShares": {
+    "marr_marble_plain_c.dds": 0.162,
+    "spire_brick_05.dds": 0.424,
+    "spire_brick_06.dds": 0.243,
+    "spire_brick_snow_05.dds": 0.17
+   },
+   "textures": [
+    "coverage_light_b.dds",
+    "di_nest_desert_ov02_c.dds",
+    "marr_marble_plain_c.dds",
+    "marr_marble_plain_n2.dds",
+    "spire_brick_05.dds",
+    "spire_brick_06.dds",
+    "spire_brick_n.dds",
+    "spire_brick_snow_05.dds",
+    "spire_brick_snow_n.dds"
+   ],
    "triangles": 769
   },
   "texture/adl_giant_totem_engraving.dds@47e56705": {
@@ -1960,20 +2409,20 @@
    "materials": {
     "models": {
      "obj_wizard_spire.mod": 3,
-     "obj_wizard_spire_ruined.mod": 3
+     "obj_wizard_spire_ruined.mod": 1
     },
     "partners": {
      "marr_marble_plain_c.dds": 2,
-     "marr_marble_plain_n2.dds": 4,
-     "spire_steps_04.dds": 2,
-     "spire_symbol.dds": 2,
-     "spire_symbol_n.dds": 2
+     "marr_marble_plain_n2.dds": 3,
+     "spire_steps_04.dds": 1,
+     "spire_symbol.dds": 1,
+     "spire_symbol_n.dds": 1
     },
     "roles": {
-     "e_TextureCoverage0": 6
+     "e_TextureCoverage0": 4
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 6
+     "Opaque_MPLBump.fx": 4
     }
    },
    "meanColor": [
@@ -2870,21 +3319,21 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_wizard_spire.mod": 3,
+     "obj_wizard_spire.mod": 2,
      "obj_wizard_spire_ruined.mod": 3
     },
     "partners": {
      "spire_brick_05.dds": 2,
-     "spire_brick_06.dds": 2,
-     "spire_brick_n.dds": 4,
+     "spire_brick_06.dds": 1,
+     "spire_brick_n.dds": 3,
      "spire_brick_snow_05.dds": 2,
      "spire_brick_snow_n.dds": 2
     },
     "roles": {
-     "e_TextureCoverage0": 6
+     "e_TextureCoverage0": 5
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2,
+     "Opaque_MPLBump.fx": 1,
      "Opaque_MPLBump2UV.fx": 4
     }
    },
@@ -3902,18 +4351,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_wizard_spire.mod": 1,
-     "obj_wizard_spire_ruined.mod": 1
+     "obj_wizard_spire.mod": 1
     },
     "partners": {
      "icefall_spire_trim_01_n.dds": 1,
      "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBasic.fx": 1,
      "Opaque_MPLGB2UV.fx": 1
     }
    },
@@ -4009,18 +4456,16 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_wizard_spire.mod": 1,
-     "obj_wizard_spire_ruined.mod": 1
+     "obj_wizard_spire.mod": 1
     },
     "partners": {
      "icefall_spire_trim_02_n.dds": 1,
      "nek_erosion_ov_4tile.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBasic.fx": 1,
      "Opaque_MPLGB2UV.fx": 1
     }
    },
@@ -4358,18 +4803,18 @@
    "materials": {
     "models": {
      "obj_wizard_spire.mod": 2,
-     "obj_wizard_spire_ruined.mod": 2
+     "obj_wizard_spire_ruined.mod": 1
     },
     "partners": {
-     "coverage_light_b.dds": 4,
+     "coverage_light_b.dds": 3,
      "marr_marble_plain_c.dds": 2,
-     "spire_steps_04.dds": 2
+     "spire_steps_04.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 4
+     "Opaque_MPLBump.fx": 3
     }
    },
    "meanColor": [
@@ -5965,18 +6410,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_wizard_spire.mod": 1,
      "obj_wizard_spire_ruined.mod": 1
     },
     "partners": {
-     "di_nest_desert_ov02_c.dds": 2,
-     "spire_brick_n.dds": 2
+     "di_nest_desert_ov02_c.dds": 1,
+     "spire_brick_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -6026,19 +6470,19 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_wizard_spire.mod": 2,
+     "obj_wizard_spire.mod": 1,
      "obj_wizard_spire_ruined.mod": 2
     },
     "partners": {
-     "di_nest_desert_ov02_c.dds": 4,
+     "di_nest_desert_ov02_c.dds": 3,
      "spire_brick_05.dds": 2,
-     "spire_brick_06.dds": 2
+     "spire_brick_06.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 4
+     "e_TextureNormal0": 3
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2,
+     "Opaque_MPLBump.fx": 1,
      "Opaque_MPLBump2UV.fx": 2
     }
    },
@@ -6181,18 +6625,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_wizard_spire.mod": 1,
-     "obj_wizard_spire_ruined.mod": 1
+     "obj_wizard_spire.mod": 1
     },
     "partners": {
-     "coverage_light_b.dds": 2,
-     "marr_marble_plain_n2.dds": 2
+     "coverage_light_b.dds": 1,
+     "marr_marble_plain_n2.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -6242,18 +6685,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_wizard_spire.mod": 1,
-     "obj_wizard_spire_ruined.mod": 1
+     "obj_wizard_spire.mod": 1
     },
     "partners": {
-     "coverage_light_b.dds": 2,
-     "spire_symbol_n.dds": 2
+     "coverage_light_b.dds": 1,
+     "spire_symbol_n.dds": 1
     },
     "roles": {
-     "e_TextureDiffuse0": 2
+     "e_TextureDiffuse0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -6303,18 +6745,17 @@
    "kind": "texture",
    "materials": {
     "models": {
-     "obj_wizard_spire.mod": 1,
-     "obj_wizard_spire_ruined.mod": 1
+     "obj_wizard_spire.mod": 1
     },
     "partners": {
-     "coverage_light_b.dds": 2,
-     "spire_symbol.dds": 2
+     "coverage_light_b.dds": 1,
+     "spire_symbol.dds": 1
     },
     "roles": {
-     "e_TextureNormal0": 2
+     "e_TextureNormal0": 1
     },
     "shaders": {
-     "Opaque_MPLBump.fx": 2
+     "Opaque_MPLBump.fx": 1
     }
    },
    "meanColor": [
@@ -6606,6 +7047,6 @@
   "This EQ terrain zone's lights are not read"
  ],
  "source": "zone:icefall",
- "surveyVersion": 5,
+ "surveyVersion": 6,
  "zone": "icefall"
 }

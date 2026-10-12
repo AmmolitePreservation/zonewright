@@ -1,0 +1,228 @@
+{
+ "archive": "ramp.eqg",
+ "archives": [
+  "ramp.eqg"
+ ],
+ "assets": {
+  "model/obj_ramp_solid.mod@57e66ab9": {
+   "archive": "ramp.eqg",
+   "bones": 0,
+   "bounds": [
+    [
+     -3.11,
+     0.01,
+     0.0
+    ],
+    [
+     3.11,
+     7.17,
+     2.76
+    ]
+   ],
+   "bytes": 1065,
+   "collisionShare": 1.0,
+   "dominantColors": [
+    {
+     "color": "grey",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "ramp",
+     "shader": "Opaque_MPLBasic.fx",
+     "textures": {
+      "e_TextureDiffuse0": "floor_rock.dds"
+     }
+    }
+   ],
+   "entry": "obj_ramp_solid.mod",
+   "footprint": 44.5,
+   "kind": "model",
+   "links": {
+    "listedBy": [
+     "halas",
+     "katta"
+    ],
+    "onDemand": false,
+    "startup": false
+   },
+   "name": "obj_ramp_solid.mod",
+   "origin": "base",
+   "sha256": "57e66ab95139bd0a9e614c7683b101998fc4965ee332b1c9eb83bd08a7ed6659",
+   "size": [
+    6.21,
+    7.17,
+    2.76
+   ],
+   "skinned": false,
+   "textureShares": {
+    "floor_rock.dds": 1.0
+   },
+   "textures": [
+    "floor_rock.dds"
+   ],
+   "triangles": 8
+  },
+  "model/obj_ramp_transp.mod@1d8d5cba": {
+   "archive": "ramp.eqg",
+   "bones": 0,
+   "bounds": [
+    [
+     -3.11,
+     0.01,
+     0.0
+    ],
+    [
+     3.11,
+     7.21,
+     2.76
+    ]
+   ],
+   "bytes": 1074,
+   "collisionShare": 1.0,
+   "dominantColors": [
+    {
+     "color": "pink",
+     "share": 1.0
+    }
+   ],
+   "drawnMaterials": [
+    {
+     "name": "ramptransp",
+     "shader": "Chroma_MPLBasicAT.fx",
+     "textures": {
+      "e_TextureDiffuse0": "ramp_transp.dds"
+     }
+    }
+   ],
+   "entry": "obj_ramp_transp.mod",
+   "footprint": 44.8,
+   "kind": "model",
+   "links": {
+    "listedBy": [
+     "halas",
+     "katta"
+    ],
+    "onDemand": false,
+    "startup": false
+   },
+   "name": "obj_ramp_transp.mod",
+   "origin": "base",
+   "sha256": "1d8d5cba00b0bdd4e37f27f0a23c2acc33233e611467fefa8aa878814960b3b0",
+   "size": [
+    6.21,
+    7.2,
+    2.76
+   ],
+   "skinned": false,
+   "textureShares": {
+    "ramp_transp.dds": 1.0
+   },
+   "textures": [
+    "ramp_transp.dds"
+   ],
+   "triangles": 8
+  },
+  "texture/floor_rock.dds@87294c35": {
+   "archives": [
+    "ramp.eqg"
+   ],
+   "brightness": 0.3,
+   "colorName": "grey",
+   "contrast": 0.045,
+   "fileName": "floor_rock.dds",
+   "format": "DXT5",
+   "height": 256,
+   "kind": "texture",
+   "materials": {
+    "models": {
+     "obj_ramp_solid.mod": 1
+    },
+    "partners": {},
+    "roles": {
+     "e_TextureDiffuse0": 1
+    },
+    "shaders": {
+     "Opaque_MPLBasic.fx": 1
+    }
+   },
+   "meanColor": [
+    78,
+    76,
+    74
+   ],
+   "name": "floor_rock.dds",
+   "nameSaysNormalMap": false,
+   "normalMapLike": false,
+   "partialAlphaShare": 0.0,
+   "seamRatios": [
+    1.23,
+    1.07
+   ],
+   "sha256": "87294c350b7494a6ece770a60bce694fb4980af2793eb6f70804c23f276c25f8",
+   "shadowed": false,
+   "tiles": true,
+   "transparentShare": 0.0,
+   "width": 256
+  },
+  "texture/ramp_transp.dds@b99d43a5": {
+   "archives": [
+    "ramp.eqg"
+   ],
+   "brightness": 0.402,
+   "colorName": "pink",
+   "contrast": 0.0,
+   "fileName": "ramp_transp.dds",
+   "format": "ARGB32",
+   "height": 64,
+   "kind": "texture",
+   "materials": {
+    "models": {
+     "obj_ramp_transp.mod": 1
+    },
+    "partners": {},
+    "roles": {
+     "e_TextureDiffuse0": 1
+    },
+    "shaders": {
+     "Chroma_MPLBasicAT.fx": 1
+    }
+   },
+   "meanColor": [
+    246,
+    0,
+    255
+   ],
+   "name": "ramp_transp.dds",
+   "nameSaysNormalMap": false,
+   "normalMapLike": false,
+   "partialAlphaShare": 0.0,
+   "seamRatios": [
+    null,
+    null
+   ],
+   "sha256": "b99d43a5ca058aa336534b0cb6b98f86613edebdcf1b5aae480c02d7dc65bde4",
+   "shadowed": false,
+   "tiles": false,
+   "transparentShare": 1.0,
+   "width": 64
+  }
+ },
+ "fileHashes": {
+  "links": "{\"listedBy\": [\"halas\", \"katta\"], \"onDemand\": false, \"startup\": false}",
+  "ramp.eqg": "c95890a1b8302d807376ac153ce662d21abba7d7d8c93bfb5bbcb420f25b3280"
+ },
+ "format": "eqg",
+ "links": {
+  "listedBy": [
+   "halas",
+   "katta"
+  ],
+  "onDemand": false,
+  "startup": false
+ },
+ "problems": [],
+ "source": "archive:ramp.eqg",
+ "surveyVersion": 6
+}
