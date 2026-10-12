@@ -16,7 +16,7 @@ commits: []
 steps:
   - |-
     $path = 'S:\Research\EverQuest\housingclient\eqclient.ini'
-    $settings = @(@('Defaults', 'PostEffects', '0'))
+    $settings = @(,@('Defaults', 'PostEffects', '0'))
     $encoding = [Text.Encoding]::GetEncoding(28591)
     $lines = [IO.File]::ReadAllText($path, $encoding) -split "`r`n"
     foreach ($setting in $settings) {
@@ -32,7 +32,7 @@ steps:
 undo:
   - |-
     $path = 'S:\Research\EverQuest\housingclient\eqclient.ini'
-    $settings = @(@('Defaults', 'PostEffects', '1'))
+    $settings = @(,@('Defaults', 'PostEffects', '1'))
     $encoding = [Text.Encoding]::GetEncoding(28591)
     $lines = [IO.File]::ReadAllText($path, $encoding) -split "`r`n"
     foreach ($setting in $settings) {
