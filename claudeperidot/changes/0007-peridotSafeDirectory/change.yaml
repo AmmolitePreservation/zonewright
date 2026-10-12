@@ -23,3 +23,5 @@ checks:
     host: peridot
     run: sudo git config --file /root/.gitconfig --get-all safe.directory; echo "exit $?"; sudo wc -c < /root/.gitconfig
     expect: '"exit 1" with no directory before it, then 0: no safe.directory and an empty file'
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

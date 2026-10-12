@@ -1,5 +1,6 @@
-# The template for a ledger change. Copy this folder to changes/NNNN-<name>, with the next free number and a
-# drinkingCamelCase name, fill it in, then run: python claudeperidot/tools/ledger.py stage NNNN
+# The template for a ledger change. Copy this folder to changes/<UTC time as YYYYMMDD-HHMMSS>-<name> with a
+# drinkingCamelCase name, fill it in (author: this Claude session's id, and the subagent's id when a subagent writes
+# it), then run: python claudeperidot/tools/ledger.py stage <time>
 #
 # The example is a row change (kind db). The other forms:
 #   db schema change: add schemaSteps, the number of statements in apply.sql (one DDL statement per step); scope lists
@@ -34,3 +35,5 @@ ownerClearance: pending
 activation: restart world  # what makes the server see the change, such as "#reload rules" or a restart
 production: none  # none unless production: contentSQL or customMigration (db), questCommit, runbook or provisioner
 commits: []  # quest and config: the commit SHAs, oldest first
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

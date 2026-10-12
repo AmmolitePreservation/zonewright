@@ -96,7 +96,7 @@ Rows of the player, state, login and bot tables (`account`, `login_accounts`, `l
 
 ## Changes
 
-Copy `changes/template` to `changes/NNNN-<name>` with the next free number and a drinkingCamelCase name, fill in `change.yaml` (the template's comments describe each form), and stage it.
+Copy `changes/template` to `changes/<time>-<name>`, the time in UTC as `YYYYMMDD-HHMMSS` (so changes written in parallel never collide; 0001 to 0030 keep their numbers and sort first) and a drinkingCamelCase name, fill in `change.yaml` (the template's comments describe each form), and stage it.
 
 | Field | Meaning |
 |---|---|
@@ -110,6 +110,7 @@ Copy `changes/template` to `changes/NNNN-<name>` with the next free number and a
 | `activation` | What makes the server see the change: `#reload rules`, a world restart, a full restart |
 | `production` | `none` for fixtures and explorations; for production, `contentSQL` (rows), `customMigration` (schema), `questCommit`, `runbook` or `provisioner` |
 | `commits` | `quest` and `config`: the commit SHAs, oldest first; empty otherwise |
+| `author` | Who wrote the change: `session`, the Claude session's id (`session_...`, as in commit trailers), and `agent`, the subagent's id when a subagent wrote it |
 | `schemaSteps` | A schema change: the number of DDL statements in `apply.sql` |
 | `repository`, `source` | `quest` and `config`: the checkout's absolute path on claudeperidot, and the workstation clone the commits are made in |
 | `rendered`, `render` | A config change the host fills with secrets: each live file with its template and the names of the keys the host fills, and the host command that renders them |

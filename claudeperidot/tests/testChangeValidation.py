@@ -40,7 +40,10 @@ def configFields(**overrides):
 
 def test_theTemplateAndTheRecordedChangesAreValid():
   changes = ledger.loadChanges(realLedger)
-  assert [change.identifier[:4] for change in changes] == [f"{number:04}" for number in range(1, len(changes) + 1)]
+  numbered = [change.number for change in changes if len(change.number) == 4]
+  assert numbered == [f"{number:04}" for number in range(1, len(numbered) + 1)]
+  assert all(len(change.number) == 15 for change in changes[len(numbered):])
+  assert all(change.fields["author"]["session"].startswith("session_") for change in changes)
   assert {(change.fields["disposition"], change.fields["production"]) for change in changes} <= {("fixture", "none"), ("exploration", "none")}
   assert all(ledger.validateChangeFields(change.fields) == [] for change in changes)
   template = realLedger / "changes" / "template"
@@ -74,6 +77,10 @@ def test_wellFormedChangesOfEveryFormHaveNoProblems():
   (rowChangeFields(ownerClearance={"clearedBy": "Claude"}), "Claude never clears a change on its own judgment"),
   (withoutField(rowChangeFields(), "why"), "missing why"),
   (withoutField(withoutField(rowChangeFields(), "scope"), "commits"), "missing scope, commits"),
+  (withoutField(rowChangeFields(), "author"), "missing author"),
+  (rowChangeFields(author="Claude"), "author must be a mapping of session and, for a subagent, agent"),
+  (rowChangeFields(author={"agent": "a2b9b798809b906e3"}), "author must be a mapping of session and, for a subagent, agent"),
+  (rowChangeFields(author={"session": "0121Qm1vvZgAKaiV6dKmANxe", "agent": "a2b9b798"}), "author session, agent malformed"),
   (withoutField(clientChangeFields(), "undo"), "missing undo"),
   (withoutField(questFields(), "source"), "missing source"),
   (withField(rowChangeFields(), "notes", "x"), "unknown fields notes"),
@@ -150,6 +157,20 @@ def test_changeFolderNamesAndNumbersAreChecked(repository):
   writeChange(repository, "0002-bad_name", rowChangeFields())
   with pytest.raises(ledger.LedgerError, match="0002-bad_name is not a change folder name"):
     ledger.loadChanges(repository)
+
+
+def test_timestampedChangesSortAfterNumberedOnesAndPlanStepsNameThem(repository):
+  writeChange(repository, "20261012-163005-later", rowChangeFields())
+  writeChange(repository, "0030-numbered", rowChangeFields())
+  writeChange(repository, "20261012-091500-earlier", rowChangeFields())
+  changes = ledger.loadChanges(repository)
+  assert [(change.number, change.name) for change in changes] == [
+    ("0030", "numbered"), ("20261012-091500", "earlier"), ("20261012-163005", "later")]
+  writeChange(repository, "20261012-1630-short", rowChangeFields())
+  with pytest.raises(ledger.LedgerError, match="20261012-1630-short is not a change folder name"):
+    ledger.loadChanges(repository)
+  [step] = ledger.readPlanSteps("- [ ] 4. Both kinds [0030, 20261012-163005]")
+  assert step.changes == ("0030", "20261012-163005")
 
 
 def test_aChangeFolderWithoutChangeYAMLIsRefused(repository):

@@ -772,7 +772,7 @@ class FakeMariaDB:
     special = self.selectSpecial(statement, session)
     if special is not None:
       return special
-    numbered = re.match(r"^SELECT '(\d{4})', applied FROM \((.*)\) AS ledgerCheck$", statement, re.DOTALL)
+    numbered = re.match(rf"^SELECT '({ledger.changeNumberPattern})', applied FROM \((.*)\) AS ledgerCheck$", statement, re.DOTALL)
     if numbered:
       value = self.runCheck(numbered.group(2))
       return [f"{numbered.group(1)}\t{'NULL' if value is None else value}"]
@@ -1505,6 +1505,7 @@ def rowChangeFields(**overrides):
     "activation": "#reload rules",
     "production": "none",
     "commits": [],
+    "author": {"session": "session_0121Qm1vvZgAKaiV6dKmANxe"},
   }
   fields.update(overrides)
   return fields
@@ -1529,6 +1530,7 @@ def clientChangeFields(**overrides):
     "activation": "none",
     "production": "none",
     "commits": [],
+    "author": {"session": "session_0121Qm1vvZgAKaiV6dKmANxe", "agent": "a2b9b798809b906e3"},
     "steps": ["Set-Content -LiteralPath 'C:\\test' -Value 'x'"],
     "undo": ["Remove-Item -LiteralPath 'C:\\test'"],
     "checks": [{"path": "C:\\test", "exists": "file"}],

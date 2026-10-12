@@ -100,10 +100,12 @@ contentTables = frozenset("""
 """.split())
 sensitiveWordPattern = re.compile(r"^\w*(password|passwd|token|secret|webhook|key)s?$")
 
-changeFolderPattern = re.compile(r"^(\d{4})-([a-z][A-Za-z0-9]*)$")
+changeNumberPattern = r"\d{4}|\d{8}-\d{6}"
+changeFolderPattern = re.compile(rf"^({changeNumberPattern})-([a-z][A-Za-z0-9]*)$")
+authorPatterns = {"session": re.compile(r"^session_[A-Za-z0-9]+$"), "agent": re.compile(r"^a[0-9a-f]{16}$")}
 templateFolderName = "template"
 commonFields = ("title", "why", "kind", "scope", "disposition", "significance", "ownerClearance", "activation", "production",
-  "commits")
+  "commits", "author")
 kindFields = {
   "db": (set(), {"schemaSteps"}),
   "quest": ({"repository", "source"}, set()),
@@ -129,7 +131,7 @@ credentialTargetPattern = re.compile(r"^[A-Za-z0-9_.:@/-]+$")
 hashPattern = re.compile(r"^[0-9a-f]{64}$")
 exportNamePattern = re.compile(r"^[A-Za-z0-9_?@$]+$")
 encodedValuePattern = re.compile(r"^(N|E|V(?:[0-9A-F]{2})*)$")
-stepPattern = re.compile(r"^- \[( |x)\] (\d+)\. (.+?)(?: \[(\d{4}(?:, \d{4})*)\])?$")
+stepPattern = re.compile(rf"^- \[( |x)\] (\d+)\. (.+?)(?: \[((?:{changeNumberPattern})(?:, (?:{changeNumberPattern}))*)\])?$")
 mysqlErrorPattern = re.compile(r"^ERROR (\d+) \(([0-9A-Z]+)\)(?: at line (\d+))?: (.*)$")
 quotedValuePattern = re.compile(r"'(?:[^'\\]|\\.|'')*'")
 
@@ -300,6 +302,14 @@ def clearanceProblem(clearance):
     "clears a change on its own judgment")
 
 
+def authorProblem(author):
+  """Why an author field is malformed, or None: the Claude session that wrote the change, and the subagent when one did."""
+  if not (isinstance(author, dict) and "session" in author and set(author) <= set(authorPatterns)):
+    return "author must be a mapping of session and, for a subagent, agent"
+  bad = [name for name, value in author.items() if not (isinstance(value, str) and authorPatterns[name].match(value))]
+  return f"author {', '.join(bad)} malformed" if bad else None
+
+
 def validateChangeFields(fields):
   """The problems with a change.yaml's fields; an empty list means it is valid."""
   if not isinstance(fields, dict):
@@ -327,6 +337,8 @@ def validateChangeFields(fields):
   for name, allowedValues in choices.items():
     if name in fields and fields[name] not in allowedValues:
       problems.append(f"{name} must be one of {', '.join(allowedValues)}, not {fields[name]!r}")
+  if "author" in fields and authorProblem(fields["author"]):
+    problems.append(authorProblem(fields["author"]))
   if "ownerClearance" in fields and clearanceProblem(fields["ownerClearance"]):
     problems.append(clearanceProblem(fields["ownerClearance"]))
   if kind not in kindFields or problems:
@@ -386,11 +398,11 @@ class Change:
 
   @property
   def number(self):
-    return self.folder.name[:4]
+    return changeFolderPattern.match(self.folder.name).group(1)
 
   @property
   def name(self):
-    return self.folder.name[5:]
+    return changeFolderPattern.match(self.folder.name).group(2)
 
   @property
   def kind(self):
@@ -419,7 +431,7 @@ class Change:
 
 def loadChange(folder):
   if not changeFolderPattern.match(folder.name):
-    raise LedgerError(f"{folder.name} is not a change folder name (NNNN-drinkingCamelCaseName)")
+    raise LedgerError(f"{folder.name} is not a change folder name (NNNN or YYYYMMDD-HHMMSS, then -drinkingCamelCaseName)")
   path = folder / "change.yaml"
   if not path.is_file():
     raise LedgerError(f"{folder.name} has no change.yaml")
@@ -1074,7 +1086,7 @@ gtidPattern = re.compile(r"\sGTID (\d+)-(\d+)-(\d+)\b")
 queryEventPattern = re.compile(r"\sQuery\s+thread_id=")
 annotateEventPattern = re.compile(r"\sAnnotate_rows:")
 rowEventPattern = re.compile(r"^### (INSERT INTO|UPDATE|DELETE FROM) `([^`]+)`\.`([^`]+)`$")
-tagPattern = re.compile(r"^(\s*|DROP TABLE (?:IF EXISTS )?)/\* ledger (\d{4}) (apply|revert) \*/\s*")
+tagPattern = re.compile(rf"^(\s*|DROP TABLE (?:IF EXISTS )?)/\* ledger ({changeNumberPattern}) (apply|revert) \*/\s*")
 versionedCommentPattern = re.compile(r"/\*M?!\d{5,6} ?(.*?)\*/", re.DOTALL)
 clientCommandCommentPattern = re.compile(r"/\*!\\C [^*]*\*/")
 # mysqlbinlog names a statement's session database, not the one it writes, and prints a use line only when that changes to a
