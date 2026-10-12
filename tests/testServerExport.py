@@ -10,7 +10,7 @@ import numpy
 import pytest
 from PIL import Image
 
-from conftest import StagedServer, junction, pinnedBlender, pinnedRecast, serverRowValues, writePNG
+from conftest import StagedServer, everquestClient, junction, pinnedBlender, pinnedRecast, serverRowValues, writePNG
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import eqArchive
@@ -246,6 +246,9 @@ def testExportRefusesAPathInsideTheClientFolder(installedLocalAppData, tmp_path)
   clientMap.parent.mkdir(parents=True)
   clientMap.write_bytes(b"the client folder's map")
   (client / "eqgame.exe").write_bytes(b"")
+  # An export reads the client's startup list, whose archives' textures our own must not shadow.
+  (client / "Resources").mkdir()
+  shutil.copy(Path(everquestClient) / "Resources" / "GlobalLoad.txt", client / "Resources" / "GlobalLoad.txt")
   junction(tmp_path / "clientLink", client)
   (tmp_path / "staging").mkdir()
   (tmp_path / "linked").mkdir()
@@ -287,7 +290,7 @@ def testExportRefusesAPathInsideTheClientFolder(installedLocalAppData, tmp_path)
     assert f"An export to '{path}' writes or removes '{first}', which lies inside the EverQuest client folder ({client})" in refusal, refusal
   # '..' is taken before the check: the client folder's parent's staging folder is outside it.
   assert staged["path"] == str(outside) and (tmp_path / "staging" / "servertest.eqg").is_file()
-  assert sorted(path.relative_to(client).as_posix() for path in client.rglob("*")) == ["eqgame.exe", "maps", "maps/base", "maps/base/servertest.map"]
+  assert sorted(path.relative_to(client).as_posix() for path in client.rglob("*")) == ["Resources", "Resources/GlobalLoad.txt", "eqgame.exe", "maps", "maps/base", "maps/base/servertest.map"]
   assert clientMap.read_bytes() == b"the client folder's map"
   assert f"EVERQUEST_CLIENT '{tmp_path / 'staging'}' has no eqgame.exe" in notTheClient
 
@@ -474,7 +477,7 @@ def testTheManifestListsEveryFileWithItsHash(stageBlenderServer, tmp_path):
   assert json.loads(manifestPath.read_text(encoding="ascii")) == {
     "purpose": "test", "writtenBy": "exportZone", "shortName": "servertest", "blend": str(tmp_path / "servertest.blend"),
     "files": {name: recordOf(exportFolder / name) for name in ("servertest.eqg", "servertest_EnvironmentEmitters.txt")},
-    "failures": 0, "findings": len(exported["findings"]),
+    "failures": 0, "findings": len(exported["findings"]), "clientModels": [],
   }
 
   folder = checkFolderOf(stageBlenderServer)

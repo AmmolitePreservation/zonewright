@@ -198,8 +198,9 @@ def testDoorsAndObjectsComeFromTheZonesArchives(stageBlenderServer):
   # neighborhood.eqg ships only the bark's normal map; no archive the zone loads has its diffuse, so the client's effect samples no
   # texture there and the bark draws black, lit or not.
   assert tree["source"]["missingTextures"] == ["ab_dg_treebark_c.dds"]
-  assert "eq_missing_ab_dg_treebark_c.dds" in [entry["material"] for entry in treeDetail["materials"]]
-  assert trunkPick["material"] == "eq_missing_ab_dg_treebark_c.dds"
+  # The tree is lit by its file's normals, as the zone that places it lights it.
+  assert "eq_missing_ab_dg_treebark_c.dds_lit" in [entry["material"] for entry in treeDetail["materials"]]
+  assert trunkPick["material"] == "eq_missing_ab_dg_treebark_c.dds_lit"
   assert Image.open(io.BytesIO(trunk)).convert("RGB").getpixel((480, 270)) == (0, 0, 0)
   assert firstLoaded["source"]["archive"] == "equipment-01.eqg"
   assert chosen["source"]["archive"] == "gequip.s3d"
