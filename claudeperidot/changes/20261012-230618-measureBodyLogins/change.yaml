@@ -1,0 +1,264 @@
+title: Credential Manager holds claudeperidot/eqLogin2 and eqLogin3, two more spare logins on claudeperidot, and the owner's MacroQuest
+  config folder holds claudeperidot_<name>.cfg for each of the 32 body characters Measurehum to Measuredkf, identical to Claudewright's
+why: 'Every playable race and gender gets its own permanent character for the player measurement walks (plan step 22), instead of rewriting
+  Claudewright''s race for each body. RoF2''s character select lists 12 characters per account (EQEmu ae4bd2833 common/patches/rof2_limits.h
+  CHARACTER_CREATION_LIMIT, applied as ORDER BY name LIMIT 12 in world/worlddb.cpp GetCharSelectInfo and again at enter world, world/client.cpp:854),
+  so the 32 bodies and Claudewright need three accounts: account 86 (claudeperidot/eqLogin) keeps Claudewright and takes 11, and two
+  new logins take 12 and 9. The first step makes their credentials exactly as 0012 made claudeperidot/eqLogin (a generated account name,
+  claude plus six lowercase letters and digits, and a 15-character password of letters and digits, stored only in Credential Manager);
+  the login server creates each account at its first login (auto_create_accounts), which is play, and claudelink''s launchClient takes
+  the target as its account argument (claudelink b7b2b96). The second step writes each body character''s MacroQuest cfg with 0013''s
+  content, so MacroQuest unloads mq2netbots and MQ2EQBC (AutoConnect to the owner''s EQBCS on Peridot) and loads MQClaudeLink, each
+  with noauto, before any plugin hears the character enter the world (MQPluginHandler.cpp PluginsSetGameState): InGame.cfg is the owner''s,
+  so a per-character cfg is the only place, and it must exist before the character first enters the world. MacroQuest and its plugins
+  write claudeperidot_<name>.ini beside each as the character plays; the undo removes those too.'
+kind: client
+scope:
+- ~\AppData\Local\Microsoft\Credentials
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehum.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehuf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurebam.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurebaf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureerm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureerf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureelm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureelf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehim.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehif.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredam.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredaf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureham.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehaf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredwm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredwf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuretrm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuretrf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureogm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureogf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehom.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehof.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuregnm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuregnf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureikm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureikf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurekem.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurekef.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurefrm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurefrf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredkm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredkf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehum.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehuf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurebam.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurebaf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureerm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureerf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureelm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureelf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehim.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehif.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredam.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredaf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureham.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehaf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredwm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredwf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuretrm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuretrf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureogm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureogf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehom.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehof.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuregnm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuregnf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureikm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureikf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurekem.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurekef.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurefrm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurefrf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredkm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredkf.ini
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-12, the owner on measuring bodies: "permanent character per body seems like the obvious fix. make sure you
+    measured gender in your assessments assuming gender mattered."'
+activation: each body character's first entry into the world; each credential's first launch
+production: none
+commits: []
+steps:
+- |-
+  Add-Type -TypeDefinition @'
+  using System;
+  using System.Runtime.InteropServices;
+  public static class ClaudePeridotCredential
+  {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct Credential
+    {
+      public int Flags;
+      public int Type;
+      public string TargetName;
+      public string Comment;
+      public long LastWritten;
+      public int CredentialBlobSize;
+      public IntPtr CredentialBlob;
+      public int Persist;
+      public int AttributeCount;
+      public IntPtr Attributes;
+      public string TargetAlias;
+      public string UserName;
+    }
+    [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool CredWrite(ref Credential credential, int flags);
+    [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool CredRead(string target, int type, int flags, out IntPtr credential);
+    [DllImport("advapi32.dll")]
+    public static extern void CredFree(IntPtr buffer);
+  }
+  '@
+  foreach ($target in @('claudeperidot/eqLogin2', 'claudeperidot/eqLogin3')) {
+    $existing = [IntPtr]::Zero
+    if ([ClaudePeridotCredential]::CredRead($target, 1, 0, [ref]$existing)) {
+      [ClaudePeridotCredential]::CredFree($existing)
+      throw "$target already exists; this change only creates it"
+    }
+    $random = New-Object System.Security.Cryptography.RNGCryptoServiceProvider
+    function New-RandomText([string]$alphabet, [int]$length) {
+      $text = New-Object System.Text.StringBuilder
+      $byte = New-Object byte[] 1
+      $limit = 256 - (256 % $alphabet.Length)
+      while ($text.Length -lt $length) {
+        $random.GetBytes($byte)
+        if ($byte[0] -lt $limit) { [void]$text.Append($alphabet[$byte[0] % $alphabet.Length]) }
+      }
+      $text.ToString()
+    }
+    $account = 'claude' + (New-RandomText 'abcdefghijklmnopqrstuvwxyz0123456789' 6)
+    $password = New-RandomText 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789' 15
+    $blob = [Runtime.InteropServices.Marshal]::StringToCoTaskMemUni($password)
+    try {
+      $credential = New-Object ClaudePeridotCredential+Credential
+      $credential.Type = 1
+      $credential.TargetName = $target
+      $credential.Comment = 'claudeperidot spare client login (zonewright claudeperidot ledger 20261012-230618-measureBodyLogins)'
+      $credential.CredentialBlobSize = $password.Length * 2
+      $credential.CredentialBlob = $blob
+      $credential.Persist = 2
+      $credential.UserName = $account
+      if (-not [ClaudePeridotCredential]::CredWrite([ref]$credential, 0)) {
+        throw "CredWrite failed with Windows error $([Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+      }
+    } finally {
+      [Runtime.InteropServices.Marshal]::ZeroFreeCoTaskMemUnicode($blob)
+    }
+  }
+- |-
+  $config = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\config"
+  $names = @('Measurehum', 'Measurehuf', 'Measurebam', 'Measurebaf', 'Measureerm', 'Measureerf', 'Measureelm', 'Measureelf', 'Measurehim', 'Measurehif', 'Measuredam', 'Measuredaf', 'Measureham', 'Measurehaf', 'Measuredwm', 'Measuredwf', 'Measuretrm', 'Measuretrf', 'Measureogm', 'Measureogf', 'Measurehom', 'Measurehof', 'Measuregnm', 'Measuregnf', 'Measureikm', 'Measureikf', 'Measurekem', 'Measurekef', 'Measurefrm', 'Measurefrf', 'Measuredkm', 'Measuredkf')
+  $content = "/plugin mq2netbots unload noauto`r`n/plugin MQ2EQBC unload noauto`r`n/plugin MQClaudeLink load noauto`r`n"
+  foreach ($name in $names) {
+    if (Test-Path -LiteralPath "$config\claudeperidot_$name.cfg") { throw "$config\claudeperidot_$name.cfg already exists; this change only creates it" }
+  }
+  foreach ($name in $names) {
+    [IO.File]::WriteAllText("$config\claudeperidot_$name.cfg", $content, (New-Object System.Text.ASCIIEncoding))
+  }
+undo:
+- |-
+  $config = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\config"
+  $names = @('Measurehum', 'Measurehuf', 'Measurebam', 'Measurebaf', 'Measureerm', 'Measureerf', 'Measureelm', 'Measureelf', 'Measurehim', 'Measurehif', 'Measuredam', 'Measuredaf', 'Measureham', 'Measurehaf', 'Measuredwm', 'Measuredwf', 'Measuretrm', 'Measuretrf', 'Measureogm', 'Measureogf', 'Measurehom', 'Measurehof', 'Measuregnm', 'Measuregnf', 'Measureikm', 'Measureikf', 'Measurekem', 'Measurekef', 'Measurefrm', 'Measurefrf', 'Measuredkm', 'Measuredkf')
+  foreach ($name in $names) {
+    $path = "$config\claudeperidot_$name.cfg"
+    $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($hash -ne 'b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf') { throw "$path changed since apply (sha256 $hash)" }
+  }
+  foreach ($name in $names) {
+    Remove-Item -LiteralPath "$config\claudeperidot_$name.cfg"
+    if (Test-Path -LiteralPath "$config\claudeperidot_$name.ini") { Remove-Item -LiteralPath "$config\claudeperidot_$name.ini" }
+  }
+- |-
+  Add-Type -TypeDefinition @'
+  using System;
+  using System.Runtime.InteropServices;
+  public static class ClaudePeridotCredentialDelete
+  {
+    [DllImport("advapi32.dll", EntryPoint = "CredDeleteW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool CredDelete(string target, int type, int flags);
+  }
+  '@
+  foreach ($target in @('claudeperidot/eqLogin2', 'claudeperidot/eqLogin3')) {
+    if (-not [ClaudePeridotCredentialDelete]::CredDelete($target, 1, 0)) {
+      throw "CredDelete of $target failed with Windows error $([Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+    }
+  }
+checks:
+- credential: claudeperidot/eqLogin2
+- credential: claudeperidot/eqLogin3
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehum.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehuf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurebam.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurebaf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureerm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureerf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureelm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureelf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehim.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehif.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredam.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredaf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureham.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehaf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredwm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredwf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuretrm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuretrf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureogm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureogf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehom.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehof.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuregnm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuregnf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureikm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureikf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurekem.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurekef.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurefrm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurefrf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredkm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredkf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: a7c1bc5a9c47369be
