@@ -301,6 +301,56 @@ def testExportRefusesEveryHardErrorAtOnceAndKeepsTheLastArchive(stageBlenderServ
   assert [path.name for path in tmp_path.iterdir() if path.name.endswith(".partial")] == []
 
 
+readMaterialImages = """
+material = bpy.data.materials['stoneTwo']
+image = material.node_tree.nodes['zonewrightDiffuse'].image
+result = {'file': bpy.path.abspath(image.filepath), 'colorSpace': image.colorspace_settings.name, 'alphaMode': image.alpha_mode,
+  'images': sorted(image.name for image in bpy.data.images if image.name.startswith('stone') or image.name.startswith('slate'))}
+"""
+
+
+def testSetMaterialTextureClearsADDSNameClash(stageBlenderServer, tmp_path):
+  groundTexture = tmp_path / "ground.png"
+  Image.fromarray(patternedRGBA(16, 3)).save(groundTexture)
+  archivePath = tmp_path / "testplot.eqg"
+  for folder in ("first", "second"):
+    (tmp_path / folder).mkdir()
+  stones = [writePNG(tmp_path / folder / "stone.png", 4, 4, (90, 90, 90, 255)) for folder in ("first", "second")]
+  slate = writePNG(tmp_path / "second" / "slate.png", 4, 4, (60, 70, 90, 255))
+
+  async def steps(session):
+    await buildPlot(session, groundTexture, groundTexture, tmp_path / "plot.blend")
+    for name, texture in (("stoneOne", stones[0]), ("stoneTwo", stones[1])):
+      await session.expectSuccess("createMaterial", {"name": name, "diffuseTexture": str(texture)})
+    await boxWith(session, "stoneBoxOne", [40, 40, 0], "stoneOne")
+    await boxWith(session, "stoneBoxTwo", [40, 50, 0], "stoneTwo")
+    before = (await session.expectSuccess("runPython", {"code": readMaterialImages}))["result"]
+    await session.expectSuccess("saveFile", {})
+    clashed = await session.expectSuccess("checkExport", {"path": str(archivePath), "purpose": "test"})
+    swapped = await session.expectSuccess("setMaterialTexture", {"name": "stoneTwo", "slot": "diffuse", "texture": str(slate)})
+    after = (await session.expectSuccess("runPython", {"code": readMaterialImages}))["result"]
+    await session.expectSuccess("saveFile", {})
+    cleared = await session.expectSuccess("checkExport", {"path": str(archivePath), "purpose": "test"})
+    again = await session.expectError("setMaterialTexture", {"name": "stoneTwo", "slot": "diffuse", "texture": str(slate)})
+    noNormal = await session.expectError("setMaterialTexture", {"name": "stoneTwo", "slot": "normal", "texture": str(slate)})
+    badSlot = await session.expectError("setMaterialTexture", {"name": "stoneTwo", "slot": "glow", "texture": str(slate)})
+    notOurs = await session.expectError("setMaterialTexture", {"name": "missing", "slot": "diffuse", "texture": str(slate)})
+    return before, clashed, swapped, after, cleared, again, noNormal, badSlot, notOurs
+
+  before, clashed, swapped, after, cleared, again, noNormal, badSlot, notOurs = stageBlenderServer.session(steps)
+  assert sorted(failure["object"] for failure in clashed["failures"] if failure["failure"] == "images share a DDS name") == ["stoneBoxOne", "stoneBoxTwo"]
+  assert [failure for failure in cleared["failures"] if failure["failure"] == "images share a DDS name"] == []
+  assert swapped["material"] == "stoneTwo" and swapped["slot"] == "diffuse" and swapped["image"] == "slate.png"
+  assert Path(after["file"]) == slate and (after["colorSpace"], after["alphaMode"]) == (before["colorSpace"], before["alphaMode"])
+  # The second stone image was used by stoneTwo alone, so it left the file; the first is still stoneOne's.
+  assert len([name for name in before["images"] if name.startswith("stone")]) == 2
+  assert [name for name in after["images"] if name.startswith("stone")] == ["stone.png"] and "slate.png" in after["images"]
+  assert "already draws diffuse from" in again
+  assert "Material 'stoneTwo' has no normal texture to change" in noNormal
+  assert "slot is one of ['diffuse', 'normal', 'secondDiffuse'], got 'glow'" in badSlot
+  assert "'missing' is not a material createMaterial or createLiquidMaterial made" in notOurs
+
+
 def testExportRefusesAMissingTerrain(stageBlenderServer, tmp_path):
   groundTexture = tmp_path / "ground.png"
   Image.fromarray(patternedRGBA(16, 3)).save(groundTexture)

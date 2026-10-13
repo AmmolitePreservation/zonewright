@@ -424,8 +424,39 @@ def projectedUVs(sceneObject, method, worldUnitsPerRepeat, selector, direction):
   return faceMask, faceMask[loopFaces], numpy.einsum("lj,laj->la", points, loopAxes) / worldUnitsPerRepeat
 
 
+# The slots setMaterialTexture changes, by the nodes that hold them; a waterfall's alpha node reads its diffuse again.
+textureSlots = {"diffuse": (diffuseNodeName, diffuseAlphaNodeName), "normal": (normalNodeName,), "secondDiffuse": (secondDiffuseNodeName,)}
+
+
+def setMaterialTexture(name, slot, texture):
+  """Point a slot of a material createMaterial or createLiquidMaterial made at another texture file, the image keeping its settings
+  (color space, alpha mode, and the properties zonewright set on it); the image it held is removed once nothing uses it."""
+  material = bpy.data.materials.get(name)
+  if material is None or not (bridgeMeshAccess.cutoutProperty in material or bridgeMeshAccess.liquidProperty in material):
+    raise ValueError(f"'{name}' is not a material createMaterial or createLiquidMaterial made")
+  if slot not in textureSlots:
+    raise ValueError(f"slot is one of {list(textureSlots)}, got {slot!r}")
+  nodes = [material.node_tree.nodes[nodeName] for nodeName in textureSlots[slot] if material.node_tree.nodes.get(nodeName) is not None]
+  if not nodes:
+    raise ValueError(f"Material '{name}' has no {slot} texture to change")
+  previous = nodes[0].image
+  image = loadImage(texture, previous.colorspace_settings.name)
+  if image == previous:
+    raise ValueError(f"Material '{name}' already draws {slot} from {texture}")
+  image.alpha_mode = previous.alpha_mode
+  for key in previous.keys():
+    image[key] = previous[key]
+  for node in nodes:
+    node.image = image
+  previousName = previous.name
+  if previous.users == 0:
+    bpy.data.images.remove(previous)
+  return {"material": name, "slot": slot, "previous": previousName, "image": image.name, "file": image.filepath}
+
+
 commands = {
   "createMaterial": (createMaterial, True),
+  "setMaterialTexture": (setMaterialTexture, True),
   "createLiquidMaterial": (createLiquidMaterial, True),
   "assignMaterial": (assignMaterial, True),
   "environmentLookups": (environmentLookups, False),

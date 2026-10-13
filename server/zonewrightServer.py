@@ -4201,6 +4201,16 @@ async def createMaterial(context: Context, name: str, diffuseTexture: str, norma
   })
 
 
+@guardedTool()
+async def setMaterialTexture(context: Context, name: str, slot: str, texture: str):
+  """Draw a slot of a material (createMaterial, createLiquidMaterial) from another texture: `slot` diffuse, normal (a material made
+  with one), or secondDiffuse (lava's glow); `texture` an absolute path or a catalog texture id (texture/<name>@<hash>), as
+  createMaterial takes. The image keeps the old one's color space, alpha mode, and properties, every face and layer painted with the
+  material draws the new one, and the old image leaves the file once nothing uses it. For a texture whose name an export finds taken
+  (two images sharing one DDS name, a copied client model's texture among them), point the material at another file."""
+  return await callBridge(context, "setMaterialTexture", {"name": name, "slot": slot, "texture": catalogTexturePath(texture)})
+
+
 @guardedTool(description="Assign a material to the selected faces of a mesh without surfacing layers, adding a material slot if needed: for objects and blockout. A zone's terrain is surfaced by painting into layers (addSurfaceLayer, paintSurface)." + selectorHelp)
 async def assignMaterial(context: Context, objectName: str, materialName: str, selector: dict = allSelector):
   return await callBridge(context, "assignMaterial", {"objectName": objectName, "materialName": materialName, "selector": selector})
