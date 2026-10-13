@@ -24,7 +24,7 @@ import playerScale
 
 # The medium body group, which holds the walked human male, is the one these tests size their courses by.
 medium = playerScale.groups["medium"]
-minimumSwimDepth, playerHeight, steepestWalkableDegrees, stepHeight = medium.minimumSwimDepth, medium.playerHeight, medium.steepestWalkableDegrees, medium.stepHeight
+minimumSwimDepth, playerHeight, stepHeight = medium.minimumSwimDepth, medium.playerHeight, medium.stepHeight
 from testHousing import decision
 from testModelsAndDressing import freshScene
 from testReach import centersWithin, columnsWithin, cube, near, rampAlongY, rectangle, region
@@ -48,8 +48,10 @@ otherZone = {"zone": "qeynos2", "x": 10, "y": 20, "z": 3, "headingDegrees": 90}
 # Compass names as plans draw them: +X north, +Y west.
 northLine = {"minimum": [60, -10, -5], "maximum": [76, 10, 20]}
 rims = {"westWall": [[-edge, edge], [edge, edge]], "northWall": [[edge, edge], [edge, -edge]], "eastWall": [[edge, -edge], [-edge, -edge]], "southWall": [[-edge, -edge], [-edge, edge]]}
-# A platform players walk up to by a ramp steeper than the NPC nav walks and over its climb, and a dais no one climbs.
-rampDegrees = steepestWalkableDegrees - 5
+# A platform players walk up to by a ramp steeper than the NPC nav walks and over its climb, and a dais no one climbs. The ramp stays
+# 5 degrees under the face whose rise across a column passes the least step of any group, which every group's lane takes as a rise (the
+# small group's 2.97 cuts faces steeper than about 71 degrees, under the 80 it walks).
+rampDegrees = math.degrees(math.atan(min(playerScale.groups[name].stepHeight for name in playerScale.groupNames) / cellSize)) - 5
 platform = ([32, 32, 0], [48, 48, max(stepHeight, serverNav.serverNavSettings["agentClimb"]) + 2 * heightMargin])
 dais = ([-48, 32, 0], [-32, 48, 2 * stepHeight])
 fromQeynos = {"name": "fromQeynos", "at": [-40, -40], "headingDegrees": 90, "kind": "zoneIn", "fromZone": "qeynos2", "fromNumber": 3}

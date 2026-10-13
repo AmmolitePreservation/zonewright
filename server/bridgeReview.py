@@ -163,6 +163,10 @@ def stepAcross(surfaces, footing, target, direction, reach, body):
   (walkRoute)."""
   run = math.hypot(target.x - footing.x, target.y - footing.y)
   climb = max(body.stepHeight, run * math.tan(math.radians(body.steepestWalkableDegrees)))
+  # The search starts within the space over the footing: from over a ceiling (a deck overhead) it would land on top of it.
+  overhead = surfaces.cast(footing + up * castNudge, up, climb + castNudge)
+  if overhead is not None:
+    climb = min(climb, overhead.z - footing.z - 2 * castNudge)
   standing = standingBelow(surfaces, mathutils.Vector((target.x, target.y, footing.z + climb + castNudge)), reach + climb + castNudge)
   blocker = passageBlocker(surfaces, footing, standing[0] if standing is not None else mathutils.Vector((target.x, target.y, footing.z)), body)
   if blocker is not None:

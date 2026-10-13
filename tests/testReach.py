@@ -31,8 +31,9 @@ wallHeight = 12.0
 # The edge walls stand just inside the ground's edge at 240, on ground, in its last column.
 edge = 239.9
 otherZone = {"zone": "qeynos2", "x": 0, "y": 0, "z": 0, "headingDegrees": 0}
-gentleDegrees = steepestWalkableDegrees - 5
-# Steeper than walkable by less than a face whose rise across one column passes the step, which the lane takes as a rise.
+# 5 degrees under the face whose rise across one column passes the least step of any group, so every group's lane climbs it.
+gentleDegrees = math.degrees(math.atan(min(playerScale.groups[name].stepHeight for name in playerScale.groupNames) / cellSize)) - 5
+# Steeper than walkable; across one column it rises past the step, so the lane takes it as a rise, and a step off it slides.
 steepDegrees = steepestWalkableDegrees + 2.5
 containmentHeadroom = playerReach.containmentHeadroom
 # One lintel leaves a gap between the containment headroom and playerHeight, which only a smaller player passes; the other leaves less
@@ -355,7 +356,9 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
     ("viewRegion", "viewDeck"),
     # The large group never swims up into the upper stacked box.
     ("unreachedSwim", "course"),
-    *[("unreachedPlayFloor", "course")] * 9,
+    # Under the ramps, and on the blocks and platforms some group does not reach; the slide face, 2.5 degrees over the 80 walked, stands
+    # too near upright to leave floor under it.
+    *[("unreachedPlayFloor", "course")] * 8,
     ("undecidedWater", "course"),
   ]
   byKind = {}
@@ -381,19 +384,19 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   assert near(slideTrap["center"], [-240 - slideRun / 2, 66])
   assert near(byKind["viewRegion"][0]["center"], [120, -30]) and byKind["viewRegion"][0]["area"] == centersWithin(100, 140) * centersWithin(-40, -20) * cellSize ** 2
   # Each block top players never reach: every column holding some of it, alone or joined with floor beside it. The steep platform's top
-  # joins the squeeze floor under its ramp. The banks, sized by the medium group's step and swim depth, join one problem with the
+  # stands alone, its ramp too near upright to leave squeeze floor under it. The banks, sized by the medium group's step and swim depth, join one problem with the
   # shallow pool's bank: the small group steps too little onto the low bank, the large group swims in none of the pools. The step under
   # the medium group's is over the small group's.
   steepTop = 35 + 10 / math.tan(math.radians(steepDegrees))
-  blocks = [((-105, 30), (-110, -100, 30, 50), False), ((40, 40), (35, 45, 35, 45), True), ((40, 70), (35, 45, 65, 75), True), ((110, steepTop + 5), (105, 115, steepTop, steepTop + 10), False)]
+  blocks = [((-105, 30), (-110, -100, 30, 50), False), ((40, 40), (35, 45, 35, 45), True), ((40, 70), (35, 45, 65, 75), True), ((110, steepTop + 5), (105, 115, steepTop, steepTop + 10), True)]
   for expected, (lowX, highX, lowY, highY), alone in blocks:
     found = [problem for problem in byKind["unreachedPlayFloor"] if near(problem["center"], expected)]
     assert len(found) == 1 and found[0]["area"] >= columnsOver(lowX, highX) * columnsOver(lowY, highY) * cellSize ** 2
     assert (found[0]["area"] == columnsOver(lowX, highX) * columnsOver(lowY, highY) * cellSize ** 2) == alone
-  # The rest is floor only containment reaches, smaller than every group: the low space under each ramp and the slide face. Every
-  # group misses it, and the zone is built for every group: findings judged as failing them, never refusing an export.
+  # The rest is floor only containment reaches, smaller than every group: the low space under the gentle, ledge, slope, and float
+  # ramps. Every group misses it, and the zone is built for every group: findings judged as failing them, never refusing an export.
   rest = [problem for problem in byKind["unreachedPlayFloor"] if not any(near(problem["center"], expected) for expected, _, _ in blocks)]
-  assert len(rest) == 5
+  assert len(rest) == 4
   for problem in rest:
     assert playerReach.labelNames[nodes.label[nodes.floorNodeAt(problem["center"])]] == "squeeze"
     assert problem["failingGroups"] == every and problem["verdict"] == "fails" and not playerReach.isFailure(problem)
@@ -444,7 +447,7 @@ def testLaneAgreesWithWalkRoute(stageBlenderServer):
     await cube(session, "lowRiser", [-70, -10, 0], [-50, 10, stepHeight - heightMargin])
     await cube(session, "highRiser", [-70, 30, 0], [-50, 50, stepHeight + heightMargin])
     await session.expectSuccess("createPrimitive", rampArguments("climbable", steepestWalkableDegrees - 2, 0))
-    await session.expectSuccess("createPrimitive", rampArguments("tooSteep", steepestWalkableDegrees + 5, 40))
+    await session.expectSuccess("createPrimitive", rampArguments("tooSteep", steepestWalkableDegrees + 2, 40))
     walks = {}
     for name, y in (("lowRiser", 0), ("highRiser", 40)):
       walks[name] = await session.expectSuccess("walkRoute", {"path": [[-90, y, 0], [-30, y, 0]]})
@@ -465,9 +468,9 @@ def testLaneAgreesWithWalkRoute(stageBlenderServer):
   assert [problem["kind"] for problem in walks["highRiser"]["problems"]] == ["rise"] and label([-60, 40, stepHeight + heightMargin]) == "unreached"
   rise = 8 * math.sin(math.radians(steepestWalkableDegrees - 2))
   assert walks["climbable"]["walkable"] and label([20 + 8 * math.cos(math.radians(steepestWalkableDegrees - 2)) - cellSize / 2, 0, rise]) == "walk"
-  rise = 8 * math.sin(math.radians(steepestWalkableDegrees + 5))
+  rise = 8 * math.sin(math.radians(steepestWalkableDegrees + 2))
   assert [problem["kind"] for problem in walks["tooSteep"]["problems"]] == ["steep"]
-  assert label([20 + 8 * math.cos(math.radians(steepestWalkableDegrees + 5)) - cellSize / 2, 40, rise]) == "unreached"
+  assert label([20 + 8 * math.cos(math.radians(steepestWalkableDegrees + 2)) - cellSize / 2, 40, rise]) == "unreached"
 
 
 def testSceneAndServerFilesGiveTheSameLane(stageBlenderServer, tmp_path):

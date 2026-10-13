@@ -133,46 +133,43 @@ def testTraceReachRoutesOverTheDropAndTheSwim(stageBlenderServer, tmp_path):
   assert routed.is_error is False, routed.content[-1].text
   assert [content.type for content in routed.content] == ["image", "image", "text"]
   result = json.loads(routed.content[2].text)
-  # A riser is a step only where no walkable face rises as far across a column.
-  assert playerReach.stepRise(playerReach.Lane(result["laneFile"])) < riser
+  # A riser players climb rises no more across a column than the steepest face they walk does, so the lane cannot tell the two apart: the
+  # risers are walked, no climb of steps.
+  assert riser <= stepHeight < playerReach.stepRise(playerReach.Lane(result["laneFile"]))
   assert (result["reached"], result["from"], result["target"]["label"]) == (True, "safe point", "walk")
   legs = result["legs"]
   assert result["legCount"] == len(legs) <= playerReach.routeLegsListed and "legsFile" not in result
-  assert [leg["move"] for leg in legs] == ["walk", "step", "walk", "drop", "walk", "drop", "swim", "climbOut", "walk"]
-  assert [leg["label"] for leg in legs] == ["walk"] * 5 + ["swim", "swim", "walk", "walk"]
-  # The two risers are one climb run of two steps, up both.
-  assert legs[1]["steps"] == 2 and all("steps" not in leg for leg in legs[2:])
+  assert [leg["move"] for leg in legs] == ["walk", "drop", "walk", "drop", "swim", "climbOut", "walk"]
+  assert [leg["label"] for leg in legs] == ["walk"] * 3 + ["swim", "swim", "walk", "walk"]
+  assert all("steps" not in leg for leg in legs)
   rises = [leg["rise"] for leg in legs]
-  for index, expected in ((1, 2 * riser), (3, -2 * riser), (5, waterTop), (7, -waterTop)):
+  for index, expected in ((0, 2 * riser), (1, -2 * riser), (3, waterTop), (5, -waterTop)):
     assert abs(rises[index] - expected) <= cellHeight, (index, rises[index], expected)
-  # The first riser's face, the riser block's far edge, and the trench's banks are where the moves start, to a column.
-  for index, y in ((1, -10), (3, 10), (5, trench[0]), (7, trench[1])):
+  # The riser block's far edge and the trench's banks are where the moves start, to a column.
+  for index, y in ((1, 10), (3, trench[0]), (5, trench[1])):
     assert abs(legs[index]["start"][1] + 0.5 - y) <= 1, (index, legs[index]["start"], y)
-  assert abs(legs[6]["length"] - (trench[1] - trench[0] - 2)) <= 2 and near(legs[-1]["end"], routeTarget)
+  assert abs(legs[4]["length"] - (trench[1] - trench[0] - 2)) <= 2 and near(legs[-1]["end"], routeTarget)
   assert result["length"] == round(sum(leg["length"] for leg in legs), 1)
   # The drop off the riser block and the drop into the trench lie further apart along the route than decisiveGap: two moves, each one.
   assert [(move["number"], move["move"], move["leg"], move["lastLeg"], move["count"]) for move in result["decisive"]] == [
-    (1, "step", 1, 1, 1), (2, "drop", 3, 3, 1), (3, "drop", 5, 5, 1), (4, "climbOut", 7, 7, 1),
+    (1, "drop", 1, 1, 1), (2, "drop", 3, 3, 1), (3, "climbOut", 5, 5, 1),
   ]
-  assert [move["caption"] for move in result["decisive"]] == [
-    f"1 climb of 2 steps {rises[1]:+g}", f"2 drop {rises[3]:+g}", f"3 drop {rises[5]:+g}", f"4 climbOut {rises[7]:+g}",
-  ]
-  # Four decisive moves, four frames: each stands on the route 12 before its move, the climb out's on the bank it dropped from, and looks
-  # up the corridor: the climb's and the climb out's at where the move ends, the scale figure standing there, the drops' 12 past their
-  # landing, where the floor shows past the brink: past the first on the lower ground, past the trench's on its far bank.
+  assert [move["caption"] for move in result["decisive"]] == [f"1 drop {rises[1]:+g}", f"2 drop {rises[3]:+g}", f"3 climbOut {rises[5]:+g}"]
+  # Three decisive moves, three frames: each stands on the route 12 before its move, the climb out's on the bank it dropped from, and
+  # looks up the corridor: the climb out's at where the move ends, the scale figure standing there, the drops' 12 past their landing,
+  # where the floor shows past the brink: past the first on the lower ground, past the trench's on its far bank.
   frames = result["frames"]
-  assert [frame["number"] for frame in frames] == [1, 2, 3, 4]
+  assert [frame["number"] for frame in frames] == [1, 2, 3]
   for frame, move in zip(frames, result["decisive"]):
     view = frame["view"]
     assert set(view) - {"figureAt"} == {"standAt", "headingDegrees", "pitchDegrees", "bodyGroup"} and view["bodyGroup"] == "medium" and abs(view["headingDegrees"]) < 1e-6
     assert abs(view["standAt"][1] - (legs[move["leg"]]["start"][1] - playerReach.frameStandBack)) <= 1, (frame, move)
   # Legs report their points to a tenth.
-  for frame, leg in ((frames[0], legs[1]), (frames[3], legs[7])):
-    assert all(abs(value - end) <= 0.05 + 1e-9 for value, end in zip(frame["view"]["figureAt"], leg["end"])), (frame, leg)
-  for frame, leg, floor in ((frames[1], legs[3], legs[3]["end"][2]), (frames[2], legs[5], legs[7]["end"][2])):
+  assert all(abs(value - end) <= 0.05 + 1e-9 for value, end in zip(frames[2]["view"]["figureAt"], legs[5]["end"])), (frames[2], legs[5])
+  for frame, leg, floor in ((frames[0], legs[1], legs[1]["end"][2]), (frames[1], legs[3], legs[5]["end"][2])):
     assert abs(frame["view"]["figureAt"][1] - (leg["end"][1] + playerReach.frameStandBack)) <= 1 and abs(frame["view"]["figureAt"][2] - floor) <= 0.05 + 1e-9, frame
-  # The climb's frame looks up at the top of its run; the drop's looks down at where it lands.
-  assert frames[1]["view"]["pitchDegrees"] < 0 < frames[0]["view"]["pitchDegrees"]
+  # The drops' frames look down at where they land.
+  assert frames[0]["view"]["pitchDegrees"] < 0 and frames[1]["view"]["pitchDegrees"] < 0
   sheet = Image.open(io.BytesIO(base64.b64decode(routed.content[1].data)))
   assert sheet.size == (result["frameSheet"]["width"], result["frameSheet"]["height"])
   # In plan the ribbon runs along y, across the drawing: a pixel column through it holds the walk green ribbon's width of green and the
@@ -186,7 +183,7 @@ def testTraceReachRoutesOverTheDropAndTheSwim(stageBlenderServer, tmp_path):
   greenRows = round(colorShare(across, laneDrawing.labelColors[playerReach.walkLabel]) * len(across))
   casingRows = round(colorShare(across, laneDrawing.ribbonCasing) * len(across))
   assert (greenRows, casingRows) == (laneDrawing.ribbonWidth, laneDrawing.ribbonCasingWidth - laneDrawing.ribbonWidth), (greenRows, casingRows)
-  assert colorShare(pixelsAround(plan, result["plan"], legs[3]["start"], 6), laneDrawing.decisiveFill) > 0.2
+  assert colorShare(pixelsAround(plan, result["plan"], legs[1]["start"], 6), laneDrawing.decisiveFill) > 0.2
   # From every arrival, the gate's landing lies nearer: one walk south to the point.
   gated = json.loads(fromGate.content[-1].text)
   assert (gated["from"], [leg["move"] for leg in gated["legs"]], gated["decisive"]) == ("gate", ["walk"], [])
@@ -563,9 +560,12 @@ def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
     route = results[name]
     assert route["reached"] is True, name
     assert move in [leg["move"] for leg in route["legs"]] and [decisive["move"] for decisive in route["decisive"]][-1:] == [move], (name, route["decisive"])
-  # The steep ramp's face is steeper than walkable, by its own degrees.
+  # The steep ramp's face, steeper than walkable, rises more across a column than the group steps: the lane meets it as a rise over the
+  # step (a face just over the steepest walkable already rises past the step across a column, so a lane at this cell size has no
+  # steep face short of one).
   steep = results["steepRamp"]["separations"]
-  assert [stop["kind"] for stop in steep] == ["steep"] and abs(steep[0]["degrees"] - steepDegrees) <= 0.5, steep
+  assert cellSize * math.tan(math.radians(steepDegrees)) > stepHeight
+  assert [(stop["kind"], stop["limit"]) for stop in steep] == [("rise", stepHeight)] and steep[0]["height"] > stepHeight, steep
   # Past the raised walk's zone line, the nearest place is short of the line's box, players in it being gone, and the box separates them.
   pastLine = results["pastZoneLine"]
   assert pastLine["nearest"]["at"][0] < -170 and abs(pastLine["nearest"]["at"][2] - raisedHeight) <= cellHeight, pastLine["nearest"]

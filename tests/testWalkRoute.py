@@ -128,7 +128,7 @@ def testWalkRouteClimbsWhatTheRoF2ClientClimbs(stageBlenderServer):
     await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "lowRiser", "size": [20, 20, lowRiser], "location": [-60, 0, 0]})
     await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "highRiser", "size": [20, 20, pastStep], "location": [-60, 40, 0]})
     await session.expectSuccess("createPrimitive", rampArguments("climbable", steepestWalkableDegrees - 2, 0))
-    await session.expectSuccess("createPrimitive", rampArguments("tooSteep", steepestWalkableDegrees + 5, 40))
+    await session.expectSuccess("createPrimitive", rampArguments("tooSteep", steepestWalkableDegrees + 2, 40))
     walks = {}
     for name, y in (("lowRiser", 0), ("highRiser", 40)):
       walks[name] = await session.expectSuccess("walkRoute", {"path": [[-90, y, 0], [-30, y, 0]]})
@@ -141,11 +141,12 @@ def testWalkRouteClimbsWhatTheRoF2ClientClimbs(stageBlenderServer):
   assert walks["lowRiser"]["walkable"] and walks["lowRiser"]["problems"] == [] and walks["lowRiser"]["oneWay"] == []
   assert max(row["at"][2] for row in walks["lowRiser"]["profile"]) == lowRiser
   assert [(problem["kind"], problem["height"]) for problem in walks["highRiser"]["problems"]] == [("rise", pastStep)]
-  # A face two degrees under the steepest players walk is climbed; one five degrees over it is too steep.
+  # A face two degrees under the steepest players walk is climbed; one two degrees over it, its rise per stride under the step, is too
+  # steep.
   assert walks["climbable"]["walkable"] and walks["climbable"]["problems"] == []
   assert abs(walks["climbable"]["steepest"]["slopeDegrees"] - (steepestWalkableDegrees - 2)) <= 0.2
   assert [problem["kind"] for problem in walks["tooSteep"]["problems"]] == ["steep"]
-  assert abs(walks["tooSteep"]["problems"][0]["steepestDegrees"] - (steepestWalkableDegrees + 5)) <= 0.2
+  assert abs(walks["tooSteep"]["problems"][0]["steepestDegrees"] - (steepestWalkableDegrees + 2)) <= 0.2
 
 
 houseWalls = [
