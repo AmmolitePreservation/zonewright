@@ -1,4 +1,5 @@
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -13,6 +14,8 @@ import playerScale
 # The medium body group, which holds the walked human male, is the one these tests size their courses by.
 medium = playerScale.groups["medium"]
 steepestWalkableDegrees = medium.steepestWalkableDegrees
+# A whole degree past the steepest face players walk, which a grade limit may not reach.
+pastWalkableDegrees = math.floor(steepestWalkableDegrees) + 1
 
 # A tunnel 40 wide and 45 tall from the cliff foot, rising to a room 120 wide and 70 tall that ends blind.
 hall = {
@@ -395,7 +398,7 @@ def testCaveRefusals(stageBlenderServer, tmp_path):
     steep = await session.expectError("cutCave", hall | {"name": "steep", "path": [[0, -60, 2], [0, 0, 60]], "widths": [40] * 2, "heights": [45] * 2})
     tight = await session.expectError("cutCave", hall | {"name": "tight", "path": [[0, -60, 2], [0, 40, 6], [-30, 10, 6]], "widths": [40] * 3, "heights": [45] * 3})
     border = await session.expectError("cutCave", hall | {"name": "border", "path": [[0, -60, 2], [0, 30, 6], [0, 370, 6]], "widths": [40] * 3, "heights": [45] * 3})
-    overWalkable = await session.expectError("cutCave", hall | {"name": "overWalkable", "maximumFloorDegrees": 81})
+    overWalkable = await session.expectError("cutCave", hall | {"name": "overWalkable", "maximumFloorDegrees": pastWalkableDegrees})
     await session.expectSuccess("cutCave", hall)
     before = (await session.expectSuccess("runPython", {"code": checkCave}))["result"]
     # A tunnel 45 east of the hall, whose reach takes in the hall's mouth.
@@ -413,7 +416,7 @@ def testCaveRefusals(stageBlenderServer, tmp_path):
   assert "tighter than half its width" in tight
   assert "reaches the edge of 'ground'" in border
   # A cave's floor is walked, so its grade limit runs up to the steepest face every group its start is built for walks (playerScale).
-  assert f"maximumFloorDegrees is above 0 and at most {steepestWalkableDegrees:.1f} (the steepest face every body group the cave's start is built for walks, ['small', 'medium', 'large'], playerScale), got 81" in overWalkable
+  assert f"maximumFloorDegrees is above 0 and at most {steepestWalkableDegrees:.1f} (the steepest face every body group the cave's start is built for walks, ['small', 'medium', 'large'], playerScale), got {pastWalkableDegrees}" in overWalkable
   assert "Cave 'beside' would reach the mouth of cave(s) ['hall']" in overlap
   # A refused edit leaves the cave as it was.
   assert "rises 58.0" in edited and after == before and detail["caves"][0]["from"] == hall["path"][0]

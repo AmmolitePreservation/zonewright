@@ -21,8 +21,8 @@ from testHousing import decision, flatGround
 from testModelsAndDressing import freshScene
 from testWater import environment, liquidMaterials
 
-# A ramp this much steeper than players walk (playerScale).
-steepDegrees = steepestWalkableDegrees + 5
+# A ramp a degree steeper than any body group walks (playerScale), short of upright.
+steepDegrees = max(playerScale.groups[name].steepestWalkableDegrees for name in playerScale.groupNames) + 1
 otherZone = {"zone": "qeynos2", "x": 0, "y": 0, "z": 0, "headingDegrees": 0}
 
 

@@ -82,10 +82,10 @@ def testClimbingIsTheStrictestWalkedBodysOfEachGroup():
     assert playerScale.stepOf(playerScale.walkedBodies[code]) < playerScale.walkedBodies[code].stepRefused == 4.5
   assert small.sources["stepHeight"].startswith("derived: the gnome female's") and medium.sources["stepHeight"].startswith("measured: ")
   assert "the course's highest riser, so the limit lies above it" in large.sources["stepHeight"]
-  # Every walked body climbed the course's steepest ramp, so each group's limit is that ramp's, a lower bound.
-  assert [round(group.steepestWalkableDegrees, 6) for group in (small, medium, large)] == [80, 80, 80]
-  for group in (small, medium, large):
-    assert "so the value is a lower bound and the limit lies steeper" in group.sources["walkableNormalZ"], group.name
+  # Each group's limit is its least steep body's: the dwarf, gnome and drakkin climbed 86 degrees and stopped at 87, the rest 85 and 86.
+  assert [round(group.steepestWalkableDegrees, 6) for group in (small, medium, large)] == [86, 85, 85]
+  assert "on ramps of 70 to 89 degrees by 1 it climbed up to 85 degrees, stopped from 86 degrees" in large.sources["walkableNormalZ"]
+  assert all("lower bound" not in group.sources["walkableNormalZ"] for group in (small, medium, large))
   assert (small.minimumSwimDepth, medium.minimumSwimDepth, large.minimumSwimDepth) == (2.17, 3.45, 4.68)
   for group in (small, medium, large):
     for measure in ("playerHeight", "playerWidth", "stepHeight", "walkableNormalZ", "minimumSwimDepth"):

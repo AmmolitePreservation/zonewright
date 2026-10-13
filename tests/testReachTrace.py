@@ -21,7 +21,7 @@ medium = playerScale.groups["medium"]
 eyeHeight, playerHeight, stepHeight = medium.eyeHeight, medium.playerHeight, medium.stepHeight
 from testCaves import caveCanyon, hall
 from testModelsAndDressing import freshScene
-from testReach import cellHeight, cellSize, containmentHeadroom, cube, heightMargin, otherZone, rampAlongY, reachCourse, steepDegrees
+from testReach import cellHeight, cellSize, containmentHeadroom, cube, heightMargin, otherZone, probes, rampAlongY, reachCourse, steepDegrees
 from testReachPictures import colorShare, pixelsAround, planFrame
 from testWater import environment
 
@@ -526,7 +526,7 @@ def testSectionAlongACaveDrawsItsWalkedFloor(stageBlenderServer, tmp_path):
 
 
 def testTraceReachOnTheReachCourse(stageBlenderServer, tmp_path):
-  routes = {"tower": {"to": [90, -120, 30]}, "slideFace": {"to": [-60, 50.5, 10]}, "pool": {"to": [-120, 40, 2]}}
+  routes = {"tower": {"to": [90, -120, 30]}, "slideFace": {"to": probes["slide face"][0]}, "pool": {"to": [-120, 40, 2]}}
   stops = {
     "steepRamp": {"to": [110, 36]}, "pastZoneLine": {"to": [-160, 173]}, "pastDiagonal": {"to": [234, -235]}, "floating": {"to": [-255, 105]},
     "highBank": {"to": [-105, 46]},

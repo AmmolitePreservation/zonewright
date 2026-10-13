@@ -20,7 +20,7 @@ medium = playerScale.groups["medium"]
 playerHeight, stepHeight = medium.playerHeight, medium.stepHeight
 from testCaves import caveCanyon, hall
 from testModelsAndDressing import freshScene
-from testReach import cellHeight, cellSize, cube, heightMargin, reachCourse
+from testReach import cellHeight, cellSize, cube, heightMargin, probes, reachCourse
 from testWater import environment
 
 
@@ -158,7 +158,8 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   edgePlan = Image.open(io.BytesIO(edgeImage))
   edgePlan.save(tmp_path / "courseStationsEdge.png")
   assert colorShare(pixelsAround(edgePlan, edgeReport["plan"], [-240.5, -30], 2), laneDrawing.voidColor) > 0.2
-  assert orangeShare(pixelsAround(edgePlan, edgeReport["plan"], [-241.5, 66], 2)) > 0.2
+  # The face sliding off the edge is drawn slide orange, looked at clear of the trap's ring about its middle.
+  assert orangeShare(pixelsAround(edgePlan, edgeReport["plan"], [probes["slide off"][0][0], 62], 2)) > 0.2
   # In one swim box, the ford's shelf, under water shallower than players swim in, is walked green lined with the swim blue as water
   # waded, and the deeper water beside it is swum blue; the box's outline, white under its dashes over every fill, shows alike along
   # the shelf and the deep water.

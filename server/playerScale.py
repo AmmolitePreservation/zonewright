@@ -76,23 +76,23 @@ swimEyeAboveSurfaceValue = 1.0
 # of its real race and gender (claudeperidot ledger 20261012-233442 and its predecessors; a #race illusion leaves the client's
 # avatarHeight at the human's), walking straight without jumping, with MacroQuest's frame limiter suspended (about 190 to 230 fps). Per
 # model code: the highest riser climbed and the lowest refused (risers 4.50 to 5.30 by 0.05), the steepest ramp climbed and the least
-# steep refused (70 to 80 degrees by 1), the deepest water over the pool's bed walked and the depth floating began (the bed sloping 0
+# steep refused (70 to 89 degrees by 1, walked 2026-10-12 after the ramps past 80 were added), the deepest water over the pool's bed walked and the depth floating began (the bed sloping 0
 # to 10 at 0.1 per unit), the lowest ceiling passed and the one that stopped it (14 down to 3 by 0.25), the narrowest opening passed and
 # the one that stopped it (10 down to 0.5 by 0.25), and the avatarHeight the client held. None: the course holds no value on that side
-# (every riser climbed, or none; every ramp climbed). At the background frame rate (about 30 to 80 fps) the same bodies, walked the
+# (every riser climbed, or none). At the background frame rate (about 30 to 80 fps) the same bodies, walked the
 # morning of 2026-10-12, stopped on ramps from 74 to 79 degrees and needed 0.25 to 1.0 more headroom (the gnome 0.25 less).
 measurementWalk = (
   "claudelink's walkMeasurementLanes in arttest on claudeperidot (the spare RoF2 client) at a high frame rate (MacroQuest's frame"
   " limiter suspended, about 190 to 230 fps), 2026-10-12"
 )
 walkedBodyRows = (
-  ("DWM", None, 4.5, 80, None, 2.81, 2.82, 5.5, 5.25, 2.5, 2.25, 2.5),
-  ("GNF", None, 4.5, 80, None, 2.17, 2.18, 4.5, 4.25, 2.0, 1.75, 1.875),
-  ("DKM", 5.3, None, 80, None, 4.37, 4.38, 7.75, 7.5, 4.0, 3.75, 4.0625),
-  ("ELF", 4.95, 5.0, 80, None, 3.45, 3.45, 6.25, 6.0, 3.0, 2.75, 3.125),
-  ("HUM", 5.3, None, 80, None, 4.06, 4.07, 7.25, 7.0, 3.75, 3.5, 3.75),
-  ("OGM", 5.3, None, 80, None, 5.81, 5.81, 10.5, 10.25, 5.25, 5.0, 5.5),
-  ("KEF", 5.3, None, 80, None, 4.68, 4.69, 8.25, 8.0, 4.25, 4.0, 4.375),
+  ("DWM", None, 4.5, 86, 87, 2.81, 2.82, 5.5, 5.25, 2.5, 2.25, 2.5),
+  ("GNF", None, 4.5, 86, 87, 2.17, 2.18, 4.5, 4.25, 2.0, 1.75, 1.875),
+  ("DKM", 5.3, None, 86, 87, 4.37, 4.38, 7.75, 7.5, 4.0, 3.75, 4.0625),
+  ("ELF", 4.95, 5.0, 85, 86, 3.45, 3.45, 6.25, 6.0, 3.0, 2.75, 3.125),
+  ("HUM", 5.3, None, 85, 86, 4.06, 4.07, 7.25, 7.0, 3.75, 3.5, 3.75),
+  ("OGM", 5.3, None, 85, 86, 5.81, 5.81, 10.5, 10.25, 5.25, 5.0, 5.5),
+  ("KEF", 5.3, None, 85, 86, 4.68, 4.69, 8.25, 8.0, 4.25, 4.0, 4.375),
 )
 # Each group's sample by role. Bodies often tie in the bodies table (the dwarves' avatarHeight, the ogres', the human and erudite
 # males' width); the owner chose the one walked. bodyGroup checks each holds its role's extreme.
@@ -270,13 +270,13 @@ def groupSources(walked):
     stepText = f"measured: {stepWalk}"
   if slope.slopeRefused is None:
     slopeText = (
-      f"measured: every one of the group's walked bodies ({walkedList}), {measurementWalk}: on ramps of 70 to 80 degrees by 1 each"
+      f"measured: every one of the group's walked bodies ({walkedList}), {measurementWalk}: on ramps of 70 to 89 degrees by 1 each"
       f" climbed up to {slope.slopeClimbed:g} degrees, the course's steepest, so the value is a lower bound and the limit lies steeper"
     )
   else:
     slopeText = (
       f"measured: the least steep limit of the group's walked bodies ({walkedList}), the {walkedName(slope.code)}'s, {measurementWalk}: on"
-      f" ramps of 70 to 80 degrees by 1 it {bracketText(slope.slopeClimbed, slope.slopeRefused, ' degrees')}"
+      f" ramps of 70 to 89 degrees by 1 it {bracketText(slope.slopeClimbed, slope.slopeRefused, ' degrees')}"
     )
   return {
     "stepHeight": stepText,

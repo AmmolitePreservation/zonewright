@@ -76,12 +76,14 @@ def testHighpassHoldsZoneLinesAreReachedFromItsSafePoint(recastToolingRoot, tmp_
   )
   # Peridot's collision is closed all round, so no fall reaches nothing; what the lane finds are pockets entered by sliding or dropping
   # that no move leaves, each ringed and named in the legend with the marks the plan shows (no leak or catch edge, no plot, no region
-  # from server files, every zone line reached, and no ledge, as the plan does not resolve columns at its scale) and the plan's axes.
+  # from server files, every zone line reached, and no ledge, as the plan does not resolve columns at its scale) and the plan's axes. The
+  # medium lane's own trapped floor is two single columns, which no pixel of the plan falls in, so no trap hatch is drawn or named.
   traps = len(analysis["problems"])
   assert [problem["kind"] for problem in analysis["problems"]] == ["trap"] * traps
+  assert int(nodes.trap.sum()) == 2
   marks = [
     "walk", "swim (a floor in a swim box)", "slide (too steep to stand)", "squeeze (only a smaller player)", "taken by a zone line",
-    f"water waded: no deeper than {minimumSwimDepth:g}", "trap (no way back)", "walkable, never reached", "reached under a higher level",
+    f"water waded: no deeper than {minimumSwimDepth:g}", "walkable, never reached", "reached under a higher level",
     "only a smaller player under it", "zone line reached", "water swim volume", "seed: where players arrive",
   ]
   assert drawn["legends"] == [

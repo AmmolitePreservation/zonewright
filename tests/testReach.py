@@ -35,6 +35,13 @@ otherZone = {"zone": "qeynos2", "x": 0, "y": 0, "z": 0, "headingDegrees": 0}
 gentleDegrees = math.degrees(math.atan(min(playerScale.groups[name].stepHeight for name in playerScale.groupNames) / cellSize)) - 5
 # Steeper than walkable; across one column it rises past the step, so the lane takes it as a rise, and a step off it slides.
 steepDegrees = steepestWalkableDegrees + 2.5
+# So near upright, such a face runs little across the plan for its height: the faces players slide down stand tall enough to cross two
+# columns, one of them wholly and clear of the ground under it.
+slideHeight = math.ceil(2 * cellSize * math.tan(math.radians(steepDegrees)))
+slideRun = slideHeight / math.tan(math.radians(steepDegrees))
+# The slope platform's north edge stops just short of a column's edge, so the column past it holds the slide face's head a quarter step
+# under the platform's top: a step off the edge slides onto it rather than dropping a column's fall down the face.
+slideEdge = 50 + cellSize / 2 - stepHeight / 4 / math.tan(math.radians(steepDegrees))
 containmentHeadroom = playerReach.containmentHeadroom
 # One lintel leaves a gap between the containment headroom and playerHeight, which only a smaller player passes; the other leaves less
 # than the containment headroom.
@@ -128,11 +135,10 @@ async def reachCourse(session, folder):
   await cube(session, "pitEast", [165, 50, 0], [167, 62, 10])
   await cube(session, "pitNorth", [153, 60, 0], [167, 62, 10])
   # A platform whose north side is a face steeper than players walk, down to the ground.
-  await rampAlongY(session, "slopeRamp", -60, 30 - 10 / math.tan(math.radians(30)), 10, 30)
-  await cube(session, "slopePlatform", [-70, 30, 0], [-50, 50, 10])
-  run = 10 / math.tan(math.radians(steepDegrees))
+  await rampAlongY(session, "slopeRamp", -60, 30 - slideHeight / math.tan(math.radians(30)), slideHeight, 30)
+  await cube(session, "slopePlatform", [-70, 30, 0], [-50, slideEdge, slideHeight])
   await session.expectSuccess("createPrimitive", {
-    "kind": "plane", "name": "slideFace", "size": [10, 10 / math.sin(math.radians(steepDegrees)), 0], "location": [-60, 50 + run / 2, 5],
+    "kind": "plane", "name": "slideFace", "size": [10, slideHeight / math.sin(math.radians(steepDegrees)), 0], "location": [-60, slideEdge + slideRun / 2, slideHeight / 2],
     "rotationDegrees": [-steepDegrees, 0, 0],
   })
   # A pool's swim box on the ground, banked by blocks a margin under and over its top plus the step.
@@ -175,9 +181,8 @@ async def reachCourse(session, folder):
   await wall(session, "edgeHighA", [[edge, edge], [edge, -80]])
   await wall(session, "edgeHighB", [[edge, -100], [edge, -200]])
   await wall(session, "edgeYLow", [[200, -edge], [-edge, -edge]])
-  run = 20 / math.tan(math.radians(steepDegrees))
   await session.expectSuccess("createPrimitive", {
-    "kind": "plane", "name": "slideOff", "size": [20 / math.sin(math.radians(steepDegrees)), 12, 0], "location": [-240 - run / 2, 66, -10],
+    "kind": "plane", "name": "slideOff", "size": [slideHeight / math.sin(math.radians(steepDegrees)), 12, 0], "location": [-240 - slideRun / 2, 66, -slideHeight / 2],
     "rotationDegrees": [0, -steepDegrees, 0],
   })
   await session.expectSuccess("placeZoneLine", {"number": 5, "label": "catch", "minimum": [240, -105, -60], "maximum": [250, -75, -20], "target": otherZone})
@@ -194,8 +199,9 @@ async def reachCourse(session, folder):
   await cube(session, "strandedBlock", [-125, 115, 0], [-115, 125, 20])
   await session.expectImage("placeEntry", {"name": "hermit", "at": [-180, 120], "headingDegrees": 0, "kind": "landing", "isolated": True})
   await session.expectImage("placeEntry", {"name": "stranded", "at": [-120, 120], "headingDegrees": 0, "kind": "landing"})
-  # The course is played, but for its rooms, the corridor past the zone line, the deck, and a strip along its far side.
-  await region(session, "course", [[-250, -240], [200, -240], [240, -200], [240, 200], [-250, 200]], "play")
+  # The course is played, down to the foot of the face sliding off its edge, but for its rooms, the corridor past the zone line, the
+  # deck, and a strip along its far side.
+  await region(session, "course", [[-250, -240], [200, -240], [240, -200], [240, 200], [-250, 200]], "play", bottom=-slideHeight)
   await region(session, "viewDeck", rectangle([100, -40], [140, -20]), "view")
   await region(session, "squeezeRoom", rectangle([-60, 158], [-40, 180]), "none")
   await region(session, "sealedRoom", rectangle([-20, 158], [0, 180]), "none")
@@ -214,7 +220,7 @@ probes = {
   "ledge": ([160, 40, 10], "walk"),
   "pit": ([160, 55, 0], "walk"),
   "below the ledge": ([175, 40, 0], "walk"),
-  "slide face": ([-60, 50.5, 10], "slide"),
+  "slide face": ([-60, 50 + cellSize, slideHeight - stepHeight / 4], "slide"),
   "slide foot": ([-60, 56, 0], "walk"),
   "pool": ([-120, 40, 0], "swim"),
   "low bank": ([-105, 34, poolTop + stepHeight - heightMargin], "walk"),
@@ -237,7 +243,7 @@ probes = {
   "in the zone line": ([118, 103, 0], "zoneLine"),
   "past the zone line": ([155, 103, 0], "unreached"),
   "tower": ([90, -120, 30], "walk"),
-  "slide off": ([-241.5, 66, -3], "slide"),
+  "slide off": ([-240 - cellSize, 66, -cellSize / 2 * math.tan(math.radians(steepDegrees))], "slide"),
   "hermit": ([-180, 120, 20], "walk"),
   "stranded": ([-120, 120, 20], "walk"),
   "far strip": ([0, 220, 0], "walk"),
@@ -356,7 +362,7 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
     ("viewRegion", "viewDeck"),
     # The large group never swims up into the upper stacked box.
     ("unreachedSwim", "course"),
-    # Under the ramps, and on the blocks and platforms some group does not reach; the slide face, 2.5 degrees over the 80 walked, stands
+    # Under the ramps, and on the blocks and platforms some group does not reach; the slide face, 2.5 degrees over the steepest walked, stands
     # too near upright to leave floor under it.
     *[("unreachedPlayFloor", "course")] * 8,
     ("undecidedWater", "course"),
@@ -369,7 +375,6 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   openEdge, slideOff = sorted(byKind["voidEdge"], key=lambda problem: problem["center"][1])
   assert near(openEdge["center"], [-240 - cellSize, -25]) and openEdge["length"] == columnsWithin(-40, -10) * cellSize
   assert (openEdge["extent"]["minimum"][1], openEdge["extent"]["maximum"][1]) == (-40 + cellSize / 2, -10 - cellSize / 2)
-  slideRun = 20 / math.tan(math.radians(steepDegrees))
   assert near(slideOff["center"], [-240 - slideRun - cellSize, 66])
   assert near(byKind["noneRegion"][0]["center"], [-50, 169])
   assert near(byKind["outsideRegions"][0]["center"], [0, 220])
@@ -469,7 +474,8 @@ def testLaneAgreesWithWalkRoute(stageBlenderServer):
   rise = 8 * math.sin(math.radians(steepestWalkableDegrees - 2))
   assert walks["climbable"]["walkable"] and label([20 + 8 * math.cos(math.radians(steepestWalkableDegrees - 2)) - cellSize / 2, 0, rise]) == "walk"
   rise = 8 * math.sin(math.radians(steepestWalkableDegrees + 2))
-  assert [problem["kind"] for problem in walks["tooSteep"]["problems"]] == ["steep"]
+  # Past the steepest walkable a face rises more in walkRoute's stride than the step and the slope allow, so it is met as a rise.
+  assert [problem["kind"] for problem in walks["tooSteep"]["problems"]] == ["rise"]
   assert label([20 + 8 * math.cos(math.radians(steepestWalkableDegrees + 2)) - cellSize / 2, 40, rise]) == "unreached"
 
 

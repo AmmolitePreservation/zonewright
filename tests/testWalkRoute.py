@@ -141,12 +141,11 @@ def testWalkRouteClimbsWhatTheRoF2ClientClimbs(stageBlenderServer):
   assert walks["lowRiser"]["walkable"] and walks["lowRiser"]["problems"] == [] and walks["lowRiser"]["oneWay"] == []
   assert max(row["at"][2] for row in walks["lowRiser"]["profile"]) == lowRiser
   assert [(problem["kind"], problem["height"]) for problem in walks["highRiser"]["problems"]] == [("rise", pastStep)]
-  # A face two degrees under the steepest players walk is climbed; one two degrees over it, its rise per stride under the step, is too
-  # steep.
+  # A face two degrees under the steepest players walk is climbed; one two degrees over it stops them as a rise as tall as the face: so
+  # near upright, a face past the steepest walkable rises more in a stride than the step and that slope allow.
   assert walks["climbable"]["walkable"] and walks["climbable"]["problems"] == []
   assert abs(walks["climbable"]["steepest"]["slopeDegrees"] - (steepestWalkableDegrees - 2)) <= 0.2
-  assert [problem["kind"] for problem in walks["tooSteep"]["problems"]] == ["steep"]
-  assert abs(walks["tooSteep"]["problems"][0]["steepestDegrees"] - (steepestWalkableDegrees + 2)) <= 0.2
+  assert [(problem["kind"], problem["height"]) for problem in walks["tooSteep"]["problems"]] == [("rise", round(8 * math.sin(math.radians(steepestWalkableDegrees + 2)), 1))]
 
 
 houseWalls = [
