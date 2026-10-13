@@ -69,7 +69,7 @@ def test_wellFormedChangesOfEveryFormHaveNoProblems():
 
 
 @pytest.mark.parametrize("fields, problem", [
-  (rowChangeFields(kind="code"), "kind must be one of db, quest, config, client, lab, not 'code'"),
+  (rowChangeFields(kind="code"), "kind must be one of db, quest, config, client, lab, files, not 'code'"),
   (rowChangeFields(disposition="undecided"), "disposition must be one of fixture, exploration, production, not 'undecided'"),
   (rowChangeFields(significance="major"), "significance must be one of minor, significant, not 'major'"),
   (rowChangeFields(ownerClearance="cleared"), "ownerClearance is pending, or {ownerMessage: the owner's message"),

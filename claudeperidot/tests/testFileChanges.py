@@ -103,7 +103,7 @@ def test_revertRefusesAFileChangedSinceApply(repository, host, tmp_path):
   harness.ledger.stage("20261013-010000")
   harness.ledger.apply("20261013-010000")
   host.path(f"{maps}/base/testzone.map").write_bytes(b"edited on the host")
-  with pytest.raises(ledger.LedgerError, match="revert needs 20261013-010000-testMaps applied; it is partly applied \(0 of 1\); some files are neither"):
+  with pytest.raises(ledger.LedgerError, match=r"revert needs 20261013-010000-testMaps applied; it is partly applied \(0 of 1\); some files are neither"):
     harness.ledger.revert("20261013-010000")
   assert host.path(f"{maps}/base/testzone.map").read_bytes() == b"edited on the host"
 
