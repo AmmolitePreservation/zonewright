@@ -21,6 +21,7 @@ import ledger
 deployTargets = ("claudeperidot",)
 slotHosts = ("claudeperidot", "peridot")
 serverContainer = "akk-stack-eqemu-server-1"
+serverFolder = "/home/eqemu/server"
 shortNamePattern = re.compile(r"^[a-z0-9]{1,31}$")
 # EQEmu's new-zone process: a zoneidnumber unused above 786 (eqemu-docs-v2 client/guides/custom-zone-editing.md); the client's
 # AddZone takes ids up to 999 and keeps 997 for its run-time zone.
@@ -252,13 +253,15 @@ def restartServer(server):
   stopped = server.run(f"sudo -n docker exec {serverContainer} sh -c 'cd ~/server && timeout 120 ./bin/spire "
     "eqemu-server:launcher stop' >/dev/null 2>&1; echo $?").strip()
   server.run(f"for i in $(seq 1 {stopWait}); do sudo -n docker exec {serverContainer} ps -eo args= | grep -q "
-    "'/bin/\\(world\\|zone\\)' || break; sleep 1; done; true")
+    "'/bin/\\(world\\|zone\\)' || break; echo $i; sleep 1; done; true")
   left = running(processes(server))
   if left["world"] or left["zone"]:
     raise DeployError(f"the launcher's stop (exit {stopped}) left {left['world']} world and {left['zone']} zone processes running")
-  server.run(f"sudo -n docker exec -d {serverContainer} sh -c 'cd ~/server && ./bin/spire eqemu-server:launcher start'")
+  # No shell around the start: Spire refuses to start while any process's arguments name its launcher, its parent shell's too.
+  server.run(f"sudo -n docker exec -d -w {serverFolder} {serverContainer} ./bin/spire eqemu-server:launcher start")
+  # Each pass prints, so the host connection's 120 s silence limit never ends the wait.
   server.run(f"for i in $(seq 1 {startWait}); do sudo -n docker exec {serverContainer} ps -eo args= > /tmp/zoneDeployProcesses.$$ && "
-    "grep -q '/bin/world$' /tmp/zoneDeployProcesses.$$ && grep -q '/bin/zone' /tmp/zoneDeployProcesses.$$ && break; sleep 1; done; "
+    "grep -q '/bin/world$' /tmp/zoneDeployProcesses.$$ && grep -q '/bin/zone' /tmp/zoneDeployProcesses.$$ && break; echo $i; sleep 1; done; "
     "rm -f /tmp/zoneDeployProcesses.$$; true")
   after = running(processes(server))
   if not after["world"] or not after["zone"]:
