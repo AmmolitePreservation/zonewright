@@ -1,10 +1,10 @@
 """The bodies players play, read from the client's data, in three groups (small, medium, large), and each group's measures that geometry
 is judged by, each with its source in the group's `sources`: "measured: how, where, when", "unmeasured: why the value", or "derived: from
-what". A group's measures are the strictest of its walked bodies (its tallest, widest, and smallest, walked in the measurement zone):
-the most headroom and widest passage they needed, the least step, the gentlest steepest face, and the shallowest start of swimming;
-its eye follows its tallest body. Every tool that judges where a player stands, climbs, swims, or looks takes them from
-here, per group, and judges a spot by the groups its region (else its zone) is built for (builtFor): a built-for group that cannot pass is
-a failure, any other group a finding."""
+what". A group's measures are the strictest of its sample, walked in the measurement zone: its tallest and shortest body by avatarHeight
+(the height the client's walks follow) and its widest and thinnest by model width; the most headroom and widest passage they needed, the
+least step, the gentlest steepest face, and the shallowest start of swimming. Its eye follows its tallest body. Every tool that judges
+where a player stands, climbs, swims, or looks takes them from here, per group, and judges a spot by the groups its region (else its
+zone) is built for (builtFor): a built-for group that cannot pass is a failure, any other group a finding."""
 import math
 from dataclasses import dataclass
 
@@ -72,27 +72,37 @@ walkedAvatarHeight = 3.75
 designEyeHeight = 5.5
 swimEyeAboveSurfaceValue = 1.0
 
-# The measurement zone's walks (design #10): claudelink's walkMeasurementLanes with Claudewright made each body by its real race and
-# gender (claudeperidot ledger changes 20261012-194333 to -194340; a #race illusion leaves the client's avatarHeight at the human's),
-# walking straight without jumping. Per model code: the highest riser climbed and the lowest refused (risers 4.50 to 5.30 by 0.05),
-# the steepest ramp climbed and the least steep refused (70 to 80 degrees by 1), the deepest water over the pool's bed walked and the
-# depth floating began (the bed sloping 0 to 10 at 0.1 per unit), the lowest ceiling passed and the one that stopped it (14 down to 3
-# by 0.25), the narrowest opening passed and the one that stopped it (10 down to 0.5 by 0.25), and the avatarHeight the client held.
-# None: the course holds no value on that side (every riser climbed, or none; every ramp climbed). The gnome female's walk ended
-# 0.02 past the 4.25 ceiling's edge, pressed 0.63 into the floor, so 4.25 stopped it.
-measurementWalk = "claudelink's walkMeasurementLanes in arttest on claudeperidot (the spare RoF2 client), 2026-10-12"
-walkedBodyRows = (
-  ("DWM", None, 4.50, 77, 78, 2.87, 2.96, 5.75, 5.5, 2.5, 2.25, 2.5),
-  ("GNF", None, 4.50, 78, 79, 2.18, 2.27, 4.5, 4.25, 2.0, 1.75, 1.875),
-  ("HUM", 5.30, None, 74, 75, 4.06, 4.14, 8.0, 7.75, 3.75, 3.5, 3.75),
-  ("HIF", 5.30, None, 74, 75, 4.06, 4.15, 8.25, 8.0, 3.75, 3.5, 3.75),
-  ("ELF", 4.85, 4.90, 79, 80, 3.44, 3.46, 6.75, 6.5, 3.0, 2.75, 3.125),
-  ("OGF", 5.30, None, 80, None, 5.81, 5.83, 11.5, 11.25, 5.25, 5.0, 5.5),
-  ("OGM", 5.30, None, 80, None, 5.82, 5.84, 11.5, 11.25, 5.25, 5.0, 5.5),
-  ("KEF", 5.30, None, 79, 80, 4.69, 4.71, 9.25, 9.0, 4.25, 4.0, 4.375),
+# The measurement zone's walks (design #10): claudelink's walkMeasurementLanes, each body walked by its permanent character Measure<code>
+# of its real race and gender (claudeperidot ledger 20261012-233442 and its predecessors; a #race illusion leaves the client's
+# avatarHeight at the human's), walking straight without jumping, with MacroQuest's frame limiter suspended (about 190 to 230 fps). Per
+# model code: the highest riser climbed and the lowest refused (risers 4.50 to 5.30 by 0.05), the steepest ramp climbed and the least
+# steep refused (70 to 80 degrees by 1), the deepest water over the pool's bed walked and the depth floating began (the bed sloping 0
+# to 10 at 0.1 per unit), the lowest ceiling passed and the one that stopped it (14 down to 3 by 0.25), the narrowest opening passed and
+# the one that stopped it (10 down to 0.5 by 0.25), and the avatarHeight the client held. None: the course holds no value on that side
+# (every riser climbed, or none; every ramp climbed). At the background frame rate (about 30 to 80 fps) the same bodies, walked the
+# morning of 2026-10-12, stopped on ramps from 74 to 79 degrees and needed 0.25 to 1.0 more headroom (the gnome 0.25 less).
+measurementWalk = (
+  "claudelink's walkMeasurementLanes in arttest on claudeperidot (the spare RoF2 client) at a high frame rate (MacroQuest's frame"
+  " limiter suspended, about 190 to 230 fps), 2026-10-12"
 )
+walkedBodyRows = (
+  ("DWM", None, 4.5, 80, None, 2.81, 2.82, 5.5, 5.25, 2.5, 2.25, 2.5),
+  ("GNF", None, 4.5, 80, None, 2.17, 2.18, 4.5, 4.25, 2.0, 1.75, 1.875),
+  ("DKM", 5.3, None, 80, None, 4.37, 4.38, 7.75, 7.5, 4.0, 3.75, 4.0625),
+  ("ELF", 4.95, 5.0, 80, None, 3.45, 3.45, 6.25, 6.0, 3.0, 2.75, 3.125),
+  ("HUM", 5.3, None, 80, None, 4.06, 4.07, 7.25, 7.0, 3.75, 3.5, 3.75),
+  ("OGM", 5.3, None, 80, None, 5.81, 5.81, 10.5, 10.25, 5.25, 5.0, 5.5),
+  ("KEF", 5.3, None, 80, None, 4.68, 4.69, 8.25, 8.0, 4.25, 4.0, 4.375),
+)
+# Each group's sample by role. Bodies often tie in the bodies table (the dwarves' avatarHeight, the ogres', the human and erudite
+# males' width); the owner chose the one walked. bodyGroup checks each holds its role's extreme.
+sampleRoles = {
+  "small": {"tallest": "DWM", "shortest": "GNF", "widest": "DWM", "thinnest": "GNF"},
+  "medium": {"tallest": "DKM", "shortest": "ELF", "widest": "HUM", "thinnest": "ELF"},
+  "large": {"tallest": "OGM", "shortest": "KEF", "widest": "OGM", "thinnest": "KEF"},
+}
 # The body whose step the risers bracket. Where the course does not bracket a body's step, the step is taken to follow avatarHeight by
-# this body's ratio; every bracket and bound the walks give agrees with it (1.552 to 1.568 times avatarHeight).
+# this body's ratio (1.584 times avatarHeight); every bracket and bound the walks give agrees with it.
 stepRatioBody = "ELF"
 
 
@@ -110,6 +120,15 @@ class WalkedBody:
   openingPassed: float
   openingStopped: float
   avatarHeight: float
+
+  def __post_init__(self):
+    for name in ("slopeClimbed", "swimWalkedTo", "swimFloatedFrom", "ceilingPassed", "ceilingStopped", "openingPassed", "openingStopped", "avatarHeight"):
+      if getattr(self, name) is None:
+        raise ValueError(f"Walked body {self.code} has no {name}")
+    if self.stepClimbed is None and self.stepRefused is None:
+      raise ValueError(f"Walked body {self.code} has neither a riser climbed nor one refused")
+    if self.stepClimbed is not None and self.stepRefused is not None and self.stepClimbed >= self.stepRefused:
+      raise ValueError(f"Walked body {self.code} climbed {self.stepClimbed}, not under the {self.stepRefused} it was refused")
 
 
 walkedBodies = {row[0]: WalkedBody(*row) for row in walkedBodyRows}
@@ -145,8 +164,9 @@ class BodyGroup:
   name: str
   members: tuple
   tallest: Body
+  shortest: Body
   widest: Body
-  smallest: Body
+  thinnest: Body
   playerHeight: float
   playerWidth: float
   stepHeight: float
@@ -166,7 +186,7 @@ class BodyGroup:
   def described(self):
     return {
       "group": self.name, "races": [raceNames[race] for race in groupRaces[self.name]],
-      "limitingBodies": {"tallest": self.tallest.name, "widest": self.widest.name, "smallest": self.smallest.name},
+      "limitingBodies": {role: getattr(self, role).name for role in sampleRoleNames},
     } | {name: self.measure(name) for name in measureNames}
 
 
@@ -177,11 +197,34 @@ def walkedName(code):
   return next(body.name for body in bodies if body.code == code)
 
 
-def walkedIn(members):
-  walked = [walkedBodies[body.code] for body in members if body.code in walkedBodies]
-  if not walked:
-    raise ValueError(f"No body of {[body.code for body in members]} was walked")
-  return walked
+sampleRoleNames = ("tallest", "shortest", "widest", "thinnest")
+sampleExtremes = {"tallest": (max, "avatarHeight"), "shortest": (min, "avatarHeight"), "widest": (max, "width"), "thinnest": (min, "width")}
+
+
+def sampleOf(name, roles, standing):
+  """The group's sample bodies by role, each checked to hold its role's extreme among the group's standing bodies."""
+  if set(roles) != set(sampleRoleNames):
+    raise ValueError(f"The {name} group's sample names {sorted(roles)}, not {list(sampleRoleNames)}")
+  sample = {}
+  for role in sampleRoleNames:
+    found = [body for body in standing if body.code == roles[role]]
+    if not found:
+      raise ValueError(f"The {name} group's {role} sample body {roles[role]} is no standing body of the group")
+    pick, field = sampleExtremes[role]
+    extreme = pick(getattr(body, field) for body in standing)
+    if getattr(found[0], field) != extreme:
+      raise ValueError(f"The {name} group's {role} sample body {roles[role]} has {field} {getattr(found[0], field)}, not the group's {extreme}")
+    sample[role] = found[0]
+  return sample
+
+
+def walkedOf(name):
+  """The group's walked bodies: its sample's, every one walked, in walkedBodyRows' order."""
+  codes = set(sampleRoles[name].values())
+  unwalked = sorted(codes - set(walkedBodies))
+  if unwalked:
+    raise ValueError(f"The {name} group's sample bodies {unwalked} were not walked")
+  return [walkedBodies[row[0]] for row in walkedBodyRows if row[0] in codes]
 
 
 def stepOf(walked):
@@ -190,6 +233,8 @@ def stepOf(walked):
   if walked.stepClimbed is not None:
     return walked.stepClimbed
   ratioBody = walkedBodies[stepRatioBody]
+  if ratioBody.stepClimbed is None or ratioBody.stepRefused is None:
+    raise ValueError(f"{stepRatioBody}'s step is not bracketed by the risers, so it gives no ratio")
   value = walked.avatarHeight * ratioBody.stepClimbed / ratioBody.avatarHeight
   if value >= walked.stepRefused:
     raise ValueError(f"{walked.code}'s step from {stepRatioBody}'s ratio, {value:.2f}, is not under the {walked.stepRefused} it was refused")
@@ -223,11 +268,16 @@ def groupSources(walked):
     stepText = f"measured: {stepWalk}, the course's highest riser, so the limit lies above it"
   else:
     stepText = f"measured: {stepWalk}"
-  slopeText = (
-    f"measured: the least steep limit of the group's walked bodies ({walkedList}), the {walkedName(slope.code)}'s, {measurementWalk}: on"
-    f" ramps of 70 to 80 degrees by 1 it {bracketText(slope.slopeClimbed, slope.slopeRefused, ' degrees')}"
-    + ("; the course's steepest ramp, so the limit lies steeper" if slope.slopeRefused is None else "")
-  )
+  if slope.slopeRefused is None:
+    slopeText = (
+      f"measured: every one of the group's walked bodies ({walkedList}), {measurementWalk}: on ramps of 70 to 80 degrees by 1 each"
+      f" climbed up to {slope.slopeClimbed:g} degrees, the course's steepest, so the value is a lower bound and the limit lies steeper"
+    )
+  else:
+    slopeText = (
+      f"measured: the least steep limit of the group's walked bodies ({walkedList}), the {walkedName(slope.code)}'s, {measurementWalk}: on"
+      f" ramps of 70 to 80 degrees by 1 it {bracketText(slope.slopeClimbed, slope.slopeRefused, ' degrees')}"
+    )
   return {
     "stepHeight": stepText,
     "walkableNormalZ": slopeText,
@@ -252,10 +302,9 @@ def groupSources(walked):
 def bodyGroup(name):
   members = tuple(body for body in bodies if body.race in groupRaces[name])
   standing = [body for body in members if body.code not in bindPoseCodes]
-  tallest = max(standing, key=lambda body: body.modelHeight)
-  widest = max(standing, key=lambda body: body.width)
-  smallest = min(standing, key=lambda body: (body.spawnHeight, body.modelHeight))
-  walked = walkedIn(members)
+  sample = sampleOf(name, sampleRoles[name], standing)
+  tallest = sample["tallest"]
+  walked = walkedOf(name)
   eyeHeight = designEyeHeight * tallest.avatarHeight / walkedAvatarHeight
   sources = groupSources(walked) | {
     "steepestWalkableDegrees": "derived: walkableNormalZ as the angle from level of the steepest face the group walks",
@@ -270,7 +319,7 @@ def bodyGroup(name):
     ),
   }
   return BodyGroup(
-    name=name, members=members, tallest=tallest, widest=widest, smallest=smallest,
+    name=name, members=members, tallest=tallest, shortest=sample["shortest"], widest=sample["widest"], thinnest=sample["thinnest"],
     playerHeight=max(body.ceilingPassed for body in walked), playerWidth=max(body.openingPassed for body in walked),
     stepHeight=min(stepOf(body) for body in walked), walkableNormalZ=math.cos(math.radians(min(body.slopeClimbed for body in walked))),
     eyeHeight=eyeHeight, swimEyeAboveSurface=swimEyeAboveSurfaceValue, minimumSwimDepth=min(body.swimWalkedTo for body in walked),
@@ -279,6 +328,9 @@ def bodyGroup(name):
 
 
 groups = {name: bodyGroup(name) for name in groupNames}
+unsampled = sorted(set(walkedBodies) - {code for roles in sampleRoles.values() for code in roles.values()})
+if unsampled:
+  raise ValueError(f"Walked bodies {unsampled} are in no group's sample")
 
 
 def groupOfCode(code):

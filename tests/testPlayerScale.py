@@ -20,21 +20,23 @@ def testEveryPlayableRaceAndGenderIsOneBodyInOneGroup():
   assert sorted(members) == sorted(body.code for body in playerScale.bodies)
 
 
-def testGroupsAreJudgedByTheirLimitingBodies():
+def testGroupsAreJudgedByTheirSampleBodies():
   small, medium, large = (playerScale.groups[name] for name in playerScale.groupNames)
-  assert (small.tallest.code, small.widest.code, small.smallest.code) == ("DWM", "DWM", "GNF")
-  assert (medium.tallest.code, medium.widest.code, medium.smallest.code) == ("HIF", "HUM", "ELF")
-  assert (large.tallest.code, large.widest.code, large.smallest.code) == ("OGF", "OGM", "KEF")
-  # Clearance is the most headroom and the widest passage a walked body of the group needed in the measurement zone.
-  assert (small.playerHeight, medium.playerHeight, large.playerHeight) == (5.75, 8.25, 11.5)
-  assert (small.playerWidth, medium.playerWidth, large.playerWidth) == (2.5, 3.75, 5.25)
+  roles = lambda group: tuple(getattr(group, role).code for role in ("tallest", "shortest", "widest", "thinnest"))
+  assert roles(small) == ("DWM", "GNF", "DWM", "GNF")
+  assert roles(medium) == ("DKM", "ELF", "HUM", "ELF")
+  assert roles(large) == ("OGM", "KEF", "OGM", "KEF")
+  # Clearance is the most headroom and the widest passage a walked body of the group needed in the measurement zone: the drakkin
+  # male, the medium group's tallest, needs both, a wider passage than the group's widest body.
+  assert (small.playerHeight, medium.playerHeight, large.playerHeight) == (5.5, 7.75, 10.5)
+  assert (small.playerWidth, medium.playerWidth, large.playerWidth) == (2.5, 4.0, 5.25)
   # Frogloks stand in their bind pose in the model data, arms out, so their width never sets a group's.
   assert max(body.width for body in medium.members) == 9.45 and medium.playerWidth < 9.45
   # The groups do not overlap: every small body is shorter than every medium one, every medium one than every large one.
   assert max(body.modelHeight for body in small.members) < min(body.modelHeight for body in medium.members)
   assert max(body.modelHeight for body in medium.members) < min(body.modelHeight for body in large.members)
   # A group's eye follows its tallest body's avatarHeight from the design eye of a body of the walked human's.
-  assert medium.eyeHeight == playerScale.designEyeHeight
+  assert medium.eyeHeight == pytest.approx(5.5 * 4.0625 / 3.75)
   assert small.eyeHeight == pytest.approx(5.5 * 2.5 / 3.75) and large.eyeHeight == pytest.approx(5.5 * 5.625 / 3.75)
 
 
@@ -65,7 +67,7 @@ def testJudgedFailsOnlyForABuiltForGroup():
 def testStrictestTakesTheLeastClimbAndTheMostClearance():
   strictest = playerScale.strictest(["small", "large"])
   assert strictest.stepHeight == min(playerScale.groups[name].stepHeight for name in ("small", "large"))
-  assert strictest.playerHeight == 11.5 and strictest.playerWidth == 5.25
+  assert strictest.playerHeight == 10.5 and strictest.playerWidth == 5.25
   assert playerScale.planGroup(playerScale.groupNames) == "large" and playerScale.viewGroup(playerScale.groupNames) == "medium"
   assert playerScale.viewGroup(("small",)) == "small" and playerScale.viewGroup(("small", "large")) == "large"
   assert playerScale.groupOfCode("DAF") == "medium" and playerScale.highestOrigin() == 5.625
@@ -73,22 +75,50 @@ def testStrictestTakesTheLeastClimbAndTheMostClearance():
 
 def testClimbingIsTheStrictestWalkedBodysOfEachGroup():
   small, medium, large = (playerScale.groups[name] for name in playerScale.groupNames)
-  # The wood elf female's step is the one the risers bracket; the gnome female, refused every riser, climbs by its ratio.
-  assert (small.stepHeight, medium.stepHeight, large.stepHeight) == (pytest.approx(1.875 * 4.85 / 3.125), 4.85, 5.30)
-  assert small.stepHeight < playerScale.walkedBodies["GNF"].stepRefused
+  # The wood elf female's step is the one the risers bracket; the dwarf male and gnome female, refused every riser, climb by its ratio.
+  assert (small.stepHeight, medium.stepHeight, large.stepHeight) == (pytest.approx(1.875 * 4.95 / 3.125), 4.95, 5.3)
+  assert playerScale.stepOf(playerScale.walkedBodies["DWM"]) == pytest.approx(2.5 * 4.95 / 3.125)
+  for code in ("DWM", "GNF"):
+    assert playerScale.stepOf(playerScale.walkedBodies[code]) < playerScale.walkedBodies[code].stepRefused == 4.5
   assert small.sources["stepHeight"].startswith("derived: the gnome female's") and medium.sources["stepHeight"].startswith("measured: ")
-  # The human and high elf stop on a gentler ramp than the group's smaller wood elf.
-  assert [round(group.steepestWalkableDegrees, 6) for group in (small, medium, large)] == [77, 74, 79]
-  assert "the human male's" in medium.sources["walkableNormalZ"]
-  assert (small.minimumSwimDepth, medium.minimumSwimDepth, large.minimumSwimDepth) == (2.18, 3.44, 4.69)
+  assert "the course's highest riser, so the limit lies above it" in large.sources["stepHeight"]
+  # Every walked body climbed the course's steepest ramp, so each group's limit is that ramp's, a lower bound.
+  assert [round(group.steepestWalkableDegrees, 6) for group in (small, medium, large)] == [80, 80, 80]
+  for group in (small, medium, large):
+    assert "so the value is a lower bound and the limit lies steeper" in group.sources["walkableNormalZ"], group.name
+  assert (small.minimumSwimDepth, medium.minimumSwimDepth, large.minimumSwimDepth) == (2.17, 3.45, 4.68)
   for group in (small, medium, large):
     for measure in ("playerHeight", "playerWidth", "stepHeight", "walkableNormalZ", "minimumSwimDepth"):
-      assert "2026-10-12" in group.sources[measure] and "unmeasured" not in group.sources[measure], (group.name, measure)
+      source = group.sources[measure]
+      assert "2026-10-12" in source and "190 to 230 fps" in source and "unmeasured" not in source, (group.name, measure)
 
 
-def testEveryGroupHasWalkedBodiesOfItsOwn():
-  for name in playerScale.groupNames:
-    walked = playerScale.walkedIn(playerScale.groups[name].members)
-    assert {playerScale.groupOfCode(body.code) for body in walked} == {name}
-  with pytest.raises(ValueError):
-    playerScale.walkedIn([body for body in playerScale.bodies if body.code == "TRM"])
+def testEveryGroupWalksExactlyItsSample():
+  walkedCodes = {name: [body.code for body in playerScale.walkedOf(name)] for name in playerScale.groupNames}
+  assert walkedCodes == {"small": ["DWM", "GNF"], "medium": ["DKM", "ELF", "HUM"], "large": ["OGM", "KEF"]}
+  assert sorted(code for codes in walkedCodes.values() for code in codes) == sorted(playerScale.walkedBodies)
+  for name, codes in walkedCodes.items():
+    assert {playerScale.groupOfCode(code) for code in codes} == {name}
+
+
+def testASampleBodyThatHoldsNoExtremeIsRefused():
+  medium = playerScale.groups["medium"]
+  standing = [body for body in medium.members if body.code not in playerScale.bindPoseCodes]
+  # The high elf female is the medium group's tallest model, but not its tallest by avatarHeight, the height walks follow.
+  assert max(standing, key=lambda body: body.modelHeight).code == "HIF"
+  roles = playerScale.sampleRoles["medium"] | {"tallest": "HIF"}
+  with pytest.raises(ValueError, match="tallest sample body HIF has avatarHeight 3.75, not the group's 4.0625"):
+    playerScale.sampleOf("medium", roles, standing)
+  with pytest.raises(ValueError, match="is no standing body of the group"):
+    playerScale.sampleOf("medium", playerScale.sampleRoles["medium"] | {"widest": "FRM"}, standing)
+
+
+def testAWalkedBodyMissingAMeasureIsRefused():
+  row = list(playerScale.walkedBodyRows[0])
+  row[7] = None
+  with pytest.raises(ValueError, match="has no ceilingPassed"):
+    playerScale.WalkedBody(*row)
+  row = list(playerScale.walkedBodyRows[0])
+  row[2] = None
+  with pytest.raises(ValueError, match="neither a riser climbed nor one refused"):
+    playerScale.WalkedBody(*row)

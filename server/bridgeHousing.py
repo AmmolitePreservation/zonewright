@@ -59,7 +59,7 @@ guideColors = {"player": (0.1, 0.85, 1.0), "guild": (1.0, 0.3, 0.9)}
 guideBand = 1.5
 guideLift = 0.4
 # The entrance mark is a chevron with its tip on the middle of the entrance side, pointing out, kept within 9 units of that side: there
-# it lies below the view of someone standing on the entrance looking in (eye 5.5 up, pitched 6 down), and seen from the street it
+# it lies below the view of someone standing on the entrance looking in (the medium group's eye, about 6 up, pitched 6 down), and seen from the street it
 # stands on the plot's edge.
 entranceSpan = 12.0
 entranceDepth = 6.0
