@@ -89,6 +89,55 @@ def testConformSurfaceEdgesRunsTheBorderOnSmoothEdgesInEveryPass(stageBlenderSer
   assert "smoothing must be positive" in nothing
 
 
+splitEdgesNearStroke = """
+import bmesh
+mesh = bpy.data.objects['ground'].data
+originalVertices = len(mesh.vertices)
+work = bmesh.new()
+work.from_mesh(mesh)
+for edge in [edge for edge in work.edges if abs((edge.verts[0].co.y + edge.verts[1].co.y) / 2 - 0.27 * (edge.verts[0].co.x + edge.verts[1].co.x) / 2 + 5) < 45]:
+  bmesh.utils.edge_split(edge, edge.verts[0], 0.5)
+work.to_mesh(mesh)
+work.free()
+mesh.update()
+result = {'originalVertices': originalVertices, 'vertices': len(mesh.vertices)}
+"""
+
+
+def testConformSurfaceEdgesCarriesMappingsAcrossStraightCorners(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await twoMaterials(session, tmp_path)
+    await stripedGround(session, "ground", 256, 8)
+    # Every edge near the stroke split at its middle, its faces kept: each new vertex is a straight corner of the n-gons beside it,
+    # where a corner's two edges are parallel.
+    split = (await session.expectSuccess("runPython", {"code": splitEdgesNearStroke}))["result"]
+    await session.expectSuccess("addSurfaceLayer", {"objectName": "ground", "name": "path"})
+    await session.expectSuccess("paintSurface", {"objectName": "ground", "layer": "path", "material": "stone", "selector": {"nearPath": {"path": [[-128, -40, 0], [128, 30, 0]], "radius": 30}}})
+    await session.expectSuccess("projectUVs", {"objectName": "ground", "method": "planar", "direction": [0, 0, 1], "worldUnitsPerRepeat": 32})
+    before = (await session.expectSuccess("runPython", shaped("ground")))["result"]
+    conformed = await session.expectSuccess("conformSurfaceEdges", {"objectName": "ground", "layer": "path", "smoothing": 12})
+    after = (await session.expectSuccess("runPython", shaped("ground")))["result"]
+    afterSurface = (await session.expectSuccess("runPython", surface("ground", "path")))["result"]
+    return split, before, conformed, after, afterSurface
+
+  split, before, conformed, after, afterSurface = stageBlenderServer.session(steps)
+  assert split["vertices"] > split["originalVertices"] + 100
+  moved = {index for index, (old, new) in enumerate(zip(before["vertices"], after["vertices"])) if math.dist(old, new) > 1e-6}
+  assert conformed["movedVertices"] == len(moved) > 20
+  assert any(index >= split["originalVertices"] for index in moved)
+  # The ground is flat, so every face around a moved vertex, straight corners and all, keeps the planar projection, x and y over 32.
+  checked = 0
+  for face, start in zip(afterSurface["faces"], afterSurface["loopStarts"]):
+    if moved.isdisjoint(face):
+      continue
+    checked += 1
+    for corner, vertex in enumerate(face):
+      x, y, _ = after["vertices"][vertex]
+      assert abs(afterSurface["uvs"][start + corner][0] - x / 32) < 1e-4 and abs(afterSurface["uvs"][start + corner][1] - y / 32) < 1e-4
+  assert checked >= 20
+
+
 def testConformSurfaceEdgesLeavesBordersOnCreasesAlone(stageBlenderServer, tmp_path):
   async def steps(session):
     await freshScene(session)

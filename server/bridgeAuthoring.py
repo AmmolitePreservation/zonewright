@@ -901,7 +901,7 @@ def unspoiledSlides(sceneObject, positions, movers, partners, fractions):
 def slideAlongEdges(sceneObject, movers, partners, fractions):
   """Move each vertex the fraction toward its partner alike in the mesh and every shaping pass, carrying each face's mappings along."""
   mesh = sceneObject.data
-  _, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
+  loopTotals, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
   with bridgeMeshAccess.shapedMesh(sceneObject) as shown:
     before = numpy.empty(len(shown.vertices) * 3)
     shown.vertices.foreach_get("co", before)
@@ -915,16 +915,25 @@ def slideAlongEdges(sceneObject, movers, partners, fractions):
     block.foreach_set("co", coordinates.ravel())
   moves = numpy.zeros_like(before)
   moves[movers] = fractions[:, None] * (before[partners] - before[movers])
-  nextLoops, previousLoops = loopNeighbours(sceneObject)
+  loopStarts = numpy.concatenate([[0], numpy.cumsum(loopTotals)[:-1]]).astype(int)
+  loopFaces = numpy.repeat(numpy.arange(len(loopTotals)), loopTotals)
   moved = numpy.flatnonzero(numpy.isin(loopVertices, movers))
-  here = before[loopVertices[moved]]
-  spans = numpy.stack([before[loopVertices[nextLoops[moved]]] - here, before[loopVertices[previousLoops[moved]]] - here], axis=2)
-  # The move in each face's own two spans, by least squares, carries that face's UVs as its mapping runs across it.
-  weights = numpy.linalg.solve(numpy.einsum("lji,ljk->lik", spans, spans), numpy.einsum("lji,lj->li", spans, moves[loopVertices[moved]])[..., None])[..., 0]
+  # The move in the spans from each moved corner to every other corner of its face, by least squares (minimum norm where the
+  # spans do not span the plane: a straight corner of an n-gon, a face of no area), carries that face's mappings as they run
+  # across it.
+  groups = []
+  for size in numpy.unique(loopTotals[loopFaces[moved]]).tolist():
+    corners = moved[loopTotals[loopFaces[moved]] == size]
+    starts = loopStarts[loopFaces[corners]]
+    others = starts[:, None] + ((corners - starts)[:, None] + numpy.arange(1, size)) % size
+    spans = before[loopVertices[others]] - before[loopVertices[corners]][:, None, :]
+    weights = numpy.einsum("kij,kj->ki", numpy.linalg.pinv(spans.transpose(0, 2, 1)), moves[loopVertices[corners]])
+    groups.append((corners, others, weights))
 
   def carried(mapping):
-    mappingSpans = numpy.stack([mapping[nextLoops[moved]] - mapping[moved], mapping[previousLoops[moved]] - mapping[moved]], axis=2)
-    mapping[moved] += numpy.einsum("lik,lk->li", mappingSpans, weights)
+    shifts = [numpy.einsum("kij,ki->kj", mapping[others] - mapping[corners][:, None, :], weights) for corners, others, weights in groups]
+    for (corners, _, _), shift in zip(groups, shifts):
+      mapping[corners] += shift
     return mapping
 
   for uvLayer in mesh.uv_layers:
