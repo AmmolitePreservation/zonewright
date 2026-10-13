@@ -17,16 +17,17 @@ featureStartY = 12.0
 laneSpacing = 10.0
 laneWidth = 8.0
 wallHeight = 20.0
-extent = {"minimum": [-12.0, -30.0], "maximum": [414.0, 252.0]}
+extent = {"minimum": [-12.0, -30.0], "maximum": [514.0, 252.0]}
 safePoint = [200.0, -20.0, 0.0, 0.0]
 underworld = -60.0
 
 riserValues = [round(4.5 + 0.05 * index, 2) for index in range(17)]
 riserDepth = 20.0
-rampDegrees = [70 + index for index in range(11)]
+# Past the 80 degrees every body climbed with the frame limiter suspended, up to a face nearly sheer.
+rampDegrees = [70 + index for index in range(20)]
 rampHeight = 16.0
 rampTopLength = 10.0
-poolCenterX = 315.0
+poolCenterX = 415.0
 poolWidth = 30.0
 poolStartY = featureStartY
 poolLength = 100.0
@@ -35,10 +36,10 @@ poolDeepest = 10.0
 poolSurfaceZ = floorZ - 0.5
 poolLabelDepths = [float(depth) for depth in range(1, 10)]
 corridorSectionLength = 5.0
-ceilingCenterX = 350.0
+ceilingCenterX = 450.0
 ceilingInnerWidth = 16.0
 ceilingValues = [round(14.0 - 0.25 * index, 2) for index in range(45)]
-openingCenterX = 390.0
+openingCenterX = 490.0
 openingOuterWidth = 24.0
 openingValues = [round(10.0 - 0.25 * index, 2) for index in range(39)]
 

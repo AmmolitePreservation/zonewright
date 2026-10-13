@@ -222,16 +222,16 @@ async def exportAndLook(session):
   verified, _ = await session.call("verifyExport", {"path": str(archivePath)})
   (stagingFolder / f"{layout.shortName}_layout.json").write_text(layout.layoutJSON(), encoding="utf-8")
   views = {
-    "above": {"map": {"center": [201.0, 111.0], "width": 760.0}},
+    "above": {"map": {"center": [(layout.extent["minimum"][0] + layout.extent["maximum"][0]) / 2, 111.0], "width": 860.0}},
     "start": {"standAt": [200.0, -20.0], "headingDegrees": 0.0, "pitchDegrees": -6.0},
     "risers": {"standAt": [80.0, -4.0], "headingDegrees": 0.0, "pitchDegrees": -12.0},
-    "ramps": {"standAt": [230.0, -12.0], "headingDegrees": 0.0, "pitchDegrees": -4.0},
-    "rampsSide": {"eye": [160.0, 30.0, 14.0], "target": [230.0, 22.0, 6.0]},
-    "pool": {"standAt": [315.0, 4.0], "headingDegrees": 0.0, "pitchDegrees": -10.0},
-    "ceilings": {"standAt": [350.0, 4.0], "headingDegrees": 0.0, "pitchDegrees": 0.0},
-    "ceilingsInside": {"standAt": [350.0, 60.0], "headingDegrees": 0.0, "pitchDegrees": 0.0},
-    "openings": {"standAt": [390.0, 4.0], "headingDegrees": 0.0, "pitchDegrees": 0.0},
-    "openingsInside": {"standAt": [390.0, 50.0], "headingDegrees": 0.0, "pitchDegrees": -5.0},
+    "ramps": {"standAt": [275.0, -12.0], "headingDegrees": 0.0, "pitchDegrees": -4.0},
+    "rampsSide": {"eye": [160.0, 30.0, 14.0], "target": [275.0, 22.0, 6.0]},
+    "pool": {"standAt": [layout.poolCenterX, 4.0], "headingDegrees": 0.0, "pitchDegrees": -10.0},
+    "ceilings": {"standAt": [layout.ceilingCenterX, 4.0], "headingDegrees": 0.0, "pitchDegrees": 0.0},
+    "ceilingsInside": {"standAt": [layout.ceilingCenterX, 60.0], "headingDegrees": 0.0, "pitchDegrees": 0.0},
+    "openings": {"standAt": [layout.openingCenterX, 4.0], "headingDegrees": 0.0, "pitchDegrees": 0.0},
+    "openingsInside": {"standAt": [layout.openingCenterX, 50.0], "headingDegrees": 0.0, "pitchDegrees": -5.0},
   }
   renders = {}
   for name, view in views.items():
