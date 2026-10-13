@@ -1,0 +1,27 @@
+title: kilnhollow (zone 787) holds exactly its game export's zone row and 1 zone_points, 4 doors and 2 object rows
+why: 'zonewright''s deployZone: the server side of kilnhollow as its game export (C:\Users\Toshiro\AppData\Local\zonewright\staging\kilnhollow\kilnhollow_export.json,
+  archive SHA-256 fcd26fb348c6ddd4a5a90835857a0eb1b4114363e4140e0ead6d75eae97e5607) writes it. The scope is every row of the
+  zone in zone, zone_points, doors and object; apply deletes them and inserts the export''s (the zone row copying every column
+  the export does not write from highpasshold''s version-0 row), so rows of the zone the export does not hold are removed
+  and nothing outside the zone is written; the export''s own guards are the ledger''s scope guards here.'
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '1: you have your own eqemu server and client. create zone ids/zone files for the new stuff, don''t reuse
+    in place things. ... 2: deploy now'
+activation: restart world and the zone processes (world reads the zone table at boot; a zone process loads its zone points,
+  doors and objects at boot)
+production: none
+commits: []
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+kind: db
+scope:
+- table: zone
+  where: short_name = 'kilnhollow'
+- table: zone_points
+  where: zone = 'kilnhollow'
+- table: doors
+  where: zone = 'kilnhollow'
+- table: object
+  where: zoneid = 787
