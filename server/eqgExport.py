@@ -54,9 +54,11 @@ def zoneArchive(collected, bundle):
     for name in names:
       material = materials[name]
       liquid = material["liquid"]
+      # A normal map ships only with a liquid; on any other material it stays in the work file (eqgWriter.materialShader).
+      shipsNormal = liquid is not None and material["normalPath"] is not None
       writerMaterials.append({
         "name": name, "diffuseTexture": texture(material["diffusePath"]),
-        "normalTexture": texture(material["normalPath"]) if material["normalPath"] is not None else None, "cutout": material["cutout"],
+        "normalTexture": texture(material["normalPath"]) if shipsNormal else None, "cutout": material["cutout"],
         "liquid": None if liquid is None else {
           "liquid": liquid["liquid"], "values": liquid["values"],
           "environmentTexture": texture(liquid["environmentPath"]) if liquid["environmentPath"] else None,

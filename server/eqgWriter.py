@@ -12,8 +12,7 @@ pfsVersion = 0x20000
 blockBytes = 8192
 modelVersion = 2
 zoneVersion = 1
-# Shaders by material: each pairing appears on client zone terrain and objects with exactly these textures (diffuse, normal).
-shaderOpaqueBump = "Opaque_MaxCB1.fx"
+# Shaders by material: each appears on client zone terrain and objects with exactly these textures.
 shaderOpaque = "Opaque_MaxC1.fx"
 shaderCutout = "Chroma_MPLBasicAT.fx"
 # The client's liquid shaders, each with the properties its zones' materials carry.
@@ -79,11 +78,12 @@ class StringTable:
 def materialShader(material):
   if material.get("liquid") is not None:
     return liquidShaders[material["liquid"]["liquid"]]
-  if material["cutout"]:
-    if material["normalTexture"] is not None:
-      raise ValueError(f"Material '{material['name']}' is a cutout with a normal map; the client's cutout shader with normals also needs coverage and fallback textures, so a cutout exports diffuse only")
-    return shaderCutout
-  return shaderOpaqueBump if material["normalTexture"] is not None else shaderOpaque
+  if material["normalTexture"] is not None:
+    raise ValueError(
+      f"Material '{material['name']}' has a normal map, which only a liquid exports: the client's Opaque_MaxCB1 adds a directional light"
+      " through a tangent frame the client builds itself, which lit exported terrain all or nothing (docs/clientRendering.md, Effects)"
+    )
+  return shaderCutout if material["cutout"] else shaderOpaque
 
 
 def colorValue(color):

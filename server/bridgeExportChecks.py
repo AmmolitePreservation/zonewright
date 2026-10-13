@@ -162,8 +162,6 @@ def materialProblems(material, images, clashing):
       problems.append((record["problem"], fields))
     elif record["ddsName"] in clashing:
       problems.append(("images share a DDS name", fields | {"ddsName": record["ddsName"], "images": clashing[record["ddsName"]]}))
-  if material.get(bridgeMeshAccess.cutoutProperty) and nodes.get(bridgeSurfacing.normalNodeName) is not None:
-    problems.append(("cutout with a normal map", {}))
   return problems
 
 

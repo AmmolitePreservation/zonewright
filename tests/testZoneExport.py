@@ -282,7 +282,7 @@ def testExportRefusesEveryHardErrorAtOnceAndKeepsTheLastArchive(stageBlenderServ
   ]
   # Every hard error at once, each naming its object and where it lies.
   assert sorted((failure["failure"], failure["object"]) for failure in checked["failures"]) == [
-    ("cutout with a normal map", "leafBox"), ("faces without a material", "bare"), ("image missing", "lostBox"), ("image sides not powers of two", "oddBox"),
+    ("faces without a material", "bare"), ("image missing", "lostBox"), ("image sides not powers of two", "oddBox"),
     ("images share a DDS name", "stoneBoxOne"), ("images share a DDS name", "stoneBoxTwo"), ("liquid material off a water body", "spill"),
     ("no texture coordinates", "bare"), ("scale", "pillar"),
   ]
@@ -295,7 +295,7 @@ def testExportRefusesEveryHardErrorAtOnceAndKeepsTheLastArchive(stageBlenderServ
   assert failures["image sides not powers of two"]["size"] == [6, 4] and failures["image sides not powers of two"]["image"] == str(odd)
   assert failures["faces without a material"]["faces"] == 6 and failures["liquid material off a water body"]["material"] == "falls"
   assert "'pillar' is scaled (1.0, 2.0, 1.0); a placed model takes one positive scale" in failures["scale"]["message"] and failures["scale"]["at"] == [30.0, -30.0, 0.0]
-  assert "refused, nothing written: 9 failure(s)" in refused and all(label in refused for label in failures)
+  assert "refused, nothing written: 8 failure(s)" in refused and all(label in refused for label in failures)
   # The archive the last good export wrote is still there, unchanged, and no partly written file is left.
   assert archivePath.read_bytes() == previous
   assert [path.name for path in tmp_path.iterdir() if path.name.endswith(".partial")] == []

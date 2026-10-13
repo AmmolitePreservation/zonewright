@@ -60,7 +60,7 @@ def testArchiveRefusesUppercaseNamesAndEmptyFiles():
 
 def triangleModel(kind):
   materials = [
-    {"name": "stone", "diffuseTexture": "stone_c.dds", "normalTexture": "stone_n.dds", "cutout": False},
+    {"name": "stone", "diffuseTexture": "stone_c.dds", "normalTexture": None, "cutout": False},
     {"name": "leaves", "diffuseTexture": "leaves_c.dds", "normalTexture": None, "cutout": True},
   ]
   positions = numpy.array([[0, 0, 0], [10, 0, 0], [0, 10, 0], [10, 10, 2]], dtype=numpy.float32)
@@ -79,7 +79,7 @@ def testModelsReadBackThroughTheModelReader(kind):
   assert model["triangles"].tolist() == triangles.tolist() and model["triangleMaterials"].tolist() == [0, 1]
   assert model["triangleFlags"].tolist() == [0, 0]
   assert model["materials"] == [
-    {"name": "stone", "shader": "Opaque_MaxCB1.fx", "properties": {"e_TextureDiffuse0": "stone_c.dds", "e_TextureNormal0": "stone_n.dds"}},
+    {"name": "stone", "shader": "Opaque_MaxC1.fx", "properties": {"e_TextureDiffuse0": "stone_c.dds"}},
     {"name": "leaves", "shader": "Chroma_MPLBasicAT.fx", "properties": {"e_TextureDiffuse0": "leaves_c.dds"}},
   ]
 
@@ -110,9 +110,10 @@ def testARegionWithoutExtentIsRefused():
     eqgWriter.zoneBytes(["ter_test.ter"], placements, [{"name": "AWT_flat", "center": (0, 0, 0), "halfExtents": (4.0, 4.0, 0.0)}], [])
 
 
-def testACutoutWithANormalMapIsRefused():
-  material = {"name": "card", "diffuseTexture": "card_c.dds", "normalTexture": "card_n.dds", "cutout": True}
-  with pytest.raises(ValueError, match="cutout with a normal map"):
+@pytest.mark.parametrize("cutout", [False, True])
+def testANormalMapOffALiquidIsRefused(cutout):
+  material = {"name": "card", "diffuseTexture": "card_c.dds", "normalTexture": "card_n.dds", "cutout": cutout}
+  with pytest.raises(ValueError, match="Material 'card' has a normal map, which only a liquid exports"):
     eqgWriter.modelBytes("mod", [material], [[0, 0, 0]] * 3, [[0, 0, 1]] * 3, [[0, 0]] * 3, [[0, 1, 2]], [0], [0])
 
 
