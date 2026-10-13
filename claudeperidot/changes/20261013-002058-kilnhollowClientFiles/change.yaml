@@ -1,0 +1,62 @@
+title: The spare client holds kilnhollow.eqg, kilnhollow_EnvironmentEmitters.txt and kilnhollow_assets.txt, the graduation zone Kilnhollow's client
+  files
+why: 'Kilnhollow (zone id 787, short name kilnhollow, eqzones zones/kilnhollow at 56fb99b) is the tooling graduation zone and Peridot''s first
+  custom zone; the client loads a zone''s files by its short name. These are zonewright''s game export of it (staging\kilnhollow), verified by
+  verifyExport except its known looks finding. Its assets list names stonesquare.eqg, already in the client. The client registers no zone 787
+  by itself: MQClaudeLink adds the entry in the spare''s process (its own change); the server side is zonewright''s deploy. The step refuses when
+  the spare runs, a file already exists, or a source is not the verified export.'
+kind: client
+scope:
+- S:\Research\EverQuest\housingclient\kilnhollow.eqg
+- S:\Research\EverQuest\housingclient\kilnhollow_EnvironmentEmitters.txt
+- S:\Research\EverQuest\housingclient\kilnhollow_assets.txt
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-12, the owner on Kilnhollow''s client side: "yes, that''s your baby. have at it. just make sure you know what you did
+    so you can replicate it if/when we start using this in production and don''t make it too hacky"'
+activation: the spare's next zoning into kilnhollow
+production: Peridot's players would get these files through the client distribution the owner chooses
+commits: []
+steps:
+- |-
+  $ErrorActionPreference = 'Stop'
+  $source = Join-Path $env:LOCALAPPDATA 'zonewright\staging\kilnhollow'
+  $spare = 'S:\Research\EverQuest\housingclient'
+  $files = @{
+    'kilnhollow.eqg' = 'FCD26FB348C6DDD4A5A90835857A0EB1B4114363E4140E0EAD6D75EAE97E5607'
+    'kilnhollow_EnvironmentEmitters.txt' = '2DD490BC44F98ADBE3AD38168BD30B39BF481009ACCC396077A1602F5C29EAD6'
+    'kilnhollow_assets.txt' = 'A104F8414208FE05B3C8178A2C40164A0F2B39A07A005DCDC4C950D0CFEECFFC'
+  }
+  if (Get-Process -Name eqgame -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$spare\*" }) { throw 'the spare client is running' }
+  foreach ($name in $files.Keys) {
+    if (Test-Path -LiteralPath "$spare\$name") { throw "$spare\$name already exists" }
+    if ((Get-FileHash -LiteralPath "$source\$name" -Algorithm SHA256).Hash -ne $files[$name]) { throw "$source\$name is not the verified export" }
+  }
+  foreach ($name in $files.Keys) {
+    Copy-Item -LiteralPath "$source\$name" -Destination "$spare\$name"
+    if ((Get-FileHash -LiteralPath "$spare\$name" -Algorithm SHA256).Hash -ne $files[$name]) { throw "$spare\$name does not match the export" }
+  }
+undo:
+- |-
+  $ErrorActionPreference = 'Stop'
+  $spare = 'S:\Research\EverQuest\housingclient'
+  $files = @{
+    'kilnhollow.eqg' = 'FCD26FB348C6DDD4A5A90835857A0EB1B4114363E4140E0EAD6D75EAE97E5607'
+    'kilnhollow_EnvironmentEmitters.txt' = '2DD490BC44F98ADBE3AD38168BD30B39BF481009ACCC396077A1602F5C29EAD6'
+    'kilnhollow_assets.txt' = 'A104F8414208FE05B3C8178A2C40164A0F2B39A07A005DCDC4C950D0CFEECFFC'
+  }
+  if (Get-Process -Name eqgame -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$spare\*" }) { throw 'the spare client is running' }
+  foreach ($name in $files.Keys) {
+    if ((Get-FileHash -LiteralPath "$spare\$name" -Algorithm SHA256).Hash -ne $files[$name]) { throw "$spare\$name is not this change's file; nothing removed" }
+  }
+  foreach ($name in $files.Keys) { Remove-Item -LiteralPath "$spare\$name" -Confirm:$false }
+checks:
+- path: S:\Research\EverQuest\housingclient\kilnhollow.eqg
+  sha256: fcd26fb348c6ddd4a5a90835857a0eb1b4114363e4140e0ead6d75eae97e5607
+- path: S:\Research\EverQuest\housingclient\kilnhollow_EnvironmentEmitters.txt
+  sha256: 2dd490bc44f98adbe3ad38168bd30b39bf481009accc396077a1602f5c29ead6
+- path: S:\Research\EverQuest\housingclient\kilnhollow_assets.txt
+  sha256: a104f8414208fe05b3c8178a2c40164a0f2b39a07a005dcdc4c950d0cfeecffc
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
