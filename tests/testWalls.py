@@ -212,5 +212,5 @@ def testAnElevationStandsOnTheGroundShortOfTheWallsOtherLegs(stageBlenderServer,
   built = stageBlenderServer.session(steps)
   # The yard's fronts face in: each leg is seen from inside it, a player's eye (playerScale) over the plaza and short of the leg across, aimed
   # two fifths of the way up the wall from its foot so the foot is in frame.
-  assert built["views"]["front0"] == {"eye": [45.0, -17.0, eyeHeight], "target": [45.0, -30.0, 12.0]}
-  assert built["views"]["front1"] == {"eye": [32.0, -17.5, eyeHeight], "target": [70.0, -17.5, 12.0]}
+  assert built["views"]["front0"] == {"eye": [45.0, -17.0, round(eyeHeight, 3)], "target": [45.0, -30.0, 12.0]}
+  assert built["views"]["front1"] == {"eye": [32.0, -17.5, round(eyeHeight, 3)], "target": [70.0, -17.5, 12.0]}

@@ -54,9 +54,9 @@ def testWalkRouteCrossesADeckAndFindsDropsAndLowCeilings(stageBlenderServer):
   assert near(under["problems"][0]["from"], -180) and near(under["problems"][0]["to"], -110)
 
 
-# Half a unit over a step (playerScale), the low step is a rise and the slab's underside leaves less headroom than a player's height
-# without being met as a rise, whatever the step is measured at below that height.
-pastStep = stepHeight + 0.5
+# Half a unit or more over a step (playerScale), on the tenths walkRoute gives heights in, the low step is a rise and the slab's
+# underside leaves less headroom than a player's height without being met as a rise, whatever the step is measured at below that height.
+pastStep = math.ceil((stepHeight + 0.5) * 10) / 10
 courseBlocks = [
   ("thinSlab", [30, 40, 1], [-150, 0, pastStep]), ("rock", [20, 20, 12], [-90, 0, -2]), ("lowStep", [30, 40, pastStep], [-30, 0, 0]),
   ("stepTen", [30, 40, 10], [40, 0, 0]), ("deck", [40, 30, 1], [0, -90, 9]),
@@ -79,7 +79,7 @@ def testWalkRouteStopsAtEveryBlockAlikeAtAnySpacing(stageBlenderServer):
 
   coarseResult, fineResult, offLedgeResult, underDeckResult, insideRock = stageBlenderServer.session(steps)
   coarse, fine, offLedge, underDeck = (walkOf(result) for result in (coarseResult, fineResult, offLedgeResult, underDeckResult))
-  # The deck's 9 of headroom passes the small and medium groups and stops the large, whose tallest body stands 11.65.
+  # The deck's 9 of headroom passes the small and medium groups and stops the large, whose ogre male needed 10.5.
   assert underDeckResult["passingGroups"] == ["small", "medium"]
   assert [(problem["kind"], problem["lowest"]) for problem in walkOf(underDeckResult, "large")["problems"]] == [("headroom", 9.0)]
   # Every block on the course stops a player, each listed once, and the walk takes up again on the ground beyond it: the 1-thick slab
@@ -126,7 +126,7 @@ def testWalkRouteClimbsWhatTheRoF2ClientClimbs(stageBlenderServer):
     await freshScene(session)
     await session.expectSuccess("createTerrainGrid", {"name": "course", "size": [200, 120], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
     await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "lowRiser", "size": [20, 20, lowRiser], "location": [-60, 0, 0]})
-    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "highRiser", "size": [20, 20, stepHeight + 0.5], "location": [-60, 40, 0]})
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "highRiser", "size": [20, 20, pastStep], "location": [-60, 40, 0]})
     await session.expectSuccess("createPrimitive", rampArguments("climbable", steepestWalkableDegrees - 2, 0))
     await session.expectSuccess("createPrimitive", rampArguments("tooSteep", steepestWalkableDegrees + 5, 40))
     walks = {}
@@ -140,7 +140,7 @@ def testWalkRouteClimbsWhatTheRoF2ClientClimbs(stageBlenderServer):
   # Under the step players climb (playerScale) is walked up and down; half a unit over it stops them.
   assert walks["lowRiser"]["walkable"] and walks["lowRiser"]["problems"] == [] and walks["lowRiser"]["oneWay"] == []
   assert max(row["at"][2] for row in walks["lowRiser"]["profile"]) == lowRiser
-  assert [(problem["kind"], problem["height"]) for problem in walks["highRiser"]["problems"]] == [("rise", round(stepHeight + 0.5, 1))]
+  assert [(problem["kind"], problem["height"]) for problem in walks["highRiser"]["problems"]] == [("rise", pastStep)]
   # A face two degrees under the steepest players walk is climbed; one five degrees over it is too steep.
   assert walks["climbable"]["walkable"] and walks["climbable"]["problems"] == []
   assert abs(walks["climbable"]["steepest"]["slopeDegrees"] - (steepestWalkableDegrees - 2)) <= 0.2
@@ -281,7 +281,7 @@ def testEveryLookupForGroundPassesThroughACanopyAndWhatIsMarkedPassable(stageBle
   walked = walkOf(walkedResult)
   # The cutout canopy 20 up and the crate marked passable are passed through by every lookup for the ground, as walkRoute passes them:
   # the views stand on the ground under them, and the stones land and settle on it.
-  assert under["ground"] == [0.0, 0.0, 0.0] and under["eye"] == [0.0, 0.0, eyeHeight] and under["figure"] == [10.0, 0.0, 0.0]
+  assert under["ground"] == [0.0, 0.0, 0.0] and under["eye"] == [0.0, 0.0, round(eyeHeight, 3)] and under["figure"] == [10.0, 0.0, 0.0]
   assert mossy["ground"] == [60.0, 60.0, 0.0]
   assert measured["points"] == [[0.0, 0.0, 0.0], [60.0, 60.0, 0.0]]
   assert [shape["ground"] for shape in sketched["shapes"]] == [0.0, 0.0]

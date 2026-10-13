@@ -287,7 +287,7 @@ def testTheTourIsReusedForAnUnchangedLane(stageBlenderServer, tmp_path):
   # lane's column over it), facing back down its length, the longest reached ground.
   lead = first["eyes"][0]
   assert lead["standing"][0] > 110 - 2 * laneViews.eyeBlock and abs(lead["standing"][1]) <= 4 and lead["standing"][2] == pytest.approx(0.0, abs=0.01)
-  assert (lead["label"], lead["swimming"], lead["eye"][2], lead["headingDegrees"], lead["direction"]) == ("walk", False, eyeHeight, 270, "south")
+  assert (lead["label"], lead["swimming"], lead["eye"][2], lead["headingDegrees"], lead["direction"]) == ("walk", False, round(eyeHeight, 2), 270, "south")
   assert lead["run"] >= lead["standing"][0] + 110 - 2
   # The same lane gives the same tour, kept beside it and read again whatever the count; the fog's end shortening the far sight chooses
   # it again on the same lane, and changing the zone makes a new lane and a new tour.

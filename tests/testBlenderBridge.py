@@ -229,7 +229,7 @@ def testEyeLevelViewPlacesFigureAndPickMeasuresTheGround(stageBlenderServer):
     return description, picked, sky, fromAbove
 
   description, picked, sky, fromAbove = stageBlenderServer.session(steps)
-  assert description["eye"] == [0.0, 0.0, eyeHeight] and fromAbove["eye"] == [0.0, 0.0, eyeHeight]
+  assert description["eye"] == [0.0, 0.0, round(eyeHeight, 3)] and fromAbove["eye"] == [0.0, 0.0, round(eyeHeight, 3)]
   assert description["figure"] == [1.5, 15.0, 0.0]
   depression = math.atan((pixel[1] + 0.5 - renderHeight / 2) / (renderHeight / 2) * math.tan(math.radians(verticalFieldOfViewDegrees / 2)))
   assert picked["hit"] is True

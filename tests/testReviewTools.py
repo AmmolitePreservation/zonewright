@@ -65,7 +65,7 @@ def testReviewCamerasReproduceTheirViewsAndRenderAsOneSheet(stageBlenderServer, 
   assert listed["high"]["note"] == longNote and listed["high"]["view"] == views["high"]
   assert listed["high"]["headingDegrees"] == round(math.degrees(math.atan2(40, 160)), 2)
   assert listed["high"]["pitchDegrees"] == round(math.degrees(math.atan2(-75, math.hypot(40, 160))), 2)
-  assert listed["standing"]["eye"] == [0.0, 0.0, eyeHeight] and listed["standing"]["headingDegrees"] == 45.0 and listed["standing"]["pitchDegrees"] == 0.0
+  assert listed["standing"]["eye"] == [0.0, 0.0, round(eyeHeight, 3)] and listed["standing"]["headingDegrees"] == 45.0 and listed["standing"]["pitchDegrees"] == 0.0
   figure = listed["standing"]["figure"]
   assert figure[2] == 0.0 and 13 <= math.hypot(figure[0], figure[1]) <= 17 and figure[0] > 0 and figure[1] > 0
   # One sheet of the three in name order, each render as renderView gives it; the long note wraps to a second line under its cell.

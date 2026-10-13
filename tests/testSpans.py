@@ -108,7 +108,7 @@ def testBridgeRefusals(stageBlenderServer, tmp_path):
       # 3 over the rim: lower than a player steps up, yet the deck's end would show a gap over the ground.
       "raisedEnd": await session.expectError("buildBridge", bridgeArguments(kitPath, start=[-100, 0, 3])),
       "tooSteep": await session.expectError("buildBridge", bridgeArguments(kitPath, profile={"sag": 40})),
-      "overWalkable": await session.expectError("buildBridge", bridgeArguments(kitPath, maximumDeckDegrees=75)),
+      "overWalkable": await session.expectError("buildBridge", bridgeArguments(kitPath, maximumDeckDegrees=81)),
       "railsWithoutPosts": await session.expectError("buildBridge", bridgeArguments(kitPath, rails=ropes)),
       "stationPast": await session.expectError("buildBridge", bridgeArguments(kitPath, bents={"stations": [100], "post": "testKitLeg"})),
       "wrongKind": await session.expectError("buildBridge", bridgeArguments(kitPath, deck="testKitBeam")),
@@ -125,7 +125,7 @@ def testBridgeRefusals(stageBlenderServer, tmp_path):
   fits = (bridgeSpan * math.tan(math.radians(30))) / 4
   assert "the largest sag that fits is" in refusals["tooSteep"] and f"{fits:.2f}" in refusals["tooSteep"]
   # A deck is walked, so its grade limit runs up to the steepest face players walk (playerScale).
-  assert f"maximumDeckDegrees runs over 0 up to {steepestWalkableDegrees:.1f} (the steepest face every body group the bridge's start is built for walks, ['small', 'medium', 'large'], playerScale), got 75" in refusals["overWalkable"]
+  assert f"maximumDeckDegrees runs over 0 up to {steepestWalkableDegrees:.1f} (the steepest face every body group the bridge's start is built for walks, ['small', 'medium', 'large'], playerScale), got 81" in refusals["overWalkable"]
   assert "Rails run from post to post" in refusals["railsWithoutPosts"]
   assert "Bent station 100" in refusals["stationPast"]
   assert "deck 'testKitBeam' is a beam piece; deck takes a plank or floor piece" in refusals["wrongKind"]
@@ -284,7 +284,7 @@ def testWalkwayRefusals(stageBlenderServer, tmp_path):
       "unheld": await session.expectError("buildWalkway", walkway("raised", [[110, -10, raised], [70, -10, raised]])),
       "turn": await session.expectError("buildWalkway", walkway("hairpin", [[110, -10, 0], [70, -10, 0], [109, -3, 0]])),
       "dug": await session.expectError("buildWalkway", walkway("dug", [[50, -48, dug], [50, -20, dug]])),
-      "overWalkable": await session.expectError("buildWalkway", walkway("overWalkable", [[110, -30, resting], [70, -30, resting]], maximumGradeDegrees=75)),
+      "overWalkable": await session.expectError("buildWalkway", walkway("overWalkable", [[110, -30, resting], [70, -30, resting]], maximumGradeDegrees=81)),
     }
     held = await session.expectSuccess("buildWalkway", walkway("held", [[110, -10, raised], [70, -10, raised]], posts={"piece": "testKitLeg", "spacing": 8}))
     rests = await session.expectSuccess("buildWalkway", walkway("resting", [[110, -30, resting], [70, -30, resting]]))
@@ -303,7 +303,7 @@ def testWalkwayRefusals(stageBlenderServer, tmp_path):
   assert "turns 169.8 degrees at point 1" in refusals["turn"]
   assert f"Leg 0's underside meets the ground {structurePlots.slopeHeight(-44) - 0.5:.2f} deep at [50.0, -44.0, 0.5] (4.0 along)" in refusals["dug"]
   # A deck leg is walked, so its grade limit runs up to the steepest face players walk (playerScale), past 60 degrees.
-  assert f"maximumGradeDegrees runs over 0 up to {steepestWalkableDegrees:.1f} (the steepest face every body group the walkway's start is built for walks, ['small', 'medium', 'large'], playerScale: deck legs are walked), got 75" in refusals["overWalkable"]
+  assert f"maximumGradeDegrees runs over 0 up to {steepestWalkableDegrees:.1f} (the steepest face every body group the walkway's start is built for walks, ['small', 'medium', 'large'], playerScale: deck legs are walked), got 81" in refusals["overWalkable"]
   assert steepDeck["legs"][0]["laid"] == "deck" and abs(steepDeck["legs"][0]["gradeDegrees"] - math.degrees(math.atan2(steepRise, 10))) <= 0.05
 
 

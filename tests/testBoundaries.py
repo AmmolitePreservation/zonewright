@@ -66,8 +66,8 @@ def testBoundariesBlockPlayersFollowTheGroundAndDrawOnlyAsGuides(stageBlenderSer
   assert wall["minimum"] == [150.0, -100.0, -5.0] and wall["maximum"] == [150.0, 100.0, 40.0] and wall["replaced"] is False
   assert normals["eastWall"] == [[-1.0, 0.0, 0.0]] * 3 and normals["lid"] == [[0.0, 0.0, -1.0]] * 2 and normals["floor"] == [[0.0, 0.0, 1.0]] * 2
   assert lid["area"] == 3600.0 and floor["minimum"][2] == -50.0
-  # The medium group's walk meets the wall at half its height, 8.25 / 2 over the ground.
-  assert not blocked["walkable"] and [(problem["kind"], problem["boundary"]) for problem in blocked["problems"]] == [("blocked", [150.0, 0.0, 4.1])]
+  # The medium group's walk meets the wall at half its height, 7.75 / 2 over the ground.
+  assert not blocked["walkable"] and [(problem["kind"], problem["boundary"]) for problem in blocked["problems"]] == [("blocked", [150.0, 0.0, 3.9])]
   assert 149 <= blocked["problems"][0]["at"][0] < 150 and 150 < blocked["problems"][0]["resumesAt"][0] <= 151
   assert around["walkable"] and around["length"] == 90.0
   assert [(problem["kind"], problem["lowest"]) for problem in under["problems"]] == [("headroom", 4.0)]

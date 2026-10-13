@@ -100,7 +100,7 @@ def testPlaceEntryStandsOnShippedFooting(stageBlenderServer, tmp_path):
   }
   # Its arrival view stands on the footing at a player's eye, facing its heading, with the scale figure ahead.
   assert placed["arrivalView"]["view"] == {"standOn": [0.0, 0.0, 0.0], "headingDegrees": 90.0, "pitchDegrees": 0.0}
-  assert placed["arrivalView"]["eye"] == [0.0, 0.0, eyeHeight] and placed["arrivalView"]["figure"][0] > 0
+  assert placed["arrivalView"]["eye"] == [0.0, 0.0, round(eyeHeight, 3)] and placed["arrivalView"]["figure"][0] > 0
   assert Image.open(io.BytesIO(view)).size == (960, 540) and Path(placed["arrivalView"]["outputPath"]).is_file()
   # [x, y] takes the highest footing: the dais's top.
   assert dais["at"] == [60.0, 60.0, 10.0] and dais["state"] == "onFooting"
@@ -109,7 +109,7 @@ def testPlaceEntryStandsOnShippedFooting(stageBlenderServer, tmp_path):
   # Under the floating terrace's pool, its basin between, players arrive on the ground; in the basin they would arrive in its water.
   assert underTerrace["at"] == [0.0, 70.0, 0.0] and underTerrace["state"] == "onFooting"
   # Its arrival view stands there at a player's eye, not swimming in the pool over the basin.
-  assert underTerrace["arrivalView"]["eye"] == [0.0, 70.0, eyeHeight]
+  assert underTerrace["arrivalView"]["eye"] == [0.0, 70.0, round(eyeHeight, 3)]
   assert "The footing at [0.0, 70.0, 12.0] lies under the surface of 'terracePool', whose swimming is undecided" in refusals["terracePool"]
   assert again["replaced"] is True and again["at"] == [10.0, 0.0, 0.0] and again["fromNumber"] is None
   assert [entry["name"] for entry in listed["entries"]] == ["daisTop", "fromQeynos", "underSkyPool", "underTerrace"]
@@ -159,7 +159,7 @@ def testEntryFootingIgnoresReferenceContent(stageBlenderServer, tmp_path):
   assert measured["points"][0][2] > 1 and measured["points"][1][2] > 1
   assert besideKiln["at"] == [20.0, 20.0, 0.0]
   # Its arrival view stands on that footing, not on the kiln over it.
-  assert besideKiln["arrivalView"]["eye"] == [20.0, 20.0, eyeHeight]
+  assert besideKiln["arrivalView"]["eye"] == [20.0, 20.0, round(eyeHeight, 3)]
   assert "No ground the zone ships lies at [300.0, 300.0]" in overFarKiln
 
 
