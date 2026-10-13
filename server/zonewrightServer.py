@@ -70,6 +70,7 @@ import toolingSync
 import surveyFields
 import zoneInterpretation
 import zoneSources
+import zoneDeployment
 import zoneSurvey
 
 toolingRoot = toolingStatus.resolveToolingRoot()
@@ -252,12 +253,25 @@ async def zoneSky(zone):
 
 async def clientZoneIDs():
   """The zones the client registers, short name to id (eqClientZones), read from its eqgame.exe in place."""
+  return (await clientRegistrations()).idsByShortName()
+
+
+async def clientRegistrations():
+  """The zones the client registers with every value of their registrations (eqClientZones.ClientZones)."""
   clientRoot = zoneSources.resolveClientRoot()
   try:
-    zones = await anyio.to_thread.run_sync(eqClientZones.loadClientZones, clientRoot, toolingRoot)
+    return await anyio.to_thread.run_sync(eqClientZones.loadClientZones, clientRoot, toolingRoot)
   except (OSError, ValueError) as error:
     raise ToolError(f"The zones the client registers cannot be read from {clientRoot / 'eqgame.exe'}: {error}") from error
-  return zones.idsByShortName()
+
+
+async def clientStrings():
+  """The client's eqstr_us.txt strings by id."""
+  clientRoot = zoneSources.resolveClientRoot()
+  try:
+    return await anyio.to_thread.run_sync(eqClientZones.loadClientStrings, clientRoot)
+  except (OSError, ValueError) as error:
+    raise ToolError(f"The client's strings cannot be read from {clientRoot / eqClientZones.stringsName}: {error}") from error
 
 
 async def zoneRowClientFacts(context, zone):
@@ -894,6 +908,7 @@ async def setZoneProperties(
   entryGate: dict | str | None = None,
   serverTemplate: str | None = None,
   builtFor: list[str] | None = None,
+  eqstrID: int | None = None,
 ):
   """Set the zone's EQ properties stored in the .blend, in the client's lighting terms (docs/clientRendering.md): ambient, special
   ambient, bounce, and sun colors (0-1, raw as the client uses them); the direction toward the sun (azimuth 0 = +Y, clockwise;
@@ -916,8 +931,12 @@ async def setZoneProperties(
   id as the server sends it (1 to 999 but 997; the client caps the reach of the lights characters carry by it, renderView
   carriedLight): neither may be one the client registers to another zone (the client loads a zone's files by its id), and an id the
   client does not register is a finding of a game export (the client needs a registration entry before it can load the zone), a short
-  name it does register a reused slot (the export replaces that zone's server maps and rows); longName, the name players see (1 to 127
-  printable ASCII characters); timeType, the zone row's time_type: indoorDungeon, outdoor, outdoorCity, dungeonCity, indoorCity, or
+  name it does register a reused slot (the export replaces that zone's server maps and rows); an id the client does not register is a
+  new zone's, which EQEmu's new-zone process puts above 786 (787 to 999 but 997), and a new zone takes its own id and short name,
+  never a slot the client or a server already has (checkServerZoneSlot reads the servers); longName, the name players see (1 to 127
+  printable ASCII characters); eqstrID, for a new zone, the id of the client string (eqstr_us.txt) holding its long name, which the
+  client's entry names (a game export gives that entry: exportZone's clientEntry); the client's eqstr_us.txt may hold no other
+  string under it; timeType, the zone row's time_type: indoorDungeon, outdoor, outdoorCity, dungeonCity, indoorCity, or
   outdoorDungeon; entryGate, who may enter: "open", {"minStatus": n} (the account status needed, 0-255), or {"zoneFlag": true}
   (a character needs the zone flag for this zone's id, granted by a GM or a quest; the server reads no text flag); and
   serverTemplate, a zone the client registers, not this one, whose version-0 row a new zone row copies every column zonewright does not
@@ -930,7 +949,7 @@ async def setZoneProperties(
     "sunAzimuthDegrees": sunAzimuthDegrees, "sunElevationDegrees": sunElevationDegrees, "fogColor": fogColor, "fogStart": fogStart,
     "fogEnd": fogEnd, "fogDensity": fogDensity, "fogOn": fogOn, "minClip": minClip, "maxClip": maxClip, "newEngineZone": newEngineZone, "sky": sky,
     "safePoint": safePoint, "underworld": underworld, "shortName": shortName, "zoneId": zoneId, "longName": longName, "timeType": timeType,
-    "entryGate": entryGate, "serverTemplate": serverTemplate, "builtFor": builtFor,
+    "entryGate": entryGate, "serverTemplate": serverTemplate, "builtFor": builtFor, "eqstrID": eqstrID,
   }
   given = {key: value for key, value in updates.items() if value is not None}
   if not given:
@@ -938,7 +957,12 @@ async def setZoneProperties(
   if isinstance(sky, str) and sky != skyDrawing.noSky:
     raise ToolError(f"sky is {{type, weather, hour, minute}} or \"{skyDrawing.noSky}\", got '{sky}'")
   registered = await clientZoneIDs() if set(given) & set(eqClientZones.checkedZoneProperties) else None
-  stored = await callBridge(context, "setZoneProperties", {"updates": given, "clientZones": registered})
+  clientString = None
+  if {"eqstrID", "longName"} & set(given):
+    stringID = given.get("eqstrID", (await callBridge(context, "getZoneProperties", {})).get("eqstrID"))
+    if isinstance(stringID, int) and not isinstance(stringID, bool):
+      clientString = {"id": stringID, "text": (await clientStrings()).get(stringID)}
+  stored = await callBridge(context, "setZoneProperties", {"updates": given, "clientZones": registered, "clientString": clientString})
   resolved = await zoneSky(stored["zone"])
   return stored | {"sky": None if resolved is None else {key: resolved[key] for key in ("chain", "dayFraction", "lightFrom", "environment")}}
 
@@ -1587,7 +1611,14 @@ async def gameInputs(context, zoneProperties, client, workFile, laneInputPath):
   zone's sky at its hour, and the record of the zone_points rows its short name's game exports wrote."""
   await callBridge(context, "laneInput", {"outputPath": str(laneInputPath)})
   sky = await zoneSky(zoneProperties)
+  entryKeys = ("shortName", "zoneId", "longName", "serverTemplate", "eqstrID")
+  clientEntry = None
+  if all(key in zoneProperties for key in entryKeys):
+    zones = await clientRegistrations()
+    if zoneProperties["serverTemplate"] in zones.byShortName:
+      clientEntry = eqClientZones.clientEntry(zoneProperties, zones, await clientStrings())
   return {
+    "clientEntry": clientEntry,
     "workFile": workFile, "laneInput": laneInputPath, "entries": (await callBridge(context, "getEntries", {}))["entries"],
     "zoneLines": (await callBridge(context, "getZoneLines", {}))["zoneLines"], "clientZones": client["zones"],
     "skyFogColor": None if sky is None else sky["environment"]["fogColor"],
@@ -1731,7 +1762,7 @@ async def exportZone(context: Context, path: str, purpose: str):
     "housing": None if housing is None else {"role": housing["housing"]["role"], "plots": len(housing["plots"]), "file": str(sides["housing"]) if hasPlots else None, "assetList": str(sides["assetList"]) if hasPlots else None},
   }
   if purpose == "game":
-    return result | {"serverFiles": exportPipeline.serverFilesReport(built, folder), "zonePointsRecord": recorded}
+    return result | {"serverFiles": exportPipeline.serverFilesReport(built, folder), "zonePointsRecord": recorded, "clientEntry": built["clientEntry"]}
   return result | {"serverFilesRemoved": written["removedServerFiles"]}
 
 
@@ -5165,6 +5196,81 @@ async def layOutPlots(
     "items": items, "pets": pets, "tags": features, "borderFolder": folder, "collection": collection,
   })
 
+
+
+@guardedTool(description=(
+  "Whether a zone's id and short name are free for a new zone: read-only, the client's registrations (eqgame.exe) and each server's"
+  " zone table (`servers`: claudeperidot and peridot, read through the claudeperidot ledger's zoneDeploy, which writes nothing on a"
+  " slot read). `shortName` and `zoneId` together, or neither for the open zone's. Refuses, naming every holder, when the client"
+  " registers either or a server's zone row holds the id under another short name or the short name under another id; otherwise"
+  " gives each server's rows already holding the zone (an earlier deploy of it)."
+))
+async def checkServerZoneSlot(context: Context, servers: list[str], shortName: str | None = None, zoneId: int | None = None):
+  if (shortName is None) != (zoneId is None):
+    raise ToolError("Give shortName and zoneId together, or neither for the open zone's")
+  if shortName is None:
+    zone = await callBridge(context, "getZoneProperties", {})
+    if "shortName" not in zone or "zoneId" not in zone:
+      raise ToolError("The open zone has no shortName and zoneId yet (setZoneProperties)")
+    shortName, zoneId = zone["shortName"], zone["zoneId"]
+  zones = await clientRegistrations()
+  client = [holder for holder in (zones.byShortName.get(shortName), zones.byID.get(zoneId)) if holder is not None]
+  if not set(servers) <= set(zoneDeployment.slotServers):
+    raise ToolError(f"servers are from {list(zoneDeployment.slotServers)}, got {servers}")
+  try:
+    read = await anyio.to_thread.run_sync(zoneDeployment.runZoneDeploy, {"command": "slot", "hosts": servers, "zone": {"shortName": shortName, "zoneId": zoneId}}, progressReporter(context))
+  except ValueError as error:
+    raise ToolError(str(error)) from error
+  conflicts = {host: found["conflicts"] for host, found in read.items() if found["conflicts"]}
+  if client or conflicts:
+    raise ToolError(
+      f"{shortName} (zone {zoneId}) is not a free slot for a new zone: the client registers {[{key: holder[key] for key in ('id', 'shortName')} for holder in client]},"
+      f" and the servers' zone tables hold {conflicts}"
+    )
+  return {"shortName": shortName, "zoneId": zoneId, "client": "registers neither", "servers": {host: found["rows"] for host, found in read.items()}}
+
+
+@guardedTool(description=(
+  "Deploy a verified game export's server side to Claude's test server (`target` \"claudeperidot\"; Peridot is never written) through"
+  " the claudeperidot change ledger, so every change is recorded before it runs and reverts. `path` is the export's <short>.eqg"
+  " with its game manifest (exportZone, no failures) beside it, every listed file as listed. Only a new zone deploys: an id and short"
+  " name the client does not register, the id 787 to 999 but 997; the target's zone table may hold neither under another zone. The"
+  " claudeperidot ledger's zoneDeploy writes two changes named <UTC YYYYMMDD-HHMMSS>-deploy<Short>Maps and -Rows: a files change"
+  " installing server\\maps' .map, .wtr and .nav in the server's maps folder, and a db change whose scope is every row of the zone in"
+  " zone, zone_points, doors and object, applying the export's rows (read back by zonewright's readers) so rows of the zone the"
+  " export lacks are removed and nothing outside the zone is touched. A part the server already holds as exported is left alone;"
+  " an earlier deploy of the zone still applied is reverted first. `planStep` names the plan.md step that lists the changes;"
+  " `author` is {session, agent?} (the Claude session's id, the subagent's when one deploys); `ownerClearance` \"pending\" or"
+  " {ownerMessage}; `disposition` fixture or exploration. Then the server restarts with Spire's launcher (world reads the zone table"
+  " and a zone process its maps and rows at boot). Progress is reported as it goes. The ways-in file (neighbours' rows) and the"
+  " housing file are left out and listed with why. The client side follows EQEmu's documented route for now: exportZone's"
+  " clientEntry (eq-core-dll's ZoneEntry and eqstr_us.txt's line) into the spare client through ledger client changes."
+))
+async def deployZone(context: Context, path: str, target: str, planStep: int, author: dict, ownerClearance: dict | str, disposition: str):
+  zones = await clientRegistrations()
+  try:
+    request, left = await anyio.to_thread.run_sync(zoneDeployment.deployRequest, Path(path), zones, target, planStep, author, ownerClearance, disposition)
+    result = await anyio.to_thread.run_sync(zoneDeployment.runZoneDeploy, request, progressReporter(context))
+  except (OSError, ValueError) as error:
+    raise ToolError(f"{type(error).__name__}: {error}") from error
+  return {"zone": request["zone"], "target": target} | result | {"notDeployed": left}
+
+
+@guardedTool(description=(
+  "Take a zone deployZone deployed back off Claude's test server (`target` \"claudeperidot\"): the claudeperidot ledger reverts"
+  " the zone's applied deploy changes, newest first (its rows, then its maps), each recorded before it runs and applied again by"
+  " deploying, and the server restarts. `shortName` and `zoneId` name the zone. Refuses when no deploy of it is applied, and a"
+  " revert refuses what changed on the server since its apply."
+))
+async def undeployZone(context: Context, shortName: str, zoneId: int, target: str):
+  if target not in zoneDeployment.deployTargets:
+    raise ToolError(f"target is one of {list(zoneDeployment.deployTargets)}: Peridot is never written, got {target!r}")
+  request = {"command": "undeploy", "target": target, "zone": {"shortName": shortName, "zoneId": zoneId}}
+  try:
+    result = await anyio.to_thread.run_sync(zoneDeployment.runZoneDeploy, request, progressReporter(context))
+  except ValueError as error:
+    raise ToolError(str(error)) from error
+  return {"zone": request["zone"], "target": target} | result
 
 
 serverSourcePaths = loadedServerSources()

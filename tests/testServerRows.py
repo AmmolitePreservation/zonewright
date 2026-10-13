@@ -423,6 +423,7 @@ def testSetZonePropertiesRefusesBadIDsAndNames(stageBlenderServer):
     {"zoneId": 0}, {"zoneId": 1000}, {"zoneId": 997}, {"zoneId": 407}, {"shortName": "highpasshold"}, {"shortName": "row_test"}, {"shortName": "a" * 32},
     {"longName": "Row\tTest"}, {"longName": "R" * 128}, {"timeType": "night"}, {"entryGate": {"minStatus": "80"}}, {"entryGate": {"minStatus": 80, "zoneFlag": True}},
     {"entryGate": {"zoneFlag": "keyed"}}, {"entryGate": {"minStatus": 256}}, {"entryGate": "closed"}, {"serverTemplate": "nowhere"}, {"serverTemplate": "rowtest"},
+    {"zoneId": 786}, {"eqstrID": 0}, {"eqstrID": 2247}, {"longName": "Highpass Hold Again", "eqstrID": 2247},
   ]
 
   async def steps(session):
@@ -445,6 +446,12 @@ def testSetZonePropertiesRefusesBadIDsAndNames(stageBlenderServer):
   assert all(serverRows.entryGateRule in refusal for refusal in refusals[10:15]) and "a text flag gates nothing" in refusals[12] and "got {'minStatus': 256}" in refusals[13]
   assert "serverTemplate 'nowhere' is not a zone the client registers" in refusals[15]
   assert "not this zone's own 'rowtest'" in refusals[16]
+  # 786 is no zone the client registers; EQEmu's new-zone process puts a new zone's id above it.
+  assert "zoneId 786 is no zone the client registers, so it is a new zone's, which EQEmu's new-zone process puts above 786: 787 to 999 but not 997" in refusals[17]
+  assert "eqstrID is the id of the client string holding the zone's long name, 1 to 4294967295, got 0" in refusals[18]
+  # The client's eqstr_us.txt holds Highpass Hold's long name under 2247.
+  assert "The client's eqstr_us.txt holds 'Highpass Hold' under 2247, not the long name '" + "R" * 127 + "'" in refusals[19]
+  assert "holds 'Highpass Hold' under 2247, not the long name 'Highpass Hold Again'" in refusals[20]
   # A refusal changes nothing; a short name the client registers is taken under its own id.
   assert kept == accepted["zone"]
   assert (reused["zone"]["shortName"], reused["zone"]["zoneId"], reused["zone"]["entryGate"]) == ("highpasshold", 407, {"zoneFlag": True})

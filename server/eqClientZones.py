@@ -17,6 +17,12 @@ registrars = {0x7DC290: 9, 0x7DC430: 9, 0x7DC4B0: 11}
 # AddZone takes ids up to 1000 into a slot already empty, and the client's own run-time zone takes 997 (0x5401BA).
 highestZoneID = 999
 runtimeZoneID = 997
+# EQEmu's new-zone process gives a new zone a zoneidnumber unused above 786 (eqemu-docs-v2 client/guides/custom-zone-editing.md).
+lowestNewZoneID = 787
+# eq-core-dll's ZoneEntry takes the eqStrID as an unsigned 32-bit number.
+highestStringID = 0xFFFFFFFF
+stringsName = "eqstr_us.txt"
+stringsHeader = "EQST0002"
 # The zone properties checked against these registrations (setZoneProperties).
 checkedZoneProperties = ("shortName", "zoneId", "serverTemplate")
 push = rb"(?:\x6a[\x00-\xff]|\x68[\x00-\xff]{4})"
@@ -113,6 +119,52 @@ class ClientZones:
 
   def idsByShortName(self):
     return {name: zone["id"] for name, zone in self.byShortName.items()}
+
+
+def readClientStrings(text):
+  """eqstr_us.txt's strings by id: its EQST0002 header, then one "<id> <text>" line per string, string 0 holding how many
+  strings follow it (7135 in the RoF2 client, which holds exactly that many)."""
+  lines = text.split("\r\n") if "\r\n" in text else text.split("\n")
+  if lines[0] != stringsHeader:
+    raise ValueError(f"{stringsName} does not start with {stringsHeader}")
+  strings = {}
+  for number, line in enumerate(lines[1:], start=2):
+    if not line.strip():
+      continue
+    match = re.match(r"^(\d+) (.*)$", line)
+    if match is None:
+      raise ValueError(f"{stringsName} line {number} is no '<id> <text>' line: {line[:80]!r}")
+    strings[int(match.group(1))] = match.group(2)
+  return strings
+
+
+def loadClientStrings(clientRoot):
+  return readClientStrings((clientRoot / stringsName).read_bytes().decode("latin-1"))
+
+
+def entryText(text):
+  return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def clientEntry(zone, zones, strings):
+  """What the client needs to load a zone it does not register, by EQEmu's documented route (eqemu-docs-v2
+  client/guides/custom-zone-editing.md): eq-core-dll's ZoneEntry (zoneType, zoneID, short name, long name, eqStrID, zoneFlags2, x,
+  y, z), its zoneType and zoneFlags2 the template's registration (the zone of the same kind whose row the zone row copies), and
+  eqstr_us.txt's line for the eqStrID holding the long name, with string 0's new count when the line is new. None for a zone
+  the client registers."""
+  if zone["zoneId"] in zones.byID:
+    return None
+  template = zones.byShortName[zone["serverTemplate"]]
+  entry = {
+    "zoneEntry": (
+      f'ZoneEntry({template["expansion"]}, {zone["zoneId"]}, "{zone["shortName"]}", "{entryText(zone["longName"])}", {zone["eqstrID"]},'
+      f' {template["flags"]}, 0, 0, 0),'
+    ),
+    "eqstrLine": f"{zone['eqstrID']} {zone['longName']}", "zoneTypeAndFlagsFrom": zone["serverTemplate"],
+  }
+  if zone["eqstrID"] not in strings:
+    entry["eqstrCountLine"] = f"0 {int(strings[0]) + 1}"
+  return entry
 
 
 def loadClientZones(clientRoot, toolingRoot):

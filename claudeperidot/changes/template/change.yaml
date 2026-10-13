@@ -16,6 +16,9 @@
 #     {path, exists: file or directory}; {path, exists: junction, target}; {path, sha256}; {path, section, key, value}
 #     for an ini key; {credential: a Credential Manager target} for an entry's existence; {path, server, character} for a
 #     persona row in MacroQuest's login.db; {path, exports: a name} for a name a DLL's export table lists. No SQL files.
+#   files: host files under the server's maps folder (/opt/eqemu/akk-stack/server/maps/), installed from the workstation;
+#     add files, a list of {path: the host file, source: the workstation file, sha256: its SHA-256}, or source and sha256 both
+#     null to remove the file; scope lists the paths in that order. stage keeps any file it replaces on the host. No SQL files.
 #   lab: a change on another lab host or device (Peridot, olivine, the SonicWall), made through facet or the sonicwall
 #     MCP; steps, undo and checks are {via: facet run or sonicwall, host, run} (checks add expect). The ledger records it;
 #     Claude runs its steps and checks by hand.

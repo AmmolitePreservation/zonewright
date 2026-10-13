@@ -33,6 +33,8 @@ hostPaths = {
   "ledger": "/opt/eqemu/ledger",
 }
 peridotQuestsPath = "/opt/eqemu/akk-stack/server/quests"
+# The host folders a files change may write: the server's maps, a checkout no remote Claude can push to carries.
+fileRoots = (hostPaths["maps"] + "/",)
 
 # EQEmu's player, state, login and bot groups (common/database_schema.h at ae4bd2833): play writes them constantly, and they
 # hold accounts, logins and personal data.
@@ -112,13 +114,14 @@ kindFields = {
   "config": ({"repository", "source"}, {"rendered", "render"}),
   "client": ({"steps", "undo", "checks"}, set()),
   "lab": ({"steps", "undo", "checks"}, set()),
+  "files": ({"files"}, set()),
 }
 choices = {
   "disposition": ("fixture", "exploration", "production"),
   "significance": ("minor", "significant"),
 }
 productionForms = {"rows": ("contentSQL",), "schema": ("customMigration",), "quest": ("questCommit",),
-  "config": ("runbook", "provisioner"), "client": (), "lab": ()}
+  "config": ("runbook", "provisioner"), "client": (), "lab": (), "files": ()}
 labTools = ("facet run", "sonicwall")
 tableNamePattern = re.compile(r"^[A-Za-z0-9_]+$")
 commitPattern = re.compile(r"^[0-9a-f]{7,40}$")
@@ -288,8 +291,34 @@ def scopeProblems(fields, form):
     elif form == "lab":
       if not isOneLine(entry):
         problems.append(f"a lab scope entry names one thing the change touches: {entry!r}")
+    elif form == "files":
+      if not isinstance(entry, str) or not hostFolderPattern.match(entry) or ".." in entry.split("/") \
+          or not entry.startswith(fileRoots):
+        problems.append(f"a files scope entry is a host file under {', '.join(fileRoots)}: {entry!r}")
     elif not isinstance(entry, str) or not clientPathPattern.match(entry):
       problems.append(f"a client scope entry is a path that is absolute or starts with ~\\: {entry!r}")
+  return problems
+
+
+def fileEntriesProblems(fields):
+  """A files change's entries: each {path, source, sha256}, a host path the scope names in order, and the workstation file
+  that becomes it with that file's SHA-256, or source and sha256 both null for a file the change removes."""
+  entries = fields["files"]
+  if not isinstance(entries, list) or not entries:
+    return ["files must be a non-empty list"]
+  problems = []
+  for entry in entries:
+    if not isinstance(entry, dict) or set(entry) != {"path", "source", "sha256"}:
+      problems.append(f"a files entry is {{path, source, sha256}}: {entry!r}")
+    elif (entry["source"] is None) != (entry["sha256"] is None):
+      problems.append(f"a files entry removes its file with source and sha256 both null, or gives both: {entry!r}")
+    elif entry["source"] is not None and not (isOneLine(entry["source"]) and clientPathPattern.match(entry["source"])
+        and isinstance(entry["sha256"], str) and hashPattern.match(entry["sha256"])):
+      problems.append(f"a files entry's source is an absolute workstation path and its sha256 lowercase hex: {entry!r}")
+  if not problems and [entry["path"] for entry in entries] != fields["scope"]:
+    problems.append("a files change's scope lists its files' paths, in their order")
+  if not problems and len(set(fields["scope"])) != len(fields["scope"]):
+    problems.append("a files change names each path once")
   return problems
 
 
@@ -347,7 +376,7 @@ def validateChangeFields(fields):
   if fields["disposition"] in ("fixture", "exploration") and fields["production"] != "none":
     problems.append(f"{fields['disposition']} changes never reach Peridot: production must be none")
   if fields["disposition"] == "production":
-    if form in ("client", "lab"):
+    if form in ("client", "lab", "files"):
       problems.append(f"a {form} change stays where it was made and cannot be production")
     elif fields["production"] not in productionForms[form]:
       problems.append(f"a production {'row' if form == 'rows' else form} change reaches Peridot as "
@@ -355,7 +384,7 @@ def validateChangeFields(fields):
   commits = fields["commits"]
   if not isinstance(commits, list) or not all(isinstance(commit, str) and commitPattern.match(commit) for commit in commits):
     problems.append("commits must be a list of lowercase commit SHAs")
-  elif kind in ("db", "client", "lab") and commits:
+  elif kind in ("db", "client", "lab", "files") and commits:
     problems.append(f"a {kind} change has no commits")
   elif kind in ("quest", "config") and not commits:
     problems.append(f"a {kind} change names its commits, oldest first")
@@ -384,6 +413,8 @@ def validateChangeFields(fields):
       else:
         problems.extend(problem for problem in (labActionProblem(action, name) for action in fields[name]) if problem)
   problems.extend(scopeProblems(fields, form))
+  if kind == "files" and not problems:
+    problems.extend(fileEntriesProblems(fields))
   return problems
 
 
@@ -795,7 +826,8 @@ class Server:
     self.domain = domain
 
   def run(self, command, standardInput="", timeoutSeconds=120, sensitive=False):
-    exitCode, output, errors = self.connection.execute(command, standardInput.encode("utf-8"), timeoutSeconds)
+    data = standardInput if isinstance(standardInput, bytes) else standardInput.encode("utf-8")
+    exitCode, output, errors = self.connection.execute(command, data, timeoutSeconds)
     if exitCode != 0:
       message = errors.decode("utf-8", "replace").strip()[-2000:]
       raise LedgerError(f"{hostName}: {command[:100]} exited {exitCode}: {redactValues(message) if sensitive else message}")
@@ -1596,6 +1628,8 @@ class Ledger:
         states[change.number] = self.repositoryState(change)
       elif change.kind == "client":
         states[change.number] = self.clientState(change)
+      elif change.kind == "files":
+        states[change.number] = self.filesState(change)
       elif change.kind == "lab":
         states[change.number] = ChangeState(change, "recorded", 0, len(change.fields["checks"]), "its checks run through "
           + " and ".join(sorted({check["via"] for check in change.fields["checks"]})) + ", by hand")
@@ -1790,6 +1824,8 @@ class Ledger:
         raise LedgerError(f"{change.identifier}: the commits leave {', '.join(unchanged)} as it is on the host now; either the "
           "change is applied already or those files are not its scope")
       writeJSON(change.folder / "saved.json", {"before": before, "after": after})
+    elif change.kind == "files":
+      self.stageFiles(change)
     self.record([change.folder], f"Stage {change.identifier}: {change.fields['title']}")
     return [f"staged {change.identifier}: committed and pushed before it runs"] + notes
 
@@ -1848,6 +1884,8 @@ class Ledger:
       finished = self.applyRepository(change, intent)
     elif change.kind == "client":
       finished = self.applyClient(change, intent)
+    elif change.kind == "files":
+      finished = self.applyFiles(change, intent)
     else:
       raise LedgerError(f"{change.identifier} is a lab change: its steps run through facet or the sonicwall MCP")
     (change.folder / "intent.json").unlink()
@@ -1967,6 +2005,8 @@ class Ledger:
       finished, sourceRevert = self.revertRepository(change, intent)
     elif change.kind == "client":
       finished = self.revertClient(change, intent)
+    elif change.kind == "files":
+      finished = self.revertFiles(change, intent)
     else:
       raise LedgerError(f"{change.identifier} is a lab change: its undo runs through facet or the sonicwall MCP")
     (change.folder / "applied.json").unlink(missing_ok=True)
@@ -2080,6 +2120,112 @@ class Ledger:
     for step in change.fields["undo"]:
       runPowerShell(step)
     self.requireState(change, "notApplied", "after its undo, revert")
+    return False
+
+  def hostFileHashes(self, paths):
+    """Each host file's SHA-256, or None for one that is absent."""
+    loop = ('for f in ' + " ".join(paths) + '; do if [ -f "$f" ]; then sha256sum < "$f" | cut -c1-64; else echo absent; fi; '
+      'done')
+    digests = self.server.run(f"sudo -n sh -c '{loop}'").split()
+    if len(digests) != len(paths) or not all(digest == "absent" or hashPattern.match(digest) for digest in digests):
+      raise LedgerError(f"{hostName} reported {digests!r} for the files {paths}")
+    return {path: None if digest == "absent" else digest for path, digest in zip(paths, digests)}
+
+  def filesState(self, change):
+    """applied when every file is as the change leaves it; not applied when every file is as stage found it (or, before
+    stage, when none is as the change leaves it)."""
+    entries = change.fields["files"]
+    current = self.hostFileHashes([entry["path"] for entry in entries])
+    done = sum(current[entry["path"]] == entry["sha256"] for entry in entries)
+    savedPath = change.folder / "saved.json"
+    if done == len(entries):
+      return ChangeState(change, "applied", done, done)
+    if not savedPath.is_file():
+      return ChangeState(change, "notApplied" if done == 0 else "partlyApplied", done, len(entries), "not staged")
+    before = json.loads(savedPath.read_text(encoding="utf-8"))["before"]
+    if current == before:
+      return ChangeState(change, "notApplied", 0, len(entries))
+    return ChangeState(change, "partlyApplied", done, len(entries), "some files are neither as staged nor as the change leaves them")
+
+  @staticmethod
+  def requireSources(change):
+    for entry in change.fields["files"]:
+      if entry["source"] is None:
+        continue
+      source = Path(expandClientPath(entry["source"]))
+      if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != entry["sha256"]:
+        raise LedgerError(f"{change.identifier}: {source} is not the file with SHA-256 {entry['sha256']} the change installs")
+
+  def keptPath(self, change, index):
+    return f"{change.hostFolder}/previous/{index}"
+
+  def stageFiles(self, change):
+    """Saves each host file the change replaces or removes as it stands, in the change's host folder (root only), and their
+    hashes before and after in saved.json."""
+    self.requireSources(change)
+    state = self.filesState(change)
+    if state.state != "notApplied":
+      raise LedgerError(f"{change.identifier} is {state.label}; stage saves the files of a change that has not run")
+    entries = change.fields["files"]
+    before = self.hostFileHashes([entry["path"] for entry in entries])
+    kept = {}
+    for index, entry in enumerate(entries):
+      if before[entry["path"]] is None:
+        continue
+      kept[entry["path"]] = self.keptPath(change, index)
+      self.server.run(f"sudo -n sh -c 'umask 077 && mkdir -p {change.hostFolder}/previous && cp -p {entry['path']} "
+        f"{kept[entry['path']]}'")
+    self.requireKept(change, before, kept)
+    writeJSON(change.folder / "saved.json", {"before": before, "after": {entry["path"]: entry["sha256"] for entry in entries},
+      "kept": kept})
+
+  def requireKept(self, change, before, kept):
+    if not kept:
+      return
+    hashes = self.hostFileHashes(list(kept.values()))
+    for path, copy in kept.items():
+      if hashes[copy] != before[path]:
+        raise LedgerError(f"{change.identifier}: the copy of {path} kept on {hostName} at stage ({copy}) is gone or changed")
+
+  def applyFiles(self, change, intent):
+    saved = self.readSaved(change)
+    state = self.filesState(change)
+    if self.finishing(state, intent, "applied"):
+      return True
+    self.requireState(change, "notApplied", "apply", state)
+    self.requireKept(change, saved["before"], saved["kept"])
+    self.requireSources(change)
+    self.writeIntent(change, "applying")
+    incoming = f"{change.hostFolder}/incoming"
+    for index, entry in enumerate(change.fields["files"]):
+      path = entry["path"]
+      if entry["source"] is None:
+        self.server.run(f"sudo -n rm -f -- {path}")
+        continue
+      data = Path(expandClientPath(entry["source"])).read_bytes()
+      self.server.run(f"sudo -n sh -c 'umask 077 && mkdir -p {incoming} && cat > {incoming}/{index}'", data, timeoutSeconds=600)
+      self.server.run(f"sudo -n sh -c 'test \"$(sha256sum < {incoming}/{index} | cut -c1-64)\" = {entry['sha256']} && "
+        f"cp {incoming}/{index} {path}.ledger && chown --reference={path.rsplit('/', 1)[0]} {path}.ledger && "
+        f"chmod 0644 {path}.ledger && mv -f {path}.ledger {path}'")
+    self.server.run(f"sudo -n rm -rf -- {incoming}")
+    self.requireState(change, "applied", "after its files, apply")
+    return False
+
+  def revertFiles(self, change, intent):
+    saved = self.readSaved(change)
+    state = self.filesState(change)
+    if self.finishing(state, intent, "notApplied"):
+      return True
+    self.requireState(change, "applied", "revert", state)
+    self.requireKept(change, saved["before"], saved["kept"])
+    self.writeIntent(change, "reverting")
+    for entry in change.fields["files"]:
+      path = entry["path"]
+      if saved["before"][path] is None:
+        self.server.run(f"sudo -n rm -f -- {path}")
+      else:
+        self.server.run(f"sudo -n sh -c 'cp -p {saved['kept'][path]} {path}.ledger && mv -f {path}.ledger {path}'")
+    self.requireState(change, "notApplied", "after putting its files back, revert")
     return False
 
   def updatePlan(self, change):
@@ -2294,7 +2440,9 @@ class Ledger:
     return [f"baseline written: {len(tableChecksums)} table checksums; now take the Proxmox baseline snapshot"]
 
 
-def openServer():
+def openServer(host=hostName):
+  """The Server for a host of facet's inventory: claudeperidot for every ledger command; zoneDeploy's read-only slot reads
+  also reach Peridot."""
   from facetClient.inventory import InventoryError, loadInventory
   from facetClient.sshConnection import SSHConnection
   inventoryPath = os.environ.get("facetInventory")
@@ -2305,9 +2453,9 @@ def openServer():
     hosts = loadInventory(inventoryPath)
   except (InventoryError, OSError) as error:
     raise LedgerError(f"facet's inventory {inventoryPath} cannot be used: {error}") from error
-  if hostName not in hosts:
-    raise LedgerError(f"{hostName} is not in {inventoryPath}: enroll it in facet first (plan step 6)")
-  return Server(SSHConnection(hosts[hostName]))
+  if host not in hosts:
+    raise LedgerError(f"{host} is not in {inventoryPath}: enroll it in facet first")
+  return Server(SSHConnection(hosts[host]))
 
 
 def configureLogging():

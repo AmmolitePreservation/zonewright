@@ -490,7 +490,12 @@ def testTheManifestListsEveryFileWithItsHash(stageBlenderServer, tmp_path):
   assert manifest["files"] == listed
   assert (manifest["purpose"], manifest["writtenBy"], manifest["shortName"], manifest["blend"]) == ("game", "checkExport", "servertest", str(tmp_path / "servertest.blend"))
   assert (manifest["failures"], manifest["findings"]) == (len(checked["failures"]), len(checked["findings"]))
-  assert manifest["zone"] == {"shortName": "servertest", "zoneId": 901, "longName": "The servertest test", "serverTemplate": "qeynos2"}
+  assert manifest["zone"] == {"shortName": "servertest", "zoneId": 901, "longName": "The servertest test", "serverTemplate": "qeynos2", "eqstrID": 40001}
+  # qeynos2's registration: expansion 0, flags 7; the RoF2 client's eqstr_us.txt counts 7135 strings and holds none under 40001.
+  assert manifest["clientEntry"] == {
+    "zoneEntry": 'ZoneEntry(0, 901, "servertest", "The servertest test", 40001, 7, 0, 0, 0),', "eqstrLine": "40001 The servertest test",
+    "zoneTypeAndFlagsFrom": "qeynos2", "eqstrCountLine": "0 7136",
+  }
   assert manifest["zonePoints"] == {"written": [10], "deleted": []}
   assert manifest["lane"] == {key: checked["containment"][key] for key in ("laneKeys", "builtFor", "reachGrid", "constants", "reachedArea")}
   assert manifest["serverNavSettings"] == serverNav.serverNavSettings

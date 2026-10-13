@@ -806,6 +806,14 @@ def zoneRowGaps(exportName, client):
   missing = [key for key in serverRows.rowIdentityKeys if key not in zone]
   if missing:
     gaps.append({"gap": "zone row values missing", "missing": missing, "message": f"A game export writes the zone's server row; set {missing} with setZoneProperties"})
+  if "zoneId" in zone and zone["zoneId"] not in registeredZones(client).values() and "eqstrID" not in zone:
+    gaps.append({
+      "gap": "client entry values missing", "missing": ["eqstrID"],
+      "message": (
+        f"The client registers no zone {zone['zoneId']}: a game export gives the client's entry for it, which names the client string"
+        " holding its long name; set eqstrID with setZoneProperties"
+      ),
+    })
   if "shortName" in zone and exportName != zone["shortName"]:
     gaps.append({
       "gap": "archive not named by the short name", "shortName": zone["shortName"], "archive": exportName,

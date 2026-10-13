@@ -360,8 +360,12 @@ def freshBlenderServer(tmp_path, installedLocalAppData):
 
 
 def serverRowValues(shortName, zoneID=901):
-  """The zone row's identity, gate, and template, which a game export needs: an id the client does not register unless one is given."""
-  return {"shortName": shortName, "zoneId": zoneID, "longName": f"The {shortName} test", "timeType": "outdoor", "entryGate": "open", "serverTemplate": "qeynos2"}
+  """The zone row's identity, gate, and template, which a game export needs: an id the client does not register unless one is given, with
+  the id of a client string the client's eqstr_us.txt does not hold for its entry."""
+  return {
+    "shortName": shortName, "zoneId": zoneID, "longName": f"The {shortName} test", "timeType": "outdoor", "entryGate": "open", "serverTemplate": "qeynos2",
+    "eqstrID": 40001,
+  }
 
 
 def writePNG(path, width, height, rgba):

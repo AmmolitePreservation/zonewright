@@ -491,7 +491,7 @@ class FakeMariaDB:
     self.afterWrite = []
 
   def execute(self, command, standardInput=b"", timeoutSeconds=60):
-    script = standardInput.decode("utf-8")
+    script = standardInput.decode("utf-8", "replace")
     self.calls.append((command, script))
     for observer in self.observers:
       observer(command, script)

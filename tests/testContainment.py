@@ -197,7 +197,7 @@ def testAContainedZoneExportsForTheGame(stageBlenderServer, tmp_path):
   manifest = json.loads((first / "contained_export.json").read_text(encoding="ascii"))
   assert manifest["files"]["server/sql/contained.sql"]["bytes"] == (sqlFolder / "contained.sql").stat().st_size
   assert sorted(manifest["files"]) == sorted(path.relative_to(first).as_posix() for path in first.rglob("*") if path.is_file() and path.name != "contained_export.json")
-  assert manifest["zone"] == {"shortName": short, "zoneId": 901, "longName": "The contained test", "serverTemplate": "qeynos2"}
+  assert manifest["zone"] == {"shortName": short, "zoneId": 901, "longName": "The contained test", "serverTemplate": "qeynos2", "eqstrID": 40001}
   assert manifest["zonePoints"] == {"written": [10], "deleted": []}
   assert manifest["lane"] == {key: lane[key] for key in ("laneKeys", "builtFor", "reachGrid", "constants", "reachedArea")}
   assert manifest["lane"]["constants"]["medium"]["stepHeight"]["value"] == stepHeight

@@ -512,7 +512,7 @@ def build(checked, zone, zoneProperties, inputs, toolingRoot, reportProgress):
   report["containment"] = testContainment if not game else "not checked: server files not built"
   built = {
     "report": report, "zoneProperties": zoneProperties, "archive": None, "summary": None, "sides": None, "housing": None, "server": None, "rows": None,
-    "rowsWhy": None, "bundle": None, "pieces": None,
+    "rowsWhy": None, "bundle": None, "pieces": None, "clientEntry": None,
   }
   if checked["collected"] is None:
     return built
@@ -527,6 +527,7 @@ def build(checked, zone, zoneProperties, inputs, toolingRoot, reportProgress):
   if not game:
     report["findings"] += objectStands(built["archive"], None, built["bundle"]["rowPieces"], False)[1]
     return built
+  built["clientEntry"] = inputs["clientEntry"]
   safePoint = zoneProperties["safePoint"][:3] if "safePoint" in zoneProperties else None
   server = built["server"] = serverMaps(built["archive"], safePoint, probeTargets(inputs["entries"]), toolingRoot, reportProgress)
   report["failures"] += server["failures"]
@@ -600,7 +601,8 @@ def fileRecord(data):
 def manifestRecord(folder, built, files, blendPath, writtenBy):
   """What the manifest records: the purpose, the tool that wrote it (writtenBy: exportZone, or checkExport for a check's files, which are
   no export), the zone's short name, the .blend, every file written (path relative to the folder) with its size and SHA-256, the failure
-  and finding counts, and for a game export the zone's identity and template (for its later client registration), the zone_points
+  and finding counts, and for a game export the zone's identity and template, the client's entry for a zone it does not register
+  (eqClientZones.clientEntry: eq-core-dll's ZoneEntry line and eqstr_us.txt's line, by EQEmu's documented route), the zone_points
   numbers written and deleted, the nav settings, the helper, the nav's islands (each with whether players reach it) and probes, and the
   lane: each body group's key, the groups the zone is built for, grid, constants with their sources, and reached area per group."""
   report = built["report"]
@@ -616,7 +618,8 @@ def manifestRecord(folder, built, files, blendPath, writtenBy):
     zoneProperties = built["zoneProperties"]
     lane = report["containment"]
     record |= {
-      "zone": {key: zoneProperties.get(key) for key in ("shortName", "zoneId", "longName", "serverTemplate")},
+      "zone": {key: zoneProperties.get(key) for key in ("shortName", "zoneId", "longName", "serverTemplate", "eqstrID")},
+      "clientEntry": built["clientEntry"],
       "zonePoints": None if built["rows"] is None else {"written": built["rows"]["numbersWritten"], "deleted": built["rows"]["numbersDeleted"]},
       "pieces": None if built["pieces"] is None else {"doors": built["pieces"]["doorNumbers"], "objects": len(built["pieces"]["objects"])},
       "serverNavSettings": serverNav.serverNavSettings,

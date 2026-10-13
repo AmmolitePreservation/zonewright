@@ -46,7 +46,7 @@ zonePropertyName = "zonewrightZone"
 zonePropertyKeys = (
   "ambientColor", "specialAmbientColor", "bounceColor", "sunColor", "sunAzimuthDegrees", "sunElevationDegrees", "fogColor", "fogStart", "fogEnd",
   "fogDensity", "fogOn", "minClip", "maxClip", "newEngineZone", "sky", "safePoint", "underworld", "shortName", "zoneId", "longName", "timeType",
-  "entryGate", "serverTemplate", "builtFor",
+  "entryGate", "serverTemplate", "builtFor", "eqstrID",
 )
 # The client raises a lower minimum clip to this (eqgame 0x4c9ee6).
 clientMinimumClip = 50.0
@@ -248,10 +248,12 @@ def validatePlayerValues(zone):
     raise ValueError(f"underworld {zone['underworld']} must lie below the safe point's height {zone['safePoint'][2]}")
 
 
-def validateServerRowValues(zone, clientZones):
+def validateServerRowValues(zone, clientZones, clientString=None):
   """The zone row's identity and gate (docs/serverFiles.md, Zone row): shortName, zoneId, longName, timeType, entryGate, and
-  serverTemplate, and, given clientZones (short name to id, the zones the client registers), that the client registers neither the short
-  name under another id nor the id under another short name, and does register the template, another zone than this one."""
+  serverTemplate, and the eqstrID the client's entry for a new zone names; given clientZones (short name to id, the zones the client
+  registers), that the client registers neither the short name under another id nor the id under another short name, does register
+  the template, another zone than this one, and that an id it does not register is a new zone's, above 786; given clientString
+  ({id, text}: eqstr_us.txt's string under the zone's eqstrID, text None where it has none), that the string is the long name."""
   if "shortName" in zone and not (isinstance(zone["shortName"], str) and eqgFiles.zoneNamePattern.match(zone["shortName"])):
     raise ValueError(f"shortName is {eqgFiles.zoneNameRule}, got {zone['shortName']!r}")
   if "zoneId" in zone:
@@ -272,6 +274,15 @@ def validateServerRowValues(zone, clientZones):
       raise ValueError(f"serverTemplate is a zone's short name, {eqgFiles.zoneNameRule}, got {zone['serverTemplate']!r}")
     if zone["serverTemplate"] == zone.get("shortName"):
       raise ValueError(f"serverTemplate is another zone whose row a new zone row copies its other columns from, not this zone's own '{zone['shortName']}'")
+  if "eqstrID" in zone:
+    stringID = zone["eqstrID"]
+    if isinstance(stringID, bool) or not isinstance(stringID, int) or not 1 <= stringID <= eqClientZones.highestStringID:
+      raise ValueError(f"eqstrID is the id of the client string holding the zone's long name, 1 to {eqClientZones.highestStringID}, got {stringID!r}")
+  if clientString is not None and clientString["text"] is not None and clientString["text"] != zone.get("longName"):
+    raise ValueError(
+      f"The client's {eqClientZones.stringsName} holds '{clientString['text']}' under {clientString['id']}, not the long name"
+      f" {zone.get('longName')!r}: choose an eqstrID it does not hold, whose line the client's entry adds"
+    )
   if clientZones is None:
     return
   registeredIDs = {zoneID: name for name, zoneID in clientZones.items()}
@@ -282,9 +293,14 @@ def validateServerRowValues(zone, clientZones):
     raise ValueError(f"The client registers id {zoneID} to '{registeredIDs[zoneID]}', not '{shortName}': it would load that zone's files")
   if "serverTemplate" in zone and zone["serverTemplate"] not in clientZones:
     raise ValueError(f"serverTemplate '{zone['serverTemplate']}' is not a zone the client registers; name a zone whose row the server holds")
+  if zoneID is not None and zoneID not in registeredIDs and zoneID < eqClientZones.lowestNewZoneID:
+    raise ValueError(
+      f"zoneId {zoneID} is no zone the client registers, so it is a new zone's, which EQEmu's new-zone process puts above 786:"
+      f" {eqClientZones.lowestNewZoneID} to {eqClientZones.highestZoneID} but not {eqClientZones.runtimeZoneID}"
+    )
 
 
-def setZoneProperties(updates, clientZones=None):
+def setZoneProperties(updates, clientZones=None, clientString=None):
   """Store zone properties. A sky supplies the light and the fog color, so setting one drops those that were set by hand, and they
   cannot be set while it stays; sky "none" (skyDrawing.noSky) states the zone draws none. Setting shortName, zoneId, or serverTemplate
   needs clientZones, the zones the client registers (short name to id)."""
@@ -324,7 +340,7 @@ def setZoneProperties(updates, clientZones=None):
     raise ValueError(f"maxClip {zone['maxClip']} must be greater than fogStart {zone['fogStart']}: nothing would be drawn far enough to fog")
   if "newEngineZone" in zone and not isinstance(zone["newEngineZone"], bool):
     raise ValueError(f"newEngineZone must be true or false, got {zone['newEngineZone']!r}")
-  validateServerRowValues(zone, clientZones)
+  validateServerRowValues(zone, clientZones, clientString)
   validatePlayerValues(zone)
   if "builtFor" in updates:
     zone["builtFor"] = list(playerScale.checkedGroupNames(updates["builtFor"]))
