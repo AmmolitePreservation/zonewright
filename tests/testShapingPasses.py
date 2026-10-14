@@ -6,6 +6,7 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import eqArchive
 import eqgFiles
+from testModelsAndDressing import planarSignedArea, readShapedMesh
 
 
 async def surfaceHeights(session, points):
@@ -115,3 +116,100 @@ def testViewsSeeAPassShapedJustBefore(stageBlenderServer):
     return description
 
   assert stageBlenderServer.session(steps)["heightRange"] == [-10.0, 0.0]
+
+
+def rowsOf(xOffset):
+  """Selectors on a 64-unit grid at x offset xOffset: the rows from y 8 up (a cliff's top), and the row at y 0 (its foot)."""
+  return (
+    {"box": {"minimum": [xOffset - 40, 4, -100], "maximum": [xOffset + 40, 40, 100]}},
+    {"box": {"minimum": [xOffset - 40, -1, -100], "maximum": [xOffset + 40, 1, 100]}},
+  )
+
+
+async def shapedMesh(session, name):
+  return (await session.expectSuccess("runPython", {"code": f"objectName = '{name}'" + readShapedMesh}))["result"]
+
+
+def invertedFaces(mesh):
+  """Faces whose corners turn clockwise seen from above: facing down, or on a wall overhanging the ground at its foot."""
+  return [face for face in mesh["faces"] if planarSignedArea([mesh["vertices"][index] for index in face]) < 0]
+
+
+def footRow(mesh, y):
+  return sorted([round(coordinate, 3) for coordinate in vertex] for vertex in mesh["vertices"] if abs(vertex[1] - y) < 1e-3)
+
+
+def testCarveUnfoldsTheFacesItFlattensThatAPassInvertedInPlan(stageBlenderServer):
+  # A cliff 40 high rises between the rows at y 0 and 8; a later pass leans the row at its foot 12 out past the row at its top, so the
+  # 16 triangles between them hang inverted in plan, overhanging the foot 4. A carve then flattens the whole grid to 0.
+  carve = {"mode": "carve", "outline": [[-40, -40], [40, -40], [40, 40], [-40, 40]], "base": 0, "profile": [[0, 0], [8, 0]], "conformBreaks": False}
+
+  async def built(session, name, xOffset, passes):
+    await session.expectSuccess("createTerrainGrid", {"name": name, "size": [64, 64], "spacing": 8, "location": [xOffset, 0, 0]})
+    await session.expectSuccess("followContours", {"objectName": name})
+    for passName, selector, offset in zip(("cliff", "lean"), rowsOf(xOffset), ([0, 0, 40], [0, 12, 0])):
+      if passes:
+        await session.expectSuccess("addShapingPass", {"objectName": name, "name": passName})
+      await session.expectSuccess("moveVertices", {"objectName": name, "selector": selector, "offset": offset})
+    if passes:
+      await session.expectSuccess("addShapingPass", {"objectName": name, "name": "floor"})
+    before = await shapedMesh(session, name)
+    outline = [[x + xOffset, y] for x, y in carve["outline"]]
+    carved = await session.expectSuccess("sculptOutline", carve | {"objectName": name, "outline": outline})
+    return before, carved, await shapedMesh(session, name)
+
+  async def steps(session):
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    layered = await built(session, "ground", 0, True)
+    bare = await built(session, "bare", 200, False)
+    return layered, bare
+
+  (before, carved, after), (bareBefore, bareCarved, bareAfter) = stageBlenderServer.session(steps)
+  assert len(invertedFaces(before)) == 16 and len(invertedFaces(bareBefore)) == 16
+  # Flattened, the 16 would face straight down over the ground folded across them; their foot goes back where the base has it.
+  assert (carved["unfoldedFaces"], carved["foldedFaces"]) == (16, 0)
+  assert invertedFaces(after) == []
+  assert footRow(after, 0) == [[x, 0.0, 0.0] for x in range(-32, 33, 8)] and footRow(after, 12) == []
+  assert {round(vertex[2], 3) for vertex in after["vertices"]} == {0.0}
+  # Without passes nothing records where the foot lay, so the folds are counted and left.
+  assert (bareCarved["unfoldedFaces"], bareCarved["foldedFaces"]) == (0, 16)
+  assert len(invertedFaces(bareAfter)) == 16 and footRow(bareAfter, 12) == [[x, 12.0, 0.0] for x in range(-32, 33, 8)]
+
+
+def testUnfoldTerrainPutsFoldsBackInPlanKeepingTheirHeights(stageBlenderServer):
+  # A plateau pass lifts the whole grid to 10 and a lean pass slides the row at y 0 to y 12, past the row at y 8: the 16 triangles
+  # between them face straight down at 10. The base has the grid at 0, so heights taken from it would drop the plateau.
+  strip = {"box": {"minimum": [-40, 6, -100], "maximum": [40, 14, 100]}}
+  farSide = {"box": {"minimum": [-40, 20, -100], "maximum": [40, 40, 100]}}
+
+  async def steps(session):
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [64, 64], "spacing": 8, "location": [0, 0, 0]})
+    await session.expectSuccess("createTerrainGrid", {"name": "bare", "size": [64, 64], "spacing": 8, "location": [200, 0, 0]})
+    for name in ("ground", "bare"):
+      await session.expectSuccess("followContours", {"objectName": name})
+    await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "plateau"})
+    await session.expectSuccess("moveVertices", {"objectName": "ground", "selector": {"all": True}, "offset": [0, 0, 10]})
+    await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "lean"})
+    await session.expectSuccess("moveVertices", {"objectName": "ground", "selector": rowsOf(0)[1], "offset": [0, 12, 0]})
+    await session.expectSuccess("moveVertices", {"objectName": "bare", "selector": rowsOf(200)[1], "offset": [0, 12, 0]})
+    before = await shapedMesh(session, "ground")
+    elsewhere = await session.expectSuccess("unfoldTerrain", {"objectName": "ground", "selector": farSide})
+    unfolded = await session.expectSuccess("unfoldTerrain", {"objectName": "ground", "selector": strip})
+    after = await shapedMesh(session, "ground")
+    bare = await session.expectSuccess("unfoldTerrain", {"objectName": "bare"})
+    return before, elsewhere, unfolded, after, bare, await shapedMesh(session, "bare")
+
+  before, elsewhere, unfolded, after, bare, bareAfter = stageBlenderServer.session(steps)
+  assert len(invertedFaces(before)) == 16
+  assert elsewhere == {"object": "ground", "unfoldedFaces": 0, "foldedFaces": 0, "foldedAt": [], "movedVertices": 0}
+  assert unfolded == {"object": "ground", "unfoldedFaces": 16, "foldedFaces": 0, "foldedAt": [], "movedVertices": 9}
+  assert invertedFaces(after) == []
+  assert [round(vertex[2], 3) for vertex in after["vertices"]] == [round(vertex[2], 3) for vertex in before["vertices"]] == [10.0] * 81
+  assert footRow(after, 0) == [[x, 0.0, 10.0] for x in range(-32, 33, 8)] and footRow(after, 12) == []
+  unmoved = [index for index, vertex in enumerate(before["vertices"]) if abs(vertex[1] - 12) > 1e-3]
+  assert len(unmoved) == 72 and all(after["vertices"][index] == before["vertices"][index] for index in unmoved)
+  # Without passes it names where the folds lie and moves nothing.
+  assert (bare["unfoldedFaces"], bare["foldedFaces"], bare["movedVertices"]) == (0, 16, 0) and "no shaping passes" in bare["warning"]
+  assert len(bare["foldedAt"]) == 5 and all(168 < x < 232 and 8 < y < 12 and z == 0 for x, y, z in bare["foldedAt"])
+  assert len(invertedFaces(bareAfter)) == 16

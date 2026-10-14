@@ -2321,7 +2321,7 @@ async def sculptAlongPath(
   context: Context, objectName: str, mode: str, path: list[list[float]], strength: float, radius: float | None = None, radii: list[float] | None = None,
   falloff: str = "smooth", direction: list[float] | None = None, iterations: int = 1, profile: list[list[float]] | None = None, conformRim: bool | None = None, conformBreaks: bool = False,
 ):
-  """Sculpt along a polyline path [[x,y,z], ...] within `radius`, or within `radii` (one per path point, the stroke widening or narrowing evenly between them, so one stroke carves a canyon that pinches to a gorge): raise, lower, crease, smooth, flatten as in sculptAtPoint; carve, which cuts vertically down to the path's own heights shaped by `profile` [[lateralFraction, heightAboveFloor], ...] from 0 (center) to 1 (edge); or fill, which raises ground up to such a profile (a mesa: a flat cap, a cliff, a slope at the base). carve and fill strength is a fraction, and their path can be a single point (a pit or a butte). With conformRim (carve only, on by default; needs rising profile heights), vertices just outside the cut slide onto the rim contour so the edge follows the profile rather than the grid; the mesh's open edge stays put. With conformBreaks (carve and fill), the vertices nearest each break of the profile slide onto its contour first wherever the stroke shapes them, so stepped profiles (strata, ledges, terraces) make clean lines along the path instead of zigzags across the grid. carve and fill then triangulate the cells they shaped along the contours, as followContours does (splitCells, turnedDiagonals), and put back where the plain cut leaves them any snapped vertices that leave their cell no diagonal facing up (keptOffContours). Results count foldedFaces: faces the move turned over, a sign it was too strong for the mesh's spacing. With shaping passes, the change goes into the active pass. Around a cave (cutCave) its lining stays where it is (caveLiningLeft counts the lining vertices left alone), the vertices where it meets the ground follow that ground, and none of its vertices slides sideways onto a break or rim."""
+  """Sculpt along a polyline path [[x,y,z], ...] within `radius`, or within `radii` (one per path point, the stroke widening or narrowing evenly between them, so one stroke carves a canyon that pinches to a gorge): raise, lower, crease, smooth, flatten as in sculptAtPoint; carve, which cuts vertically down to the path's own heights shaped by `profile` [[lateralFraction, heightAboveFloor], ...] from 0 (center) to 1 (edge); or fill, which raises ground up to such a profile (a mesa: a flat cap, a cliff, a slope at the base). carve and fill strength is a fraction, and their path can be a single point (a pit or a butte). With conformRim (carve only, on by default; needs rising profile heights), vertices just outside the cut slide onto the rim contour so the edge follows the profile rather than the grid; the mesh's open edge stays put. With conformBreaks (carve and fill), the vertices nearest each break of the profile slide onto its contour first wherever the stroke shapes them, so stepped profiles (strata, ledges, terraces) make clean lines along the path instead of zigzags across the grid. carve and fill then triangulate the cells they shaped along the contours, as followContours does (splitCells, turnedDiagonals), and put back where the plain cut leaves them any snapped vertices that leave their cell no diagonal facing up (keptOffContours). Last, carve and fill unfold the faces they shaped that earlier sideways moves left inverted in plan, which a stroke that flattens them would leave facing straight down, as unfoldTerrain does (unfoldedFaces). Results count foldedFaces: faces left turned over, a sign the move was too strong for the mesh's spacing. With shaping passes, the change goes into the active pass. Around a cave (cutCave) its lining stays where it is (caveLiningLeft counts the lining vertices left alone), the vertices where it meets the ground follow that ground, and none of its vertices slides sideways onto a break or rim."""
   return await callBridge(context, "sculptAlongPath", {"objectName": objectName, "mode": mode, "path": path, "radius": radius, "radii": radii, "strength": strength, "falloff": falloff, "direction": direction, "iterations": iterations, "profile": profile, "conformRim": conformRim, "conformBreaks": conformBreaks})
 
 
@@ -2338,6 +2338,8 @@ async def sculptOutline(
   the outline: its corners stay angular inside it (within half an edge) and round outside it. With conformBreaks (on by default), the vertices nearest each break
   of the profile slide onto it first wherever the stroke shapes them, so its ledges and cliff edges are clean lines; then the shaped cells are triangulated along the
   contours as followContours does, and snapped vertices that would leave a cell no diagonal facing up are put back (keptOffContours).
+  Faces it shaped that earlier sideways moves left inverted in plan, which a stroke that flattens them would leave facing straight
+  down, are unfolded as unfoldTerrain does (unfoldedFaces); foldedFaces counts those left turned over.
   With shaping passes, the change goes into the active pass. Around a cave (cutCave) its lining stays where it is (caveLiningLeft), the
   vertices where it meets the ground follow that ground, and none of its vertices slides sideways onto a break."""
   return await callBridge(context, "sculptOutline", {"objectName": objectName, "mode": mode, "outline": outline, "base": base, "profile": profile, "strength": strength, "conformBreaks": conformBreaks})
@@ -2749,6 +2751,21 @@ async def cleanupMesh(context: Context, objectName: str, mergeDistance: float = 
   " their diagonal, and cells at a cave (cutCave) stay as its cut left them." + selectorHelp))
 async def followContours(context: Context, objectName: str, selector: dict = allSelector):
   return await callBridge(context, "followContours", {"objectName": objectName, "selector": selector})
+
+
+@guardedTool(description=(
+  "Unfold the selected faces of a terrain that are turned over (facing down seen from above, or with next to no area in plan): put"
+  " their corners back where the mesh's base lays them out in plan, heights kept as they stand, then the corners of faces beside them"
+  " that turn over in turn, written into the active shaping pass. Use it where earlier sideways moves (a horizontal warp, vertices"
+  " slid onto breaks) left triangles inverted in plan on a steep wall, harmless there, that later shaping flattened so they face"
+  " straight down over the ground folded across them, and measure or placePrefab find no ground there (\"No surface players stand on"
+  " below\", \"No ground within\"); carve and fill unfold the folds they flatten themselves. Returns unfoldedFaces, foldedFaces (still"
+  " turned over: their corners already lie where the base has them, or the cascade outran its rounds) with foldedAt (a few of their"
+  " centers), and movedVertices. Without shaping passes nothing records the layout, so nothing moves and the folds are reported with"
+  " a warning. A cave's (cutCave) lining and the vertices where it meets the ground never move: they follow the ground as every"
+  " shaping does." + selectorHelp))
+async def unfoldTerrain(context: Context, objectName: str, selector: dict = allSelector):
+  return await callBridge(context, "unfoldTerrain", {"objectName": objectName, "selector": selector})
 
 
 @guardedTool()

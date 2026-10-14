@@ -1,6 +1,7 @@
 """Shaping meshes: vertex moves, sculpting, and topology edits, all addressed by selectors in world units. Runs under Blender's Python."""
 import collections
 import math
+import typing
 
 import bmesh
 import bpy
@@ -56,6 +57,13 @@ breakCrowding = 0.35
 # carve and fill put that face's snapped vertices back where the plain cut leaves them, and triangulate again, this many times at
 # most.
 snapRepairs = 4
+# Unfolding puts a fold's corners back where the base lays them out, then those of faces beside them that turn over in turn, this many
+# rounds at most.
+unfoldRounds = 8
+# A vertex this close in plan to where the base lays it out already lies there: passes hold single precision.
+layoutTolerance = 1e-3
+# unfoldTerrain names where this many of the folds it leaves lie, spread over them.
+foldSamples = 5
 
 
 def falloffWeights(normalizedDistances, curve):
@@ -152,8 +160,9 @@ def sculpt(objectName, mode, strokeFractions, nearestPoints, strength, curve, di
 
 
 def finishProfileStroke(sceneObject, positions, updated, unsnapped):
-  """Write a carve or fill, triangulate what it shaped along the contours, and put back any snapped vertices that leave their cell no
-  diagonal facing up."""
+  """Write a carve or fill, triangulate what it shaped along the contours, put back any snapped vertices that leave their cell no
+  diagonal facing up, and unfold the faces it shaped that earlier sideways moves left inverted in plan, which it may have flattened to
+  face straight down."""
   left = writeWorldPositions(sceneObject, updated)
   shaped = numpy.linalg.norm(updated - positions, axis=1) > 1e-9
   triangulation = triangulateAlongContours(sceneObject, updated, shaped) | {"keptOffContours": 0}
@@ -165,8 +174,12 @@ def finishProfileStroke(sceneObject, positions, updated, unsnapped):
     writeWorldPositions(sceneObject, updated)
     triangulation["turnedDiagonals"] += triangulateAlongContours(sceneObject, updated, shaped)["turnedDiagonals"]
     triangulation["keptOffContours"] += int(returning.sum())
-  moved = numpy.linalg.norm(updated - positions, axis=1)
-  return {"affectedVertices": int((moved > 1e-9).sum()), "largestMove": round(float(moved.max()), 3), "foldedFaces": int(overturnedFaces(sceneObject, updated, shaped).sum())} | triangulation | left
+  unfolding = unfoldFaces(sceneObject, updated, touchingFaces(sceneObject, shaped))
+  moved = numpy.linalg.norm(unfolding.positions - positions, axis=1)
+  return {
+    "affectedVertices": int((moved > 1e-9).sum()), "largestMove": round(float(moved.max()), 3), "foldedFaces": int(unfolding.folded.sum()),
+    "unfoldedFaces": unfolding.unfolded,
+  } | triangulation | left
 
 
 def sculptAtPoint(objectName, mode, center, radius, strength, falloff, direction, iterations):
@@ -200,21 +213,81 @@ def medianEdgeLength(sceneObject, positions, vertexMask):
   return float(numpy.median(numpy.linalg.norm(positions[edges[:, 0]] - positions[edges[:, 1]], axis=1)))
 
 
+def touchingFaces(sceneObject, vertexMask):
+  loopTotals, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
+  return numpy.add.reduceat(vertexMask[loopVertices].astype(numpy.int64), numpy.cumsum(loopTotals) - loopTotals) > 0
+
+
+def faceCorners(sceneObject, faceMask):
+  loopTotals, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
+  corners = numpy.zeros(len(sceneObject.data.vertices), dtype=bool)
+  corners[loopVertices[numpy.repeat(faceMask, loopTotals)]] = True
+  return corners
+
+
 def overturnedFaces(sceneObject, worldPositions, vertexMask):
   """Faces touching the masked vertices that face down seen from above or have next to no area in plan: on ground shaped by moves up
   and down, folds."""
-  loopTotals, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
-  touching = numpy.add.reduceat(vertexMask[loopVertices].astype(numpy.int64), numpy.cumsum(loopTotals) - loopTotals) > 0
   edgeLength = medianEdgeLength(sceneObject, worldPositions, vertexMask)
   # A cave's vault faces down by design: its faces are no fold.
-  return touching & ~bridgeCaveData.caveFaceMask(sceneObject) & (bridgeMeshAccess.faceNormals(sceneObject, worldPositions)[:, 2] <= degenerateAreaShare * edgeLength * edgeLength)
+  return touchingFaces(sceneObject, vertexMask) & ~bridgeCaveData.caveFaceMask(sceneObject) & (bridgeMeshAccess.faceNormals(sceneObject, worldPositions)[:, 2] <= degenerateAreaShare * edgeLength * edgeLength)
 
 
 def overturnedVertexMask(sceneObject, worldPositions, vertexMask):
+  return faceCorners(sceneObject, overturnedFaces(sceneObject, worldPositions, vertexMask))
+
+
+class Unfolding(typing.NamedTuple):
+  positions: numpy.ndarray
+  unfolded: int
+  folded: numpy.ndarray
+  moved: numpy.ndarray
+
+
+def unfoldFaces(sceneObject, positions, within):
+  """Put the corners of the overturned faces (overturnedFaces) among the faces `within` back where the mesh's base lays them out in
+  plan, heights kept, then the corners of the faces beside them that turn over in turn, and write that into the active pass; a cave's
+  ring and lining stay. Without shaping passes nothing records the layout, so the folds stay. Returns the positions, how many folds
+  it unfolded, the folds left, and the vertices it moved."""
+
+  def folds(faceMask, at):
+    return overturnedFaces(sceneObject, at, faceCorners(sceneObject, faceMask)) & faceMask
+
+  folded = remaining = folds(within, positions)
+  updated = positions.copy()
+  moved = numpy.zeros(len(positions), dtype=bool)
+  if folded.any() and bridgeMeshAccess.hasShapingPasses(sceneObject):
+    laidOut = bridgeMeshAccess.worldPositions(sceneObject, bridgePasses.keyCoordinates(sceneObject.data.shape_keys.reference_key))
+    movable = ~bridgeCaveData.caveMadeVertices(sceneObject)
+    for _ in range(unfoldRounds):
+      returning = faceCorners(sceneObject, remaining) & movable & (numpy.abs(laidOut[:, :2] - updated[:, :2]).max(axis=1) > layoutTolerance)
+      if not returning.any():
+        break
+      updated[returning, :2] = laidOut[returning, :2]
+      moved |= returning
+      remaining = folds(within | touchingFaces(sceneObject, moved), updated)
+    if moved.any():
+      writeWorldPositions(sceneObject, updated)
+  return Unfolding(updated, int((folded & ~remaining).sum()), remaining, moved)
+
+
+def unfoldTerrain(objectName, selector):
+  sceneObject = bridgeMeshAccess.requireEditableMesh(objectName, "unfoldTerrain")
+  within = bridgeMeshAccess.evaluateSelector(selector, sceneObject, "faces")
+  bridgeMeshAccess.requireSelection(within, selector, sceneObject, "faces")
+  positions, _ = bridgeMeshAccess.readVertexArrays(sceneObject)
+  unfolding = unfoldFaces(sceneObject, positions, within)
   loopTotals, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
-  corners = numpy.zeros(len(worldPositions), dtype=bool)
-  corners[loopVertices[numpy.repeat(overturnedFaces(sceneObject, worldPositions, vertexMask), loopTotals)]] = True
-  return corners
+  stillFolded = numpy.flatnonzero(unfolding.folded)
+  sampled = stillFolded[numpy.unique(numpy.linspace(0, len(stillFolded) - 1, min(foldSamples, len(stillFolded))).round().astype(numpy.int64))]
+  centers = numpy.add.reduceat(unfolding.positions[loopVertices], numpy.cumsum(loopTotals) - loopTotals, axis=0)[sampled] / loopTotals[sampled, None]
+  result = {
+    "object": objectName, "unfoldedFaces": unfolding.unfolded, "foldedFaces": len(stillFolded), "foldedAt": numpy.round(centers, 2).tolist(),
+    "movedVertices": int(unfolding.moved.sum()),
+  }
+  if len(stillFolded) and not bridgeMeshAccess.hasShapingPasses(sceneObject):
+    result["warning"] = f"'{objectName}' has no shaping passes, so nothing records where its vertices lay in plan before they were moved sideways; its folds were left as they are"
+  return result
 
 
 def movedToProfile(positions, affected, strength, targets, mode):
@@ -1151,6 +1224,7 @@ commands = {
   "decimate": (decimate, True),
   "cleanupMesh": (cleanupMesh, True),
   "followContours": (followContours, True),
+  "unfoldTerrain": (unfoldTerrain, True),
   "cutContours": (cutContours, True),
   "roughen": (roughen, True),
   "warp": (warp, True),
