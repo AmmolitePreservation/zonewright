@@ -1,6 +1,6 @@
 # claudeperidot
 
-claudeperidot is Claude's own EQEmu test server in the owner's home lab: a faithful copy of Peridot (the same EQEmu build, akk-stack, quests, maps and database) on VM 143 on labradorite, at `claudeperidot.strata.unseencolor.com` (10.111.111.235), LAN only and never published. Claude has GM status there, a spare RoF2 client (`S:\Research\EverQuest\housingclient`) and a control link (`PhoenixCampfire/claudelink`), and experiments freely. The owner's client, install and MacroQuest setup stay the owner's.
+claudeperidot is Claude's own EQEmu test server in the owner's home lab: a faithful copy of Peridot (the same EQEmu build, akk-stack, quests, maps and database) on VM 143 on labradorite, at `claudeperidot.strata.unseencolor.com` (10.111.111.235), LAN only and never published. Claude has GM status there, a spare RoF2 client (`S:\Research\EverQuest\housingclient`) and a control link (`rbraunm/claudelink`), and experiments freely. The owner's client, install and MacroQuest setup stay the owner's.
 
 This folder is the change ledger: every change to claudeperidot, to Claude's side of the workstation, and to the lab hosts and devices claudeperidot needs, is written here and committed before it runs, so it can be checked, reverted, and carried to Peridot when it is meant for production. `plan.md` holds the goal, the ordered steps, the step in progress and the next one.
 
