@@ -2312,16 +2312,27 @@ def describeCaves(sceneObject):
 
 guideSpacing = 2.0
 arcChord = 4.0
+# A guide's polyline is kept to 3 decimals, and an arc's middle chord end meets its bend's station only to within rounding: a knot or
+# chord end this close to a station or to the point before it is that point, so no two points of the polyline stand at one place.
+polylineMerge = 0.01
 
 
 def runPolyline(line):
   """A run's centerline as a polyline at its floor: straight runs whole, arcs in chords of arcChord or less; with each point's distance
-  along the run."""
-  alongs = [line.stations, line.knotAlongs]
+  along the run. Every station is a point as it stands; a knot or chord end within polylineMerge of a station or of the point before it
+  is left out."""
+  extras = [line.knotAlongs]
   for center, radius, startAngle, sweep, arcAlong in line.arcs:
     length = radius * abs(sweep)
-    alongs.append(numpy.linspace(arcAlong, arcAlong + length, max(2, math.ceil(length / arcChord) + 1)))
-  alongs = numpy.unique(numpy.concatenate(alongs))
+    extras.append(numpy.linspace(arcAlong, arcAlong + length, max(2, math.ceil(length / arcChord) + 1)))
+  extras = numpy.unique(numpy.concatenate(extras))
+  extras = extras[numpy.abs(extras[:, None] - line.stations[None, :]).min(axis=1) > polylineMerge]
+  stations = set(line.stations.tolist())
+  kept = []
+  for along in sorted(stations | set(extras.tolist())):
+    if along in stations or along - kept[-1] > polylineMerge:
+      kept.append(along)
+  alongs = numpy.array(kept)
   floors, _, _, _ = line.at(alongs)
   return floors, alongs
 

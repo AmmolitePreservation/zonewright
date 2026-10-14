@@ -643,7 +643,7 @@ def placeKitPiece(name, kitPath, piece, location, facingDegrees, snapTo, depth, 
     instance.rotation_euler = (0.0, 0.0, math.radians(-facingDegrees))
     bridgeObjects.targetCollection(collection).objects.link(instance)
     bpy.context.view_layer.update()
-    settled = bridgeArrangement.settleObjects([name], depth, 0.0, None)["settled"][0] if settling else None
+    settled = bridgeArrangement.settleObjects([name], depth, 0.0, None, {name})["settled"][0] if settling else None
   return bridgeKitGeometry.describePlacement(instance) | ({"settled": settled} if settled is not None else {"footing": footing(instance)})
 
 

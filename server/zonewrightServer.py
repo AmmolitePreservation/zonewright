@@ -4351,8 +4351,9 @@ async def placeCopies(
   """Place many linked copies of an object (sharing its mesh, or its collection for a kit instance) in one call, each with its own
   location [x, y, z], rotationDegrees [x, y, z] (Blender's XYZ order, z turning counterclockwise seen from above, x and y tilting; EQ
   models face +X), uniform scale, and optional name: exactly what an EQ placement holds. With settle, each copy is then settled onto the
-  ground by its footprint as settleObjects does (its z is ignored; [x, y] will do). A copy of a placed kit piece stands upright at scale
-  1 (rotationDegrees [0, 0, turn]); tilted or scaled ones are refused. Returns each copy as placed (with settleObjects' report when settled), to edit copy by copy."""
+  ground by its footprint as settleObjects does: one given [x, y, z] as settleObjects settles an object standing there (one given a z on
+  a cave's floor lands on that floor, not on the hill over it), one given [x, y] from above the whole scene. A copy of a placed kit
+  piece stands upright at scale 1 (rotationDegrees [0, 0, turn]); tilted or scaled ones are refused. Returns each copy as placed (with settleObjects' report when settled), to edit copy by copy."""
   return await callBridge(context, "placeCopies", {"source": source, "copies": copies, "collection": collection, "settle": settle, "depth": depth, "tiltShare": tiltShare})
 
 
@@ -4366,7 +4367,7 @@ async def generateCopies(
   radius, count, startDegrees, facing: "out", "in", or "along"}}, or {"route": {path: [[x, y], ...], spacing, offset (to the right),
   facing: "along"}}; facing turns each copy's +X (the way EQ models face) out, in, or along. jitter varies each copy, seeded:
   turnDegrees [low, high], tiltDegrees [low, high] (each horizontal axis, either way), scale [low, high], position (a random nudge up to
-  that far). Copies settle onto the ground by footprint unless settle is false; tiltShare leans them
+  that far). Copies settle onto the ground by footprint from above the whole scene unless settle is false; tiltShare leans them
   toward the slope instead of tilting them at random. Returns the copies as placeCopies does."""
   return await callBridge(context, "generateCopies", {
     "source": source, "pattern": pattern, "jitter": jitter, "seed": seed, "collection": collection, "settle": settle, "depth": depth, "tiltShare": tiltShare,
@@ -4376,9 +4377,11 @@ async def generateCopies(
 @guardedTool()
 async def settleObjects(context: Context, names: list[str], depth: float = 0.0, tiltShare: float = 0.0, onto: str | None = None):
   """Drop objects onto what lies below them by their footprint rather than their origin, from above the whole scene, or where rock lies
-  over ground at their middle (a cave's ceiling, an overhang; looked for from halfway up each) from their own tops, or from just under
-  the rock where a top reaches it, so one in a cave lands on its floor, not on the hill over it, even a column up to a hall's ceiling
-  (one sunk into a solid with no ground under it, such as a ramp raised through it, rises onto its top): onto the ground (what
+  over ground at their middle (a cave's ceiling, an overhang, a roof: the first face over each, looked for from halfway up it and met
+  from either side, so terrain folding over a cave's mouth or a one-sided roof counts) from their own tops, or from just under the rock
+  where a top reaches it, so one in a cave or under a lip at its mouth lands on the floor, not on the hill or the lip over it, even a
+  column up to a hall's ceiling (one sunk into a solid, most level ways out of its middle meeting faces from behind, or with no ground
+  under it, such as a ramp raised through it, rises onto its top): onto the ground (what
   players stand on, apart from the objects being settled), sunk to the lowest ground under the footprint so no edge floats; or onto a
   named object, resting on it with no vertex below its surface (a crate on a table, or tilted on a ramp); then `depth` lower. tiltShare
   (0 to 1) turns each that share of the way toward the slope of the ground under it, keeping its heading (and replacing any tilt it
@@ -4553,8 +4556,9 @@ async def addRoof(
 @guardedTool(description=(
   "Place one kit piece as the client places its kits: an empty instancing the piece's collection, linked from the kit at `kitPath`"
   " (absolute) or the open file's own with null (as in a kit file), sharing the piece's one model with every other placement. Either at"
-  " `location` [x, y, z] (its base center) facing `facingDegrees`; or at [x, y] facing `facingDegrees`, settled by its footprint as"
-  " settleObjects settles (onto the lowest ground under it), then `depth` lower (refused where rock lies over ground: give z); or"
+  " `location` [x, y, z] (its base center) facing `facingDegrees`; or at [x, y] facing `facingDegrees`, settled by its footprint from"
+  " above the whole scene as settleObjects settles (onto the lowest ground under it), then `depth` lower (refused where rock lies over"
+  " ground: give z); or"
   " snapped: `snapTo` {object, socket, pieceSocket} puts the piece where its pieceSocket meets the placed piece object's socket face to"
   " face (Freeport's wall runs stand exactly 25.0 apart): a level pair turns the piece to meet it (no facingDegrees), a vertical pair"
   " (a post on a wall's top) keeps facingDegrees, by default the object's. A socket already joined is refused, naming its partner, and"

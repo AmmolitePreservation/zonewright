@@ -1,6 +1,7 @@
 """Arranging copies as an artist sets props: many linked copies in one call, each with its own place, rotation, and scale (what an EQ
 placement holds); sets generated along rows, grids, rings, and routes, returned copy by copy so they can be edited; and settling onto the
 ground by footprint from above the whole scene, or onto another object. Runs under Blender's Python."""
+import functools
 import math
 
 import bpy
@@ -34,7 +35,10 @@ def requireCopy(index, copy, settle):
   scale = copy.get("scale", 1.0)
   if not isinstance(scale, (int, float)) or scale <= 0:
     raise ValueError(f"Copy {index}: scale is one positive number (a placement takes one uniform scale), got {scale!r}")
-  return {"name": copy.get("name"), "location": [float(value) for value in location] + ([0.0] if len(location) == 2 else []), "rotationDegrees": [float(value) for value in rotation], "scale": float(scale)}
+  return {
+    "name": copy.get("name"), "location": [float(value) for value in location] + ([0.0] if len(location) == 2 else []), "fromAbove": len(location) == 2,
+    "rotationDegrees": [float(value) for value in rotation], "scale": float(scale),
+  }
 
 
 def describeCopy(sceneObject):
@@ -46,7 +50,7 @@ def describeCopy(sceneObject):
 
 def placeCopies(source, copies, collection, settle, depth, tiltShare):
   """Linked copies of an object (sharing its mesh), each placed, turned, tilted, and scaled as given; settled onto the ground by footprint
-  when asked (then each location's z is ignored)."""
+  when asked, from where each stands, or from above the whole scene for one given [x, y]."""
   sourceObject = bridgeMeshAccess.requireObject(source)
   bridgeStructureData.requireNotStructurePart(sourceObject, "placeCopies")
   if not copies:
@@ -71,7 +75,10 @@ def placeCopies(source, copies, collection, settle, depth, tiltShare):
       destination.objects.link(copy)
     placed.append(copy)
   bpy.context.view_layer.update()
-  return {"source": source, "copies": settleObjects([copy.name for copy in placed], depth, tiltShare, None)["settled"] if settle else [describeCopy(copy) for copy in placed]}
+  if not settle:
+    return {"source": source, "copies": [describeCopy(copy) for copy in placed]}
+  fromAbove = {copy.name for copy, spec in zip(placed, specs) if spec["fromAbove"]}
+  return {"source": source, "copies": settleObjects([copy.name for copy in placed], depth, tiltShare, None, fromAbove)["settled"]}
 
 
 def requirePattern(pattern):
@@ -211,24 +218,33 @@ def restingLift(sceneObject, surfaces, castHeight):
   return max(gaps) if gaps else None
 
 
+def castWithNormal(surfaces, origin, direction, distance):
+  location, normal, _, _ = surfaces.ray_cast(origin, direction, distance)
+  return None if location is None else (location, normal)
+
+
 def dropHeight(sceneObject, surfaces, castHeight):
-  """Where an object drops from where rock lies over ground at its middle (in a cave, under an overhang), the rock looked for from
-  halfway up it: from its own top, or from just under the rock where its top reaches it (a column under a hall's ceiling), so it lands
-  on the ground under that rock; else from above the whole scene (an object sunk into a solid raised through it rises onto its top)."""
+  """Where an object drops from where rock lies over ground at its middle (in a cave, under an overhang or a roof), looked for from
+  halfway up it: the first face over it, either way it faces (a one-sided roof, or terrain folding over a cave's mouth, is met from
+  behind), but not one met from behind where most level ways out meet faces from behind too, as from inside a solid raised through it.
+  From its own top, or from just under the rock where its top reaches it (a column under a hall's ceiling), so it lands on the ground
+  under that rock; else from above the whole scene (an object sunk into a solid rises onto its top)."""
   bottom, top, samples = footprint(sceneObject)
   middle = numpy.mean(samples, axis=0)
-  location, normal, _, _ = surfaces.ray_cast(mathutils.Vector((middle[0], middle[1], (bottom + top) / 2)), mathutils.Vector((0.0, 0.0, 1.0)), castHeight)
-  if location is None or normal.z >= 0:
+  origin = mathutils.Vector((middle[0], middle[1], (bottom + top) / 2))
+  location, normal, _, _ = surfaces.ray_cast(origin, mathutils.Vector((0.0, 0.0, 1.0)), castHeight)
+  if location is None or normal.z >= 0 and bridgeMeshAccess.enclosedAround(functools.partial(castWithNormal, surfaces), origin):
     return castHeight
   underRock = location.z - bridgeMeshAccess.castNudge
   ground, groundNormal, _, _ = surfaces.ray_cast(mathutils.Vector((middle[0], middle[1], underRock)), mathutils.Vector((0.0, 0.0, -1.0)))
   return min(top, underRock) if ground is not None and groundNormal.z > 0 else castHeight
 
 
-def settleObjects(names, depth, tiltShare, onto):
-  """Drop each object by its footprint, from above the whole scene, or from where it is when rock lies over it: onto the ground, sunk
-  to the lowest ground under its footprint so no edge floats; or onto a named object, resting on it with no vertex below its surface;
-  then `depth` lower. tiltShare (0 to 1) turns it that share of the way toward the slope under it, keeping its heading."""
+def settleObjects(names, depth, tiltShare, onto, fromAbove=()):
+  """Drop each object by its footprint, from above the whole scene, or from where it is when rock lies over it (dropHeight; never for
+  those named in fromAbove): onto the ground, sunk to the lowest ground under its footprint so no edge floats; or onto a named object,
+  resting on it with no vertex below its surface; then `depth` lower. tiltShare (0 to 1) turns it that share of the way toward the
+  slope under it, keeping its heading."""
   if not 0 <= tiltShare <= 1:
     raise ValueError(f"tiltShare is 0 to 1, got {tiltShare}")
   objects = [bridgeMeshAccess.requireObject(name) for name in names]
@@ -242,7 +258,7 @@ def settleObjects(names, depth, tiltShare, onto):
   settled, missed = [], []
   for sceneObject in objects:
     bpy.context.view_layer.update()
-    dropFrom = dropHeight(sceneObject, surfaces, castHeight)
+    dropFrom = castHeight if sceneObject.name in fromAbove else dropHeight(sceneObject, surfaces, castHeight)
     for _ in range(settleRounds if tiltShare > 0 else 1):
       bpy.context.view_layer.update()
       _, _, samples = footprint(sceneObject)

@@ -588,6 +588,39 @@ result = {
   assert scattered["placed"] == scattered["targetCount"] > 0 and pebbles == [8.0] * scattered["placed"]
 
 
+def testCratesUnderALipAtACaveMouthSettleOnTheFloorEvenUnderAFaceMetFromBehind(stageBlenderServer, tmp_path):
+  lip = {
+    "name": "lip", "outline": [[-50, -50], [50, -50], [50, 40], [-50, 40]], "top": 120, "ground": "ground", "spacing": 8,
+    "underside": {"axis": [[0, -50], [0, 40]], "profile": [[0, 70], [90, 70]]},
+  }
+  spots = {"underAwning": [0, -36], "underLip": [12, -40], "inside": [0, 60]}
+  readFloors = f"spots = {spots!r}\n" + r"""
+import mathutils
+depsgraph = bpy.context.evaluated_depsgraph_get()
+down = mathutils.Vector((0, 0, -1))
+result = {name: [bpy.context.scene.ray_cast(depsgraph, mathutils.Vector((x + dx, y + dy, 15)), down)[1].z for dx in (-2, 0, 2) for dy in (-2, 0, 2)] for name, (x, y) in spots.items()}
+"""
+
+  async def steps(session):
+    await caveCanyon(session, tmp_path)
+    await session.expectSuccess("cutCave", hall)
+    await session.expectSuccess("createRockFromOutline", lip)
+    floors = (await session.expectSuccess("runPython", {"code": readFloors}))["result"]
+    await session.expectSuccess("createPrimitive", {"kind": "plane", "name": "awning", "size": [16, 16, 0], "location": [0, -36, 20]})
+    for name, (x, y) in spots.items():
+      await session.expectSuccess("createPrimitive", {"kind": "cube", "name": name, "size": [4, 4, 4], "location": [x, y, max(floors[name]) + 1]})
+    return floors, await session.expectSuccess("settleObjects", {"names": list(spots)})
+
+  floors, settled = stageBlenderServer.session(steps)
+  settled = {crate["name"]: crate for crate in settled["settled"]}
+  # Under the lip over the hall's mouth, a one-sided awning over the floor is met from behind from a crate's middle, as the terrain's own
+  # surface is where it folds over a mouth: that crate settles on the floor under it, as one under the bare lip and one under the
+  # cave's ceiling do, not on the lip's top.
+  for name, heights in floors.items():
+    assert numpy.allclose(settled[name]["under"], [min(heights), max(heights)], atol=0.01), (name, settled[name])
+    assert abs(settled[name]["spans"][0] - min(heights)) <= 0.01
+
+
 def testACaveExportsAndIsWalkedAfterImport(stageBlenderServer, tmp_path):
   archivePath = tmp_path / "cavetest.eqg"
 
