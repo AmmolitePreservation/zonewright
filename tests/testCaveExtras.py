@@ -1235,3 +1235,32 @@ def testASectionUnrollsAPathAndACaveRun(stageBlenderServer, tmp_path):
     assert abs(numpy.interp(bends[str(index)], stations, heights) - height) <= 0.01
   assert "Cave 'landed' of 'ground' has no run 'loft'; its runs are ['main']" in unknown
   assert "The section's points 0 and 1 stand at one place" in twice
+
+
+# Bent west at point 2 on an arc of radius 40 turning 63.4 degrees: 44.3 long, in 12 chords, whose middle end worked out along the arc
+# meets the bend's station only to within a float's last digit.
+bentWest = {
+  "objectName": "ground", "name": "bentWest", "path": [[0, -60, 2], [0, 10, 2], [0, 110, 2], [-100, 160, 2]], "widths": [40] * 4, "heights": [40] * 4, "breakup": None,
+} | caveMaterials
+
+
+def testAnArcsChordEndOnItsBendsStationIsOnePointOfTheRunsPolyline(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await caveCanyon(session, tmp_path)
+    await session.expectSuccess("cutCave", bentWest)
+    guide = (await session.expectSuccess("runPython", {"code": "import bridgeCaves\nresult = bridgeCaves.guideRun('ground', 'bentWest', 'main')"}))["result"]
+    _, section = await session.expectImage("renderSection", {"cave": {"objectName": "ground", "name": "bentWest"}})
+    return guide, section
+
+  guide, section = stageBlenderServer.session(steps)
+  polyline, alongs, stations = numpy.array(guide["polyline"]), guide["polylineAlongs"], guide["stations"]
+  # No two of the run's polyline points stand at one place, and every station is one of them.
+  assert numpy.linalg.norm(numpy.diff(polyline[:, :2], axis=0), axis=1).min() > 0
+  assert all(station in alongs for station in stations)
+  # The straights' two stations, the arc's 13 chord ends evenly spaced with the bend's station standing in for the middle one, and the end.
+  assert len(alongs) == 16 and alongs[8] == stations[2] and numpy.ptp(numpy.diff(alongs[2:15])) <= 2e-3
+  # The section along the run marks each station and draws its floor level at 2 from the first to the last.
+  bends = {bend["label"]: bend["s"] for bend in section["bends"]}
+  assert list(bends) == ["0", "1", "2", "3"] and bends["1"] - bends["0"] == 70.0
+  [entry] = section["caves"]
+  assert entry["floor"] == [[[bends["0"], 2.0], [bends["3"], 2.0]]]
