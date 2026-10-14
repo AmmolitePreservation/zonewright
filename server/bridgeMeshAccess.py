@@ -348,25 +348,10 @@ class PlayerSurfaces:
         overhead = self.castWithNormal(point + up * castNudge, up, waterReach)
         # A face above met from behind is the top of a solid around the point, or one-sided cover over open ground (a roof plane, a leaf
         # card, a deck): only the ways round it tell which.
-        if overhead is None or overhead[1].z <= 0 or not self.enclosedAround(point + up * enclosureProbeHeight):
+        if overhead is None or overhead[1].z <= 0 or not enclosedAround(self.castWithNormal, point + up * enclosureProbeHeight):
           return Footing(point, normal, name, overhead)
       distance -= origin.z - point.z + castNudge
       origin = point + down * castNudge
-
-  def enclosedAround(self, point):
-    """Whether most level ways out of point meet a face from behind first, as from inside a solid."""
-    # Most, not every: client meshes are one-sided and seldom closed, so from under a terrace whose only faces are its floor and its
-    # outer walls a few ways out still meet something in front.
-    behind, elsewhere = 0, 0
-    for direction in aroundDirections:
-      hit = self.castWithNormal(point, direction, waterReach)
-      if hit is not None and hit[1].dot(direction) > 0:
-        behind += 1
-      else:
-        elsewhere += 1
-      if 2 * behind > len(aroundDirections) or 2 * elsewhere >= len(aroundDirections):
-        break
-    return 2 * behind > len(aroundDirections)
 
   def castWithNormal(self, origin, direction, distance):
     """The nearest world hit point within distance and the normal of the face hit there, or None."""
@@ -379,7 +364,7 @@ class PlayerSurfaces:
     its ground. None where neither is found."""
     origin = mathutils.Vector((x, y, level + levelProbeLift))
     above = self.castWithNormal(origin, up, waterReach)
-    if above is not None and above[1].z > 0 and self.enclosedAround(origin):
+    if above is not None and above[1].z > 0 and enclosedAround(self.castWithNormal, origin):
       return above[0].z
     footing = self.footingBelow(origin, waterReach)
     return None if footing is None else footing.z
@@ -396,6 +381,23 @@ class PlayerSurfaces:
       if along <= distance and (nearest is None or along < nearest[0]):
         nearest = (along, hit, (matrix.to_3x3().inverted().transposed() @ normal).normalized(), name)
     return nearest[1:] if nearest else None
+
+
+def enclosedAround(castWithNormal, point):
+  """Whether most level ways out of point meet a face from behind first, as from inside a solid (castWithNormal(origin, direction,
+  distance) gives (point, normal) or None)."""
+  # Most, not every: client meshes are one-sided and seldom closed, so from under a terrace whose only faces are its floor and its
+  # outer walls a few ways out still meet something in front.
+  behind, elsewhere = 0, 0
+  for direction in aroundDirections:
+    hit = castWithNormal(point, direction, waterReach)
+    if hit is not None and hit[1].dot(direction) > 0:
+      behind += 1
+    else:
+      elsewhere += 1
+    if 2 * behind > len(aroundDirections) or 2 * elsewhere >= len(aroundDirections):
+      break
+  return 2 * behind > len(aroundDirections)
 
 
 def rockOverGround(castWithNormal, x, y, top):

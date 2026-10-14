@@ -2,6 +2,7 @@ import math
 
 import numpy
 
+from testCaves import caveCanyon, hall
 from testModelsAndDressing import freshScene
 from testWalkRoute import instancedStepCode, instancedStepHeight
 
@@ -48,6 +49,37 @@ def testCopiesSinkToTheLowestGroundUnderTheirFootprintAndFollowItWhenItMoves(sta
     assert square["under"] == [round(rampHeight(-2) + rise, 2), round(rampHeight(2) + rise, 2)]
     assert square["rotationDegrees"] == [0.0, 0.0, 0.0] and turned["rotationDegrees"] == [0.0, 0.0, 45.0]
     assert square["location"][:2] == [0.0, 0.0] and turned["location"][:2] == [10.0, 5.0]
+
+
+def testSettledCopiesGivenAHeightStandThereAndOnesGivenNoneDropFromAboveTheScene(stageBlenderServer, tmp_path):
+  readColumns = r"""
+import mathutils
+depsgraph = bpy.context.evaluated_depsgraph_get()
+down = mathutils.Vector((0, 0, -1))
+
+def heights(fromHeight):
+  return [bpy.context.scene.ray_cast(depsgraph, mathutils.Vector((dx, 5 + dy, fromHeight)), down)[1].z for dx in (-2, 0, 2) for dy in (-2, 0, 2)]
+
+result = {'floor': heights(30), 'hill': heights(1000)}
+"""
+
+  async def steps(session):
+    await caveCanyon(session, tmp_path)
+    await session.expectSuccess("cutCave", hall)
+    columns = (await session.expectSuccess("runPython", {"code": readColumns}))["result"]
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "post", "size": [4, 4, 16], "location": [150, -120, 0]})
+    return columns, await session.expectSuccess("placeCopies", {"source": "post", "settle": True, "copies": [
+      {"name": "givenHeight", "location": [0, 5, max(columns["floor"]) + 1]}, {"name": "givenNone", "location": [0, 5]},
+    ]})
+
+  columns, placed = stageBlenderServer.session(steps)
+  placed = byName(placed)
+  # In the hall's tunnel, a post given a height a unit over the floor settles on the floor; one given only [x, y] drops from above the
+  # whole scene onto the hill over the tunnel, though at height 0 its middle would stand under the tunnel's ceiling.
+  for name, heights in (("givenHeight", columns["floor"]), ("givenNone", columns["hill"])):
+    assert numpy.allclose(placed[name]["under"], [min(heights), max(heights)], atol=0.01), (name, placed[name])
+    assert abs(placed[name]["spans"][0] - min(heights)) <= 0.01
+  assert placed["givenHeight"]["location"][:2] == placed["givenNone"]["location"][:2] == [0.0, 5.0]
 
 
 def testCopiesRestOnAnObjectAndLieFlushOnARampKeepingTheirHeading(stageBlenderServer):
