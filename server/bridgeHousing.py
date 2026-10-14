@@ -518,7 +518,7 @@ def editPlot(address, newAddress, kind, center, facingDegrees, size, height, ite
   graded = {}
   if plans:
     applied = [bridgeGrading.applyPlots(plan) for plan in plans]
-    graded = {"grading": applied[-1] | padSummary(bridgeGrading.plotPlanOf(plans[-1]), name) | ({"formerGround": applied[0]} if len(plans) > 1 else {})}
+    graded = {"grading": applied[-1][0] | padSummary(applied[-1][1], name) | ({"formerGround": applied[0][0]} if len(plans) > 1 else {})}
   return plotRecord(plot, housing) | ({"border": border} if border else {}) | {"overlaps": overlapsOf(plot)} | graded
 
 
@@ -549,7 +549,7 @@ def removePlot(address, keepGrading):
   guide = plot.data
   bpy.data.objects.remove(plot)
   bpy.data.meshes.remove(guide)
-  return {"removed": removed, "grading": None if plan is None else bridgeGrading.applyPlots(plan)}
+  return {"removed": removed, "grading": None if plan is None else bridgeGrading.applyPlots(plan)[0]}
 
 
 def gradePassName(address):
@@ -733,7 +733,8 @@ def planGrading(sceneObject, overrides, subjects, kept, ground):
 
 
 def applyGrading(plan):
-  """Write a worked-out grading into the plots' passes, each holding the part of the change its own pad makes."""
+  """Write a worked-out grading into the plots' passes, each holding the part of the change its own pad makes; returns the plots
+  graded."""
   sceneObject = plan["object"]
   keys = sceneObject.data.shape_keys
   active = None if keys is None or sceneObject.active_shape_key in (None, keys.reference_key) else sceneObject.active_shape_key.name
@@ -768,22 +769,21 @@ def applyGrading(plan):
     keep = active is not None and active not in gradeNames and keys.key_blocks.get(active) is not None
     sceneObject.active_shape_key_index = list(keys.key_blocks).index(keys.key_blocks[active]) if keep else 0
   sceneObject.data.update()
-  after, _ = bridgeMeshAccess.readVertexArrays(sceneObject)
-  difference = numpy.abs(after[:, 2] - plan["shown"][:, 2])
-  shaped = difference > heldTolerance
-  folded = 0
-  if shaped.any():
-    bridgeShaping.triangulateAlongContours(sceneObject, after, shaped)
-    folded = int(bridgeShaping.overturnedFaces(sceneObject, after, shaped).sum())
-  changed = numpy.flatnonzero(difference > 0.01)
+  return [pad["plot"] for pad in plan["pads"]]
+
+
+def touchedPlots(subjects, positions, change):
+  """The plots but the subjects within touchedReach of whose footprint a grading moved the ground (change: how far, by vertex) more than
+  a hundredth, each with the largest change there."""
+  changed = numpy.flatnonzero(change > 0.01)
   touched = []
   for plot in plotObjects():
-    if plot.name in plan["subjects"]:
+    if plot.name in subjects:
       continue
-    near = changed[bridgeMeshAccess.insidePolygon(after[changed, :2], footprint(plot, touchedReach))]
+    near = changed[bridgeMeshAccess.insidePolygon(positions[changed, :2], footprint(plot, touchedReach))]
     if len(near):
-      touched.append({"plot": plot.name, "largestChange": round(float(difference[near].max()), 2)})
-  return {"object": sceneObject.name, "gradedPlots": [pad["plot"] for pad in plan["pads"]], "foldedFaces": folded, "touched": touched, "steepBanks": plan["banks"]}
+      touched.append({"plot": plot.name, "largestChange": round(float(change[near].max()), 2)})
+  return touched
 
 
 def padSummary(plan, address):
@@ -809,8 +809,9 @@ def gradePlot(address, objectName, margin, batterDegrees):
   pad = padOf(address, plot.matrix_world.translation, facingOf(plot), readPlot(plot)["size"], plot.matrix_world.translation.z, {"margin": margin, "batterDegrees": batterDegrees})
   plan = bridgeGrading.planPlots(sceneObject, {address: pad}, {address})
   setGrading(plot, sceneObject, margin, batterDegrees)
-  formerGround = {} if former is None else {"formerGround": bridgeGrading.applyPlots(former)}
-  return {"plot": address} | padSummary(bridgeGrading.plotPlanOf(plan), address) | bridgeGrading.applyPlots(plan) | formerGround
+  formerGround = {} if former is None else {"formerGround": bridgeGrading.applyPlots(former)[0]}
+  outcome, written = bridgeGrading.applyPlots(plan)
+  return {"plot": address} | padSummary(written, address) | outcome | formerGround
 
 
 # Judging a plot

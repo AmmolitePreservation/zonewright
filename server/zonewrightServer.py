@@ -2400,8 +2400,10 @@ async def gradeRoute(
   stands without that pass; removeShapingPass takes it back, definition and all. It is graded on the ground without any defined pass
   made after it (a later route, or plot grading first made later), and every later one whose ground it changes is graded again after
   it (replayed, with what each moved), so where two meet the later one wins; regradeTerrain puts them all back on target after other
-  shaping. Returns each segment's grade, the landings, the deepest cut and highest fill, how far the batters reach, the centerline at
-  its graded heights (for painting the path or walking it), and a walkRoute along that centerline. Look at it at eye height up and down
+  shaping. Grading reads the faces, so once what it moved is triangulated along the new contours, it and every defined pass on the
+  faces that changed are graded again on them (replayed lists those too), and grading it again moves nothing; whole or not at all.
+  Returns each segment's grade, the landings, the deepest cut and highest fill, how far the batters reach, the centerline at its
+  graded heights (for painting the path or walking it), and a walkRoute along that centerline. Look at it at eye height up and down
   each leg, from across the valley, and in sections across the legs; then paint the bench and its batters."""
   return await callBridge(context, "gradeRoute", {
     "objectName": objectName, "name": name, "points": points, "width": width, "widths": widths, "maximumGradeDegrees": maximumGradeDegrees,
@@ -2413,14 +2415,15 @@ async def gradeRoute(
 async def regradeTerrain(context: Context, objectName: str):
   """Put every defined pass on a mesh back on target after other shaping changed the ground under them (a roughen, a sculpt, a pass
   turned up, down, or off): each graded route (gradeRoute), dressed facade (dressFacade), and the plots graded on it (gradePlot, all
-  together) are taken back and graded again in the order they were first made, each on the ground as it then stands, so where two meet the later one still wins. A
-  muted or turned defined pass comes back unmuted at full strength (restoredFrom says which). A defined pass graded on the ground as the
-  hand passes leave it takes back their work where it grades the ground (a facade's apron levels a mound sculpted on it): each replay
-  names the hand passes it overrode there (overrodeHandWork: pass, vertices, largest offset). Then every cave (cutCave) whose ground
-  moved since it was cut is cut again to fit it (refittedCaves, with how far its ground had moved), and the faces a facade moved are
-  box-mapped again. Whole or not at all: a refused refit leaves the mesh as it was. Reports what each one moved, in order, and
-  staleStructures: every structure (buildBridge, buildWall, ...) whose ground or kit changed since it was laid, with why; editStructure
-  lays each again."""
+  together) are taken back and graded again in the order they were first made, each on the ground as it then stands, so where two meet
+  the later one still wins; once what they moved is triangulated along the new contours, they are graded again on those faces, so a
+  regrade right after one moves nothing. A muted or turned defined pass comes back unmuted at full strength (restoredFrom says which).
+  A defined pass graded on the ground as the hand passes leave it takes back their work where it grades the ground (a facade's apron
+  levels a mound sculpted on it): each replay names the hand passes it overrode there (overrodeHandWork: pass, vertices, largest
+  offset). Then every cave (cutCave) whose ground moved since it was cut is cut again to fit it (refittedCaves, with how far its ground
+  had moved), and the faces a facade moved are box-mapped again. Whole or not at all: a refused refit leaves the mesh as it was. Reports
+  what each one moved, in order, and staleStructures: every structure (buildBridge, buildWall, ...) whose ground or kit changed since it
+  was laid, with why; editStructure lays each again."""
   return await callBridge(context, "regradeTerrain", {"objectName": objectName})
 
 
