@@ -24,6 +24,12 @@ switchback = {
   "points": [[210, -95, 20], [296.8, -56.4], [187.2, -7.6], [274.0, 31.0, 120], [270, 75, 120]],
 }
 plot = {"address": "1 Rim Walk", "center": [270, 115], "facingDegrees": 180, "size": [80, 80], "height": 120}
+# A stair cut up caveCanyon's cliff on the slant, its batters near vertical: grading it slides vertices onto its edges where the cliff's
+# own were slid onto its breaks, so the cells there are skewed, and the diagonal each is split on decides what folds.
+cleft = {
+  "objectName": "ground", "name": "cleft", "points": [[-120, -45, 0], [0, -10], [130, 25, 120]], "width": 18, "maximumGradeDegrees": 30,
+  "cutBatterDegrees": 85, "fillBatterDegrees": 70,
+}
 readGround = "objectName = 'ground'" + readShapedMesh
 readDefinitions = "import bridgePasses\nresult = bridgePasses.passDefinitions(bpy.data.objects['ground'])"
 
@@ -206,3 +212,28 @@ def testRegradingReplaysTheDefinedPassesInTheOrderTheyWereMade(stageBlenderServe
   assert largestMiss(samples, afterMove) <= 0.05
   assert [entry["route"] for entry in regradedPlot["replayed"]] == ["switchback"]
   assert largestMiss(samples, afterGrade) <= 0.05
+
+
+def testAGradingLeavesTheGroundItGradesAgainAsIs(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await caveCanyon(session, tmp_path)
+    await session.expectSuccess("gradeRoute", cleft)
+    graded = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "lumps"})
+    await session.expectSuccess("roughen", {"objectName": "ground", "featureSize": 30, "amplitude": 3, "octaves": 2, "seed": 9, "direction": "up"})
+    lumpy = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    regraded = [await session.expectSuccess("regradeTerrain", {"objectName": "ground"}) for _ in range(3)]
+    detail = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "cleft.blend")})
+    checked = await session.expectSuccess("checkExport", {"path": str(tmp_path / "cleft.eqg"), "purpose": "test"})
+    return graded, lumpy, regraded, detail, checked
+
+  graded, lumpy, regraded, detail, checked = stageBlenderServer.session(steps)
+  # Grading triangulates what it moved along the new contours, and grading again on those faces, as a regrade and the export's stale
+  # test do, moves nothing: right after gradeRoute, and after the regrade that puts it back on the lumpy ground.
+  assert [(entry["route"], entry["stale"], entry["largestChange"]) for entry in graded["definedPasses"]] == [("cleft", False, 0.0)]
+  assert [(entry["route"], entry["stale"]) for entry in lumpy["definedPasses"]] == [("cleft", True)]
+  assert regraded[0]["replayed"][0]["movedVertices"] > 0
+  assert [[(entry["route"], entry["movedVertices"], entry["largestChange"]) for entry in result["replayed"]] for result in regraded[1:]] == [[("cleft", 0, 0.0)]] * 2
+  assert [(entry["route"], entry["stale"], entry["largestChange"]) for entry in detail["definedPasses"]] == [("cleft", False, 0.0)]
+  assert checked["toConfirm"] == []

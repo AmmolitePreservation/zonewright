@@ -579,33 +579,41 @@ def gradeFeature(sceneObject, feature, ground, faces, edgeLength):
 def planReplay(sceneObject, features, first, everything):
   """Grade features[first] and replay what follows it on the ground the order they were made gives each: every later feature whose
   ground that changed, or with everything, all of them. Nothing is written."""
+  return planFeatures(sceneObject, features, first, set(range(first, len(features))) if everything else {first}, numpy.zeros(len(sceneObject.data.vertices), dtype=bool))
+
+
+def planFeatures(sceneObject, features, first, chosen, reshaped):
+  """Grade the features from features[first] on, each on the ground the order they were made gives it: those chosen (by index), and
+  every other whose ground changed where it lies, or whose faces did (reshaped: the corners of faces triangulated anew). The mesh's edge
+  length is read on the ground without any defined pass, so it is alike for every grading of it. Nothing is written."""
   if sceneObject.modifiers:
     raise ValueError(f"'{sceneObject.name}' has modifiers; grading passes combine before modifiers, so apply or remove them first")
   shown, _ = bridgeMeshAccess.readVertexArrays(sceneObject)
   keys = sceneObject.data.shape_keys
   reference = None if keys is None else bridgePasses.keyCoordinates(keys.reference_key)
   held = []
-  for feature in features[first:]:
+  for feature in features:
     total = numpy.zeros_like(shown)
     for name in feature["passes"]:
       key = None if keys is None else keys.key_blocks.get(name)
       if key is not None:
         total += worldOffsets(sceneObject, key, reference)
     held.append(total)
-  state = shown - sum(held)
+  state = shown - sum(held[first:])
   faces = [indices.tolist() for indices in bridgeMeshAccess.faceVertexIndices(sceneObject)]
-  edgeLength = bridgeShaping.medianEdgeLength(sceneObject, shown, numpy.ones(len(shown), dtype=bool))
-  changed = numpy.zeros(len(shown), dtype=bool)
+  edgeLength = bridgeShaping.medianEdgeLength(sceneObject, state - sum(held[:first]), numpy.ones(len(shown), dtype=bool))
+  changed = reshaped.copy()
   entries = []
-  for offset, (feature, old) in enumerate(zip(features[first:], held)):
+  for index in range(first, len(features)):
+    feature, old = features[index], held[index]
     graded = None
-    if offset == 0 or everything or overlapsChange(sceneObject, feature, old, state, changed, edgeLength):
+    if index in chosen or overlapsChange(sceneObject, feature, old, state, changed, edgeLength):
       graded = gradeFeature(sceneObject, feature, state, faces, edgeLength)
     new = old if graded is None else graded["offsets"]
     changed |= numpy.abs(new - old).max(axis=1) > bridgeHousing.heldTolerance
     state = state + new
-    entries.append({"feature": feature, "held": old, "graded": graded})
-  return {"object": sceneObject, "shown": shown, "entries": entries}
+    entries.append({"index": index, "feature": feature, "held": old, "graded": graded})
+  return {"object": sceneObject, "shown": shown, "features": features, "first": first, "entries": entries}
 
 
 def passState(sceneObject, names):
@@ -627,30 +635,44 @@ def writeDefinedPass(sceneObject, feature, offsets):
   key.mute, key.value = False, 1.0
 
 
-def applyReplay(plan):
-  """Write a planned replay into its passes; the pass active before stays active unless it is a defined pass, and then none is."""
-  sceneObject = plan["object"]
-  keys = sceneObject.data.shape_keys
-  active = None if keys is None or sceneObject.active_shape_key in (None, keys.reference_key) else sceneObject.active_shape_key.name
-  summaries, plotOutcome = [], None
-  dressed = numpy.zeros(len(plan["shown"]), dtype=bool)
-  for entry in plan["entries"]:
+def writeEntries(sceneObject, entries, written):
+  """Write each graded entry of a plan into its passes, keeping in written, by feature, what its passes held before the first grading of
+  it written and the latest."""
+  for entry in entries:
     graded = entry["graded"]
     if graded is None:
       continue
     feature = entry["feature"]
-    restored = passState(sceneObject, feature["passes"])
-    moved = numpy.abs(graded["offsets"] - entry["held"]).max(axis=1)
+    if entry["index"] not in written:
+      written[entry["index"]] = {"feature": feature, "held": entry["held"], "restored": passState(sceneObject, feature["passes"])}
+    written[entry["index"]]["graded"] = graded
     if feature["kind"] in (routeKind, bridgeFacades.facadeKind):
       writeDefinedPass(sceneObject, feature, graded["offsets"])
-      name = {feature["kind"]: feature["name"]}
-      if feature["kind"] == bridgeFacades.facadeKind:
-        dressed |= (moved > bridgeHousing.heldTolerance) | (numpy.abs(graded["offsets"]).max(axis=1) > bridgeHousing.heldTolerance)
     else:
-      plotOutcome = bridgeHousing.applyGrading(graded["plotPlan"])
-      name = {"plots": plotOutcome["gradedPlots"]}
-    summary = name | {"movedVertices": int((moved > bridgeHousing.heldTolerance).sum()), "largestChange": round(float(moved.max(initial=0.0)), 2)}
-    summaries.append(summary | ({"restoredFrom": restored} if restored else {}) | overriddenWork(sceneObject, feature, graded["offsets"], moved))
+      written[entry["index"]]["plots"] = bridgeHousing.applyGrading(graded["plotPlan"])
+
+
+def applyReplay(plan):
+  """Write a planned replay into its passes and triangulate what it shaped along the contours. Grading reads the faces, so it then
+  grades again on the faces now there every feature it graded and every other lying where they changed (planFeatures), and writes that
+  without triangulating again: what is written is the grading of the faces it stands on, so grading it again moves nothing. The pass
+  active before stays active unless it is a defined pass, and then none is. Each feature written is summarized, in the order they were
+  made, against what its passes held before."""
+  sceneObject = plan["object"]
+  keys = sceneObject.data.shape_keys
+  active = None if keys is None or sceneObject.active_shape_key in (None, keys.reference_key) else sceneObject.active_shape_key.name
+  written = {}
+  writeEntries(sceneObject, plan["entries"], written)
+  sceneObject.data.update()
+  after, _ = bridgeMeshAccess.readVertexArrays(sceneObject)
+  shaped = numpy.abs(after - plan["shown"]).max(axis=1) > bridgeHousing.heldTolerance
+  if shaped.any():
+    bridgeShaping.triangulateAlongContours(sceneObject, after, shaped)
+    # A cell's diagonal turns between the faces round a shaped vertex, so every face it changed has its corners within two rings of it.
+    reshaped = shaped
+    for _ in range(2):
+      reshaped = bridgeShaping.faceCorners(sceneObject, bridgeShaping.touchingFaces(sceneObject, reshaped))
+    writeEntries(sceneObject, planFeatures(sceneObject, plan["features"], 0, set(written), reshaped)["entries"], written)
   keys = sceneObject.data.shape_keys
   if keys is not None:
     defined = set(bridgePasses.passDefinitions(sceneObject)) | {bridgeHousing.gradePassName(address) for address in bridgeHousing.gradedOn(sceneObject)}
@@ -659,14 +681,25 @@ def applyReplay(plan):
   sceneObject.data.update()
   after, _ = bridgeMeshAccess.readVertexArrays(sceneObject)
   shaped = numpy.abs(after - plan["shown"]).max(axis=1) > bridgeHousing.heldTolerance
+  summaries, plotsWritten = [], None
+  dressed = numpy.zeros(len(after), dtype=bool)
   # A facade's face stands vertical by design, so its cells, with no area in plan, are no fold.
   standing = numpy.zeros(len(after), dtype=bool)
-  for entry in plan["entries"]:
-    if entry["graded"] is not None and "standing" in entry["graded"]:
-      standing |= entry["graded"]["standing"]
+  for index in sorted(written):
+    record = written[index]
+    feature, offsets = record["feature"], record["graded"]["offsets"]
+    moved = numpy.abs(offsets - record["held"]).max(axis=1)
+    if feature["kind"] in (routeKind, bridgeFacades.facadeKind):
+      name = {feature["kind"]: feature["name"]}
+    else:
+      name, plotsWritten = {"plots": record["plots"]}, record
+    if feature["kind"] == bridgeFacades.facadeKind:
+      dressed |= (moved > bridgeHousing.heldTolerance) | (numpy.abs(offsets).max(axis=1) > bridgeHousing.heldTolerance)
+      standing |= record["graded"]["standing"]
+    summary = name | {"movedVertices": int((moved > bridgeHousing.heldTolerance).sum()), "largestChange": round(float(moved.max(initial=0.0)), 2)}
+    summaries.append((index, summary | ({"restoredFrom": record["restored"]} if record["restored"] else {}) | overriddenWork(sceneObject, feature, offsets, moved)))
   folded = 0
   if shaped.any():
-    bridgeShaping.triangulateAlongContours(sceneObject, after, shaped)
     loopTotals, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
     starts = numpy.cumsum(loopTotals) - loopTotals
     onFace = numpy.logical_and.reduceat(standing[loopVertices], starts)
@@ -676,7 +709,17 @@ def applyReplay(plan):
     returns = numpy.logical_or.reduceat(standing[loopVertices], starts) & vertical
     folded = int((bridgeShaping.overturnedFaces(sceneObject, after, shaped) & ~onFace & ~returns).sum())
   remapDressed(sceneObject, dressed)
-  return {"summaries": summaries, "plots": plotOutcome, "foldedFaces": folded, "dressed": dressed} | staleCaveReport(sceneObject)
+  plots = None
+  if plotsWritten is not None:
+    change = numpy.abs(plotsWritten["graded"]["offsets"][:, 2] - plotsWritten["held"][:, 2])
+    plots = {
+      "object": sceneObject.name, "gradedPlots": plotsWritten["plots"], "foldedFaces": folded,
+      "touched": bridgeHousing.touchedPlots(plotsWritten["feature"]["subjects"], after, change), "steepBanks": plotsWritten["graded"]["plotPlan"]["banks"],
+    }
+  return {
+    "summaries": [summary for _, summary in summaries], "replayed": [summary for index, summary in summaries if index != plan["first"]],
+    "final": {index: record["graded"] for index, record in written.items()}, "plots": plots, "foldedFaces": folded, "dressed": dressed,
+  } | staleCaveReport(sceneObject)
 
 
 def overriddenWork(sceneObject, feature, offsets, moved):
@@ -774,14 +817,12 @@ def planPlots(sceneObject, overrides, subjects, kept=None):
   return planReplay(sceneObject, features, index, False)
 
 
-def plotPlanOf(plan):
-  return plan["entries"][0]["graded"]["plotPlan"]
-
-
 def applyPlots(plan):
-  """Write planned plot grading and its replay: bridgeHousing.applyGrading's outcome, with the later defined passes replayed."""
-  applied = applyReplay(plan)
-  return applied["plots"] | {"foldedFaces": applied["foldedFaces"], "replayed": applied["summaries"][1:]} | staleCaveReport(plan["object"])
+  """Write planned plot grading and its replay, whole or not at all: what it did, with the other defined passes replayed, and the plots'
+  grading as written (bridgeHousing.planGrading's plan)."""
+  with bridgeCaves.restoredOnFailure(plan["object"]):
+    applied = applyReplay(plan)
+  return applied["plots"] | {"replayed": applied["replayed"]} | staleCaveReport(plan["object"]), applied["final"][plan["first"]]["plotPlan"]
 
 
 def gradeRoute(objectName, name, points, width, widths, maximumGradeDegrees, cutBatterDegrees, fillBatterDegrees, landingLength):
@@ -802,10 +843,11 @@ def gradeRoute(objectName, name, points, width, widths, maximumGradeDegrees, cut
   else:
     features[index] = route
   plan = planReplay(sceneObject, features, index, False)
-  report = plan["entries"][0]["graded"]["report"]
-  applied = applyReplay(plan)
+  with bridgeCaves.restoredOnFailure(sceneObject):
+    applied = applyReplay(plan)
+  report = applied["final"][index]["report"]
   walk = bridgeReview.walkRoute(report["centerline"], walkSampleSpacing)
-  return {"object": objectName, "route": name, "pass": passName} | report | {"foldedFaces": applied["foldedFaces"], "replayed": applied["summaries"][1:], "walk": walk} | staleCaveReport(sceneObject)
+  return {"object": objectName, "route": name, "pass": passName} | report | {"foldedFaces": applied["foldedFaces"], "replayed": applied["replayed"], "walk": walk} | staleCaveReport(sceneObject)
 
 
 def regradeTerrain(objectName):
@@ -863,14 +905,13 @@ def dress(sceneObject, definition):
   else:
     features[index] = facade
   plan = planReplay(sceneObject, features, index, False)
-  report = plan["entries"][0]["graded"]["report"]
   with bridgeCaves.restoredOnFailure(sceneObject):
     applied = applyReplay(plan)
     groundBefore = groundVertices(sceneObject)
     refit = bridgeCaves.recut(sceneObject, cave, {}) if cave in bridgeCaves.staleCaves(sceneObject) else None
     remapped = remapDressed(sceneObject, carried(sceneObject, applied["dressed"], groundBefore))
-  return {"pass": passName} | report | {
-    "foldedFaces": applied["foldedFaces"], "remappedFaces": remapped, "replayed": applied["summaries"][1:], "refit": refit, "staleCaves": bridgeCaves.staleCaves(sceneObject),
+  return {"pass": passName} | applied["final"][index]["report"] | {
+    "foldedFaces": applied["foldedFaces"], "remappedFaces": remapped, "replayed": applied["replayed"], "refit": refit, "staleCaves": bridgeCaves.staleCaves(sceneObject),
   }
 
 
