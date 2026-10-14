@@ -147,7 +147,9 @@ def collapseShapingPasses(objectName):
   with bridgeMeshAccess.shapedMesh(sceneObject) as mesh:
     shown = numpy.empty(len(mesh.vertices) * 3)
     mesh.vertices.foreach_get("co", shown)
-  clearPassesKeeping(sceneObject, shown.reshape(-1, 3))
+  shown = shown.reshape(-1, 3)
+  # Blender mixes the passes in single precision, rounding at each, which can leave a ring vertex many spacings off its plug triangle.
+  clearPassesKeeping(sceneObject, bridgeCaveData.guardedKey(sceneObject, shown, shown)[0])
   return {"object": objectName, "collapsed": [entry["name"] for entry in passes]}
 
 

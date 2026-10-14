@@ -141,23 +141,25 @@ for before, point, after in zip(path, path[1:], path[2:]):
 """
 
 
-async def caveCanyon(session, tmp_path):
+async def caveCanyon(session, tmp_path, east=0):
   """caveCanyon reaching far enough north to hold a room and its reach: a 480 x 560 grid of 8-unit cells, a cliff 120 high at about 80
   degrees along y = 0 with the river side to the south, warp and roughen over it, grass and rock on slopes of 40 or more, and the
-  approach to the mouth graded level."""
+  approach to the mouth graded level. Moved east, the grid's own coordinates lie that far out, as an imported zone's do."""
   await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
   for name, color in (("grass", (90, 120, 60, 255)), ("rock", (110, 105, 100, 255)), ("caveRock", (80, 76, 72, 255)), ("caveFloor", (120, 100, 80, 255))):
     await session.expectSuccess("createMaterial", {"name": name, "diffuseTexture": str(writePNG(tmp_path / f"{name}.png", 4, 4, color))})
-  await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [480, 560], "spacing": 8, "location": [0, 120, 0], "collection": "terrain"})
+  await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [480, 560], "spacing": 8, "location": [east, 120, 0], "collection": "terrain"})
+  if east:
+    await session.expectSuccess("runPython", {"code": "ground = bpy.data.objects['ground']\nground.data.transform(ground.matrix_basis)\nground.matrix_basis.identity()"})
   await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "grass"})
   await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "cliff"})
-  await session.expectSuccess("sculptOutline", {"objectName": "ground", "mode": "fill", "outline": [[-300, 0], [300, 0], [300, 500], [-300, 500]], "base": 0, "profile": [[-21, 0], [0, 120], [500, 120]]})
+  await session.expectSuccess("sculptOutline", {"objectName": "ground", "mode": "fill", "outline": [[east - 300, 0], [east + 300, 0], [east + 300, 500], [east - 300, 500]], "base": 0, "profile": [[-21, 0], [0, 120], [500, 120]]})
   await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "breakup"})
   await session.expectSuccess("warp", {"objectName": "ground", "featureSize": 80, "amplitude": 12, "seed": 4, "plane": "horizontal"})
   await session.expectSuccess("roughen", {"objectName": "ground", "featureSize": 20, "amplitude": 2.5, "octaves": 3, "roughness": 0.5, "seed": 5, "direction": "normal"})
   await session.expectSuccess("addSurfaceLayer", {"objectName": "ground", "name": "rock"})
   await session.expectSuccess("paintSurface", {"objectName": "ground", "layer": "rock", "material": "rock", "selector": {"slope": {"minimumDegrees": 40, "maximumDegrees": 180}}})
-  await session.expectSuccess("gradeRoute", {"objectName": "ground", "name": "approach", "points": [[0, -140, 2], [0, -50, 2]], "width": 56})
+  await session.expectSuccess("gradeRoute", {"objectName": "ground", "name": "approach", "points": [[east, -140, 2], [east, -50, 2]], "width": 56})
 
 
 def testACaveIsCutSealedWalkableAndSurfacedAndItsLiningStrokesComeBack(stageBlenderServer, tmp_path):
@@ -207,21 +209,39 @@ faces = [[0, 7, 1, 2, 3], [6, 5, 1, 4, 0], [1, 7, 0, 4]]
 kept, sources, _ = bridgeCaves.withoutSlivers(positions, faces, [0, 1, -2], [[0, 0, 1]] * 3)
 result = {'faces': kept, 'sources': sources}
 """
+  # The same turned 8 degrees and moved out to [2600, 2600, 50], its corners where single precision keeps them there, up to 1.8e-4 off
+  # their line; and two copies of one new point a single precision spacing (2.4e-4) apart there, which are one point.
+  farSlit = r"""
+import numpy
+import bridgeCaves
+turn = numpy.radians(8)
+turned = numpy.array([[numpy.cos(turn), -numpy.sin(turn), 0], [numpy.sin(turn), numpy.cos(turn), 0], [0, 0, 1]])
+positions = numpy.array([[0, 0, 0], [10, 0, 0], [10, 5, 0], [0, 5, 0], [4, 0, 0], [10, -5, 0], [0, -5, 0], [7, 0, 0]], dtype=float) @ turned.T + [2600, 2600, 50]
+positions = positions.astype(numpy.float32).astype(float)
+faces = [[0, 7, 1, 2, 3], [6, 5, 1, 4, 0], [1, 7, 0, 4]]
+kept, sources, _ = bridgeCaves.withoutSlivers(positions, faces, [0, 1, -2], [[0, 0, 1]] * 3)
+copies = numpy.array([[2600, 2600, 50], [2610, 2600, 50], [2600, 2610, 50], [float(numpy.nextafter(numpy.float32(2600), numpy.float32(4096))), 2600, 50]])
+snapped, _, _ = bridgeCaves.snappedCut(copies, [[0, 1, 2], [3, 2, 1]], [-2, -2], [[0, 0, 1]] * 2, numpy.full(4, -1))
+result = {'faces': kept, 'sources': sources, 'snapped': snapped}
+"""
   fine = hall | {"path": [[0, -60, 2], [0, 10, 2], [0, 60, 2], [0, 90, 2], [0, 250, 2]], "breakup": None}
 
   async def steps(session):
     await caveCanyon(session, tmp_path)
     zipped = (await session.expectSuccess("runPython", {"code": slit}))["result"]
+    zippedFar = (await session.expectSuccess("runPython", {"code": farSlit}))["result"]
     checks = []
     for edgeLength, breakup in ((8, None), (8, {"featureSize": 40, "amplitude": 3, "seed": 11}), (12, None), (16, None), (16, None)):
       await session.expectSuccess("cutCave", fine | {"edgeLength": edgeLength, "breakup": breakup})
       checks.append((await session.expectSuccess("runPython", {"code": checkCave}))["result"])
       await session.expectSuccess("removeCave", {"objectName": "ground", "name": "hall"})
-    return zipped, checks
+    return zipped, zippedFar, checks
 
-  zipped, checks = stageBlenderServer.session(steps)
-  # The slit goes, and each face takes the other's corner on the line, so the two meet edge to edge.
+  zipped, zippedFar, checks = stageBlenderServer.session(steps)
+  # The slit goes, and each face takes the other's corner on the line, so the two meet edge to edge; far out too, where the copies of
+  # one point come together.
   assert zipped == {"faces": [[0, 4, 7, 1, 2, 3], [6, 5, 1, 7, 4, 0]], "sources": [0, 1]}
+  assert zippedFar == zipped | {"snapped": [[0, 1, 2], [0, 2, 1]]}
   # At every edgeLength, and cut again after being taken back, the cut is sealed where the tube's end stands on the ground in front of
   # the mouth.
   for checked in checks:
@@ -339,6 +359,58 @@ def testTakingACaveBackLeavesTheGroundAsAnUncutCopyGivenTheSameChange(stageBlend
   assert ground.shape == control.shape and numpy.abs(ground - control).max() <= 1e-5
   assert removed["definition"]["path"] == hall["path"] and removed["definition"]["widths"] == hall["widths"] and removed["restoredFaces"] > 0
   assert detail["caves"] == []
+
+
+def testACaveFarFromTheOriginIsEditedRefittedAndRemovedWhileADisplacedRingIsStillCaught(stageBlenderServer, tmp_path):
+  # Out past 2048, where single precision keeps coordinates 2.4e-4 apart: more than the ring's own tolerance near the origin.
+  east = 2600
+  far = hall | {"path": [[x + east, y, z] for x, y, z in hall["path"]]}
+  displaceRing = r"""
+import numpy
+mesh = bpy.data.objects['ground'].data
+tags = numpy.empty(len(mesh.vertices), dtype=numpy.int32)
+mesh.attributes['zonewrightCaveVertex:hall'].data.foreach_get('value', tags)
+row = int(numpy.flatnonzero(tags == -1)[0])
+point = mesh.shape_keys.key_blocks['cliff'].data[row]
+result = {'row': row, 'co': list(point.co)}
+point.co = (result['co'][0] + 0.01, result['co'][1], result['co'][2])
+mesh.update()
+"""
+
+  async def steps(session):
+    await caveCanyon(session, tmp_path, east=east)
+    await session.expectSuccess("cutCave", far)
+    checked = (await session.expectSuccess("runPython", {"code": checkCave}))["result"]
+    edited = await session.expectSuccess("editCave", {"objectName": "ground", "name": "hall"})
+    await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "mouthEdit"})
+    await session.expectSuccess("sculptAtPoint", {"objectName": "ground", "mode": "raise", "center": [east, -30, 30], "radius": 30, "strength": 5, "direction": [0, -1, 0]})
+    stale = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    regraded = await session.expectSuccess("regradeTerrain", {"objectName": "ground"})
+    refitted = (await session.expectSuccess("runPython", {"code": checkCave}))["result"]
+    original = (await session.expectSuccess("runPython", {"code": displaceRing}))["result"]
+    displaced = await session.expectError("editCave", {"objectName": "ground", "name": "hall"})
+    await session.expectSuccess("runPython", {"code": f"point = bpy.data.objects['ground'].data.shape_keys.key_blocks['cliff'].data[{original['row']!r}]\npoint.co = {tuple(original['co'])!r}"})
+    for index in range(30):
+      await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": f"mouth{index}"})
+      await session.expectSuccess("sculptAtPoint", {"objectName": "ground", "mode": "raise", "center": [east + index % 5 * 7 - 14, index - 10, 60], "radius": 80, "strength": 0.4 + index * 0.01})
+    await session.expectSuccess("collapseShapingPasses", {"objectName": "ground"})
+    removed = await session.expectSuccess("removeCave", {"objectName": "ground", "name": "hall"})
+    detail = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    return checked, edited, stale, regraded, refitted, displaced, removed, detail
+
+  checked, edited, stale, regraded, refitted, displaced, removed, detail = stageBlenderServer.session(steps)
+  # Cut, the ring misses its plug triangles by single precision's rounding there, past 1e-4, and the lining stands still.
+  assert checked["edgesOnThreeOrMoreFaces"] == 0 and checked["openEdges"] == borderEdges and checked["ringVertices"] > 0
+  assert 1e-4 < checked["largestRingMiss"] <= 1e-3 and checked["largestLiningMove"] == 0.0
+  # The cave is cut again unchanged, flagged stale by a sculpt at its mouth, refitted by a regrade, and, with thirty passes over its
+  # mouth collapsed (Blender mixes them in single precision), taken back out.
+  assert edited["cut"]["liningFaces"] > 0 and [cave["stale"] for cave in stale["caves"]] == [True]
+  assert [entry["cave"] for entry in regraded["refittedCaves"]] == ["hall"] and refitted["edgesOnThreeOrMoreFaces"] == 0
+  assert refitted["largestRingMiss"] <= 1e-3 and refitted["largestLiningMove"] == 0.0
+  assert removed["restoredFaces"] > 0 and detail["caves"] == []
+  # A ring vertex moved 0.01 in one pass is caught there alone.
+  found = re.findall(r"a ring vertex stands ([0-9.e-]+) off its plug triangle in ([^;(]+)", displaced)
+  assert len(found) == 1 and found[0][1].strip() == "pass 'cliff'" and abs(float(found[0][0]) - 0.01) <= 5e-4
 
 
 def testAStaleCaveIsFlaggedAndRefittedWhileTheGuardsHoldAroundIt(stageBlenderServer, tmp_path):

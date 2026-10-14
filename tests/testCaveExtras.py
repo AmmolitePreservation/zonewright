@@ -1038,6 +1038,30 @@ except ValueError as refusal:
   assert within is not None and "Cave 'box' would reach into cave 'room'" in within
 
 
+def testInsideAClosedSurfaceIsToldFromOutsideFarFromTheOrigin(stageBlenderServer, tmp_path):
+  # A ball at the origin, at 2600 east, and at 5200 east, where single precision keeps x 2.4e-4 and 4.9e-4 apart: farther than the
+  # step a ray takes past each crossing near the origin. Points stand up to 17.4 from its middle, inside it, and 30 to 50 over it.
+  probe = r"""
+import bmesh, mathutils, numpy
+import bridgeCaves
+offsets = numpy.random.default_rng(1).uniform(-10, 10, size=(200, 3))
+result = {}
+for east in (0, 2600, 5200):
+  editor = bmesh.new()
+  bmesh.ops.create_icosphere(editor, subdivisions=3, radius=20)
+  middle = numpy.array([east, east / 2, 50.0])
+  tree = bridgeCaves.surfaceTree(numpy.array([list(vertex.co) for vertex in editor.verts]) + middle, [[vertex.index for vertex in face.verts] for face in editor.faces])
+  editor.free()
+  result[str(east)] = [sum(bridgeCaves.insideClosed(tree, mathutils.Vector(point)) for point in (middle + offsets + lift).tolist()) for lift in ([0, 0, 0], [0, 0, 40])]
+"""
+
+  async def steps(session):
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    return (await session.expectSuccess("runPython", {"code": probe}))["result"]
+
+  assert stageBlenderServer.session(steps) == {"0": [200, 0], "2600": [200, 0], "5200": [200, 0]}
+
+
 def testAnOverlookOpensHighInItsParentsWallAndStrokesKeepToTheirRuns(stageBlenderServer, tmp_path):
   # An alcove 20 up the room's east wall, nobody walking into it; a way and rubble on the side branch; a pad on the tunnel at y 20 to 40
   # and a way on the passage running over it at y 30, from its point 2 to its point 3.

@@ -29,9 +29,15 @@ import bridgeSurfacing
 import playerScale
 from buildTolerances import floorHangTolerance, probeOverFloor, strokeStandTolerance, trenchTolerance, wallFootClearance
 
-# A pass holds single precision: a ring vertex reads back this close to its plug triangle, and ground counts as moved past this.
+# A ring vertex reads back this close to its plug triangle near the origin (keptTolerance widens it farther out), and ground counts as
+# moved past this.
 ringTolerance = 1e-4
 groundTolerance = 1e-3
+# The mesh and its passes keep single precision, whose coordinates lie up to eps times their magnitude apart (2.4e-4 from 2048 to 4096).
+# A ring vertex is set over double precision weights and checked over the weights as kept, and a pass is written over the reference,
+# which leaves a ring vertex up to about two and a half spacings off its triangle; tolerances on kept coordinates, and steps off them,
+# take four.
+keptSpacing = 4 * float(numpy.finfo(numpy.float32).eps)
 floorNormalZ = 0.7
 # The terrain patch around the tube reaches past its walls by three breakup amplitudes (noise's farthest reach) and two edges.
 breakupReach = 3.0
@@ -87,6 +93,11 @@ flapAntiparallel = 0.99
 # A lining face whose mapping along its tube would draw its texture out more than this (a flare where a run widens into a room faces
 # along the run, so the tube's own coordinates barely change across it) is box-mapped instead; the export flags faces past it too.
 unrolledStretchLimit = 2.0
+
+
+def keptTolerance(tolerance, points):
+  """tolerance widened by single precision's spacing at the magnitude of points' largest coordinate (over the last axis)."""
+  return tolerance + keptSpacing * numpy.abs(points).max(axis=-1)
 
 
 def replayStrokes(sceneObject, name, strokes):
@@ -694,7 +705,7 @@ def insideClosed(tree, point):
       if location is None:
         break
       crossings += 1
-      origin = location + direction * parityStep
+      origin = location + direction * float(keptTolerance(parityStep, numpy.array(location)))
     votes += crossings % 2
   return votes * 2 > len(parityDirections)
 
@@ -1362,7 +1373,7 @@ def snappedCut(positions, faces, sources, normals, original):
     tree.insert(point, index)
   tree.balance()
   for index in numpy.flatnonzero(original < 0).tolist():
-    copies = [other for _, other, _ in tree.find_range(positions[index], matchDistance) if other < index and original[other] < 0]
+    copies = [other for _, other, _ in tree.find_range(positions[index], keptTolerance(matchDistance, positions[index])) if other < index and original[other] < 0]
     if copies:
       canonical[index] = canonical[min(copies)]
   kept, keptSources, keptNormals = [], [], []
@@ -1402,16 +1413,17 @@ def groundedFloor(positions, faces, sources, normals, patchPositions, patchFaces
 
 
 def isFlat(points):
-  """Whether a face's corners lie on a line, within matchDistance of the line through its two farthest apart."""
+  """Whether a face's corners lie on a line, within matchDistance (keptTolerance) of the line through its two farthest apart."""
   points = numpy.asarray(points, dtype=numpy.float64)
+  tolerance = keptTolerance(matchDistance, points.ravel())
   spans = numpy.linalg.norm(points[:, None, :] - points[None, :, :], axis=2)
   first, second = numpy.unravel_index(int(spans.argmax()), spans.shape)
   length = float(spans[first, second])
-  if length <= matchDistance:
+  if length <= tolerance:
     return True
   direction = (points[second] - points[first]) / length
   offsets = points - points[first]
-  return bool(numpy.linalg.norm(offsets - (offsets @ direction)[:, None] * direction, axis=1).max() <= matchDistance)
+  return bool(numpy.linalg.norm(offsets - (offsets @ direction)[:, None] * direction, axis=1).max() <= tolerance)
 
 
 def withoutSlivers(positions, faces, sources, normals):
@@ -1463,7 +1475,8 @@ def slitPolygon(positions, faces, sources, owners, dropped, index):
   face = faces[index]
   points = positions[face]
   spans = numpy.linalg.norm(points[:, None, :] - points[None, :, :], axis=2)
-  if (spans + numpy.eye(len(face)) * matchDistance * 2 <= matchDistance).any():
+  tolerance = keptTolerance(matchDistance, points.ravel())
+  if (spans + numpy.eye(len(face)) * tolerance * 2 <= tolerance).any():
     return None
   first, second = numpy.unravel_index(int(spans.argmax()), spans.shape)
   alongs = (points - points[first]) @ ((points[second] - points[first]) / spans[first, second])
@@ -2240,9 +2253,14 @@ def integrityProblems(sceneObject):
     ringRows, corners, weights = bridgeCaveData.ringData(sceneObject, name, record, tags)
     lining = tags == bridgeCaveData.liningTag
     for blockName, coordinates in blocks.items():
-      offRing = numpy.abs(numpy.einsum("rk,rkj->rj", weights, coordinates[corners]) - coordinates[ringRows]).max(initial=0.0)
-      if offRing > ringTolerance:
-        problems.append(f"cave '{name}': a ring vertex stands {offRing:.4g} off its plug triangle in {'the mesh' if not blockName else 'pass ' + repr(blockName)}")
+      offRing = numpy.abs(numpy.einsum("rk,rkj->rj", weights, coordinates[corners]) - coordinates[ringRows]).max(axis=1)
+      tolerance = keptTolerance(ringTolerance, numpy.concatenate([coordinates[ringRows], coordinates[corners].reshape(-1, 9)], axis=1))
+      if (offRing > tolerance).any():
+        worst = int(numpy.argmax(offRing - tolerance))
+        problems.append(
+          f"cave '{name}': a ring vertex stands {offRing[worst]:.4g} off its plug triangle in {'the mesh' if not blockName else 'pass ' + repr(blockName)}"
+          f" (single precision holds it within {tolerance[worst]:.2g} there)"
+        )
       if blockName and lining.any():
         moved = numpy.abs(coordinates[lining] - blocks[""][lining]).max()
         if moved > ringTolerance:
