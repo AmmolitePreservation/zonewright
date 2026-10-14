@@ -440,6 +440,10 @@ def testLaneFindingsAndLeaksPastMapReachsListAreStated(stageBlenderServer, tmp_p
   # The zone line overlaps both of the pool's boxes, one finding for each.
   overlaps = [(finding["zoneLine"], finding["swimBox"]) for finding in checked["findings"] if finding["finding"] == "zone line in a swim box"]
   assert overlaps == [("ATP_2_pool", "AWT_pool01"), ("ATP_2_pool", "AWT_pool02")], overlaps
+  # The lane judged counts its problems by kind first, and the pool's boxes by their body: every group reaches both.
+  lane = checked["containment"]
+  assert list(lane)[0] == "problems" and lane["problems"]["noneRegion"] == len(keepOuts)
+  assert lane["swimBoxes"] == [{"body": "pool", "boxes": 2, "boxesReachedBy": dict.fromkeys(playerScale.groupNames, 2), "unreached": [], "moreUnreached": 0}]
   assert findings["no zoneIn entries"]["message"].startswith("No zoneIn entry says where a neighbour's zone line lands players")
   # Only a body smaller than each group passes under the ramp, between its foot and the platform: one finding a group, the taller the
   # group the more of the ramp's underside it misses.

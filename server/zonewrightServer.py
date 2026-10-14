@@ -1528,7 +1528,8 @@ exportChecksHelp = (
   " make; a missing, packed, generated, or other-drive image, a non-DDS image whose sides are not powers of two, DDS data under another"
   " extension, two images that would share one DDS name; meshes without texture coordinates; a liquid"
   " material on anything but a water body; a mesh with surfacing layers whose modifiers change its faces; swim volumes a zone file"
-  " cannot hold (as getSwimVolumes lists them); boundaries that are not meshes or have no faces; zone lines a zone file cannot hold (a name not ATP_<number>_<label>,"
+  " cannot hold (as getSwimVolumes lists them, the first twenty and a count of the rest); boundaries that are not meshes or have no"
+  " faces; zone lines a zone file cannot hold (a name not ATP_<number>_<label>,"
   " a turned box, a box without size, region names that clash once lowercased); housing the server would refuse. A game export also"
   " refuses blockout materials (createMaterial blockout) on exported faces, pools and rivers whose swimming is undecided or changed"
   " since their boxes were accepted, missing view values (fogOn, minClip, maxClip, sky or sky \"none\" stated, and the fog's start, end, and density"
@@ -1682,10 +1683,10 @@ def clearCheckFolder(zone):
   " inspection (its main piece around the safe point, islands with whether players reach each, the largest listed, and paths probed from"
   " the safe point to each zone line, stored entry, and plot entrance within Peridot's 1,024 search nodes), and the rows (the zone_points"
   " numbers written and deleted, the ways in to add on the server), or says \"server files not built\" and names the failures why;"
-  " `containment` gives the lane it judged (computed or reused, its key, the constants with their sources, entries connected or not,"
-  " reached area, per region its reach, zone lines, plot entrances, and swim boxes reached or not, and the problems by kind) or why it was"
-  " not checked. A check never changes the record of zone_points rows exports wrote. Islands and probe failures are findings; a nav the"
-  " helper refuses is a failure." + exportChecksHelp
+  " `containment` gives the lane it judged (the problems counted by kind first, then computed or reused, its key, the constants with their"
+  " sources, entries connected or not, reached area, per region its reach, zone lines and plot entrances reached or not, and the swim"
+  " boxes by body as mapReach gives them) or why it was not checked. A check never changes the record of zone_points rows exports wrote."
+  " Islands and probe failures are findings; a nav the helper refuses is a failure." + exportChecksHelp
 ))
 async def checkExport(context: Context, path: str, purpose: str):
   archivePath, zone = exportTarget(path)
@@ -2897,9 +2898,9 @@ async def renderSketch(
   leaves its parent, and its floor strokes' outlines: level ways green, pads orange, rough ground brown dashed; the lowest run first,
   each over a pale floor of its own, so a run passing over another hides what lies under it), water (as players see it, not where a
   surface runs on tucked under its banks: blue, lava orange), swim (the swim volumes, dashed, cyan water and magenta lava, each
-  named inside itself where its name fits clear of the other labels, else by its number; `unnamedSwimVolumes` lists those in the
-  drawing left unnamed, to see closer), boundaries (red, named: walls as lines along their foot, lids and floors faintly filled),
-  zoneLines (their boxes faintly green, named), and, asked for, lane (where the body group bodyGroup reaches (else the group with the
+  named inside itself where its name fits clear of the other labels, else by its number; `unnamedSwimVolumes` lists the first twenty
+  in the drawing left unnamed, to see closer, and moreUnnamedSwimVolumes counts the rest), boundaries (red, named: walls as lines along
+  their foot, lids and floors faintly filled), zoneLines (their boxes faintly green, named), and, asked for, lane (where the body group bodyGroup reaches (else the group with the
   most clearance of those the zone is built for), as mapReach draws it without its problems
   and regions, over the regions' fills and the caves' pale floors and under the caves' walls: walk green, swim blue, water waded lined
   blue, slide orange, squeeze pink, taken by a zone line yellow, traps hatched orange, walkable floor never reached cross-hatched (alone,
@@ -2935,7 +2936,7 @@ async def renderSketch(
   return [Image(data=outputPath.read_bytes(), format="png"), {
     "outputPath": str(outputPath), "center": center, "width": width, "unitsPerPixel": round(width / drawn["size"][0], 4), "heightRange": base["heightRange"],
     "bandHeight": bandHeight, "gridStep": drawn["gridStep"], "sheetColors": drawn["sheetColors"],
-    "shapes": {sheet["sheet"]: len(sheet["shapes"]) for sheet in overlays["sheets"]}, "unnamedSwimVolumes": drawn["unnamedSwimVolumes"],
+    "shapes": {sheet["sheet"]: len(sheet["shapes"]) for sheet in overlays["sheets"]}, **unnamedSwimVolumes(drawn["unnamedSwimVolumes"]),
     "frameSize": drawn["size"], "caveEndsUnknown": sorted({cave["label"] for cave in overlays["caves"] if not cave["endsKnown"]}),
   } | ({} if laneState is None else {"laneState": laneState})]
 
@@ -3474,12 +3475,13 @@ async def buildSwimVolumes(context: Context, body: str, area: dict | None = None
   the cells it swims and wades), grouped while their tops stay within a unit of the
   surface, bottoms 4 under the deepest bed below them (stopping a unit over any open space under the bed, a cave below the water). They
   are named for the .zon regions they become (AWT_ water, ALV_ lava) and kept in "swimVolumes" as boxes to look at and adjust by hand
-  (transformObjects, duplicateObjects, deleteObjects; placeSwimVolume adds one). area ({"circle": ...} or {"polygon": ...}) builds only
-  inside it. A rebuild replaces the body's generated boxes there and refuses over boxes edited or placed by hand unless replaceEdited;
-  a body with no water deeper than players swim in is refused, changing nothing (mark it not swimmable), and so is an area holding
-  none, named in the refusal. The result gives the body's
-  state and findings (water deep enough to swim in left uncovered, a top away from the surface, ground rising to the top inside a box,
-  a box mostly without the body's water over it): things to look at, never errors, since a box need not match a surface."""
+  (transformObjects, duplicateObjects, deleteObjects; placeSwimVolume adds one; getSwimVolumes lists them). area ({"circle": ...} or
+  {"polygon": ...}) builds only inside it. A rebuild replaces the body's generated boxes there and refuses over boxes edited or placed by
+  hand unless replaceEdited; a body with no water deeper than players swim in is refused, changing nothing (mark it not swimmable), and
+  so is an area holding none, named in the refusal. The result gives the body's state and findings (water deep enough to swim in left
+  uncovered, a top away from the surface, ground rising to the top inside a box, a box mostly without the body's water over it): things
+  to look at, never errors, since a box need not match a surface; the first twenty of a kind are listed, the rest counted in
+  moreFindings; then how many boxes the body holds (boxes), how many were built, and how many replaced."""
   return await callBridge(context, "buildSwimVolumes", {"body": body, "area": area, "replaceEdited": replaceEdited})
 
 
@@ -3494,18 +3496,38 @@ async def placeSwimVolume(context: Context, name: str, liquid: str, minimum: lis
 @guardedTool()
 async def acceptSwimVolumes(context: Context, body: str):
   """Mark a body's swim volumes as made for the body as it now is: after its water or its bed changed and the boxes were looked at again
-  (renderView with swimVolumes, renderSketch's swim layer). Hand edits stay as they are."""
+  (renderView with swimVolumes, renderSketch's swim layer). Hand edits stay as they are. The result gives the body's state and findings
+  as buildSwimVolumes does, and how many boxes it holds (boxes), every one of them accepted."""
   return await callBridge(context, "acceptSwimVolumes", {"body": body})
+
+
+# getSwimVolumes lists the volumes in its answer up to this many, else in a file it names: a river of a thousand boxes would fill the
+# answer.
+swimVolumesListed = 20
 
 
 @guardedTool()
 async def getSwimVolumes(context: Context, name: str | None = None):
-  """The swim volumes (or one by name), each with its liquid, body, corners, and whether it was edited or placed by hand; every pool and
-  river's swim state (boxed; changed since its boxes were accepted; notSwimmable, as editWater's swimmable false marks a fountain or a
-  trickle; undecided) with its findings (as buildSwimVolumes gives them: a box left over a drained or moved basin is mostly without
-  water over it); and any errors a zone file cannot hold (a box turned or without size, names that clash once lowercased, a prefix
-  against its liquid, a body gone, a box of a body marked not swimmable), which export refuses."""
-  return await callBridge(context, "getSwimVolumes", {"name": name})
+  """Any errors a zone file cannot hold (a box turned or without size, names that clash once lowercased, a prefix against its liquid, a
+  body gone, a box of a body marked not swimmable), which export refuses, the first twenty listed and the rest counted in moreErrors;
+  every pool and river's swim state (boxed; changed since its boxes were accepted; notSwimmable, as editWater's swimmable false marks a
+  fountain or a trickle; undecided) with its findings as buildSwimVolumes gives them (a box left over a drained or moved basin is mostly
+  without water over it) and how many boxes it holds; and the swim volumes (or one by name), each with its liquid, body, corners, and
+  whether it was edited or placed by hand: volumeCount counts them, and more than twenty are listed in volumesFile (JSON, under the
+  tooling root's renders) instead of volumes."""
+  listed = await callBridge(context, "getSwimVolumes", {"name": name})
+  volumes = listed.pop("volumes")
+  result = listed | {"volumeCount": len(volumes)}
+  if len(volumes) <= swimVolumesListed:
+    return result | {"volumes": volumes}
+  volumesPath = newRenderPath().with_suffix(".json")
+  volumesPath.write_text(json.dumps(volumes))
+  return result | {"volumesFile": str(volumesPath)}
+
+
+def unnamedSwimVolumes(unnamed):
+  """The boxes a plan left unnamed, the first swimVolumesListed, and how many more."""
+  return {"unnamedSwimVolumes": unnamed[:swimVolumesListed], "moreUnnamedSwimVolumes": max(0, len(unnamed) - swimVolumesListed)}
 
 
 @guardedTool()
@@ -3739,23 +3761,25 @@ async def mapReach(
   unreached), water, swim boxes dashed over the fill, boundaries red, region outlines in their access colors under them, and the problems
   ringed (round the seed or plot mark they lie on) and numbered over their rings, with a legend band under the plan naming what it shows
   and the relief (plan.frameSize is the plan's own size in pixels; the whole zone is framed with a fifth of its size to spare;
-  plan.unnamedSwimVolumes the boxes in it too small for their names). Picture 2 (problemViews, when there are
-  problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
+  plan.unnamedSwimVolumes the first twenty boxes in it too small for their names, plan.moreUnnamedSwimVolumes the rest). Picture 2
+  (problemViews, when there are problems): up to eight client-shaded views, the first problem of each kind, then the second of each, and so on, each looking down at
   its problem (ringed in the middle of the view) from a clear sight framing it, the eye raised no more than it must be and turned from
-  the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives each group's constants (value and
-  source), what is not modelled and the lanes' limits, reachGrid, whether the lanes were computed or reused and the seconds, the
-  groups the zone is built for and the plan's group, each entry and per group whether it is connected (reached from the safe point and
-  reaching back), per group the reached area by label, per region its access, builtFor, and per group the reached share of its play
-  floor and unreached play floor (walkable floor open space joins to the lane, never a boundary's top or floor under the underworld),
-  the groups that reach each zone line, plot entrance, and swim box (a box players walk through is reached), and the problems,
-  numbered, each with its kind, center, extent, area or length, region, and the groups it concerns: leaks (voidEdge, belowUnderworld,
-  noneRegion, outsideRegions; any group's lane), disconnectedEntry, unreachedPlot, trap, viewRegion, unreachedZoneLine, unreachedSwim,
+  the reached floor nearest it, labelled with its number and kind; and the plan. The JSON gives first the problems, numbered, each with
+  its kind, center, extent, area or length, region, and the groups it concerns: leaks (voidEdge, belowUnderworld, noneRegion,
+  outsideRegions; any group's lane), disconnectedEntry, unreachedPlot, trap, viewRegion, unreachedZoneLine, unreachedSwim,
   unreachedPlayFloor, and undecidedWater (a pool or river without swim boxes whose bed is walked); a problem some groups pass and others
   do not is judged against the groups its region (else the zone) is built for: verdict "fails" where a group it is built for fails it
   (a game export refuses a disconnected entry or an unreached plot so), "finding" where only other groups do, with failingGroups and
-  builtFor; the largest twenty of a kind are listed, the rest counted in moreProblems. Refused:
-  no seeds, an entry off its footing, a seed with no lane node at its footing, the helper missing or stale (run syncTooling), no
-  collision triangles, and a grid too large for the helper."""
+  builtFor; the largest twenty of a kind are listed, the rest counted in moreProblems. Then each group's constants (value and source),
+  what is not modelled and the lanes' limits, reachGrid, whether the lanes were computed or reused and the seconds, the groups the zone
+  is built for and the plan's group, each entry and per group whether it is connected (reached from the safe point and reaching back),
+  per group the reached area by label, per region its access, builtFor, and per group the reached share of its play floor and
+  unreached play floor (walkable floor open space joins to the lane, never a boundary's top or floor under the underworld), the groups
+  that reach each zone line and plot entrance, and the swim boxes by the body they belong to (body null for boxes standing alone): how
+  many it holds, how many of them each group reaches (boxesReachedBy; a box players walk through is reached), and the boxes some group
+  does not reach (the unreachedSwim problems) with the groups that do, the first twenty listed and the rest counted in moreUnreached.
+  Refused: no seeds, an entry off its footing, a seed with no lane node at its footing, the helper missing or stale (run syncTooling),
+  no collision triangles, and a grid too large for the helper."""
   if center is not None and (len(center) != 2 or not all(math.isfinite(value) for value in center)):
     raise ToolError(f"center is [x, y], got {center}")
   if width is not None and not (math.isfinite(width) and width > 0):
@@ -3778,7 +3802,7 @@ async def mapReach(
   result = playerReach.report(lanes, description, analysis, status, seconds)
   result["plan"] = {
     "outputPath": str(planPath), "center": center, "width": round(planWidth, 2), "unitsPerPixel": round(planWidth / drawn["size"][0], 4), "level": level,
-    "frameSize": drawn["size"], "unnamedSwimVolumes": drawn["unnamedSwimVolumes"],
+    "frameSize": drawn["size"], **unnamedSwimVolumes(drawn["unnamedSwimVolumes"]),
   }
   images = [Image(data=planPath.read_bytes(), format="png")]
   result["problemSheet"] = None

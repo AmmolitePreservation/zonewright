@@ -358,7 +358,7 @@ def sceneDescription(inputPath):
   swimBoxes = []
   for box in scene["swimBoxes"]:
     low, high = zoneBox(box["center"], box["halfExtents"])
-    swimBoxes.append({"name": box["name"], "low": low, "high": high, "liquid": box["liquid"]})
+    swimBoxes.append({"name": box["name"], "low": low, "high": high, "liquid": box["liquid"], "body": box["body"]})
   return triangles, boundary, {
     "swimBoxes": swimBoxes, "zoneLines": zoneLines, "seeds": seeds, "plotEntrances": plots, "regions": scene["regions"],
     "builtFor": scene["builtFor"], "underworld": scene["underworld"], "undecidedBodies": bodies, "notFollowed": scene["notFollowed"],
@@ -426,7 +426,7 @@ def laneFromServerFiles(mapBytes, waterBytes, seeds, toolingRoot, reportProgress
     low, high = zoneBox(record["position"], numpy.asarray(record["halfExtents"]) * numpy.asarray(record["scale"]))
     name = f".wtr record {index} ({serverMapFiles.waterRegionTypeNames.get(record['type'], record['type'])})"
     if record["type"] in (1, 2):
-      swimBoxes.append({"name": name, "low": low, "high": high, "liquid": "water" if record["type"] == 1 else "lava"})
+      swimBoxes.append({"name": name, "low": low, "high": high, "liquid": "water" if record["type"] == 1 else "lava", "body": None})
     elif record["type"] == 3:
       zoneLines.append({"name": name, "low": low, "high": high, "landing": None, "target": None})
     else:
@@ -757,9 +757,9 @@ builtForFailureKinds = ("disconnectedEntry", "unreachedPlot")
 
 def analyse(lanes, description, shownGroup):
   """Everything mapReach reports of the body groups' lanes ({group: Lane}): per group, entries connected or not, reached area by label,
-  per-region reach, and zone lines, plot entrances, and swim boxes reached or not; and the numbered problems, each naming the groups it
-  concerns and, where groups can miss it, judged against the groups its region (else the zone) is built for; with shownGroup's node
-  arrays, which the plan draws from."""
+  per-region reach, and zone lines and plot entrances reached or not, and the swim boxes by body (swimBoxSummary); and the numbered
+  problems, each naming the groups it concerns and, where groups can miss it, judged against the groups its region (else the zone) is
+  built for; with shownGroup's node arrays, which the plan draws from."""
   regions = description["regions"]
   underworld = description["underworld"]
   shown, regionOfNode, nodeAccess = None, None, None
@@ -804,10 +804,10 @@ def analyse(lanes, description, shownGroup):
   for index, plot in enumerate(marksBy[shownGroup]["plotEntrances"]):
     reached = byGroup("plotEntrances", "reached", index)
     plots.append({key: plot[key] for key in plot if key != "reached"} | {"reachedBy": [name for name in playerScale.groupNames if reached[name]]})
-  swimBoxes = []
-  for index, box in enumerate(marksBy[shownGroup]["swimBoxes"]):
+  boxesReachedBy = []
+  for index in range(len(marksBy[shownGroup]["swimBoxes"])):
     reached = byGroup("swimBoxes", "reached", index)
-    swimBoxes.append({"name": box["name"], "reachedBy": [name for name in playerScale.groupNames if reached[name]]})
+    boxesReachedBy.append([name for name in playerScale.groupNames if reached[name]])
   zoneLines = []
   for index, line in enumerate(marksBy[shownGroup]["zoneLines"]):
     reached = byGroup("zoneLines", "reached", index)
@@ -843,11 +843,11 @@ def analyse(lanes, description, shownGroup):
       center = [round((a + b) / 2, 1) for a, b in zip(box["low"], box["high"])]
       found = {"kind": "unreachedZoneLine", "zoneLine": line["name"], "center": center, "region": regionAt(regions, center)}
       problems["unreachedZoneLine"].append(judgedProblem(found, line["reachedBy"], description))
-  for box, reported in zip(description["swimBoxes"], swimBoxes):
-    if len(reported["reachedBy"]) < len(playerScale.groupNames):
+  for box, groups in zip(description["swimBoxes"], boxesReachedBy):
+    if len(groups) < len(playerScale.groupNames):
       center = [round((a + b) / 2, 1) for a, b in zip(box["low"], box["high"])]
       found = {"kind": "unreachedSwim", "swimBox": box["name"], "center": center, "region": regionAt(regions, center)}
-      problems["unreachedSwim"].append(judgedProblem(found, reported["reachedBy"], description))
+      problems["unreachedSwim"].append(judgedProblem(found, groups, description))
   for found in groupedProblems("unreachedPlayFloor", lane, missedAny, shown, regionOfNode, regions, missedPlayBy):
     problems["unreachedPlayFloor"].append(judgedProblem(found, [name for name in playerScale.groupNames if name not in found["groups"]], description))
   for body in description["undecidedBodies"]:
@@ -872,9 +872,27 @@ def analyse(lanes, description, shownGroup):
     problem["number"] = number
   return {
     "group": shownGroup, "nodes": shown, "regionOfNode": regionOfNode, "fullBy": fullBy,
-    "entries": entries, "reachedArea": areaBy, "regions": perRegion, "zoneLines": zoneLines, "plotEntrances": plots, "swimBoxes": swimBoxes,
-    "problems": listed, "moreProblems": more,
+    "entries": entries, "reachedArea": areaBy, "regions": perRegion, "zoneLines": zoneLines, "plotEntrances": plots,
+    "swimBoxes": swimBoxSummary(description["swimBoxes"], boxesReachedBy), "problems": listed, "moreProblems": more,
   }
+
+
+def swimBoxSummary(boxes, boxesReachedBy):
+  """The swim boxes by the body each belongs to (None for a box standing alone or read from a .wtr), each body with how many boxes it
+  holds, how many of them each group reaches, and the boxes some group does not reach with the groups that do, the first
+  problemsListed listed and the rest counted: a river of a thousand boxes would fill the answer."""
+  byBody = {}
+  for box, reachedBy in zip(boxes, boxesReachedBy):
+    byBody.setdefault(box["body"], []).append((box["name"], reachedBy))
+  summary = []
+  for body in sorted(byBody, key=lambda name: (name is None, name or "")):
+    held = byBody[body]
+    unreached = [{"name": name, "reachedBy": reachedBy} for name, reachedBy in held if len(reachedBy) < len(playerScale.groupNames)]
+    summary.append({
+      "body": body, "boxes": len(held), "boxesReachedBy": {group: sum(group in reachedBy for _, reachedBy in held) for group in playerScale.groupNames},
+      "unreached": unreached[:problemsListed], "moreUnreached": max(0, len(unreached) - problemsListed),
+    })
+  return summary
 
 
 def groupsReaching(lanes, node):
@@ -974,14 +992,13 @@ def laneTerms(lane, description):
 
 
 def report(lanes, description, analysis, status, seconds):
-  """mapReach's JSON: what the lanes used and cannot see, and what they found, per body group."""
+  """mapReach's JSON: what the lanes found, per body group, the problems first; then what the lanes used and cannot see."""
   shown = lanes[analysis["group"]]
-  return laneTerms(shown, description) | {
+  return {"problems": analysis["problems"], "moreProblems": analysis["moreProblems"]} | laneTerms(shown, description) | {
     "reachGrid": reachGrid, "lane": status, "seconds": seconds, "laneFiles": {name: str(lane.path) for name, lane in lanes.items()}, "nodes": shown.nodeCount,
     "builtFor": list(playerScale.builtForAt(description.get("builtFor"), None)), "planGroup": analysis["group"],
     "entries": analysis["entries"], "notFollowed": description["notFollowed"], "reachedArea": analysis["reachedArea"], "regions": analysis["regions"],
     "zoneLines": analysis["zoneLines"], "plotEntrances": analysis["plotEntrances"], "swimBoxes": analysis["swimBoxes"],
-    "problems": analysis["problems"], "moreProblems": analysis["moreProblems"],
   }
 
 

@@ -292,6 +292,8 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
   assert result.is_error is False, result.content[0].text
   assert [content.type for content in result.content] == ["image", "text"]
   reached = json.loads(result.content[1].text)
+  # The problems lead the answer, so a long one cut short keeps them.
+  assert list(reached)[:2] == ["problems", "moreProblems"]
   lane = playerReach.Lane(reached["laneFiles"]["medium"])
   nodes = playerReach.Nodes(lane)
   assert labelsAt(nodes) == {name: label for name, (_, label) in (probes | wetProbes).items()}
@@ -337,11 +339,11 @@ def testLaneLabelsTheCourse(stageBlenderServer, tmp_path):
     {"name": "ATP_5_catch", "reachedBy": every},
   ]
   # The stacked water is sized by the medium group's swim depth, shallower than the large group swims in: it wades the lower box's floor
-  # and never rises into the upper box.
-  assert reached["swimBoxes"] == [
-    {"name": f"AWT_{name}", "reachedBy": ["small", "medium"] if name == "stackHigh" else every}
-    for name in ("floating", "ford", "pool", "shallow", "stackHigh", "stackLow")
-  ]
+  # and never rises into the upper box. The boxes stand alone, tied to no body.
+  assert reached["swimBoxes"] == [{
+    "body": None, "boxes": 6, "boxesReachedBy": {"small": 6, "medium": 6, "large": 5},
+    "unreached": [{"name": "AWT_stackHigh", "reachedBy": ["small", "medium"]}], "moreUnreached": 0,
+  }]
   assert [(plot["name"], plot["reachedBy"]) for plot in reached["plotEntrances"]] == [("1 Open Street", every), ("2 Closed Street", [])]
   assert reached["reachGrid"] == playerReach.reachGrid and reached["builtFor"] == every and reached["planGroup"] == "large"
   assert set(reached["constants"]) == set(every) | {"containmentHeadroom"}
@@ -717,3 +719,19 @@ def testRoomBuiltForTheSmallGroupMakesWhatOnlyItReachesAFinding(stageBlenderServ
   failing = [problem for problem in everyRoom["problems"] if problem["kind"] == "unreachedPlot"]
   assert [(problem["verdict"], problem["builtFor"]) for problem in failing] == [("fails", every)] and playerReach.isFailure(failing[0])
   assert [region["builtFor"] for region in smallRoom["regions"]] == [every, ["small"]]
+
+
+def testSwimBoxesAreCountedByBodyListingTheUnreachedUpToALimit():
+  listed = playerReach.problemsListed
+  river = [{"name": f"AWT_river{index:03d}", "body": "river"} for index in range(listed + 5)]
+  every = list(playerScale.groupNames)
+  # The large group reaches only the river's first two boxes; the pond standing alone is reached by every group.
+  reachedBy = [every] + [every if index < 2 else ["small", "medium"] for index in range(len(river))]
+  summary = playerReach.swimBoxSummary([{"name": "AWT_pond", "body": None}] + river, reachedBy)
+  assert summary == [
+    {
+      "body": "river", "boxes": listed + 5, "boxesReachedBy": {"small": listed + 5, "medium": listed + 5, "large": 2},
+      "unreached": [{"name": f"AWT_river{index:03d}", "reachedBy": ["small", "medium"]} for index in range(2, 2 + listed)], "moreUnreached": 3,
+    },
+    {"body": None, "boxes": 1, "boxesReachedBy": dict.fromkeys(every, 1), "unreached": [], "moreUnreached": 0},
+  ]

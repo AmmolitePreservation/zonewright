@@ -746,7 +746,12 @@ def checkZoneExport(purpose, exportName, client):
   structures, placedTriangles = structureReport(shipped, placed)
   stale = bridgeStructures.staleStructures()
   failures += missingKitStructures(stale)
-  for label, errors in (("swim volume", bridgeSwim.structuralErrors()), ("boundary", bridgeBoundaries.boundaryErrors()), ("zone line", bridgeBoundaries.zoneLineErrors())):
+  swimErrors = bridgeSwim.structuralErrors()
+  failures += [{"failure": "swim volume"} | error for error in swimErrors[:bridgeSwim.findingsListed]]
+  if len(swimErrors) > bridgeSwim.findingsListed:
+    more = len(swimErrors) - bridgeSwim.findingsListed
+    failures.append({"failure": "swim volume", "more": more, "message": f"{more} more swim volumes a zone file cannot hold (getSwimVolumes counts them)"})
+  for label, errors in (("boundary", bridgeBoundaries.boundaryErrors()), ("zone line", bridgeBoundaries.zoneLineErrors())):
     failures += [{"failure": label} | error for error in errors]
   decisions = bridgeSwim.swimDecisions()
   try:

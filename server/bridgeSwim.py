@@ -29,6 +29,9 @@ editedTolerance = 1e-3
 down = mathutils.Vector((0.0, 0.0, -1.0))
 findingSamples = 8
 dryShare = 0.5
+# Findings about single boxes, and errors, past this many of a kind are counted, not listed: a river of a thousand boxes would fill the
+# answer.
+findingsListed = 20
 
 
 def swimBoxes():
@@ -227,13 +230,11 @@ def buildSwimVolumes(body, area, replaceEdited):
   fingerprint = bodyFingerprint(bodyObject, bodyCells(bodyObject, ground)[0])
   taken = takenNames()
   stem = bridgeWater.fileStem(body)
-  built = []
-  for box in cellBoxes(cells, spacing):
-    name = freeName(volumePrefixes[liquid], stem, taken)
-    boxObject(name, liquid, body, box["center"], box["halfExtents"], box, fingerprint)
-    built.append(name)
+  built = cellBoxes(cells, spacing)
+  for box in built:
+    boxObject(freeName(volumePrefixes[liquid], stem, taken), liquid, body, box["center"], box["halfExtents"], box, fingerprint)
   bpy.context.view_layer.update()
-  return {"body": body, "replaced": len(inScope), "built": built, "shallowCells": shallow, "groups": byGroup} | describeBody(bodyObject, ground)
+  return {"body": body} | describeBody(bodyObject, ground) | {"built": len(built), "replaced": len(inScope), "shallowCells": shallow, "groups": byGroup}
 
 
 def placeSwimVolume(name, liquid, minimum, maximum, body):
@@ -270,7 +271,7 @@ def acceptSwimVolumes(body):
   fingerprint = bodyFingerprint(bodyObject, bodyCells(bodyObject, ground)[0])
   for box in boxes:
     box[bridgeMeshAccess.swimProperty] = json.dumps(readBox(box) | {"fingerprint": fingerprint})
-  return {"body": body, "accepted": [box.name for box in boxes]} | describeBody(bodyObject, ground)
+  return {"body": body} | describeBody(bodyObject, ground)
 
 
 def describeBox(box):
@@ -283,14 +284,15 @@ def describeBox(box):
 
 
 def describeBody(body, ground):
-  """A body's swim state (boxed, changed since accepted, not swimmable, undecided) and findings to look at, never errors: cells deep
-  enough to swim in left uncovered, tops away from the surface, boxes mostly over dry ground or without water over them."""
+  """A body's swim state (boxed, changed since accepted, not swimmable, undecided), findings to look at, never errors (cells deep
+  enough to swim in left uncovered, tops away from the surface, boxes mostly over dry ground or without water over them; listedFindings),
+  and how many boxes it holds."""
   definition = bridgeWater.readDefinition(body)
   boxes = [box for box in swimBoxes() if readBox(box)["body"] == body.name]
   if definition.get("swimmable") is False:
-    return {"state": "notSwimmable", "boxes": [box.name for box in boxes], "findings": []}
+    return {"state": "notSwimmable", "findings": [], "moreFindings": {}, "boxes": len(boxes)}
   if not boxes:
-    return {"state": "undecided", "boxes": [], "findings": []}
+    return {"state": "undecided", "findings": [], "moreFindings": {}, "boxes": 0}
   cells, _, spacing, _ = bodyCells(body, ground)
   fingerprint = bodyFingerprint(body, cells)
   state = "boxed" if all(readBox(box)["fingerprint"] == fingerprint for box in boxes) else "changed"
@@ -314,7 +316,21 @@ def describeBody(body, ground):
     unwatered = [[round(float(x), 1), round(float(y), 1)] for x, y in samples if not waterOver(surface, ground, x, y, above)]
     if len(unwatered) >= dryShare * len(samples):
       findings.append({"finding": "mostly without water over it", "box": box.name, "at": unwatered[:findingSamples]})
-  return {"state": state, "boxes": [box.name for box in boxes], "findings": findings}
+  listed, more = listedFindings(findings)
+  return {"state": state, "findings": listed, "moreFindings": more, "boxes": len(boxes)}
+
+
+def listedFindings(findings):
+  """The first findingsListed findings of each kind, and how many more of each kind: ({kind: {count}})."""
+  counts, listed, more = {}, [], {}
+  for finding in findings:
+    kind = finding["finding"]
+    counts[kind] = counts.get(kind, 0) + 1
+    if counts[kind] <= findingsListed:
+      listed.append(finding)
+    else:
+      more[kind] = {"count": counts[kind] - findingsListed}
+  return listed, more
 
 
 def waterOver(surface, ground, x, y, above):
@@ -328,19 +344,21 @@ def insideBox(x, y, z, center, half):
 
 
 def getSwimVolumes(name):
-  """Every swim volume (or one) and every pool and river's swim state with its findings."""
+  """The errors a zone file cannot hold (the first findingsListed, and how many more), every pool and river's swim state with its
+  findings and box count, and every swim volume (or one)."""
   bpy.context.view_layer.update()
   boxes = swimBoxes()
   if name is not None:
     boxes = [box for box in boxes if box.name == name]
     if not boxes:
-      raise ValueError(f"No swim volume '{name}'; swim volumes: {[box.name for box in swimBoxes()]}")
+      raise ValueError(f"No swim volume '{name}' among the {len(swimBoxes())} swim volumes (getSwimVolumes lists them)")
   bodies = swimBodies()
   ground = bridgeWater.Ground() if bodies else None
+  errors = [error["message"] for error in structuralErrors()]
   return {
-    "volumes": [describeBox(box) for box in boxes],
+    "errors": errors[:findingsListed], "moreErrors": max(0, len(errors) - findingsListed),
     "bodies": [{"body": body.name} | describeBody(body, ground) for body in bodies] if name is None else [],
-    "errors": [error["message"] for error in structuralErrors()],
+    "volumes": [describeBox(box) for box in boxes],
   }
 
 
@@ -380,7 +398,8 @@ def swimRegions():
   bpy.context.view_layer.update()
   errors = structuralErrors()
   if errors:
-    raise ValueError("Swim volumes a zone file cannot hold: " + "; ".join(error["message"] for error in errors))
+    more = f"; and {len(errors) - findingsListed} more (getSwimVolumes)" if len(errors) > findingsListed else ""
+    raise ValueError("Swim volumes a zone file cannot hold: " + "; ".join(error["message"] for error in errors[:findingsListed]) + more)
   regions = []
   for box in swimBoxes():
     center, halfExtents = boxBounds(box)

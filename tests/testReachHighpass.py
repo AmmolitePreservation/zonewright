@@ -53,7 +53,7 @@ def testHighpassHoldsZoneLinesAreReachedFromItsSafePoint(recastToolingRoot, tmp_
   # Every one of the five zone lines in Peridot's .wtr is reached from its safe point by every body group, and both pools are swum.
   every = list(playerScale.groupNames)
   assert [(line["name"], line["reachedBy"]) for line in analysis["zoneLines"]] == [(f".wtr record {index} (ZoneLine)", every) for index in range(2, 7)]
-  assert [(box["name"], box["reachedBy"]) for box in analysis["swimBoxes"]] == [(".wtr record 0 (Water)", every), (".wtr record 1 (Water)", every)]
+  assert analysis["swimBoxes"] == [{"body": None, "boxes": 2, "boxesReachedBy": dict.fromkeys(every, 2), "unreached": [], "moreUnreached": 0}]
   nodes = analysis["nodes"]
   # And the lane does not flood everything: the backdrop mountains' tops stay out of reach.
   reached = numpy.flatnonzero(nodes.reached & ~nodes.wet)

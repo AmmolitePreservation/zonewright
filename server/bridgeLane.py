@@ -72,7 +72,7 @@ def laneInput(outputPath):
     positions, triangles = bridgeMeshAccess.worldTriangles([body])
     arrays[f"undecided{index}"] = positions[triangles].astype(numpy.float32)
   description = {
-    "swimBoxes": [region | {"liquid": bridgeSwim.readBox(bpy.data.objects[region["name"]])["liquid"]} for region in bridgeSwim.swimRegions()],
+    "swimBoxes": [region | {key: bridgeSwim.readBox(bpy.data.objects[region["name"]])[key] for key in ("liquid", "body")} for region in bridgeSwim.swimRegions()],
     "zoneLines": zoneLineRecords(zone.get("shortName")),
     "entries": entries,
     "notFollowed": listed["notFollowed"],

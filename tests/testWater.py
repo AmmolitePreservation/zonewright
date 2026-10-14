@@ -432,7 +432,8 @@ def testWaterExportsTheClientsShadersAndSwimVolumes(stageBlenderServer, tmp_path
     await session.expectSuccess("saveFile", {"path": str(tmp_path / "testwater.blend")})
     undecided = await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
     refusedForGame = await session.expectSuccess("checkExport", {"path": str(archivePath), "purpose": "game"})
-    boxes = await session.expectSuccess("buildSwimVolumes", {"body": "pool"})
+    await session.expectSuccess("buildSwimVolumes", {"body": "pool"})
+    boxes = [volume["name"] for volume in (await session.expectSuccess("getSwimVolumes", {}))["volumes"]]
     await session.expectSuccess("saveFile", {})
     exported = await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
     return missing, stray, undecided, refusedForGame, boxes, exported
@@ -446,7 +447,7 @@ def testWaterExportsTheClientsShadersAndSwimVolumes(stageBlenderServer, tmp_path
   assert [finding for finding in undecided["findings"] if finding["finding"].startswith("swim")] == [{"finding": "swim undecided", "body": "pool", "at": [0.0, 0.0, -5.0]}]
   # A game export refuses a pool whose swimming is undecided.
   assert {"failure": "swim undecided", "body": "pool", "at": [0.0, 0.0, -5.0]} in refusedForGame["failures"]
-  assert exported["regions"] == [region["name"] for region in zone["regions"]] == boxes["built"] and exported["swim"] == {"undecided": [], "changed": []}
+  assert exported["regions"] == [region["name"] for region in zone["regions"]] == boxes and exported["swim"] == {"undecided": [], "changed": []}
   assert all(abs(region["center"][2] + region["halfExtents"][2] - -5) <= 1 and region["rotation"] == (0.0, 0.0, 0.0) for region in zone["regions"])
   pool, fall = (eqgFiles.parseModel(archive.read(f"obj_{name}.mod"), name)["materials"][0] for name in ("pool", "fall"))
   assert pool["shader"] == "Opaque_MaxWater.fx" and fall["shader"] == "Opaque_MaxWaterFall.fx"
@@ -790,7 +791,8 @@ def testFallsAndRiversRunTheirTexturesAsTheClientsDoAndExportSo(stageBlenderServ
     none = await session.expectError("editWater", {"name": "fall", "acrossRepeats": 0})
     await session.expectSuccess("editWater", {"name": "fall", "acrossRepeats": 1})
     ribbon = await session.expectSuccess("runWater", {"name": "ribbon", "path": [[-60, 118, ribbonLevel], [-60, 64, ribbonLevel]], "reach": 12, "material": "falls"})
-    ribbonBoxes = await session.expectSuccess("buildSwimVolumes", {"body": "ribbon"})
+    await session.expectSuccess("buildSwimVolumes", {"body": "ribbon"})
+    ribbonBoxes = [volume["name"] for volume in (await session.expectSuccess("getSwimVolumes", {}))["volumes"] if volume["body"] == "ribbon"]
     # A strand 8 wide, its texture spanning it once and repeating every 64 down its drop: a texel 8 times longer down it than across.
     await session.expectSuccess("pourWaterfall", {"name": "strand", "lip": [[60, 0, 41], [68, 0, 41]], "bottom": -8, "material": "falls"})
     await groundForExport(session, tmp_path)
@@ -814,7 +816,7 @@ def testFallsAndRiversRunTheirTexturesAsTheClientsDoAndExportSo(stageBlenderServ
   assert numpy.allclose(river[:, 4], -(118 - river[:, 1]) / 20) and numpy.allclose(river[:, 3], -river[:, 0] / 20)
   # A river may be a waterfall ribbon over its bed, as Crescent Reach's are; where it stands deeper than minimumSwimDepth over its
   # channel's floor, players swim in it as water.
-  assert ribbon["material"] == "falls" and ribbonBoxes["built"] and all(name.startswith("AWT_") for name in ribbonBoxes["built"])
+  assert ribbon["material"] == "falls" and ribbonBoxes and all(name.startswith("AWT_") for name in ribbonBoxes)
   archive = eqArchive.EQArchive(archivePath)
   # Exported, the client's v counts down the drop and downstream, as most client falls and Brell's Rest's and Beasts' Domain's rivers
   # run it, so the client's own slides flow their way.

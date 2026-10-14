@@ -437,12 +437,12 @@ def containment(inputs, underworld, toolingRoot, reportProgress):
       said = f"{rest['count']} more {kind} problems than mapReach lists (the largest {playerReach.problemsListed} of each kind)"
       failures.append({"failure": kind, "more": rest, "message": said})
   summary = {
-    "lane": status, "seconds": seconds, "laneFiles": {name: str(found.path) for name, found in lanes.items()},
+    "problems": problemCounts(analysis), "lane": status, "seconds": seconds, "laneFiles": {name: str(found.path) for name, found in lanes.items()},
     "laneKeys": {name: found.path.stem.removeprefix(f"lane-{name}-") for name, found in lanes.items()},
     "builtFor": list(playerScale.builtForAt(description["builtFor"], None)),
     "reachGrid": playerReach.reachGrid, "constants": playerReach.constantsReport(), "entries": analysis["entries"],
     "notFollowed": description["notFollowed"], "reachedArea": analysis["reachedArea"], "regions": analysis["regions"],
-    "zoneLines": analysis["zoneLines"], "plotEntrances": analysis["plotEntrances"], "swimBoxes": analysis["swimBoxes"], "problems": problemCounts(analysis),
+    "zoneLines": analysis["zoneLines"], "plotEntrances": analysis["plotEntrances"], "swimBoxes": analysis["swimBoxes"],
   }
   return summary, failures, laneFindings(lane, description, analysis), analysis["nodes"]
 
