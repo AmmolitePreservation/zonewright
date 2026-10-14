@@ -1069,11 +1069,12 @@ def sectionCuts(start, end, path, cave, bottom, top, layers):
   if "swim" in layers:
     for box in bridgeSwim.swimBoxes():
       (low, high) = bridgeSwim.boxCorners(box)
+      spec = bridgeSwim.readBox(box)
       for leg in legs:
         crossing = boxCrossing(low, high, leg.start, leg.along)
         span = None if crossing is None else clippedSpan(crossing, leg.length)
         if span is not None:
-          cuts["swim"].append({"name": box.name, "liquid": bridgeSwim.readBox(box)["liquid"], "s": [rounded(value + leg.offset, 2) for value in span], "z": [low[2], high[2]]})
+          cuts["swim"].append({"name": box.name, "body": spec["body"], "liquid": spec["liquid"], "s": [rounded(value + leg.offset, 2) for value in span], "z": [low[2], high[2]]})
   if "boundaries" in layers:
     boundaries = [boundary for boundary in bridgeBoundaries.boundaryObjects() if boundary.type == "MESH"]
     cuts["boundaries"] = [entry | {"kind": bridgeBoundaries.readSpec(bpy.data.objects[entry["name"]], bridgeMeshAccess.boundaryProperty)["kind"]} for entry in cutObjects(boundaries)]

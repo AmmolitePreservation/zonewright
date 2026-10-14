@@ -515,12 +515,13 @@ def testSectionAlongACaveDrawsItsWalkedFloor(stageBlenderServer, tmp_path):
   image, summary = stageBlenderServer.session(steps)
   Image.open(io.BytesIO(image)).save(tmp_path / "caveSection.png")
   cut = json.loads(Path(summary["laneState"]["laneCut"]).read_text())
-  # Along the run's middle the floor is walked from the mouth to the room's end, each bar within the floor's breakup of its designed height.
-  floors = [entry for entry in summary["caves"] if entry["run"] == "main"][0]["floor"]
+  # Along the run's middle the floor is walked from the mouth to the room's end, every 2 units a bar within the floor's breakup of its
+  # designed height (the floor given as the points where its grade turns).
+  [floor] = [entry for entry in summary["caves"] if entry["run"] == "main"][0]["floor"]
+  stations, heights = numpy.array(floor).T
   walked = [mark for mark in cut["bars"] if mark["label"] == "walk"]
-  for s0, z0, s1, z1 in floors:
-    middle = (s0 + s1) / 2
-    designed = z0 + (z1 - z0) * (middle - s0) / (s1 - s0)
+  for middle in numpy.arange(stations[0] + 1, stations[-1], 2):
+    designed = float(numpy.interp(middle, stations, heights))
     holding = [mark for mark in walked if mark["s"][0] <= middle <= mark["s"][1]]
     assert any(abs(mark["z"] - designed) <= hall["breakup"]["amplitude"] + cellHeight for mark in holding), (middle, designed, holding)
 

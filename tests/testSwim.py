@@ -118,11 +118,13 @@ def testBoxesStopAboveACaveUnderTheBedAndDrawInViews(stageBlenderServer, tmp_pat
   overWater = (boxedPixels - plainPixels)[230:290, 330:630].reshape(-1, 3)
   assert overWater[:, 1].mean() > 30 and overWater[:, 1:].std(axis=0).max() < 6
   assert Image.open(io.BytesIO(plan)).size == (1440, 810)
-  # The section along the x axis cuts the water at -5 and every box from the surface down, the middle box (over the hollow, 120 from
-  # the section's start) stopping at -21 above the hollow's ceiling, which shows as ground below it.
+  # The section along the x axis cuts the water at -5 and the pool's boxes it crosses (those reaching y 0) as one stretch of water from
+  # the surface down to -21, the boxes over the hollow (120 from the section's start) stopping above the hollow's ceiling, which shows
+  # as ground below it.
   assert cut["water"] == [{"name": "pool", "levels": [-5.0, -5.0]}] and cut["length"] == 240
-  middle = [box for box in cut["swim"] if box["s"][0] <= 120 <= box["s"][1]]
-  assert len(middle) == 1 and middle[0]["z"] == [-21.0, -5.0] and all(box["z"][1] == -5.0 for box in cut["swim"])
+  crossed = [volume for volume in volumes if volume["minimum"][1] <= 0 <= volume["maximum"][1]]
+  span = [min(volume["minimum"][0] for volume in crossed) + 120, max(volume["maximum"][0] for volume in crossed) + 120]
+  assert cut["swim"] == [{"body": "pool", "liquid": "water", "s": span, "z": [-21.0, -5.0], "boxes": len(crossed)}] and len(crossed) > 1
   sectionImage = Image.open(io.BytesIO(section))
   assert sectionImage.width == 1440 and sectionImage.height > planDrawing.sectionSize[1]
   assert "marked not swimmable" in refused and state == "notSwimmable"
@@ -191,13 +193,12 @@ def testBuildSwimVolumesLeavesOutShallowCells(stageBlenderServer, tmp_path):
   assert groups["small"]["wadesCells"] == built["shallowCells"] and groups["small"]["swimsCells"] > 0
   assert all(groups[name]["swimsCells"] == 0 and groups[name]["wadesCells"] == groups["small"]["wadesCells"] + groups["small"]["swimsCells"] for name in ("medium", "large"))
   assert built["findings"] == [] and built["state"] == "boxed" and all(volume["maximum"][2] == shallowestSwimDepth + depthMargin for volume in volumes)
-  # In section, the boxes run to the column over the shelf's edge (x 16, 24 along the cut from x -8) and stop there, one box over each
-  # cell the cut runs through, every box from 4 under the bed to the surface; the heights are marked every unit, so the water's depth
+  # In section, the boxes the cut runs through are one stretch of water running to the column over the shelf's edge (x 16, 24 along the
+  # cut from x -8) and stopping there, from 4 under the bed to the surface; the heights are marked every unit, so the water's depth
   # over the bed and over the shelf reads off the picture, and a legend band under it names the ground, the water, and the boxes.
-  assert max(box["s"][1] for box in cut["swim"]) == 16 - sectionStart[0]
-  assert all(box["z"] == [-4.0, shallowestSwimDepth + depthMargin] for box in cut["swim"])
-  overlaps = [(a["s"], b["s"]) for index, a in enumerate(cut["swim"]) for b in cut["swim"][index + 1:] if min(a["s"][1], b["s"][1]) > max(a["s"][0], b["s"][0])]
-  assert overlaps == [] and cut["heightStep"] == 1
+  crossed = [volume for volume in volumes if volume["minimum"][1] <= sectionStart[1] <= volume["maximum"][1] and volume["maximum"][0] > sectionStart[0]]
+  assert cut["swim"] == [{"body": "ford", "liquid": "water", "s": [0.0, 16 - sectionStart[0]], "z": [-4.0, shallowestSwimDepth + depthMargin], "boxes": len(crossed)}]
+  assert cut["heightStep"] == 1
   sectionPicture = Image.open(io.BytesIO(drawn))
   assert sectionPicture.width == planDrawing.sectionSize[0] and sectionPicture.height > planDrawing.sectionSize[1]
   # Only the shelf lies inside the area, all of it shallow: the area's rebuild is refused, naming the area and not advising the whole body

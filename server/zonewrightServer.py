@@ -3375,6 +3375,82 @@ async def renderRouteStrip(
 
 
 sectionLayersDefault = ["ground", "water", "swim", "massing", "sketch", "plots", "boundaries", "zoneLines", "caves"]
+# A section's result gives a cave's floor as the points where its grade turns, leaving out a point within this height of the line
+# through those kept either side (the cut's heights are rounded to 0.01).
+sectionFloorTolerance = 0.02
+# Pieces of a run's floor, or of a stroke, closer than this in a section are one: a section along a run leaves out the 2-unit step
+# straddling each bend of its arcs' chords, and a floor passing over another stands minimumRock and a passage's height above it.
+sectionFloorGap = 8.0
+# Swim boxes whose spans along a section meet within the cut's rounding are one stretch of water.
+sectionSwimGap = 0.01
+
+
+def chainedSegments(segments, gap):
+  """Segments [s0, z0, s1, z1] in order as polylines [[s, z], ...]: each segment starting within gap of the last one's end continues it."""
+  pieces = []
+  for s0, z0, s1, z1 in segments:
+    if pieces and math.dist(pieces[-1][-1], [s0, z0]) <= gap:
+      if pieces[-1][-1] != [s0, z0]:
+        pieces[-1].append([s0, z0])
+      pieces[-1].append([s1, z1])
+    else:
+      pieces.append([[s0, z0], [s1, z1]])
+  return pieces
+
+
+def gradeTurns(points, tolerance):
+  """A polyline's points [[s, z], ...] where its grade turns: each point left out stands within tolerance, in height, of the line
+  between the kept points either side of it."""
+  kept, pending = {0, len(points) - 1}, [(0, len(points) - 1)]
+  while pending:
+    low, high = pending.pop()
+    if high - low < 2:
+      continue
+    (s0, z0), (s1, z1) = points[low], points[high]
+    between = numpy.array(points[low + 1:high])
+    chord = z0 + (z1 - z0) * (between[:, 0] - s0) / (s1 - s0) if s1 != s0 else numpy.full(len(between), z0)
+    deviations = numpy.abs(between[:, 1] - chord)
+    worst = int(deviations.argmax())
+    if deviations[worst] > tolerance:
+      kept.add(low + 1 + worst)
+      pending += [(low, low + 1 + worst), (low + 1 + worst, high)]
+  return [points[index] for index in sorted(kept)]
+
+
+def strokeStretches(strokes):
+  """A section's floor strokes, one entry for each stretch of one the line runs along: its name and kind, its ends along the line (s),
+  and its heights there (z)."""
+  stretches = []
+  for name in dict.fromkeys(stroke["name"] for stroke in strokes):
+    named = [stroke for stroke in strokes if stroke["name"] == name]
+    for piece in chainedSegments([stroke["segment"] for stroke in named], sectionFloorGap):
+      stretches.append({"name": name, "kind": named[0]["kind"], "s": [piece[0][0], piece[-1][0]], "z": [piece[0][1], piece[-1][1]]})
+  return stretches
+
+
+def swimStretches(boxes):
+  """The swim boxes a section crosses as stretches of water along it: the boxes of one body and liquid whose spans meet taken as one,
+  with its ends along the line (s), its lowest bottom and highest top (z), and how many boxes it holds."""
+  stretches = []
+  for box in sorted(boxes, key=lambda box: (str(box["body"]), box["liquid"], box["s"][0])):
+    last = stretches[-1] if stretches else None
+    if last is not None and (last["body"], last["liquid"]) == (box["body"], box["liquid"]) and box["s"][0] <= last["s"][1] + sectionSwimGap:
+      last["s"][1] = max(last["s"][1], box["s"][1])
+      last["z"] = [min(last["z"][0], box["z"][0]), max(last["z"][1], box["z"][1])]
+      last["boxes"] += 1
+    else:
+      stretches.append({"body": box["body"], "liquid": box["liquid"], "s": list(box["s"]), "z": list(box["z"]), "boxes": 1})
+  return sorted(stretches, key=lambda stretch: stretch["s"][0])
+
+
+def sectionCave(entry):
+  """A cave run in a section's result: its floor as the points where its grade turns, one list for each piece the line runs along, its
+  floor strokes as stretches, its marks, and where runs cross the line."""
+  return {
+    "cave": entry["cave"], "run": entry["run"],
+    "floor": [gradeTurns(piece, sectionFloorTolerance) for piece in chainedSegments(entry["floor"], sectionFloorGap)],
+    "strokes": strokeStretches(entry["strokes"]), "marks": entry["marks"], "crossings": entry["crossings"],
+  }
 
 
 @guardedTool()
@@ -3400,9 +3476,12 @@ async def renderSection(
   what plans cannot show: a cave's climb, landings, and headroom, one passage over another and the rock between, swim volumes against
   the surface and the bed, a plot's pad against the slope, stacked floors and the stairs between them, an arch's span, a wall's height
   over the ground and a lid's over a path. Refused: no line, or more than one; a path under two points or with two in one place; an
-  unknown cave or run. The result also gives the cuts as numbers (s along the line, z height), closedSpaces (how many closed shapes
-  the ground makes in it: rooms and passages cut across, one over another), and at each bend the ground's heights where its two legs
-  meet (groundAtJoins). Asked for, the `lane` layer draws where the line crosses the lane mapReach maps for the body group bodyGroup
+  unknown cave or run. The result also gives the cuts as numbers (s along the line, z height): swim as stretches of water (a body's
+  boxes of one liquid whose spans meet: their ends s, lowest bottom and highest top z, and how many boxes), and each cave run's floor
+  as the points [s, z] where its grade turns (within 0.02, a list for each piece the line runs along), its floor strokes one entry for
+  each stretch the line runs along (name, kind, its ends s and its heights there z), its marks, and its crossings; closedSpaces (how
+  many closed shapes the ground makes in it: rooms and passages cut across, one over another), and at each bend the ground's heights
+  where its two legs meet (groundAtJoins). Asked for, the `lane` layer draws where the line crosses the lane mapReach maps for the body group bodyGroup
   (else the group with the most clearance of those the zone is built for): each reached floor as a bar
   standing just over its height in its label's color (walk green, swim blue for a floor in a swim box, slide orange, squeeze pink,
   taken by a zone line yellow), reached water as a band from its bottom to its top across its swim box in its label's color (water
@@ -3419,13 +3498,13 @@ async def renderSection(
     "gridStep": drawn["gridStep"], "heightStep": drawn["heightStep"], "unitsPerPixel": drawn["unitsPerPixel"], "groundSegments": len(cuts["ground"]), "groundAtJoins": cuts["groundAtJoins"],
     "closedSpaces": planDrawing.closedLoops(cuts["ground"]),
     "water": [{"name": entry["name"], "levels": [min(min(z0, z1) for _, z0, _, z1 in entry["segments"]), max(max(z0, z1) for _, z0, _, z1 in entry["segments"])]} for entry in cuts["water"]],
-    "swim": cuts["swim"],
+    "swim": swimStretches(cuts["swim"]),
     "massing": [{"name": entry["name"], "label": entry["label"]} for entry in cuts["massing"]],
     "sketch": [{"sheet": entry["sheet"], "shape": entry["shape"], "pieces": entry["pieces"]} for entry in cuts["sketch"]],
     "plots": [{key: entry[key] for key in ("name", "s", "z", "entrance")} for entry in cuts["plots"]],
     "boundaries": [{"name": entry["name"], "kind": entry["kind"], "segments": entry["segments"]} for entry in cuts["boundaries"]],
     "zoneLines": cuts["zoneLines"],
-    "caves": [{key: entry[key] for key in ("cave", "run", "floor", "strokes", "marks", "crossings")} for entry in cuts["caves"]],
+    "caves": [sectionCave(entry) for entry in cuts["caves"]],
   } | ({} if laneState is None else {"laneState": laneState})
   return [Image(data=outputPath.read_bytes(), format="png"), summary]
 

@@ -104,9 +104,10 @@ def testALevelStrokeHoldsTheRunsFloorAndItsEdgesAreCut(stageBlenderServer, tmp_p
     cut = await session.expectSuccess("cutCave", room | {"floor": [way, rubble | {"outline": [[-70, 110], [70, 110], [70, 250], [-70, 250]]}, pad | {"across": [-30, 30]}]})
     vertices = (await session.expectSuccess("runPython", {"code": lining("room")}))["result"]
     faces = (await session.expectSuccess("runPython", {"code": "name = 'room'\n" + readLiningFaces}))["result"]
-    return cut, vertices, faces
+    _, section = await session.expectImage("renderSection", {"cave": {"objectName": "ground", "name": "room"}})
+    return cut, vertices, faces, section
 
-  cut, vertices, faces = stageBlenderServer.session(steps)
+  cut, vertices, faces, section = stageBlenderServer.session(steps)
   # The way's floor carries its own material, bordered on its exact edges; the floor round it keeps the cave's.
   centers, materials = numpy.array(faces["centers"]), numpy.array(faces["materials"])
   wayFaces = (centers[:, 1] + 60 > 160) & (centers[:, 1] + 60 < 300) & (centers[:, 0] > -10) & (centers[:, 0] < 14) & (centers[:, 2] < 2 + 1e-3)
@@ -128,6 +129,13 @@ def testALevelStrokeHoldsTheRunsFloorAndItsEdgesAreCut(stageBlenderServer, tmp_p
   # Outside it the rubble rises over the floor.
   assert vertices[(along > 180) & (along < 280) & (numpy.abs(across) < 50) & ~inside, 2].max() > 2 + 3
   assert [(stroke["name"], stroke["kind"]) for stroke in cut["floorStrokes"]] == [("way", "level"), ("rubble", "rough"), ("dais", "pad")]
+  # The run's section gives its level floor as its two ends and each stroke its centerline runs through once: the way at the floor along
+  # 160 to 300, the rubble 6 over it from 170 to 308 (the last 2-unit step inside its outline), the dais at its top along 200 to 260.
+  [entry] = section["caves"]
+  start = next(bend["s"] for bend in section["bends"] if bend["label"] == "0")
+  assert entry["floor"] == [[[start, 2.0], [start + 310, 2.0]]]
+  assert [(stroke["name"], stroke["kind"], stroke["z"]) for stroke in entry["strokes"]] == [("way", "level", [2.0, 2.0]), ("rubble", "rough", [8.0, 8.0]), ("dais", "pad", [5.0, 5.0])]
+  assert [[s - start for s in stroke["s"]] for stroke in entry["strokes"]] == [[160.0, 300.0], [170.0, 308.0], [200.0, 260.0]]
 
 
 def testAPadIsLevelAtItsTopWithStraightEdges(stageBlenderServer, tmp_path):
@@ -1215,13 +1223,15 @@ def testASectionUnrollsAPathAndACaveRun(stageBlenderServer, tmp_path):
   assert bent["length"] == 140.0 and [bend["s"] for bend in bent["bends"]] == [0.0, 100.0, 140.0]
   [join] = bent["groundAtJoins"]
   assert join["s"] == 100.0 and len(join["before"]) == 1 and numpy.allclose(join["before"], join["after"], atol=1e-3)
-  # The run's own section shows its floor at its stations' heights, each station marked at its distance along the unrolled run.
-  floors = numpy.array([segment for entry in run["caves"] if entry["run"] == "main" for segment in entry["floor"]])
+  # The run's own section shows its floor at its stations' heights, each station marked at its distance along the unrolled run; its
+  # floor comes back as the points where its grade turns, one piece round the landing's bend: level from the start to point 1, climbing
+  # to the landing where the bend begins, and level from there to the end.
+  [floor] = [entry["floor"] for entry in run["caves"] if entry["run"] == "main"]
   bends = {bend["label"]: bend["s"] for bend in run["bends"]}
+  assert len(floor) == 1 and [height for _, height in floor[0]] == [2.0, 2.0, 30.0, 30.0]
+  assert [floor[0][index][0] for index in (0, 1, 3)] == [bends["0"], bends["1"], bends["3"]] and bends["1"] < floor[0][2][0] < bends["2"]
+  stations, heights = numpy.array(floor[0]).T
   for index, height in enumerate([2.0, 2.0, 30.0, 30.0]):
-    s = bends[str(index)]
-    touching = floors[(numpy.minimum(floors[:, 0], floors[:, 2]) <= s + 1e-6) & (numpy.maximum(floors[:, 0], floors[:, 2]) >= s - 1e-6)]
-    at = [z0 + (z1 - z0) * (s - s0) / (s1 - s0) if s1 != s0 else z0 for s0, z0, s1, z1 in touching]
-    assert at and max(abs(value - height) for value in at) <= 0.01
+    assert abs(numpy.interp(bends[str(index)], stations, heights) - height) <= 0.01
   assert "Cave 'landed' of 'ground' has no run 'loft'; its runs are ['main']" in unknown
   assert "The section's points 0 and 1 stand at one place" in twice
