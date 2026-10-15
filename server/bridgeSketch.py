@@ -591,8 +591,9 @@ def planCaves():
         inside = samples[(samples[:, 5] >= stroke["from"] - 1e-6) & (samples[:, 5] <= stroke["to"] + 1e-6)]
         if len(inside) < 2:
           continue
-        left = offsetLine(inside, numpy.full(len(inside), stroke["across"][0]))
-        right = offsetLine(inside, numpy.full(len(inside), stroke["across"][1]))
+        low, high = bridgeCaveRuns.acrossLimits(stroke["across"])
+        left = offsetLine(inside, -inside[:, 3] / 2 if math.isinf(low) else numpy.full(len(inside), low))
+        right = offsetLine(inside, inside[:, 3] / 2 if math.isinf(high) else numpy.full(len(inside), high))
         strokes.append({"name": stroke["name"], "kind": stroke["kind"], "outline": numpy.round(numpy.vstack([left, right[::-1]]), 2).tolist()})
       roundedEnds = run["rounded"]
       drawn.append({
@@ -941,7 +942,8 @@ def caveCuts(legs, followed):
           lineAcross = float(-sides[index] * (leg.normal @ numpy.array([runDirection[1], -runDirection[0]])))
           for stroke in run["strokes"]:
             if stroke["kind"] in ("level", "pad"):
-              if along0 >= stroke["from"] - 1e-6 and along1 <= stroke["to"] + 1e-6 and stroke["across"][0] - 1e-6 <= lineAcross <= stroke["across"][1] + 1e-6:
+              low, high = bridgeCaveRuns.acrossLimits(stroke["across"])
+              if along0 >= stroke["from"] - 1e-6 and along1 <= stroke["to"] + 1e-6 and low - 1e-6 <= lineAcross <= high + 1e-6:
                 height = (z0, z1) if stroke["kind"] == "level" else (stroke["top"], stroke["top"])
                 strokes.append({"name": stroke["name"], "kind": stroke["kind"], "segment": [s0, height[0], s1, height[1]]})
             elif bridgeCaveRuns.pointsInPolygon(linePoints, numpy.array(stroke["outline"])).all():

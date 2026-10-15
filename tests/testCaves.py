@@ -105,6 +105,15 @@ readShown = r"""
 import bridgeMeshAccess
 result = {name: bridgeMeshAccess.readVertexArrays(bpy.data.objects[name])[0].tolist() for name in ('ground', 'control')}
 """
+# Which vertices of ground and control the approach's pass moves.
+readApproach = r"""
+import numpy, bridgePasses
+result = {}
+for name in ('ground', 'control'):
+  keys = bpy.data.objects[name].data.shape_keys
+  moved = bridgePasses.keyCoordinates(keys.key_blocks['route approach']) - bridgePasses.keyCoordinates(keys.reference_key)
+  result[name] = (numpy.abs(moved).max(axis=1) > 1e-9).tolist()
+"""
 # A gallery up the fixture's cliff: 40 wide and 30 tall, four fifths of its width in the rock, rising from 2 to 80.
 gallery = {"objectName": "ground", "start": [-120, -45], "end": [120, 10], "floorFrom": 2, "floorTo": 80, "width": 40, "height": 30, "side": "left", "insideShare": 0.8, "step": 20}
 # The share of each point's width inside the uncut rock, probeOverFloor over its floor across the line from start to end, at 201 points.
@@ -351,12 +360,17 @@ def testTakingACaveBackLeavesTheGroundAsAnUncutCopyGivenTheSameChange(stageBlend
       await session.expectSuccess("setShapingPass", {"objectName": name, "name": "cliff", "strength": 1.15})
     removed = await session.expectSuccess("removeCave", {"objectName": "ground", "name": "hall"})
     shown = (await session.expectSuccess("runPython", {"code": readShown}))["result"]
+    approach = (await session.expectSuccess("runPython", {"code": readApproach}))["result"]
     detail = await session.expectSuccess("getObjectDetail", {"name": "ground"})
-    return removed, shown, detail
+    return removed, shown, approach, detail
 
-  removed, shown, detail = stageBlenderServer.session(steps)
+  removed, shown, approach, detail = stageBlenderServer.session(steps)
   ground, control = numpy.array(shown["ground"]), numpy.array(shown["control"])
-  assert ground.shape == control.shape and numpy.abs(ground - control).max() <= 1e-5
+  # The cut settled the approach, grading it again on the cut ground; everywhere else the ground is the uncut copy's, and the approach,
+  # graded on ground the cave no longer cuts, is stale to grade again.
+  graded = numpy.array(approach["ground"]) | numpy.array(approach["control"])
+  assert ground.shape == control.shape and graded.any() and numpy.abs(ground - control)[~graded].max() <= 1e-5
+  assert [(entry["route"], entry["stale"]) for entry in detail["definedPasses"]] == [("approach", True)]
   assert removed["definition"]["path"] == hall["path"] and removed["definition"]["widths"] == hall["widths"] and removed["restoredFaces"] > 0
   assert detail["caves"] == []
 
@@ -455,6 +469,60 @@ def testAStaleCaveIsFlaggedAndRefittedWhileTheGuardsHoldAroundIt(stageBlenderSer
   assert [entry["cave"] for entry in regraded["refittedCaves"]] == ["hall"] and [cave["stale"] for cave in regradedDetail["caves"]] == [False]
   # With its passes collapsed, a face edit is still refused, naming the cave and the way to make the change.
   assert "holds caves ['hall']" in deleted and "removeCave" in deleted and "cutCave" in deleted
+
+
+def testRoutesAndACaveThatMoveEachOthersGroundSettleTogether(stageBlenderServer, tmp_path):
+  # caveCanyon grades the approach up to the mouth before the cave is cut; the ramp beside the mouth is graded after, inside its reach.
+  ramp = {"objectName": "ground", "name": "ramp", "points": [[70, -150], [70, -50]], "width": 30}
+  stale = lambda detail: ([entry["route"] for entry in detail["definedPasses"] if entry["stale"]], [cave["name"] for cave in detail["caves"] if cave["stale"]])
+
+  async def steps(session):
+    await caveCanyon(session, tmp_path)
+    _, cut = await session.expectImage("cutCave", hall)
+    afterCut = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    graded = await session.expectSuccess("gradeRoute", ramp)
+    afterGrade = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    await session.expectImage("editCave", {"objectName": "ground", "name": "hall"})
+    afterRefit = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    regraded = await session.expectSuccess("regradeTerrain", {"objectName": "ground"})
+    return cut, afterCut, graded, afterGrade, afterRefit, regraded
+
+  cut, afterCut, graded, afterGrade, afterRefit, regraded = stageBlenderServer.session(steps)
+  # The cut runs through the approach's end, so the approach is graded again and the cave refitted to it; nothing is left stale.
+  assert cut["settled"]["unsettled"] is None and [entry["route"] for entry in cut["settled"]["rounds"][0]["replayed"]] == ["approach"]
+  assert [entry["cave"] for entry in cut["settled"]["rounds"][0]["refittedCaves"]] == ["hall"] and stale(afterCut) == ([], [])
+  # The ramp's batters reach the cliff inside the cave's reach: the cave is refitted and both routes graded again, all settled.
+  assert graded["settled"]["unsettled"] is None and any(round["refittedCaves"] for round in graded["settled"]["rounds"])
+  assert graded["staleCaves"] == [] and stale(afterGrade) == ([], [])
+  # A refit settles what it moves too, and a regrade then has nothing left to move.
+  assert stale(afterRefit) == ([], [])
+  assert [entry["movedVertices"] for entry in regraded["replayed"]] == [0, 0] and regraded["refittedCaves"] == []
+  assert regraded["furtherRounds"] == [] and regraded["unsettled"] is None
+
+
+def testSubdividingInFrontOfACaveCutsItAgainAndRegradesTheApproach(stageBlenderServer, tmp_path):
+  forecourt = {"box": {"minimum": [-60, -120, -20], "maximum": [60, -30, 60]}}
+
+  async def steps(session):
+    await caveCanyon(session, tmp_path)
+    await session.expectImage("cutCave", hall)
+    before = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    split = await session.expectSuccess("subdivide", {"objectName": "ground", "selector": forecourt, "cuts": 1})
+    after = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    checked = (await session.expectSuccess("runPython", {"code": checkCave}))["result"]
+    walk = await session.expectSuccess("walkRoute", {"path": intoTheRoom, "sampleSpacing": 4})
+    return before, split, after, checked, walk
+
+  before, split, after, checked, walk = stageBlenderServer.session(steps)
+  # The cave comes back cut on the finer ground, every pass kept, and nothing is left stale; the cave is sealed and walked into.
+  assert split["subdividedFaces"] > 0 and after["faces"] > before["faces"]
+  assert [entry["cave"] for entry in split["recutCaves"]] == ["hall"] and split["recutCaves"][0]["liningFaces"] > 0
+  assert split["settled"]["unsettled"] is None
+  assert [entry["name"] for entry in after["shapingPasses"]] == [entry["name"] for entry in before["shapingPasses"]]
+  assert [(entry["route"], entry["stale"]) for entry in after["definedPasses"]] == [("approach", False)]
+  assert [(cave["name"], cave["stale"]) for cave in after["caves"]] == [("hall", False)]
+  assert checked["edgesOnThreeOrMoreFaces"] == 0 and checked["openEdges"] == borderEdges and checked["largestLiningMove"] == 0.0
+  assert walkOf(walk)["walkable"]
 
 
 def testCaveRefusals(stageBlenderServer, tmp_path):

@@ -4,6 +4,9 @@ import shutil
 import sys
 from pathlib import Path
 
+import numpy
+import pytest
+
 from conftest import everquestClient, writePNG
 from testModelsAndDressing import freshScene
 from testVerifyExport import short as verifiedShort
@@ -30,6 +33,14 @@ def clientFiles(archiveName, entry):
   archive = eqArchive.EQArchive(clientRoot / archiveName)
   textures = modelMeasures.eqgMeasures(eqgFiles.parseModel(archive.read(entry), entry))["textures"]
   return {entry: archive.read(entry)} | {name: archive.read(name) for name in textures if name in archive.entries}
+
+
+async def ourBox(session, folder, name, textureStem, location):
+  """A box of our own material, its texture a PNG named textureStem (stored as textureStem.dds), at location."""
+  await session.expectSuccess("createMaterial", {"name": name, "diffuseTexture": str(writePNG(folder / f"{textureStem}.png", 4, 4, (200, 20, 20, 255)))})
+  await session.expectSuccess("createPrimitive", {"kind": "cube", "name": f"{name}Box", "size": [4, 4, 4], "location": location})
+  await session.expectSuccess("assignMaterial", {"objectName": f"{name}Box", "materialName": name})
+  await session.expectSuccess("projectUVs", {"objectName": f"{name}Box", "method": "box", "worldUnitsPerRepeat": 4})
 
 
 async def groundScene(session, folder):
@@ -154,6 +165,42 @@ def testRowsComeBackWithTheArchive(stageBlenderServer, tmp_path):
   assert {value[2] for value in placed.values()} == {"zoneFile"}
 
 
+def testACopiedTextureWhoseNameIsTakenIsStoredUnderItsArchivesName(stageBlenderServer, tmp_path):
+  archivePath = tmp_path / "renamed.eqg"
+
+  async def steps(session):
+    await groundScene(session, tmp_path)
+    await session.expectSuccess("placeObject", crystal | {"name": "crystal", "location": [10, 0, 0], "headingDegrees": 0})
+    await ourBox(session, tmp_path, "ours", "crystal_colp_c", [60, -60, 0])
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "renamed.blend")})
+    return await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+
+  exported = stageBlenderServer.session(steps)
+  client = clientFiles("crystals.eqg", "obj_fscrystala.mod")
+  clientModel = client["obj_fscrystala.mod"]
+  archive = eqArchive.EQArchive(archivePath)
+  stored = archive.read("obj_fscrystala.mod")
+  renames = {"crystal_colp_c.dds": "crystals_crystal_colp_c.dds"}
+  assert exported["failures"] == []
+  # Ours keeps its name; the client's texture of that name is stored under its archive's, and the copied model names that instead.
+  assert archive.read("crystal_colp_c.dds") != client["crystal_colp_c.dds"] and archive.read("crystals_crystal_colp_c.dds") == client["crystal_colp_c.dds"]
+  assert all(archive.read(name) == data for name, data in client.items() if name.endswith(".dds") and name != "crystal_colp_c.dds")
+  textures = lambda model: modelMeasures.eqgMeasures(eqgFiles.parseModel(model, "obj_fscrystala.mod"))["textures"]
+  assert sorted(textures(stored)) == sorted(renames.get(name, name) for name in textures(clientModel))
+  # Only the name changes: the new name is appended to the string table, and every vertex and triangle is the client's.
+  assert len(stored) == len(clientModel) + len("crystals_crystal_colp_c.dds") + 1
+  storedParsed, clientParsed = eqgFiles.parseModel(stored, "stored"), eqgFiles.parseModel(clientModel, "client")
+  assert all(numpy.array_equal(storedParsed[key], clientParsed[key]) for key in ("vertices", "normals", "uvs", "triangles", "triangleMaterials", "triangleFlags"))
+  manifest = json.loads((tmp_path / "renamed_export.json").read_text(encoding="ascii"))
+  [copy] = [copy for copy in manifest["clientModels"] if copy["entry"] == "obj_fscrystala.mod"]
+  assert copy["renamedTextures"] == renames and copy["sha256"] == hashlib.sha256(clientModel).hexdigest()
+  assert copy["storedSha256"] == hashlib.sha256(stored).hexdigest()
+  assert "crystals_crystal_colp_c.dds" in [texture["name"] for texture in copy["textures"]]
+  # A rename the model does not name is refused.
+  with pytest.raises(ValueError, match=r"no material names \['absent.dds'\]"):
+    clientModelBundle.withTexturesRenamed(clientModel, {"absent.dds": "crystals_absent.dds"}, "obj_fscrystala.mod")
+
+
 def testWhatCannotShipIsRefused(stageBlenderServer, tmp_path):
   startup = clientModelBundle.startupTextures(clientRoot)
   startupName = next(name for name in sorted(startup) if name.endswith(".dds"))
@@ -166,11 +213,7 @@ def testWhatCannotShipIsRefused(stageBlenderServer, tmp_path):
     await session.expectSuccess("transformObjects", {"names": ["kiln"], "rotateDegrees": [10, 0, 0]})
     await session.expectSuccess("placeObject", kiln | {"name": "floating", "location": [-30, 0, 5], "headingDegrees": 0})
     await session.expectSuccess("placeObject", {"zone": "neighborhood", "model": "IT67", "source": "gequip.s3d", "name": "classic", "location": [0, 40, 0], "headingDegrees": 0})
-    for name, stem in (("shadowsCrystal", "crystal_colp_c"), ("shadowedByStartup", startupName[:-4])):
-      await session.expectSuccess("createMaterial", {"name": name, "diffuseTexture": str(writePNG(tmp_path / f"{stem}.png", 4, 4, (200, 20, 20, 255)))})
-      await session.expectSuccess("createPrimitive", {"kind": "cube", "name": f"{name}Box", "size": [4, 4, 4], "location": [60, -60 if name == "shadowsCrystal" else -50, 0]})
-      await session.expectSuccess("assignMaterial", {"objectName": f"{name}Box", "materialName": name})
-      await session.expectSuccess("projectUVs", {"objectName": f"{name}Box", "method": "box", "worldUnitsPerRepeat": 4})
+    await ourBox(session, tmp_path, "shadowedByStartup", startupName[:-4], [60, -50, 0])
     await session.expectSuccess("saveFile", {"path": str(tmp_path / "refused.blend")})
     checked = await session.expectSuccess("checkExport", {"path": str(tmp_path / "refused.eqg"), "purpose": "test"})
     refused = await session.expectError("exportZone", {"path": str(tmp_path / "refused.eqg"), "purpose": "test"})
@@ -187,10 +230,10 @@ def testWhatCannotShipIsRefused(stageBlenderServer, tmp_path):
   failures = sorted((failure["failure"], failure.get("object") or failure.get("entry") or failure.get("texture")) for failure in checked["failures"])
   assert failures == sorted([
     ("placed as scenery and as a row", "crystalRow"), ("row cannot hold", "kiln"), ("client model not copied", "classic"),
-    ("client file shadows ours", "crystal_colp_c.dds"), ("own texture shadowed", startupName),
+    ("own texture shadowed", startupName),
   ])
   assert [finding["object"] for finding in checked["findings"] if finding["finding"] == "row moved by the server"] == ["floating"]
-  assert "exportZone (test) refused, nothing written: 5 failure(s)" in refused and not (tmp_path / "refused.eqg").exists()
+  assert "exportZone (test) refused, nothing written: 4 failure(s)" in refused and not (tmp_path / "refused.eqg").exists()
   assert "An interactive door's row needs its openType" in placementRefusals["noOpenType"]
   assert "objectType and displayName belong to an interactive object" in placementRefusals["typeWithoutRow"]
   assert "objectType is one of" in placementRefusals["unknownType"] and "'loom'" in placementRefusals["unknownType"]

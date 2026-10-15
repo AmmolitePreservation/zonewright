@@ -2311,6 +2311,8 @@ def describeCaves(sceneObject):
 # Guides: what drawings and walks read of a cave's runs as cut
 
 guideSpacing = 2.0
+# overCaveFloors measures this many points against a run at once.
+overFloorChunk = 256
 arcChord = 4.0
 # A guide's polyline is kept to 3 decimals, and an arc's middle chord end meets its bend's station only to within rounding: a knot or
 # chord end this close to a station or to the point before it is that point, so no two points of the polyline stand at one place.
@@ -2375,6 +2377,31 @@ def caveGuides(sceneObject=None, caveName=None):
   return guides
 
 
+def overCaveFloors(sceneObject, points):
+  """Which world points ([n, 2 or more]) lie over the floor of one of the mesh's caves in plan: within a run's width of its centerline,
+  between its ends."""
+  plan = numpy.asarray(points, dtype=numpy.float64)[:, :2]
+  inside = numpy.zeros(len(plan), dtype=bool)
+  if not bridgeCaveData.holdsCaves(sceneObject) or not len(plan):
+    return inside
+  for guide in caveGuides(sceneObject):
+    for run in guide["runs"]:
+      samples = numpy.array(run["samples"])
+      starts, steps = samples[:-1, :2], samples[1:, :2] - samples[:-1, :2]
+      lengths = numpy.maximum((steps * steps).sum(axis=1), 1e-12)
+      for chunk in range(0, len(plan), overFloorChunk):
+        offsets = plan[chunk:chunk + overFloorChunk, None, :] - starts[None, :, :]
+        shares = (offsets * steps[None]).sum(axis=2) / lengths[None]
+        within = numpy.ones_like(shares, dtype=bool)
+        within[:, 0] = shares[:, 0] >= 0
+        within[:, -1] &= shares[:, -1] <= 1
+        shares = numpy.clip(shares, 0.0, 1.0)
+        distances = numpy.linalg.norm(offsets - shares[..., None] * steps[None], axis=2)
+        halves = (samples[:-1, 3] + (samples[1:, 3] - samples[:-1, 3]) * shares) / 2
+        inside[chunk:chunk + overFloorChunk] |= (within & (distances <= halves)).any(axis=1)
+  return inside
+
+
 def guideRun(objectName, cave, run):
   """One run's guide (caveGuides), refusing an unknown terrain, cave, or run."""
   sceneObject = bridgeMeshAccess.requireMeshObject(objectName)
@@ -2401,7 +2428,11 @@ def strokeUnder(x, y, height):
       along = float(samples[nearest, 5] + offset @ direction)
       across = float(offset @ numpy.array([direction[1], -direction[0]]))
       for stroke in run["strokes"]:
-        if stroke["kind"] == "rough" or not (stroke["from"] <= along <= stroke["to"] and stroke["across"][0] <= across <= stroke["across"][1]):
+        if stroke["kind"] == "rough":
+          continue
+        half = float(numpy.interp(along, samples[:, 5], samples[:, 3])) / 2
+        low, high = numpy.clip(bridgeCaveRuns.acrossLimits(stroke["across"]), -half, half)
+        if not (stroke["from"] <= along <= stroke["to"] and low <= across <= high):
           continue
         level = float(numpy.interp(along, samples[:, 5], samples[:, 2])) if stroke["kind"] == "level" else stroke["top"]
         if abs(level - height) <= strokeStandTolerance:

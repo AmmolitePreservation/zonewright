@@ -287,8 +287,9 @@ def standalone(entries, zone, startup):
 def clientModelsCheck(archiveBytes, piecesData, mapData, manifest, clientRoot, short):
   """Check 11: the zone stands alone. Every .zon placement and every row names a model the archive holds, every texture its models'
   drawn materials name is in the archive or registered at startup (but one the manifest records missing for the client too), every
-  client model the manifest records is in the archive byte for byte (its SHA-256 and its textures') and the client's own entry still is
-  (an unpatched client), no interactive piece is also a .zon placement at its place, and every object row stands where the server's
+  client model the manifest records is in the archive byte for byte (its SHA-256 and its textures'; a model naming a texture stored
+  under another name, the client's with only those names changed) and the client's own entry still is (an unpatched client), no
+  interactive piece is also a .zon placement at its place, and every object row stands where the server's
   FindBestZ puts it on the exported .map."""
   if archiveBytes is None:
     return checked("clientModels", [{"message": "No archive lies at the export's path"}])
@@ -308,8 +309,9 @@ def clientModelsCheck(archiveBytes, piecesData, mapData, manifest, clientRoot, s
       failures.append({"entry": model, "textures": left, "message": f"{model} names {left}, which neither the archive nor the startup archives hold: the client draws those faces without them"})
   for copy in copies:
     data = entries.get(copy["entry"])
-    if data is None or sha256(data) != copy["sha256"]:
-      failures.append({"entry": copy["entry"], "message": f"The archive's {copy['entry']} is not {copy['archive']}'s copy the manifest records ({copy['sha256']})"})
+    stored = copy["storedSha256"] if "renamedTextures" in copy else copy["sha256"]
+    if data is None or sha256(data) != stored:
+      failures.append({"entry": copy["entry"], "message": f"The archive's {copy['entry']} is not {copy['archive']}'s copy the manifest records ({stored})"})
     for texture in copy["textures"]:
       held = entries.get(texture["name"])
       if held is None or sha256(held) != texture["sha256"]:
@@ -321,6 +323,8 @@ def clientModelsCheck(archiveBytes, piecesData, mapData, manifest, clientRoot, s
       continue
     if sha256(client) != copy["sha256"]:
       failures.append({"entry": copy["entry"], "message": f"The client's {copy['archive']}:{copy['entry']} changed since the export copied it (a patch): export again"})
+    elif "renamedTextures" in copy and sha256(clientModelBundle.withTexturesRenamed(client, copy["renamedTextures"], copy["entry"])) != stored:
+      failures.append({"entry": copy["entry"], "message": f"The archive's {copy['entry']} is not the client's with only {copy['renamedTextures']} renamed"})
   pieces = {"doors": [], "objects": []}
   if piecesData is not None:
     try:

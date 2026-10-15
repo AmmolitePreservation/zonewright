@@ -68,6 +68,22 @@ heavyGroups = {
 }
 
 
+class WholeResult(dict):
+  """A tool's whole result as its report file holds it, where the tool returned a compact view naming one; `inline` is that view."""
+
+  def __init__(self, whole, inline):
+    super().__init__(whole)
+    self.inline = inline
+
+
+def wholeResult(text):
+  """A tool result's JSON text as the tool's whole result: the report file it names (resultReports), or itself where it names none."""
+  inline = json.loads(text)
+  if not isinstance(inline, dict) or "report" not in inline:
+    return inline
+  return WholeResult(json.loads(Path(inline["report"]).read_text(encoding="utf-8")), inline)
+
+
 class ToolSession:
   """One MCP client session against a staged server, so state (like the Blender bridge) persists across calls."""
 
@@ -88,14 +104,14 @@ class ToolSession:
     texts = [content.text for content in result.content if content.type == "text"]
     assert result.is_error is False, texts
     assert len(texts) == 1
-    return json.loads(texts[0])
+    return wholeResult(texts[0])
 
   async def expectImage(self, toolName, arguments=None, mimeType="image/png"):
     result, _ = await self.call(toolName, arguments)
     assert result.is_error is False, [content.text for content in result.content if content.type == "text"]
     assert [content.type for content in result.content] == ["image", "text"]
     assert result.content[0].mime_type == mimeType
-    return base64.b64decode(result.content[0].data), json.loads(result.content[1].text)
+    return base64.b64decode(result.content[0].data), wholeResult(result.content[1].text)
 
   async def expectError(self, toolName, arguments=None):
     result, _ = await self.call(toolName, arguments)
@@ -176,7 +192,7 @@ class StagedServer:
   def callToolExpectingSuccess(self, toolName, arguments=None):
     result, progressMessages = self.callTool(toolName, arguments)
     assert result.is_error is False, result.content[0].text
-    return json.loads(result.content[0].text), progressMessages
+    return wholeResult(result.content[0].text), progressMessages
 
   def callToolExpectingError(self, toolName, arguments=None, environment=None):
     result, _ = self.callTool(toolName, arguments, environment)

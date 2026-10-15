@@ -49,6 +49,9 @@ benchRepairs = 8
 rockClearance = 0.5
 arcSampleDegrees = 10.0
 walkSampleSpacing = 4.0
+# A graded pass and a cave refit can each move ground the other stands on: settling replays the defined passes and refits the caves at
+# most this many times before it names what still moves.
+settleRounds = 3
 clashRowsPerChunk = 512
 up = mathutils.Vector((0.0, 0.0, 1.0))
 down = mathutils.Vector((0.0, 0.0, -1.0))
@@ -362,14 +365,16 @@ def planRoute(sceneObject, name, definition, ground, faces, edgeLength):
     positions[returning, :2] = ground[returning, :2]
     widened |= returning
     positions[relaxing, :2] = bridgeShaping.vertexNeighbourAverages(sceneObject, result)[relaxing, :2]
-  offsets, left = bridgeCaveData.guardedOffsets(sceneObject, result - ground)
+  offsets, left = bridgeCaveData.guardedOffsets(sceneObject, heldUnderCaves(sceneObject, name, result - ground))
   result = ground + offsets
   # A cave's lining under the bench in plan is no part of it: it holds still inside the rock.
   benchRows = rows[onBench & ~bridgeCaveData.liningVertices(sceneObject)[rows]]
   requireNoClash(name, result[benchRows], tanCut, definition["cutBatterDegrees"])
   if tanFill is None:
     requireFooting(name, centerline, result[benchRows, 2] - ground[benchRows, 2], benchAlongs, edgeLength)
-  requireOpenSky(name, sceneObject, result, faces, result[benchRows])
+  # A route may lead into a cave: over the cave's own floor the rock overhead is its mouth's.
+  openRows = benchRows[~bridgeCaves.overCaveFloors(sceneObject, result[benchRows])]
+  requireOpenSky(name, sceneObject, result, faces, result[openRows])
   change = result[:, 2] - ground[:, 2]
   return {
     "offsets": result - ground,
@@ -380,6 +385,19 @@ def planRoute(sceneObject, name, definition, ground, faces, edgeLength):
       "centerline": [[round(float(value), 2) for value in sample] for sample in centerline.samples()],
     } | bridgeCaveData.liningReport(left),
   }
+
+
+def heldUnderCaves(sceneObject, name, offsets):
+  """A route's offsets with each cave's plug vertices (the ground a cave hides under its floor) left as the route's pass holds them:
+  graded again on the faces each cut of the cave leaves around them, they would move back and forth with every refit."""
+  if not bridgeCaveData.holdsCaves(sceneObject):
+    return offsets
+  plug = bridgeCaveData.CaveVertices(sceneObject).plug
+  keys = sceneObject.data.shape_keys
+  key = keys.key_blocks.get(routePassPrefix + name) if keys is not None else None
+  held = offsets.copy()
+  held[plug] = 0.0 if key is None else worldOffsets(sceneObject, key, bridgePasses.keyCoordinates(keys.reference_key))[plug]
+  return held
 
 
 def gradedHeights(centerline, points, natural, reach, tanCut, tanFill, widened):
@@ -845,9 +863,54 @@ def gradeRoute(objectName, name, points, width, widths, maximumGradeDegrees, cut
   plan = planReplay(sceneObject, features, index, False)
   with bridgeCaves.restoredOnFailure(sceneObject):
     applied = applyReplay(plan)
+  settled = settledAfter(sceneObject)
   report = applied["final"][index]["report"]
   walk = bridgeReview.walkRoute(report["centerline"], walkSampleSpacing)
-  return {"object": objectName, "route": name, "pass": passName} | report | {"foldedFaces": applied["foldedFaces"], "replayed": applied["replayed"], "walk": walk} | staleCaveReport(sceneObject)
+  return {"object": objectName, "route": name, "pass": passName} | report | {"foldedFaces": applied["foldedFaces"], "replayed": applied["replayed"], "walk": walk} | settled | staleCaveReport(sceneObject)
+
+
+def staleOnMesh(sceneObject):
+  """The defined passes (described) and caves (by name) whose ground moved since they were made."""
+  passes = [entry for entry in describeDefinedPasses(sceneObject) if entry["stale"]]
+  return passes, bridgeCaves.staleCaves(sceneObject) if bridgeCaveData.holdsCaves(sceneObject) else []
+
+
+def settleRound(sceneObject):
+  """Every defined pass replayed in the order made, then every stale cave cut again, and the faces facades dressed mapped again."""
+  features = definedFeatures(sceneObject)
+  applied = applyReplay(planReplay(sceneObject, features, 0, True)) if features else {"summaries": [], "foldedFaces": 0, "dressed": numpy.zeros(len(sceneObject.data.vertices), dtype=bool)}
+  groundBefore = groundVertices(sceneObject)
+  refitted = bridgeCaves.refitStaleCaves(sceneObject)
+  remapDressed(sceneObject, carried(sceneObject, applied["dressed"], groundBefore))
+  return {"replayed": applied["summaries"], "foldedFaces": applied["foldedFaces"], "refittedCaves": refitted}
+
+
+def settle(sceneObject, first):
+  """Rounds of settleRound until no defined pass or cave is stale, at most settleRounds, counting first (a round already run) when
+  given: the rounds, and what is still stale after the last (unsettled: the passes with their largest change, and the caves with how
+  far and where their ground moved), else None."""
+  rounds = [first] if first is not None else []
+  while len(rounds) < settleRounds and any(staleOnMesh(sceneObject)):
+    rounds.append(settleRound(sceneObject))
+  passes, caves = staleOnMesh(sceneObject)
+  moves = bridgeCaves.groundMoves(sceneObject) if caves else {}
+  unsettled = {"passes": passes, "caves": [{"cave": name} | moves[name] for name in caves]} if passes or caves else None
+  return rounds, unsettled
+
+
+def settledAfter(sceneObject):
+  """After a change that can leave graded passes and caves on ground the other moved (a grading, a cave cut): nothing where none is
+  stale or the mesh holds no cave; else settle's rounds and what is still unsettled, or, where a replay or cut refuses, why, everything
+  left as the change left it."""
+  if not bridgeCaveData.holdsCaves(sceneObject) or not any(staleOnMesh(sceneObject)):
+    return {}
+  try:
+    with bridgeCaves.restoredOnFailure(sceneObject):
+      rounds, unsettled = settle(sceneObject, None)
+  except ValueError as refusal:
+    passes, caves = staleOnMesh(sceneObject)
+    return {"settled": {"refused": str(refusal), "stalePasses": passes, "staleCaves": caves}}
+  return {"settled": {"rounds": rounds, "unsettled": unsettled}}
 
 
 def regradeTerrain(objectName):
@@ -856,11 +919,9 @@ def regradeTerrain(objectName):
   if not features and not bridgeCaveData.holdsCaves(sceneObject):
     raise ValueError(f"'{objectName}' has no defined passes and no caves: no route graded on it (gradeRoute), no plot (gradePlot), no facade (dressFacade), and no cave (cutCave)")
   with bridgeCaves.restoredOnFailure(sceneObject):
-    applied = applyReplay(planReplay(sceneObject, features, 0, True)) if features else {"summaries": [], "foldedFaces": 0, "dressed": numpy.zeros(len(sceneObject.data.vertices), dtype=bool)}
-    groundBefore = groundVertices(sceneObject)
-    refitted = bridgeCaves.refitStaleCaves(sceneObject)
-    remapDressed(sceneObject, carried(sceneObject, applied["dressed"], groundBefore))
-  return {"object": objectName, "replayed": applied["summaries"], "foldedFaces": applied["foldedFaces"], "refittedCaves": refitted, "staleStructures": bridgeStructures.staleStructures()}
+    first = settleRound(sceneObject)
+    rounds, unsettled = settle(sceneObject, first)
+  return {"object": objectName} | first | {"furtherRounds": rounds[1:], "unsettled": unsettled, "staleStructures": bridgeStructures.staleStructures()}
 
 
 def describeDefinedPasses(sceneObject):
@@ -923,11 +984,33 @@ def profileCuts(objectName, cave, runs):
 
 
 def cutCave(objectName, name, **definition):
-  """Cut a cave (bridgeCaves.cutCave) and draw its profile's cuts, whole or not at all."""
+  """Cut a cave (bridgeCaves.cutCave), settle the graded passes and caves it left stale (settledAfter), and draw its profile's cuts,
+  whole or not at all."""
   sceneObject = bridgeCaves.requireTerrain(objectName)
   with bridgeCaves.restoredOnFailure(sceneObject):
     cut = bridgeCaves.cutCave(objectName, name, **definition)
-    return cut | {"profileCuts": profileCuts(objectName, name, list(cut["runs"]))}
+    settled = settledAfter(sceneObject)
+    return cut | settled | {"profileCuts": profileCuts(objectName, name, list(cut["runs"]))}
+
+
+def subdivide(objectName, selector, cuts):
+  """Subdivide a mesh's selected faces keeping its shaping passes (bridgeShaping.subdivideFaces): its caves taken back first and cut again
+  after from their definitions and strokes, in the order they were cut, then the graded passes and caves the new faces leave stale
+  settled (settle); whole or not at all."""
+  sceneObject = bridgeMeshAccess.requireEditableMesh(objectName, "subdivide")
+  records = bridgeCaveData.caves(sceneObject)
+  if records:
+    bridgeCaves.requireIntact(sceneObject)
+  with bridgeCaves.restoredOnFailure(sceneObject):
+    for name in reversed(list(records)):
+      bridgeCaves.takeBack(sceneObject, name)
+    result = bridgeShaping.subdivideFaces(sceneObject, selector, cuts)
+    recut = []
+    for name, record in records.items():
+      cut = bridgeCaves.splice(sceneObject, name, bridgeCaves.caveDefinition(**record["definition"]), record["paint"])
+      recut.append({"cave": name, "liningFaces": cut["liningFaces"]})
+    rounds, unsettled = settle(sceneObject, None) if any(staleOnMesh(sceneObject)) else ([], None)
+  return result | bridgeMeshAccess.meshCounts(sceneObject) | {"recutCaves": recut, "settled": {"rounds": rounds, "unsettled": unsettled}}
 
 
 def editedRuns(record, changes, runs):
@@ -970,8 +1053,9 @@ def editCave(objectName, name, changes):
         ) from refusal
       if current != definition:
         refitted.append({"end": definition["end"]} | dress(sceneObject, current))
+    settled = settledAfter(sceneObject)
     drawn = profileCuts(objectName, name, editedRuns(record, changes, list(result["cut"]["runs"])))
-  return result | {"refitFacades": refitted, "profileCuts": drawn}
+  return result | {"refitFacades": refitted} | settled | {"profileCuts": drawn}
 
 
 def removeShapingPass(objectName, name):
@@ -995,6 +1079,7 @@ def removeShapingPass(objectName, name):
 
 commands = {
   "cutCave": (cutCave, True),
+  "subdivide": (subdivide, True),
   "gradeRoute": (gradeRoute, True),
   "regradeTerrain": (regradeTerrain, True),
   "dressFacade": (dressFacade, True),

@@ -1,4 +1,5 @@
 import io
+from pathlib import Path
 
 import numpy
 from PIL import Image
@@ -102,6 +103,12 @@ def testCoverageFindingsNameWhatThePicturesShowAndClearAsEachIsFixed(stageBlende
     return test, game, before, beforeView, transition, fixed, fixedGame, after, viewed, refused, written
 
   test, game, before, beforeView, transition, fixed, fixedGame, after, viewed, refused, written = stageBlenderServer.session(steps)
+  # The result comes back with its findings by kind and its failures whole, naming the report file that holds it whole.
+  assert Path(test.inline["report"]).parent == stageBlenderServer.toolingRoot / "reports" / "checkExport"
+  grouped = [{"finding": finding["finding"], "count": 1, "first": finding} for finding in test["findings"]]
+  grouped[8]["first"] = grouped[8]["first"] | {"missing": {"count": 6, "first": ["shortName", "zoneId", "longName"]}}
+  assert test.inline["findings"] == grouped
+  assert game.inline["failures"] == game["failures"]
   assert test["failures"] == []
   assert [(finding["finding"], finding.get("object")) for finding in test["findings"]] == [
     ("back faces", "slab"), ("base material showing", "ground"), ("border without a transition", "ground"),

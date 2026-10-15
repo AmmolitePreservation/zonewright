@@ -164,17 +164,16 @@ def sideContents(collected, zone):
 def zoneArchive(collected):
   """The archive's bytes, what went into it, and the client models it copies (clientModelBundle.bundle)."""
   try:
-    bundle = clientModelBundle.bundle(zoneSources.resolveClientRoot(), collected["clientModels"])
-    data, summary = eqgExport.zoneArchive(collected, bundle)
+    data, bundle, summary = eqgExport.zoneArchive(collected, zoneSources.resolveClientRoot())
   except (OSError, ValueError) as error:
     raise ToolError(f"{type(error).__name__}: {error}") from error
   return data, summary, bundle
 
 
 def bundleReport(bundle, summary, game):
-  """The client models' failures and findings: what cannot be copied, a copy shadowing ours, our texture a startup one shadows, and
-  what the copies add to the archive; for a test export, the interactive pieces it writes no rows for."""
-  failures = bundle["failures"] + summary["bundleClashes"] + clientModelBundle.ownTextureFailures(zoneSources.resolveClientRoot(), summary["ownTextures"])
+  """The client models' failures and findings: what cannot be copied, our texture a startup one shadows, and what the copies add to
+  the archive; for a test export, the interactive pieces it writes no rows for."""
+  failures = bundle["failures"] + clientModelBundle.ownTextureFailures(zoneSources.resolveClientRoot(), summary["ownTextures"])
   findings = list(bundle["findings"])
   if bundle["copies"]:
     findings.append({
@@ -519,8 +518,7 @@ def build(checked, zone, zoneProperties, inputs, toolingRoot, reportProgress):
   collected = checked["collected"]
   built["archive"], built["summary"], built["bundle"] = zoneArchive(collected)
   failures, findings = bundleReport(built["bundle"], built["summary"], game)
-  for key in ("ownTextures", "bundleClashes"):
-    del built["summary"][key]
+  del built["summary"]["ownTextures"]
   report["failures"] += failures
   report["findings"] += findings
   built["sides"], built["housing"] = sideContents(collected, zone), collected["housing"]

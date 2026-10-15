@@ -26,6 +26,8 @@ roughRoughness = 0.5
 wanderOffset = numpy.array([733.1, -419.7, 0.0])
 # Two floor breaks (a stroke's edge across the floor) closer than this are one, and one this close to a wall is the wall's corner.
 breakTolerance = 1e-3
+# A level stroke's or pad's side given as this runs to the run's wall on that side, whatever the run's width there.
+wallSide = "wall"
 # A break kept off a wall it would otherwise meet in a narrower row by at least this, so no floor face closes to nothing.
 breakClearance = 0.25
 
@@ -369,9 +371,16 @@ def strokeDefinitions(floor, runNames, edgeLength):
     defined["material"] = material
     if kind in ("level", "pad"):
       across = stroke["across"]
-      if not isinstance(across, list) or len(across) != 2 or not all(isNumber(value) for value in across) or across[0] >= across[1]:
-        raise ValueError(f"{what}'s across is [left, right], units from the run's middle (negative to the left looking along it), left under right, got {across!r}")
-      defined |= {"from": requirePosition(stroke["from"], f"{what}'s from"), "to": requirePosition(stroke["to"], f"{what}'s to"), "across": [float(value) for value in across]}
+      sidesValid = isinstance(across, list) and len(across) == 2 and all(isNumber(value) or value == wallSide for value in across)
+      if not sidesValid or acrossLimits(across)[0] >= acrossLimits(across)[1]:
+        raise ValueError(
+          f"{what}'s across is [left, right], units from the run's middle (negative to the left looking along it), left under right, either"
+          f" \"{wallSide}\" to run to that side's wall, got {across!r}"
+        )
+      defined |= {
+        "from": requirePosition(stroke["from"], f"{what}'s from"), "to": requirePosition(stroke["to"], f"{what}'s to"),
+        "across": [value if value == wallSide else float(value) for value in across],
+      }
     if kind == "pad":
       top, rise = stroke.get("top"), stroke.get("rise")
       if (top is None) == (rise is None):
@@ -441,7 +450,7 @@ class FloorRelief:
           f"{what} reaches from {start - reach:.1f} to {end + reach:.1f} along its run, outside the run's floor, which runs from 0 to"
           f" {line.length:.1f}; keep it within the run"
         )
-      placed = stroke | {"start": start, "end": end}
+      placed = stroke | {"start": start, "end": end, "limits": acrossLimits(stroke["across"])}
       self.requireOnFloor(placed, reach)
       if stroke["kind"] == "pad":
         middleFloor = float(line.floorAt(numpy.array([(start + end) / 2]))[0])
@@ -453,7 +462,9 @@ class FloorRelief:
   def requireOnFloor(self, stroke, reach):
     alongs = numpy.unique(numpy.concatenate([numpy.linspace(stroke["start"], stroke["end"], 64), [stroke["start"], stroke["end"]]]))
     halves = self.line.eased(self.line.widths, alongs) / 2
-    for side, offset in (("left", -stroke["across"][0]), ("right", stroke["across"][1])):
+    for side, offset in (("left", -stroke["limits"][0]), ("right", stroke["limits"][1])):
+      if math.isinf(offset):
+        continue
       over = offset - halves
       if over.max() > breakTolerance:
         worst = int(over.argmax())
@@ -475,9 +486,9 @@ class FloorRelief:
     for stroke, reach in [(stroke, 0.0) for stroke in self.level] + [(pad, pad["edge"]) for pad in self.pads]:
       alongs = numpy.linspace(stroke["start"] - reach, stroke["end"] + reach, 32)
       narrowest = float(self.line.eased(self.line.widths, numpy.clip(alongs, 0.0, self.line.length)).min())
-      left, right = stroke["across"]
+      left, right = stroke["limits"]
       for offset in (left - reach, left, right, right + reach) if reach else (left, right):
-        if abs(offset) < narrowest / 2 - breakTolerance:
+        if not math.isinf(offset) and abs(offset) < narrowest / 2 - breakTolerance:
           found.append((offset, narrowest))
     found.sort()
     kept = []
@@ -506,7 +517,7 @@ class FloorRelief:
     floors = self.line.floorAt(alongs)[:, None]
     padWeight = numpy.zeros((rows, count))
     for pad in self.pads:
-      weight = numpy.minimum(sideWeights(alongGrid, pad["start"], pad["end"], pad["edge"]), sideWeights(offsets, pad["across"][0], pad["across"][1], pad["edge"]))
+      weight = numpy.minimum(sideWeights(alongGrid, pad["start"], pad["end"], pad["edge"]), sideWeights(offsets, *pad["limits"], pad["edge"]))
       over = (weight > padWeight) & (weight > 0)
       relief = numpy.where(over, weight * (pad["topHeight"] - floors) + (1 - weight) * relief, relief)
       padWeight = numpy.maximum(padWeight, weight)
@@ -531,7 +542,7 @@ class FloorRelief:
       for index in numpy.flatnonzero(self.roughWeights(stroke, points) > 0):
         found[index].append(stroke["name"])
     for pad in self.pads:
-      weight = numpy.minimum(sideWeights(alongs, pad["start"], pad["end"], pad["edge"]), sideWeights(offsets, pad["across"][0], pad["across"][1], pad["edge"]))
+      weight = numpy.minimum(sideWeights(alongs, pad["start"], pad["end"], pad["edge"]), sideWeights(offsets, *pad["limits"], pad["edge"]))
       for index in numpy.flatnonzero(weight > 0):
         found[index].append(pad["name"])
     return found
@@ -578,15 +589,21 @@ def lumpHeights(stroke, points, wallDistances):
   return numpy.maximum(lumps, banked)
 
 
+def acrossLimits(across):
+  """A level stroke's or pad's across [left, right] as numbers, a side running to its wall (wallSide) as infinitely far."""
+  left, right = across
+  return (-math.inf if left == wallSide else left, math.inf if right == wallSide else right)
+
+
 def strokeDistances(alongs, offsets, stroke):
   """How far floor points stand from a level stroke or pad top, along and across the run: 0 inside it."""
   alongGap = numpy.maximum(numpy.maximum(stroke["start"] - alongs, alongs - stroke["end"]), 0.0)
-  acrossGap = numpy.maximum(numpy.maximum(stroke["across"][0] - offsets, offsets - stroke["across"][1]), 0.0)
+  acrossGap = numpy.maximum(numpy.maximum(stroke["limits"][0] - offsets, offsets - stroke["limits"][1]), 0.0)
   return numpy.hypot(alongGap, acrossGap)
 
 
 def insideStroke(alongs, offsets, stroke):
-  return (alongs >= stroke["start"] - 1e-6) & (alongs <= stroke["end"] + 1e-6) & (offsets >= stroke["across"][0] - 1e-6) & (offsets <= stroke["across"][1] + 1e-6)
+  return (alongs >= stroke["start"] - 1e-6) & (alongs <= stroke["end"] + 1e-6) & (offsets >= stroke["limits"][0] - 1e-6) & (offsets <= stroke["limits"][1] + 1e-6)
 
 
 def sideWeights(values, low, high, edge):

@@ -162,6 +162,32 @@ def testAPadIsLevelAtItsTopWithStraightEdges(stageBlenderServer, tmp_path):
   assert numpy.abs(heights[beyond] - 2).max() <= 1e-4
 
 
+def testAPadToTheWallMeetsItWhereverTheWallStands(stageBlenderServer, tmp_path):
+  # From 140 along, where the room is still widening from 40 to 120, to 260: a terrace against the right wall.
+  terrace = {"kind": "pad", "name": "terrace", "run": "main", "from": 140, "to": 260, "across": [20, "wall"], "rise": 3, "edge": 0.5}
+
+  async def steps(session):
+    await caveCanyon(session, tmp_path)
+    numbered = await session.expectError("cutCave", room | {"floor": [terrace | {"across": [20, 59.5]}]})
+    cut = await session.expectSuccess("cutCave", room | {"floor": [terrace]})
+    vertices = (await session.expectSuccess("runPython", {"code": lining("room")}))["result"]
+    under = (await session.expectSuccess("runPython", {"code": "import bridgeCaves\nresult = [bridgeCaves.strokeUnder(x, 180, 5) for x in (57, 70)]"}))["result"]
+    return numbered, cut, vertices, under
+
+  numbered, cut, vertices, under = stageBlenderServer.session(steps)
+  # A numbered side cannot follow the widening wall; "wall" does.
+  assert "Floor stroke 'terrace' reaches" in numbered and "past its run's right wall" in numbered
+  assert cut["floorStrokes"][0]["across"] == [20.0, "wall"] and cut["floorStrokes"][0]["top"] == 5.0
+  vertices = numpy.array(vertices)
+  along, across, heights = vertices[:, 1] + 60, vertices[:, 0], vertices[:, 2]
+  # Between its left side and the wall nothing lies under its top: its floor points are at it and the wall rises from it, no trench.
+  reach = (along > 140 + 1) & (along < 260 - 1) & (across > 20 + 1e-3)
+  onTop = reach & (heights < 5 + 1e-3)
+  assert reach.sum() > 50 and heights[reach].min() >= 5 - 1e-4 and onTop.sum() >= 4 * 4
+  # A point on it beside the wall stands on it; one past the wall does not.
+  assert under == [{"object": "ground", "cave": "room", "run": "main", "stroke": "terrace", "kind": "pad", "height": 5.0}, None]
+
+
 def testRoughGroundStaysInsideItsOutlineAndBanksWhereAskedWithoutFolding(stageBlenderServer, tmp_path):
   banked = rubble | {"bank": 12, "material": "caveRock"}
   # On the room's straight line, finer than any cut: where the rubble's foot comes down past its outline's south side (y 120), on a line

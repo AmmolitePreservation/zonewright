@@ -17,7 +17,7 @@ import numpy
 import pytest
 from PIL import Image
 
-from conftest import StagedServer, pinnedBlender, serverRowValues, writePNG
+from conftest import StagedServer, pinnedBlender, serverRowValues, wholeResult, writePNG
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import buildTolerances
@@ -112,7 +112,7 @@ async def verified(session, path):
   texts = [content.text for content in result.content if content.type == "text"]
   assert result.is_error is False, texts
   pictures = [(base64.b64decode(content.data), content.mime_type) for content in result.content if content.type == "image"]
-  return pictures, json.loads(texts[-1])
+  return pictures, wholeResult(texts[-1])
 
 
 def byCheck(result):
@@ -592,7 +592,7 @@ def testVerifyExportListsArchiveRendersThatFailAndOpensTheWorkFileAgain(stageBle
   # Blender dies while it draws the archive: the other checks stand, the looks name why no view was compared, and the work file is open
   # again in a new Blender, as saved.
   assert len(killed) == 1 and result.is_error is False
-  verdict = json.loads([content.text for content in result.content if content.type == "text"][-1])
+  verdict = wholeResult([content.text for content in result.content if content.type == "text"][-1])
   assert verdict["failedChecks"] == ["looks"] and verdict["comparison"] == {"drawn": False, "why": "no view was compared"}
   told = byCheck(verdict)["looks"]["details"]
   assert told["views"] == [] and [failure["message"].split(";")[0] for failure in told["failures"]] == [

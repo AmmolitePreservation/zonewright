@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy
 from PIL import Image
 
+import clientModelBundle
 import eqgFiles
 import eqgWriter
 
@@ -29,10 +30,9 @@ def textureEntry(path):
   return os.path.splitext(name)[0] + ".dds", eqgWriter.ddsBytes(rgba)
 
 
-def zoneArchive(collected, bundle):
-  """The archive's bytes and what went into it: the scene's own terrain, models, and textures, and the client files bundle brings
-  (clientModelBundle.bundle). A copied file whose name one of ours already takes with other bytes is listed in bundleClashes, and the
-  copy is left out; the export refuses while any is listed."""
+def zoneArchive(collected, clientRoot):
+  """The archive's bytes, what went into it (the scene's own terrain, models, and textures, and the client files its client models
+  bring), and those client models' bundle (clientModelBundle.bundle, beside our files)."""
   zone = collected["zone"]
   if not eqgFiles.zoneNamePattern.match(zone):
     raise ValueError(f"Zone name '{zone}' is not a zone short name: {eqgFiles.zoneNameRule}")
@@ -85,16 +85,12 @@ def zoneArchive(collected, bundle):
   placements = [{"model": terrainFile, "name": f"TER_{zone}", "position": (0.0, 0.0, 0.0), "rotation": (0.0, 0.0, 0.0), "scale": 1.0}]
   placements += [{key: placement[key] for key in ("model", "name", "position", "rotation", "scale")} for placement in collected["placements"]]
   ownTextures = {name: hashlib.sha256(files[name]).hexdigest() for name in textureSources}
-  clashes = []
-  for name, data in bundle["files"].items():
-    if name in files and files[name] != data:
-      clashes.append({"failure": "client file shadows ours", "entry": name, "message": f"The client's {name}, which a placed client model brings, and ours of that name differ; the archive holds one file of a name: rename ours"})
-    else:
-      files[name] = data
+  bundle = clientModelBundle.bundle(clientRoot, collected["clientModels"], files)
+  files |= bundle["files"]
   placements += [{key: placement[key] for key in ("model", "name", "position", "rotation", "scale")} for placement in bundle["placements"]]
   files[f"{zone}.zon"] = eqgWriter.zoneBytes([terrainFile] + [entry["file"] for entry in collected["models"]] + bundle["zonModels"], placements, collected["regions"], collected["lights"])
   data = eqgWriter.archiveBytes(files)
-  return data, {
+  return data, bundle, {
     "zone": zone, "bytes": len(data), "terrainTriangles": len(collected["terrain"]["materials"]),
     "boundaryTriangles": sum(name is None for name in collected["terrain"]["materials"]),
     "modelTriangles": {entry["file"]: len(entry["materials"]) for entry in collected["models"]},
@@ -103,5 +99,5 @@ def zoneArchive(collected, bundle):
     "regions": [region["name"] for region in collected["regions"]],
     "textures": sorted(textureSources), "materials": sorted(materials), "ownTextures": ownTextures,
     "clientFiles": sorted(bundle["files"]), "clientPlacements": len(bundle["placements"]), "clientRowPieces": len(bundle["rowPieces"]),
-    "clientBytes": sum(len(data) for data in bundle["files"].values()), "bundleClashes": clashes,
+    "clientBytes": sum(len(data) for data in bundle["files"].values()),
   }

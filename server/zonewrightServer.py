@@ -57,6 +57,7 @@ import playerReach
 import playerScale
 import previewFrame
 import recastHelper
+import resultReports
 import serverMapFiles
 import serverNav
 import serverRows
@@ -129,12 +130,12 @@ def guardedTool(**options):
       @functools.wraps(function)
       async def guarded(*arguments, **keywordArguments):
         requireCurrentServerCode()
-        return await function(*arguments, **keywordArguments)
+        return resultReports.compactJSON(await function(*arguments, **keywordArguments))
     else:
       @functools.wraps(function)
       def guarded(*arguments, **keywordArguments):
         requireCurrentServerCode()
-        return function(*arguments, **keywordArguments)
+        return resultReports.compactJSON(function(*arguments, **keywordArguments))
     server.tool(**options)(guarded)
     refuseUnknownArguments(server._tool_manager.get_tool(options.get("name", function.__name__)))
     return guarded
@@ -154,6 +155,13 @@ async def runSync(context):
 
 async def callBridge(context, command, arguments):
   return await anyio.to_thread.run_sync(bridge.call, command, arguments, progressReporter(context))
+
+
+def reported(tool, result, compact):
+  """A large result's compact view (resultReports), naming the report file that holds it whole."""
+  if "report" in result:
+    raise ValueError(f"{tool}'s result already holds a report key")
+  return compact(result) | {"report": str(resultReports.writeReport(toolingRoot, tool, result))}
 
 
 # The live dumps record dark elf females at height 5, the race default.
@@ -1247,7 +1255,8 @@ async def placeSpawn(
 
 shipHelp = (
   " The placed model ships with the zone: exportZone copies the client's model and its textures into the zone's archive byte for byte"
-  " (an EQG .mod; a classic actor or a skinned model is refused there), and the piece stays the client's mesh, which tools move, turn,"
+  " (an EQG .mod; a classic actor or a skinned model is refused there; a texture whose name the archive already holds with other bytes is"
+  " stored as <its archive's stem>_<name>, and the model names that), and the piece stays the client's mesh, which tools move, turn,"
   " and scale but never edit. Not interactive, it is scenery placed by the zone file; interactive, it is a row of EQ's own doors or object"
   " table naming that copy, which the server sends the client, and never also scenery. result.ships says which."
 )
@@ -1692,11 +1701,12 @@ async def checkExport(context: Context, path: str, purpose: str):
   archivePath, zone = exportTarget(path)
   built, blendPath = await buildExport(context, zone, purpose)
   if purpose != "game":
-    return {"path": str(archivePath), "zone": zone} | exportReport(built["report"])
+    return reported("checkExport", {"path": str(archivePath), "zone": zone} | exportReport(built["report"]), resultReports.compactExport)
   folder = await anyio.to_thread.run_sync(clearCheckFolder, zone)
   if built["archive"] is not None:
     await writeExport(folder, built, blendPath, "checkExport")
-  return {"path": str(archivePath), "zone": zone} | exportReport(built["report"]) | {"checkFolder": str(folder), "serverFiles": exportPipeline.serverFilesReport(built, folder)}
+  checked = {"path": str(archivePath), "zone": zone} | exportReport(built["report"]) | {"checkFolder": str(folder), "serverFiles": exportPipeline.serverFilesReport(built, folder)}
+  return reported("checkExport", checked, resultReports.compactExport)
 
 
 @guardedTool(description=(
@@ -1763,8 +1773,10 @@ async def exportZone(context: Context, path: str, purpose: str):
     "housing": None if housing is None else {"role": housing["housing"]["role"], "plots": len(housing["plots"]), "file": str(sides["housing"]) if hasPlots else None, "assetList": str(sides["assetList"]) if hasPlots else None},
   }
   if purpose == "game":
-    return result | {"serverFiles": exportPipeline.serverFilesReport(built, folder), "zonePointsRecord": recorded, "clientEntry": built["clientEntry"]}
-  return result | {"serverFilesRemoved": written["removedServerFiles"]}
+    result |= {"serverFiles": exportPipeline.serverFilesReport(built, folder), "zonePointsRecord": recorded, "clientEntry": built["clientEntry"]}
+  else:
+    result |= {"serverFilesRemoved": written["removedServerFiles"]}
+  return reported("exportZone", result, resultReports.compactExport)
 
 
 async def sceneArchive(context, short, client):
@@ -1847,8 +1859,8 @@ async def renderPoses(context, poses, folder, prefix, exportedOnly, sky, figureM
   " in the zone, and under a landing in another zone the ground on that zone's client collision, where a miss is a finding, its"
   " underworld being unknown here; 9 clientModels, the zone standing alone: every .zon placement and every doors and object row"
   " naming a model the archive holds, every texture its models' drawn materials name in the archive or registered at startup (one the"
-  " manifest records missing for the client too aside), every client model the manifest records in the archive byte for byte and the"
-  " client's own entry unchanged, no interactive piece also a .zon placement at its place, and every object row where FindBestZ stands"
+  " manifest records missing for the client too aside), every client model the manifest records in the archive byte for byte (one naming"
+  " a texture stored under another name, the client's with only those names changed) and the client's own entry unchanged, no interactive piece also a .zon placement at its place, and every object row where FindBestZ stands"
   " it on the exported .map; 10 containment, the lane the server files give (seeded where the scene's entries stand, judged with"
   " its regions, plot entrances, and underworld) holding no leak a game export refuses, its reached area beside the manifest's; 11 looks,"
   " every review camera and the lane tour's eyes (viewFromLane's tour, chosen and kept if none is), their poses and where a view stood"
@@ -1975,11 +1987,11 @@ async def verifyExport(context: Context, path: str):
     sheets = await anyio.to_thread.run_sync(exportVerification.writeComparisonSheets, compared, sheetPaths)
     comparison = {"drawn": True, "views": len(compared), "shown": sum(len(sheet["views"]) for sheet in sheets), "sheets": sheets}
     pictures += [Image(data=path.read_bytes(), format="jpeg") for path in sheetPaths]
-  return pictures + [{
+  return pictures + [reported("verifyExport", {
     "path": str(archivePath), "zone": short, "passed": all(check["passed"] for check in checks),
     "failedChecks": [check["check"] for check in checks if not check["passed"]], "checks": checks, "tour": tourStatus, "renders": str(renders),
     "serverView": serverView, "comparison": comparison,
-  }]
+  }, resultReports.compactVerification)]
 
 
 def passArrays(passes):
@@ -2300,7 +2312,7 @@ async def measure(context: Context, points: list[list[float]], snapToSurface: bo
 async def walkRoute(
   context: Context, path: list[list[float]] | None = None, route: str | None = None, cave: dict | None = None, sampleSpacing: float = 4.0,
 ):
-  return await callBridge(context, "walkRoute", {"path": path, "route": route, "cave": cave, "sampleSpacing": sampleSpacing})
+  return reported("walkRoute", await callBridge(context, "walkRoute", {"path": path, "route": route, "cave": cave, "sampleSpacing": sampleSpacing}), resultReports.withoutWalkDetail)
 
 
 @guardedTool(description="Move the selected vertices of a mesh by `offset` [x, y, z] world units. With `falloff` {center, radius, curve: constant|linear|smooth|sharp} the move fades with distance from the center; this is the precise, fine-detail edit. With shaping passes, the move goes into the active pass." + caveShapingHelp + selectorHelp)
@@ -2394,7 +2406,9 @@ async def gradeRoute(
   legs close together is dressed into one straight bank from one's edge to the other's, and between legs further apart nothing is left
   standing above the higher of them, so no ridge or berm stands between a switchback's legs. Refused where one part's
   batter would reach another part's bench (legs too close for their difference in height), naming the spot and the separation needed;
-  where any of the bench lies under rock (a covered way is a cave); and where its batters would reach more than 600 out. The vertices
+  where any of the bench lies under rock (a covered way is a cave), but over a cave's own floor, where a route leads into its mouth and
+  the rock overhead is the mouth's; and where its batters would reach more than 600 out. The ground a cave hides under its floor (its
+  plug) keeps what the route's pass holds there, as the cave cuts that ground again to fit on every refit. The vertices
   nearest the bench's edges slide onto them, so the path's edges run as clean lines. The route goes into its own pass, "route <name>",
   which keeps its definition and takes no other shaping: grading it again under its name replaces it, rebuilt from the ground as it
   stands without that pass; removeShapingPass takes it back, definition and all. It is graded on the ground without any defined pass
@@ -2405,10 +2419,11 @@ async def gradeRoute(
   Returns each segment's grade, the landings, the deepest cut and highest fill, how far the batters reach, the centerline at its
   graded heights (for painting the path or walking it), and a walkRoute along that centerline. Look at it at eye height up and down
   each leg, from across the valley, and in sections across the legs; then paint the bench and its batters."""
-  return await callBridge(context, "gradeRoute", {
+  built = await callBridge(context, "gradeRoute", {
     "objectName": objectName, "name": name, "points": points, "width": width, "widths": widths, "maximumGradeDegrees": maximumGradeDegrees,
     "cutBatterDegrees": cutBatterDegrees, "fillBatterDegrees": fillBatterDegrees, "landingLength": landingLength,
   })
+  return reported("gradeRoute", built, resultReports.withoutWalkDetail)
 
 
 @guardedTool()
@@ -2421,9 +2436,12 @@ async def regradeTerrain(context: Context, objectName: str):
   A defined pass graded on the ground as the hand passes leave it takes back their work where it grades the ground (a facade's apron
   levels a mound sculpted on it): each replay names the hand passes it overrode there (overrodeHandWork: pass, vertices, largest
   offset). Then every cave (cutCave) whose ground moved since it was cut is cut again to fit it (refittedCaves, with how far its ground
-  had moved), and the faces a facade moved are box-mapped again. Whole or not at all: a refused refit leaves the mesh as it was. Reports
-  what each one moved, in order, and staleStructures: every structure (buildBridge, buildWall, ...) whose ground or kit changed since it
-  was laid, with why; editStructure lays each again."""
+  had moved), and the faces a facade moved are box-mapped again. A graded pass and a cave can each move ground the other stands on (a
+  route up to a cave's mouth, a ramp inside its reach), so while any is stale the round runs again, at most three rounds in all
+  (furtherRounds), and what still moves after the last is named (unsettled: the passes with their largest change, the caves with how far
+  and where their ground moved; null when all settled): move what fights out of the other's way. Whole or not at all: a refused refit
+  leaves the mesh as it was. Reports what each one moved, in order, and staleStructures: every structure (buildBridge, buildWall, ...)
+  whose ground or kit changed since it was laid, with why; editStructure lays each again."""
   return await callBridge(context, "regradeTerrain", {"objectName": objectName})
 
 
@@ -2446,7 +2464,8 @@ async def regradeTerrain(context: Context, objectName: str):
   " it leads up to a room, a landing where it turns."
   " `floor` strokes shape the floor by intent, each named, kept with the cave, and cut again with it ({kind, name, run, ...}; run \"main\""
   " or a branch's name; from and to are distances along the run or {\"point\": index}; across [left, right] is units from the run's middle,"
-  " negative to the left looking along it): level {from, to, across, material?} holds the floor exactly at the run's floor (a walking way"
+  " negative to the left looking along it, either side \"wall\" to run it to that side's wall in every row, however the run's width and"
+  " breakup move it, so a terrace meets the wall behind it): level {from, to, across, material?} holds the floor exactly at the run's floor (a walking way"
   " through rough ground, a plot's pad, a threshold), its ends rows of the tube and its sides floor points in every row, so its edges are"
   " straight lines; pad {from, to, across, top or rise (the other null), edge, material?} sets a level pad at a height (top) or over the"
   " run's floor at its middle (rise; negative sinks it), its sides running out over `edge` (0.5 a riser, more a slope) to what stands"
@@ -2528,7 +2547,10 @@ async def regradeTerrain(context: Context, objectName: str):
   " its opening for a portal piece: {center (the floor's middle where it leaves the parent's walls), facingDegrees (back into the parent),"
   " width, height}), each run's ends, the lights anchored on it placed again (anchoredLights), and the floor's level stretches (start, end, length, height, narrowest width: a stretch about"
   " 220 wide and long holds a stock player plot). The cave is kept with its definition: the ground within its reach is fingerprinted, getObjectDetail and exports flag it"
-  " stale once that ground moves, and editCave or regradeTerrain cuts it again to fit. Around a cave, shaping leaves its lining where it"
+  " stale once that ground moves, and editCave or regradeTerrain cuts it again to fit. A cut, editCave, and a grading on a"
+  " mesh holding caves (gradeRoute, gradePlot, editPlot, removePlot) settle what they leave stale as regradeTerrain does (settled: its"
+  " rounds and what is still unsettled; or, where a replay or a refit refuses, refused with the stale passes and caves, left as the change"
+  " left them). Around a cave, shaping leaves its lining where it"
   " is (results count caveLiningLeft) and keeps its ring on the ground; strokes never slide its vertices sideways; contour cuts, turned"
   " diagonals, and face edits refuse or keep clear of it (removeCave, change, cutCave with the definition it returned); surface tools"
   " leave its lining out unless their selector names it ({\"cave\": name}), and paint that reaches its lining is kept with it and painted"
@@ -2549,7 +2571,7 @@ async def cutCave(
     "landings": landings, "daylight": daylight, "branches": branches, "floor": floor, "minimumRock": minimumRock,
   })
   image, profile = await caveProfile(cut.pop("profileCuts"))
-  return [image, cut | {"profile": profile}]
+  return [image, reported("cutCave", cut | {"profile": profile}, resultReports.compactCut)]
 
 
 @guardedTool()
@@ -2569,7 +2591,7 @@ async def editCave(context: Context, objectName: str, name: str, changes: dict |
   what taking it back restored, and what the new cut made."""
   edited = await callBridge(context, "editCave", {"objectName": objectName, "name": name, "changes": changes})
   image, profile = await caveProfile(edited.pop("profileCuts"))
-  return [image, edited | {"profile": profile}]
+  return [image, reported("editCave", edited | {"profile": profile}, resultReports.compactEditedCave)]
 
 
 @guardedTool()
@@ -2716,7 +2738,12 @@ async def bevelEdges(context: Context, objectName: str, selector: dict, width: f
   return await callBridge(context, "bevelEdges", {"objectName": objectName, "selector": selector, "width": width, "segments": segments, "minimumAngleDegrees": minimumAngleDegrees})
 
 
-@guardedTool(description="Subdivide the selected faces of a mesh with `cuts` cuts per edge, adding detail where it is needed." + caveFacesHelp + selectorHelp)
+@guardedTool(description=(
+  "Subdivide the selected faces of a mesh with `cuts` cuts per edge, adding detail where it is needed (coarse ground that folds where"
+  " it is shaped). Every shaping pass keeps its shape: each pass is subdivided as the mesh is. On a mesh holding caves each is taken back"
+  " first and cut again after from its definition and strokes (recutCaves), and the graded passes and caves the new faces leave stale"
+  " are settled as regradeTerrain settles them (settled: its rounds and what is still unsettled); whole or not at all." + selectorHelp
+))
 async def subdivide(context: Context, objectName: str, cuts: int, selector: dict = allSelector):
   return await callBridge(context, "subdivide", {"objectName": objectName, "selector": selector, "cuts": cuts})
 
@@ -3509,7 +3536,7 @@ async def renderSection(
     "zoneLines": cuts["zoneLines"],
     "caves": [sectionCave(entry) for entry in cuts["caves"]],
   } | ({} if laneState is None else {"laneState": laneState})
-  return [Image(data=outputPath.read_bytes(), format="png"), summary]
+  return [Image(data=outputPath.read_bytes(), format="png"), reported("renderSection", summary, resultReports.compactSection)]
 
 
 async def drawnSection(context, line, layers, marks=None, traced=None, bodyGroup=None):
@@ -4696,10 +4723,11 @@ async def buildBridge(
   maximumDeckDegrees: float = 30.0, collection: str = "structures",
 ):
   requireKitPath(kitPath)
-  return await callBridge(context, "buildBridge", {
+  built = await callBridge(context, "buildBridge", {
     "name": name, "kitPath": kitPath, "start": start, "end": end, "width": width, "deck": deck, "profile": profile, "posts": posts, "rails": rails,
     "stringers": stringers, "bents": bents, "sink": sink, "maximumDeckDegrees": maximumDeckDegrees, "collection": collection,
   })
+  return reported("buildBridge", built, resultReports.compactStructure)
 
 
 @guardedTool(description=(
@@ -4723,10 +4751,11 @@ async def buildStairs(
   stringers: str | None = None, posts: dict | None = None, rails: dict | None = None, sink: float = 2.0, collection: str = "structures",
 ):
   requireKitPath(kitPath)
-  return await callBridge(context, "buildStairs", {
+  built = await callBridge(context, "buildStairs", {
     "name": name, "kitPath": kitPath, "bottom": bottom, "top": top, "width": width, "tread": tread, "riser": riser, "stringers": stringers,
     "posts": posts, "rails": rails, "sink": sink, "collection": collection,
   })
+  return reported("buildStairs", built, resultReports.compactStructure)
 
 
 @guardedTool(description=(
@@ -4759,11 +4788,12 @@ async def buildWalkway(
   stringers: str | None = None, sink: float = 2.0, maximumGradeDegrees: float = 15.0, collection: str = "structures",
 ):
   requireKitPath(kitPath)
-  return await callBridge(context, "buildWalkway", {
+  built = await callBridge(context, "buildWalkway", {
     "name": name, "kitPath": kitPath, "points": points, "width": width, "deck": deck, "treads": treads, "stairLegs": stairLegs, "riser": riser,
     "posts": posts, "brackets": brackets, "rails": rails, "stringers": stringers, "sink": sink, "maximumGradeDegrees": maximumGradeDegrees,
     "collection": collection,
   })
+  return reported("buildWalkway", built, resultReports.compactStructure)
 
 
 @guardedTool(description=(
@@ -4800,10 +4830,11 @@ async def buildWall(
   collection: str = "structures",
 ):
   requireKitPath(kitPath)
-  return await callBridge(context, "buildWall", {
+  built = await callBridge(context, "buildWall", {
     "name": name, "kitPath": kitPath, "path": path, "frontSide": frontSide, "sections": sections, "follow": follow, "shearStep": shearStep,
     "sink": sink, "maximumBurial": maximumBurial, "posts": posts, "variants": variants, "collection": collection,
   })
+  return reported("buildWall", built, resultReports.compactStructure)
 
 
 @guardedTool()
@@ -4817,7 +4848,8 @@ async def editStructure(context: Context, name: str, changes: dict | None = None
   refuses, the structure staying exactly as it was."""
   if changes is not None and "kitPath" in changes:
     requireKitPath(changes["kitPath"])
-  return await callBridge(context, "editStructure", {"name": name, "changes": changes})
+  built = await callBridge(context, "editStructure", {"name": name, "changes": changes})
+  return reported("editStructure", built, resultReports.compactStructure)
 
 
 @guardedTool()

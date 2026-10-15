@@ -16,6 +16,8 @@ async def surfaceHeights(session, points):
 
 def testPassesAreAdjustedRemovedAndCollapsedWithoutRedoingOthers(stageBlenderServer):
   hilltop, dipCenter = (0, 0), (16, 16)
+  # Midpoints of the grid's edges, where a cut adds a vertex: on the hill's and the dip's slopes.
+  edgePoints = [(4, 0), (0, 12), (12, 16), (16, 20), (4, 8)]
 
   async def steps(session):
     await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
@@ -35,16 +37,23 @@ def testPassesAreAdjustedRemovedAndCollapsedWithoutRedoingOthers(stageBlenderSer
     await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "dip"})
     await session.expectSuccess("sculptAtPoint", {"objectName": "ground", "mode": "lower", "center": [16, 16, 0], "radius": 10, "strength": 4, "direction": [0, 0, 1]})
     both = await surfaceHeights(session, [hilltop, dipCenter])
-    faceChange = await session.expectError("subdivide", {"objectName": "ground", "selector": {"all": True}, "cuts": 1})
+    faceChange = await session.expectError("deleteFaces", {"objectName": "ground", "selector": {"box": {"minimum": [24, 24, -10], "maximum": [32, 32, 10]}}})
+    onEdges = await surfaceHeights(session, edgePoints)
+    split = await session.expectSuccess("subdivide", {"objectName": "ground", "selector": {"all": True}, "cuts": 1})
+    splitDetail = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    onEdgesSplit = await surfaceHeights(session, edgePoints)
     removed = await session.expectSuccess("removeShapingPass", {"objectName": "ground", "name": "hill"})
     withoutHill = await surfaceHeights(session, [hilltop, dipCenter])
     collapsed = await session.expectSuccess("collapseShapingPasses", {"objectName": "ground"})
     afterCollapse = await surfaceHeights(session, [hilltop, dipCenter])
     detail = await session.expectSuccess("getObjectDetail", {"name": "ground"})
     subdivided = await session.expectSuccess("subdivide", {"objectName": "ground", "selector": {"all": True}, "cuts": 1})
-    return added, full, half, raisedAtHalf, muted, mutedWrite, both, faceChange, removed, withoutHill, collapsed, afterCollapse, detail, subdivided
+    return added, full, half, raisedAtHalf, muted, mutedWrite, both, faceChange, onEdges, split, splitDetail, onEdgesSplit, removed, withoutHill, collapsed, afterCollapse, detail, subdivided
 
-  (added, full, half, raisedAtHalf, muted, mutedWrite, both, faceChange, removed, withoutHill, collapsed, afterCollapse, detail, subdivided) = stageBlenderServer.session(steps)
+  (
+    added, full, half, raisedAtHalf, muted, mutedWrite, both, faceChange, onEdges, split, splitDetail, onEdgesSplit, removed, withoutHill, collapsed,
+    afterCollapse, detail, subdivided,
+  ) = stageBlenderServer.session(steps)
   assert added["passes"] == [{"name": "hill", "strength": 1.0, "muted": False, "active": True}]
   assert full == [10.0] and half == [5.0]
   # The hill now holds 10 + 2 / 0.5 = 14 units: 7 at half strength, as seen after the raise.
@@ -54,6 +63,11 @@ def testPassesAreAdjustedRemovedAndCollapsedWithoutRedoingOthers(stageBlenderSer
   # The dip lies outside the hill's reach and the hill outside the dip's.
   assert both == [14.0, -4.0]
   assert "collapse them (collapseShapingPasses)" in faceChange
+  # Subdividing keeps both passes: each new vertex lies between the two it splits in every pass, so along the old edges nothing moves,
+  # and removing a pass afterwards still takes back exactly its own work.
+  assert split["subdividedFaces"] == 64 and split["faces"] == 256 and split["recutCaves"] == []
+  assert [(entry["name"], entry["strength"]) for entry in splitDetail["shapingPasses"]] == [("hill", 1.0), ("dip", 1.0)]
+  assert onEdgesSplit == onEdges and len(set(onEdges)) > 2
   assert removed["passes"] == [{"name": "dip", "strength": 1.0, "muted": False, "active": True}]
   assert withoutHill == [0.0, -4.0]
   assert collapsed["collapsed"] == ["dip"] and afterCollapse == [0.0, -4.0]

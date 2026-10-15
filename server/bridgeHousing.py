@@ -518,7 +518,8 @@ def editPlot(address, newAddress, kind, center, facingDegrees, size, height, ite
   graded = {}
   if plans:
     applied = [bridgeGrading.applyPlots(plan) for plan in plans]
-    graded = {"grading": applied[-1][0] | padSummary(applied[-1][1], name) | ({"formerGround": applied[0][0]} if len(plans) > 1 else {})}
+    settled = bridgeGrading.settledAfter(plans[-1]["object"])
+    graded = {"grading": applied[-1][0] | padSummary(applied[-1][1], name) | ({"formerGround": applied[0][0]} if len(plans) > 1 else {}) | settled}
   return plotRecord(plot, housing) | ({"border": border} if border else {}) | {"overlaps": overlapsOf(plot)} | graded
 
 
@@ -549,7 +550,7 @@ def removePlot(address, keepGrading):
   guide = plot.data
   bpy.data.objects.remove(plot)
   bpy.data.meshes.remove(guide)
-  return {"removed": removed, "grading": None if plan is None else bridgeGrading.applyPlots(plan)[0]}
+  return {"removed": removed, "grading": None if plan is None else bridgeGrading.applyPlots(plan)[0] | bridgeGrading.settledAfter(plan["object"])}
 
 
 def gradePassName(address):
@@ -811,7 +812,7 @@ def gradePlot(address, objectName, margin, batterDegrees):
   setGrading(plot, sceneObject, margin, batterDegrees)
   formerGround = {} if former is None else {"formerGround": bridgeGrading.applyPlots(former)[0]}
   outcome, written = bridgeGrading.applyPlots(plan)
-  return {"plot": address} | padSummary(written, address) | outcome | formerGround
+  return {"plot": address} | padSummary(written, address) | outcome | bridgeGrading.settledAfter(sceneObject) | formerGround
 
 
 # Judging a plot

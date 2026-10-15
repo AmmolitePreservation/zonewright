@@ -25,7 +25,7 @@ Work from the catalog (`docs/assetCatalog.md`), not from guesses about file name
 
 ## Placing client models
 
-A client model placed with `placeObject` or `placeDoor` ships with the zone: the export copies its model and textures into the zone's archive byte for byte (README, Client models in a zone), so pick models for what they are, not for where they live.
+A client model placed with `placeObject` or `placeDoor` ships with the zone: the export copies its model and textures into the zone's archive byte for byte, storing a texture whose name is already taken under its source zone's name (README, Client models in a zone), so pick models for what they are, not for where they live.
 
 - Find them by need: `findAssets` with `kind` `model`, `categories`, `tags`, and `text`, across client zones and object archives (`source` names a zone or an archive such as `crystals.eqg`). Look before placing: `viewModels` with `views`.
 - Place by the catalog's measured use: its `size` against the 6-unit player, its `origin` (a `base` model stands on the ground at its origin; a `wallBack` one hangs on a wall), the scale range and how it `sits` in the client's zones, and what it stands `beside`.

@@ -1,12 +1,16 @@
 """The client models a zone uses, copied into its archive. Every client model the scene places to ship (bridgeExport's clientModels:
 scenery and interactive pieces alike) goes into the archive byte for byte, once, with the textures its drawn materials name, each taken
-from the archives the client loads it with (its own first) and recorded with its archive and SHA-256. Scenery is placed by the .zon;
-an interactive piece is a doors or object row naming the copy (pieceRows), never also a .zon placement. What cannot be copied
-faithfully is refused: a classic actor, a skinned model (its animations are not bundled), a client entry patched since it was placed,
-and two different models or textures under one name; a texture no archive the client loads it with holds is missing for the client too
-and is listed."""
+from the archives the client loads it with (its own first) and recorded with its archive and SHA-256. A texture whose name the archive
+already holds with other bytes (one of ours, or another copy's) is stored under its archive's name before its own
+(storedTextureName), and the models naming it name that instead (withTexturesRenamed), their other bytes as the client ships them.
+Scenery is placed by the .zon; an interactive piece is a doors or object row naming the copy (pieceRows), never also a .zon placement.
+What cannot be copied faithfully is refused: a classic actor, a skinned model (its animations are not bundled), a client entry patched
+since it was placed, two different models under one name, and a texture under a name the startup archives register (the client draws
+that one, whatever the archive holds) or whose stored name is taken too; a texture no archive the client loads it with holds is missing
+for the client too and is listed."""
 import collections
 import hashlib
+import struct
 
 import clientModelRows
 import eqArchive
@@ -47,24 +51,94 @@ def failure(kind, message, **fields):
   return {"failure": kind} | fields | {"message": message}
 
 
-def bundle(clientRoot, clientModels):
-  """The archive entries the scene's client models bring and what they are: {files: name to bytes, zonModels: the entries the .zon
-  names, placements: the scenery's .zon placements, rowPieces: the interactive pieces, copies: the manifest's records (each model with
-  its archive, SHA-256, size, placements, rows, and textures), failures, findings}."""
-  files, sources, copies, failures, findings = {}, {}, {}, [], []
+def storedTextureName(name, archive):
+  """The name a copied texture is stored under where its own is taken: its archive's stem before it (crescent.eqg's av_wood01a_c.dds
+  as crescent_av_wood01a_c.dds)."""
+  return f"{archive.rsplit('.', 1)[0]}_{name}"
+
+
+def withTexturesRenamed(modelBytes, renames, sourceName):
+  """An EQGM model's bytes with the textures its materials' properties name renamed ({name: new name}, lowercase): the new names
+  appended to its string table and the properties that named the old ones pointed at them; every other byte as it was."""
+  if modelBytes[:4] != b"EQGM":
+    raise ValueError(f"{sourceName}: magic {modelBytes[:4]!r} is not EQGM")
+  version, stringLength, materialCount = struct.unpack_from("<3I", modelBytes, 4)
+  if version not in eqgFiles.supportedModelVersions:
+    raise ValueError(f"{sourceName}: model version {version} is not supported (only {eqgFiles.supportedModelVersions})")
+  tableStart = 28
+  stringTable = modelBytes[tableStart:tableStart + stringLength]
+  added, offsets = bytearray(), {}
+  for name, newName in renames.items():
+    offsets[name] = stringLength + len(added)
+    added += newName.encode("ascii") + b"\0"
+  patched = bytearray(modelBytes[:tableStart + stringLength]) + added + modelBytes[tableStart + stringLength:]
+  struct.pack_into("<I", patched, 8, stringLength + len(added))
+  position, renamed = tableStart + stringLength + len(added), set()
+  for _ in range(materialCount):
+    (propertyCount,) = struct.unpack_from("<I", patched, position + 12)
+    position += 16
+    for _ in range(propertyCount):
+      propertyType, value = struct.unpack_from("<II", patched, position + 4)
+      name = eqgFiles.readString(stringTable, value).lower() if propertyType == 2 else None
+      if name in offsets:
+        struct.pack_into("<I", patched, position + 8, offsets[name])
+        renamed.add(name)
+      position += 12
+  if renamed != set(renames):
+    raise ValueError(f"{sourceName}: no material names {sorted(set(renames) - renamed)}")
+  return bytes(patched)
+
+
+def bundle(clientRoot, clientModels, taken):
+  """The archive entries the scene's client models bring beside ours (taken: name to bytes) and what they are: {files: name to bytes,
+  zonModels: the entries the .zon names, placements: the scenery's .zon placements, rowPieces: the interactive pieces, copies: the
+  manifest's records (each model with its archive, the client's SHA-256, size, placements, rows, its textures as stored, and where it
+  names one stored under another name, renamedTextures and the stored model's storedSha256), failures, findings}."""
+  files, sources, originals, storedAs, copies, failures, findings = {}, {}, {}, {}, {}, [], []
   archives = {}
+  startup = startupTextures(clientRoot)
 
   def archiveOf(name):
     if name not in archives:
       archives[name] = eqArchive.EQArchive(clientRoot / name)
     return archives[name]
 
-  def take(name, data, source, objectName):
-    if name in files and files[name] != data:
-      failures.append(failure("two client files under one name", f"{name} would hold both {sources[name]} and {source} (different bytes), placed by '{objectName}'; the archive holds one file of a name", entry=name, sources=[sources[name], source]))
+  def holding(name):
+    return taken[name] if name in taken else files.get(name)
+
+  def clash(name, source, objectName):
+    holder = "ours" if name in taken else sources[name]
+    failures.append(failure("two files under one name", f"{name} would hold both {holder} and {source} (different bytes), placed by '{objectName}'; the archive holds one file of a name", entry=name, sources=[holder, source]))
+
+  def takeModel(name, data, source, objectName):
+    held = taken[name] if name in taken else originals.get(name)
+    if held is not None and held != data:
+      clash(name, source, objectName)
       return False
-    files[name], sources[name] = data, source
+    files[name], originals[name], sources[name] = data, data, source
     return True
+
+  def takeTexture(name, data, holder, objectName):
+    """The name the texture is stored under, or None where it cannot be."""
+    source = f"{holder}:{name}"
+    held = holding(name)
+    if held is None or held == data:
+      if name not in taken:
+        files[name], sources[name] = data, sources.get(name, source)
+      return name
+    digest = hashlib.sha256(data).hexdigest()
+    if (name, digest) in storedAs:
+      return storedAs[(name, digest)]
+    if name in startup:
+      clash(name, source, objectName)
+      return None
+    stored = storedTextureName(name, holder)
+    held = holding(stored)
+    if held is not None and held != data:
+      clash(stored, source, objectName)
+      return None
+    files[stored], sources[stored], storedAs[(name, digest)] = data, source, stored
+    return stored
 
   bundled = []
   for piece in sorted(clientModels, key=lambda found: found["object"]):
@@ -80,7 +154,7 @@ def bundle(clientRoot, clientModels):
       failures.append(failure("client model not copied", f"'{piece['object']}': {record['archive']}:{record['entry']} is skinned; its animations are not copied, so the zone would draw it otherwise", object=piece["object"]))
       continue
     entry = record["entry"]
-    if not take(entry, data, f"{record['archive']}:{entry}", piece["object"]):
+    if not takeModel(entry, data, f"{record['archive']}:{entry}", piece["object"]):
       continue
     bundled.append(piece)
     copy = copies.setdefault(entry, {"entry": entry, "archive": record["archive"], "sha256": record["sha256"], "bytes": len(data), "placements": 0, "rows": 0, "textures": [], "missingTextures": []})
@@ -94,8 +168,15 @@ def bundle(clientRoot, clientModels):
         copy["missingTextures"].append(textureName)
         continue
       textureData = archiveOf(holder).read(textureName)
-      if take(textureName, textureData, f"{holder}:{textureName}", piece["object"]):
-        copy["textures"].append({"name": textureName, "archive": holder, "sha256": hashlib.sha256(textureData).hexdigest(), "bytes": len(textureData)})
+      stored = takeTexture(textureName, textureData, holder, piece["object"])
+      if stored is None:
+        continue
+      copy["textures"].append({"name": stored, "archive": holder, "sha256": hashlib.sha256(textureData).hexdigest(), "bytes": len(textureData)})
+      if stored != textureName:
+        copy.setdefault("renamedTextures", {})[textureName] = stored
+    if "renamedTextures" in copy:
+      files[entry] = withTexturesRenamed(data, copy["renamedTextures"], entry)
+      copy["storedSha256"] = hashlib.sha256(files[entry]).hexdigest()
   counts = collections.Counter()
   placements = []
   for piece in bundled:
@@ -104,7 +185,6 @@ def bundle(clientRoot, clientModels):
     actor = piece["model"]["actor"]
     counts[actor] += 1
     placements.append({"model": piece["model"]["entry"], "name": f"{actor}{counts[actor]:02d}", "object": piece["object"], "position": piece["position"], "rotation": piece["rotation"], "scale": piece["scale"]})
-  startup = startupTextures(clientRoot)
   for copy in copies.values():
     for texture in copy["textures"]:
       registered = startup.get(texture["name"])

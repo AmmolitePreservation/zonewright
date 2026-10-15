@@ -32,10 +32,18 @@ def testWalkRouteCrossesADeckAndFindsDropsAndLowCeilings(stageBlenderServer):
     across = await session.expectSuccess("walkRoute", {"path": [[-150, 0, 0], [150, 0, 0]]})
     beside = await session.expectSuccess("walkRoute", {"path": [[-150, 40, 0], [150, 40, 0]]})
     under = await session.expectSuccess("walkRoute", {"path": [[-190, 70, 0], [-100, 70, 0]]})
-    return across, beside, under
+    raw, _ = await session.call("walkRoute", {"path": [[-190, 70, 0], [-100, 70, 0]]})
+    return across, beside, under, raw
 
-  results = stageBlenderServer.session(steps)
+  *results, raw = stageBlenderServer.session(steps)
   across, beside, under = (walkOf(result) for result in results)
+  # The result comes back as unindented JSON without the groups' measures and profiles; the report file it names holds it whole.
+  assert "\n" not in raw.content[0].text
+  inline = results[0].inline
+  assert Path(inline["report"]).parent == stageBlenderServer.toolingRoot / "reports" / "walkRoute"
+  assert "measures" not in inline and all("profile" not in group for group in inline["groups"].values())
+  assert inline["groups"]["medium"] == {key: value for key, value in across.items() if key != "profile"}
+  assert sorted(results[0]["measures"]) == sorted(playerScale.groupNames) and across["profile"][0]["distance"] == 0.0
   # Every group walks the deck; the ledge's 5 of headroom stops even the small group's 5.22, a failure where every group is built for.
   assert results[0]["verdict"] == "passes" and results[0]["passingGroups"] == list(playerScale.groupNames)
   assert results[2]["verdict"] == "fails" and results[2]["passingGroups"] == []

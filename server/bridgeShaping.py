@@ -618,17 +618,41 @@ def bevelEdges(objectName, selector, width, segments, minimumAngleDegrees):
   return {"beveledEdges": len(edges)} | bridgeMeshAccess.meshCounts(sceneObject)
 
 
-def subdivide(objectName, selector, cuts):
+def splitEdges(meshEditor, edgeIndices, cuts):
+  meshEditor.edges.ensure_lookup_table()
+  bmesh.ops.subdivide_edges(meshEditor, edges=[meshEditor.edges[index] for index in edgeIndices], cuts=cuts, use_grid_fill=True)
+  meshEditor.verts.ensure_lookup_table()
+
+
+def subdivideFaces(sceneObject, selector, cuts):
+  """Subdivide the selected faces of a mesh holding no caves, every shaping pass with them: each pass's shape is subdivided as the mesh
+  is (bmesh carries a pass to the vertices it adds inside a face from one corner, not between them), so every pass keeps its shape."""
   if cuts < 1:
     raise ValueError(f"cuts must be at least 1, got {cuts}")
-  sceneObject = bridgeMeshAccess.requireEditableMesh(objectName, "subdivide")
+  bridgeCaveData.requireNoCaves(sceneObject, "subdivide it")
   meshEditor = bridgeMeshAccess.loadBMesh(sceneObject)
   faces, _ = selectedFaces(meshEditor, sceneObject, selector)
   # Sets of mesh elements iterate in memory order, which changes from run to run; index order keeps the result the same.
-  edges = sorted({edge for face in faces for edge in face.edges}, key=lambda edge: edge.index)
-  bmesh.ops.subdivide_edges(meshEditor, edges=edges, cuts=cuts, use_grid_fill=True)
-  bridgeMeshAccess.storeBMesh(meshEditor, sceneObject)
-  return {"subdividedFaces": len(faces)} | bridgeMeshAccess.meshCounts(sceneObject)
+  edgeIndices = sorted({edge.index for face in faces for edge in face.edges})
+  originalCount = len(meshEditor.verts)
+  shapes = {}
+  for name, layer in meshEditor.verts.layers.shape.items():
+    shaped = meshEditor.copy()
+    shapedLayer = shaped.verts.layers.shape[name]
+    for vertex in shaped.verts:
+      vertex.co = vertex[shapedLayer]
+    splitEdges(shaped, edgeIndices, cuts)
+    shapes[name] = [vertex.co.copy() for vertex in shaped.verts]
+    shaped.free()
+  splitEdges(meshEditor, edgeIndices, cuts)
+  for name, layer in meshEditor.verts.layers.shape.items():
+    positions = shapes[name]
+    if len(positions) != len(meshEditor.verts) or any((positions[index] - meshEditor.verts[index][layer]).length > 1e-5 for index in range(originalCount)):
+      raise ValueError(f"Subdividing pass '{name}' of '{sceneObject.name}' did not split as the mesh did; nothing was changed")
+    for vertex, position in zip(meshEditor.verts, positions):
+      vertex[layer] = position
+  bridgeMeshAccess.storeSplitBMesh(meshEditor, sceneObject)
+  return {"subdividedFaces": len(faces)}
 
 
 def applyModifier(sceneObject, modifier):
@@ -1219,7 +1243,6 @@ commands = {
   "extrudeFaces": (extrudeFaces, True),
   "insetFaces": (insetFaces, True),
   "bevelEdges": (bevelEdges, True),
-  "subdivide": (subdivide, True),
   "booleanCut": (booleanCut, True),
   "decimate": (decimate, True),
   "cleanupMesh": (cleanupMesh, True),
