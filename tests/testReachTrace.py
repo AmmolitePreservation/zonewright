@@ -385,6 +385,8 @@ def testRenderViewTintsReachedFloor(stageBlenderServer, tmp_path):
   Image.open(io.BytesIO(lookingImage)).save(tmp_path / "laneTint.png")
   Image.open(io.BytesIO(lanedImage)).save(tmp_path / "laneTintMap.png")
   assert "laneState" not in plain and laned["laneState"]["lane"] in ("computed", "reused")
+  # The lane's state comes back without the lane's terms, which the report holds.
+  assert sorted(laned.inline["laneState"]) == ["bodyGroup", "lane", "laneFile", "seconds"] and laned["laneState"]["notModeled"] == playerReach.notModeled
   # The lane's view carries a legend band under the render, naming the labels it tints.
   lanedPicture, plainPicture = Image.open(io.BytesIO(lanedImage)), Image.open(io.BytesIO(plainImage))
   assert lanedPicture.width == plainPicture.width and lanedPicture.height > plainPicture.height == laned["height"]
@@ -456,6 +458,9 @@ def testSectionDrawsTheLane(stageBlenderServer, tmp_path):
   cut = json.loads(Path(laned["laneState"]["laneCut"]).read_text())
   assert cut["group"] == laned["laneState"]["bodyGroup"] == "large"
   assert laned["laneState"]["counts"] == {kind: len(marks) for kind, marks in cut.items() if kind != "group"}
+  # The lane's state comes back without the lane's terms, which the report holds.
+  assert sorted(laned.inline["laneState"]) == ["bodyGroup", "counts", "lane", "laneCut", "seconds"]
+  assert laned["laneState"]["notModeled"] == playerReach.notModeled and sorted(laned["laneState"]) == sorted([*laned.inline["laneState"], "constants", "limits", "notModeled"])
 
   def bar(z, label, s0, s1):
     """The bar at height z of a label spanning s0 to s1 along the line, columns centered on whole units."""

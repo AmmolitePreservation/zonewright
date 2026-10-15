@@ -1193,10 +1193,10 @@ def stripAlong(sceneObject, positions, faces, chainVertices, nearestAlong, loopL
   if loopLength is None:
     # Nothing holds the vertices square off an open border's end along it, so spanned harmonically they drift back toward the border
     # and squeeze the strip's last faces; kept at their nearest points, a straight strip maps evenly to its end.
-    return harmonicValues(first, second, weights, nearestAlong, free & ~squareOffEnds(positions, chainVertices, nearestAlong), failure)
+    return bridgeShaping.harmonicValues(first, second, weights, nearestAlong, free & ~squareOffEnds(positions, chainVertices, nearestAlong), relaxTolerance, failure)
   turns = 2 * math.pi * nearestAlong / loopLength
-  across = harmonicValues(first, second, weights, numpy.cos(turns), free, failure)
-  upward = harmonicValues(first, second, weights, numpy.sin(turns), free, failure)
+  across = bridgeShaping.harmonicValues(first, second, weights, numpy.cos(turns), free, relaxTolerance, failure)
+  upward = bridgeShaping.harmonicValues(first, second, weights, numpy.sin(turns), free, relaxTolerance, failure)
   return numpy.mod(numpy.arctan2(upward, across), 2 * math.pi) * loopLength / (2 * math.pi)
 
 
@@ -1297,52 +1297,13 @@ def cotangentWeights(sceneObject, points, faces):
   return numpy.concatenate(firsts), numpy.concatenate(seconds), numpy.concatenate(weights)
 
 
-def harmonicValues(first, second, weights, values, free, failure):
-  """Values for the free vertices spanning smoothly between the fixed ones (the discrete Laplace equation), by conjugate gradients."""
-  values = values.copy()
-  freeIndices = numpy.flatnonzero(free)
-  local = numpy.full(len(values), -1)
-  local[freeIndices] = numpy.arange(len(freeIndices))
-  degrees = (numpy.bincount(first, weights=weights, minlength=len(values)) + numpy.bincount(second, weights=weights, minlength=len(values)))[freeIndices]
-  knowns = numpy.zeros(len(freeIndices))
-  for this, other in ((first, second), (second, first)):
-    toFixed = free[this] & ~free[other]
-    numpy.add.at(knowns, local[this[toFixed]], weights[toFixed] * values[other[toFixed]])
-  inner = free[first] & free[second]
-  innerFirst, innerSecond, innerWeights = local[first[inner]], local[second[inner]], weights[inner]
-
-  def laplacian(unknowns):
-    result = degrees * unknowns
-    numpy.subtract.at(result, innerFirst, innerWeights * unknowns[innerSecond])
-    numpy.subtract.at(result, innerSecond, innerWeights * unknowns[innerFirst])
-    return result
-
-  solution = values[freeIndices]
-  residual = knowns - laplacian(solution)
-  direction = residual.copy()
-  squared = float(residual @ residual)
-  target = relaxTolerance * max(float(knowns @ knowns), 1.0)
-  for _ in range(4 * len(freeIndices) + 100):
-    if squared <= target:
-      values[freeIndices] = solution
-      return values
-    stepped = laplacian(direction)
-    step = squared / float(direction @ stepped)
-    solution = solution + step * direction
-    residual = residual - step * stepped
-    nextSquared = float(residual @ residual)
-    direction = residual + (nextSquared / squared) * direction
-    squared = nextSquared
-  raise ValueError(failure)
-
-
 def relaxedHeights(sceneObject, plan, heights, free):
   """Heights for the free vertices spanning smoothly between the fixed ones over the mesh's triangles laid out in plan."""
   first, second, weights = cotangentWeights(sceneObject, numpy.column_stack([plan, numpy.zeros(len(plan))]), numpy.ones(len(sceneObject.data.polygons), dtype=bool))
   degrees = numpy.bincount(first, weights=weights, minlength=len(heights)) + numpy.bincount(second, weights=weights, minlength=len(heights))
   if (degrees[free] <= 0).any():
     raise ValueError("The selection holds vertices with no ground around them in plan to take a height from")
-  return harmonicValues(first, second, weights, heights, free, "The rebuilt heights did not settle; every part of the selection must touch ground outside it to take heights from")
+  return bridgeShaping.harmonicValues(first, second, weights, heights, free, relaxTolerance, "The rebuilt heights did not settle; every part of the selection must touch ground outside it to take heights from")
 
 
 def rebuildRegion(objectName, selector, mode, height, fadeDistance):

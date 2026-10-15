@@ -342,7 +342,8 @@ def bridgeWalkLine(definition):
   return Profile(numpy.array(definition["start"]), numpy.array(definition["end"]), bulge).line().tolist()
 
 
-def bridgeViewSet(definition, groundHeight):
+def bridgeViewSet(record, groundHeight):
+  definition = record["definition"]
   bulge, _ = profileBulge(definition["profile"])
   start, end = numpy.array(definition["start"]), numpy.array(definition["end"])
   profile = Profile(start, end, bulge)
@@ -561,9 +562,10 @@ def stairsWalkLine(definition):
   return [definition["bottom"], definition["top"]]
 
 
-def stairsViewSet(definition, groundHeight):
+def stairsViewSet(record, groundHeight):
   """From the foot looking up it, from just behind the head looking down it (from further back a steep flight hides behind its top
   tread), and from the side its eye stands in the open on, not inside the hill the flight climbs beside."""
+  definition = record["definition"]
   bottom, top = numpy.array(definition["bottom"]), numpy.array(definition["top"])
   direction = unit(plan(top - bottom))
   run = float(numpy.linalg.norm(plan(top - bottom)))
@@ -944,8 +946,9 @@ def walkwayWalkLine(definition):
   return definition["points"]
 
 
-def walkwayViewSet(definition, groundHeight):
+def walkwayViewSet(record, groundHeight):
   """From each end, and each landing from the side its brackets do not take (else from the outside of its turn)."""
+  definition = record["definition"]
   points = [numpy.array(point) for point in definition["points"]]
   width = definition["width"]
   first, last = unit(plan(points[1] - points[0])), unit(plan(points[-1] - points[-2]))

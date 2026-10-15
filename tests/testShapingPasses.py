@@ -1,6 +1,8 @@
+import math
 import sys
 from pathlib import Path
 
+import numpy
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
@@ -216,14 +218,113 @@ def testUnfoldTerrainPutsFoldsBackInPlanKeepingTheirHeights(stageBlenderServer):
 
   before, elsewhere, unfolded, after, bare, bareAfter = stageBlenderServer.session(steps)
   assert len(invertedFaces(before)) == 16
-  assert elsewhere == {"object": "ground", "unfoldedFaces": 0, "foldedFaces": 0, "foldedAt": [], "movedVertices": 0}
-  assert unfolded == {"object": "ground", "unfoldedFaces": 16, "foldedFaces": 0, "foldedAt": [], "movedVertices": 9}
+  assert elsewhere == {"object": "ground", "unfoldedFaces": 0, "relaidFaces": 0, "foldedFaces": 0, "foldedAt": [], "movedVertices": 0, "relaidVertices": 0, "largestRelayMove": 0.0}
+  assert unfolded == {"object": "ground", "unfoldedFaces": 16, "relaidFaces": 0, "foldedFaces": 0, "foldedAt": [], "movedVertices": 9, "relaidVertices": 0, "largestRelayMove": 0.0}
   assert invertedFaces(after) == []
   assert [round(vertex[2], 3) for vertex in after["vertices"]] == [round(vertex[2], 3) for vertex in before["vertices"]] == [10.0] * 81
   assert footRow(after, 0) == [[x, 0.0, 10.0] for x in range(-32, 33, 8)] and footRow(after, 12) == []
   unmoved = [index for index, vertex in enumerate(before["vertices"]) if abs(vertex[1] - 12) > 1e-3]
   assert len(unmoved) == 72 and all(after["vertices"][index] == before["vertices"][index] for index in unmoved)
-  # Without passes it names where the folds lie and moves nothing.
-  assert (bare["unfoldedFaces"], bare["foldedFaces"], bare["movedVertices"]) == (0, 16, 0) and "no shaping passes" in bare["warning"]
-  assert len(bare["foldedAt"]) == 5 and all(168 < x < 232 and 8 < y < 12 and z == 0 for x, y, z in bare["foldedAt"])
-  assert len(invertedFaces(bareAfter)) == 16
+  # Without passes nothing records where the row lay, so putting corners back moves nothing; laid out again from the vertices around
+  # them, all but the two folds at the open edge unfold: the slid row's ends lie on that edge, which never moves.
+  assert (bare["unfoldedFaces"], bare["movedVertices"], bare["relaidFaces"], bare["foldedFaces"]) == (0, 0, 14, 2)
+  assert bare["relaidVertices"] == 6 * 7 and len(invertedFaces(bareAfter)) == 2
+  assert len(bare["foldedAt"]) == 2 and all(abs(x - 200) > 24 and 0 < y < 12 and z == 0 for x, y, z in bare["foldedAt"])
+  assert footRow(bareAfter, 12) == [[-32.0, 12.0, 0.0], [32.0, 12.0, 0.0]] and {vertex[2] for vertex in bareAfter["vertices"]} == {0.0}
+
+
+readBlocks = r"""
+mesh = bpy.data.objects[objectName].data
+result = {"faces": [list(polygon.vertices) for polygon in mesh.polygons], "mesh": [list(vertex.co) for vertex in mesh.vertices]}
+result |= {key.name: [list(point.co) for point in key.data] for key in mesh.shape_keys.key_blocks}
+"""
+# Moves the base's vertex nearest `at` in plan by `shift`, alike in the mesh and every pass, so each pass keeps its offset there and the
+# base's own layout folds.
+foldBase = r"""
+import numpy
+mesh = bpy.data.objects[objectName].data
+base = numpy.array([list(point.co) for point in mesh.shape_keys.reference_key.data])
+row = int(numpy.argmin(numpy.linalg.norm(base[:, :2] - numpy.array(at), axis=1)))
+for block in [mesh.vertices] + [key.data for key in mesh.shape_keys.key_blocks]:
+  block[row].co = (block[row].co[0] + shift[0], block[row].co[1] + shift[1], block[row].co[2])
+mesh.update()
+result = row
+"""
+
+
+def planAreas(vertices, faces):
+  return [planarSignedArea([vertices[index] for index in face]) for face in faces]
+
+
+def offsets(blocks, name):
+  return [[value - baseValue for value, baseValue in zip(point, basePoint)] for point, basePoint in zip(blocks[name], blocks["base"])]
+
+
+def testUnfoldTerrainLaysOutAgainWhereTheBaseItselfIsFolded(stageBlenderServer):
+  # Two grids, each with passes that only raise and lower it, and one base vertex moved past its neighbors in plan in the base and every
+  # pass alike, so where it folds its corners already lie where the base has them. On an even grid the uniform-weight layout of the
+  # vertices around the fold is the grid itself; on a warped grid with turned diagonals and a pass that also leans a vertex beside the
+  # fold sideways it is not.
+  selections = {name: {"box": {"minimum": [xOffset - 40, -40, -100], "maximum": [xOffset + 40, 40, 100]}} for name, xOffset in (("even", 0), ("rough", 300))}
+
+  async def built(session, name, xOffset, shift):
+    await session.expectSuccess("createTerrainGrid", {"name": name, "size": [128, 128], "spacing": 8, "location": [xOffset, 0, 0]})
+    if name == "rough":
+      await session.expectSuccess("warp", {"objectName": name, "featureSize": 24, "amplitude": 3, "seed": 2, "plane": "horizontal"})
+      await session.expectSuccess("sculptAtPoint", {"objectName": name, "mode": "raise", "center": [xOffset + 10, 6, 0], "radius": 50, "strength": 20, "direction": [0, 0, 1]})
+    await session.expectSuccess("followContours", {"objectName": name})
+    await session.expectSuccess("addShapingPass", {"objectName": name, "name": "rise"})
+    await session.expectSuccess("sculptAtPoint", {"objectName": name, "mode": "raise", "center": [xOffset, 0, 0], "radius": 60, "strength": 12, "direction": [0, 0, 1]})
+    await session.expectSuccess("addShapingPass", {"objectName": name, "name": "dip"})
+    await session.expectSuccess("sculptAtPoint", {"objectName": name, "mode": "lower", "center": [xOffset + 24, -16, 0], "radius": 30, "strength": 4, "direction": [0, 0, 1]})
+    if name == "rough":
+      await session.expectSuccess("addShapingPass", {"objectName": name, "name": "lean"})
+      await session.expectSuccess("moveVertices", {"objectName": name, "selector": {"box": {"minimum": [xOffset - 20, -4, -100], "maximum": [xOffset - 12, 4, 100]}}, "offset": [1.5, -1, 0]})
+    pristine = (await session.expectSuccess("runPython", {"code": f"objectName = '{name}'" + readBlocks}))["result"]
+    row = (await session.expectSuccess("runPython", {"code": f"objectName = '{name}'\nat = [0, 0]\nshift = {shift!r}" + foldBase}))["result"]
+    folded = (await session.expectSuccess("runPython", {"code": f"objectName = '{name}'" + readBlocks}))["result"]
+    shownBefore = await shapedMesh(session, name)
+    unfolded = await session.expectSuccess("unfoldTerrain", {"objectName": name, "selector": selections[name]})
+    after = (await session.expectSuccess("runPython", {"code": f"objectName = '{name}'" + readBlocks}))["result"]
+    return pristine, row, folded, shownBefore, unfolded, after, await shapedMesh(session, name)
+
+  async def steps(session):
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    return await built(session, "even", 0, [13, 5]), await built(session, "rough", 300, [-14, 9])
+
+  (pristine, row, folded, shownBefore, unfolded, after, shownAfter), rough = stageBlenderServer.session(steps)
+  faces = after["faces"]
+  # The fold is in the base itself, so putting corners back where the base has them changes nothing.
+  assert min(planAreas(folded["base"], faces)) < 0 and min(planAreas(shownBefore["vertices"], faces)) < 0
+  assert (unfolded["unfoldedFaces"], unfolded["movedVertices"], unfolded["foldedFaces"], unfolded["foldedAt"]) == (0, 0, 0, [])
+  # Laid out again from the vertices around it, the moved vertex goes back to its place on the grid in the base and every pass, and
+  # nothing else moves.
+  assert unfolded["relaidFaces"] == sum(area <= 0 for area in planAreas(shownBefore["vertices"], faces)) > 0
+  assert (unfolded["relaidVertices"], unfolded["largestRelayMove"]) == (1, 13.928)
+  for name in ("mesh", "base", "rise", "dip"):
+    assert all(after[name][index] == pristine[name][index] for index in range(len(pristine[name])) if index != row)
+    assert max(abs(value - pristineValue) for value, pristineValue in zip(after[name][row], pristine[name][row])) <= 1e-4
+  assert [vertex[2] for vertex in shownAfter["vertices"]] == [vertex[2] for vertex in shownBefore["vertices"]]
+  assert min(planAreas(after["base"], faces)) > 1 and min(planAreas(shownAfter["vertices"], faces)) > 1
+
+  roughPristine, roughRow, roughFolded, roughBefore, roughUnfolded, roughAfter, roughShown = rough
+  roughFaces = roughAfter["faces"]
+  inSelection = [face for face in roughFaces if all(abs(coordinate) <= 40 for coordinate in numpy.mean([roughBefore["vertices"][index][:2] for index in face], axis=0))]
+  assert min(planAreas(roughFolded["base"], inSelection)) < 0
+  assert (roughUnfolded["unfoldedFaces"], roughUnfolded["movedVertices"]) == (0, 0)
+  # Nothing in the selection is left turned over, as seen or in the base, and every height stays as it stood.
+  assert roughUnfolded["foldedFaces"] == 0 and roughUnfolded["relaidFaces"] == sum(area <= 0 for area in planAreas(roughBefore["vertices"], inSelection)) > 0
+  assert min(planAreas(roughShown["vertices"], inSelection)) > 1 and min(planAreas(roughAfter["base"], inSelection)) > 1
+  assert [vertex[2] for vertex in roughShown["vertices"]] == [vertex[2] for vertex in roughBefore["vertices"]]
+  # Each pass holds the offset it held from the base at every vertex, the lean's sideways one too; the move went into all of them.
+  for name in ("rise", "dip", "lean"):
+    assert max(abs(change) for after, before in zip(offsets(roughAfter, name), offsets(roughFolded, name)) for change in numpy.subtract(after, before)) <= 1e-4
+  moves = [math.dist(shown[:2], before[:2]) for shown, before in zip(roughShown["vertices"], roughBefore["vertices"])]
+  moved = [index for index, move in enumerate(moves) if move > 1e-3]
+  assert len(moved) == roughUnfolded["relaidVertices"] > 1 and round(max(moves), 3) == roughUnfolded["largestRelayMove"]
+  # Only the vertices of selected faces move: every other vertex holds still in the mesh and every pass.
+  selectedCorners = {index for face in inSelection for index in face}
+  untouched = [index for index in range(len(roughBefore["vertices"])) if index not in selectedCorners]
+  assert len(untouched) > 100 and not set(moved) - selectedCorners
+  for name in ("mesh", "base", "rise", "dip", "lean"):
+    assert all(roughAfter[name][index] == roughFolded[name][index] for index in untouched)

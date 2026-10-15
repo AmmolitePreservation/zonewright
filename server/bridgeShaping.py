@@ -64,6 +64,14 @@ unfoldRounds = 8
 layoutTolerance = 1e-3
 # unfoldTerrain names where this many of the folds it leaves lie, spread over them.
 foldSamples = 5
+# Relaying lays out again the folds the base cannot unfold: their corners and this many rings of vertices beyond them, then while the
+# layout still folds, relayRingGrowth rings more on each further try, relayAttempts tries at most.
+relayRings = 2
+relayRingGrowth = 2
+relayAttempts = 4
+# A relaid layout is solved about the patch's middle until the residual's square falls to this share of the square of the pull from the
+# vertices held still: far finer than single precision passes hold, wherever the patch lies.
+relayTolerance = 1e-20
 
 
 def falloffWeights(normalizedDistances, curve):
@@ -244,11 +252,29 @@ class Unfolding(typing.NamedTuple):
   moved: numpy.ndarray
 
 
+def faceConnected(sceneObject, vertexMask):
+  """A label for each masked vertex, alike for masked vertices joined through faces by masked corners; -1 for the rest."""
+  loopTotals, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
+  starts = numpy.cumsum(loopTotals) - loopTotals
+  unlabelled = len(vertexMask)
+  labels = numpy.where(vertexMask, numpy.arange(len(vertexMask)), unlabelled)
+  masked = vertexMask[loopVertices]
+  while True:
+    faceLabels = numpy.minimum.reduceat(labels[loopVertices], starts)
+    spread = labels.copy()
+    numpy.minimum.at(spread, loopVertices[masked], numpy.repeat(faceLabels, loopTotals)[masked])
+    if (spread == labels).all():
+      return numpy.where(vertexMask, labels, -1)
+    labels = spread
+
+
 def unfoldFaces(sceneObject, positions, within):
   """Put the corners of the overturned faces (overturnedFaces) among the faces `within` back where the mesh's base lays them out in
   plan, heights kept, then the corners of the faces beside them that turn over in turn, and write that into the active pass; a cave's
-  ring and lining stay. Without shaping passes nothing records the layout, so the folds stay. Returns the positions, how many folds
-  it unfolded, the folds left, and the vertices it moved."""
+  ring and lining stay. A group of vertices put back (joined through faces) that leaves a face it touches turned over stays where it
+  was: where the base itself folds, or its neighbors keep sideways moves (a warp) it takes back, it would only spread the fold. Without
+  shaping passes nothing records the layout, so the folds stay. Returns the positions, how many folds it unfolded, the folds left, and
+  the vertices it moved."""
 
   def folds(faceMask, at):
     return overturnedFaces(sceneObject, at, faceCorners(sceneObject, faceMask)) & faceMask
@@ -266,28 +292,188 @@ def unfoldFaces(sceneObject, positions, within):
       updated[returning, :2] = laidOut[returning, :2]
       moved |= returning
       remaining = folds(within | touchingFaces(sceneObject, moved), updated)
+    groups = faceConnected(sceneObject, moved)
+    failed = moved & numpy.isin(groups, groups[faceCorners(sceneObject, remaining) & moved])
+    updated[failed] = positions[failed]
+    moved &= ~failed
+    remaining = folds(within | touchingFaces(sceneObject, moved), updated)
     if moved.any():
       writeWorldPositions(sceneObject, updated)
   return Unfolding(updated, int((folded & ~remaining).sum()), remaining, moved)
 
 
-def unfoldTerrain(objectName, selector):
-  sceneObject = bridgeMeshAccess.requireEditableMesh(objectName, "unfoldTerrain")
+def harmonicValues(first, second, weights, values, free, tolerance, failure):
+  """Values for the free vertices spanning smoothly between the fixed ones (the discrete Laplace equation over the weighted edges first
+  to second), by conjugate gradients until the residual's square falls to tolerance times the square of the fixed ones' pull (at least
+  1)."""
+  values = values.copy()
+  freeIndices = numpy.flatnonzero(free)
+  local = numpy.full(len(values), -1)
+  local[freeIndices] = numpy.arange(len(freeIndices))
+  degrees = (numpy.bincount(first, weights=weights, minlength=len(values)) + numpy.bincount(second, weights=weights, minlength=len(values)))[freeIndices]
+  knowns = numpy.zeros(len(freeIndices))
+  for this, other in ((first, second), (second, first)):
+    toFixed = free[this] & ~free[other]
+    numpy.add.at(knowns, local[this[toFixed]], weights[toFixed] * values[other[toFixed]])
+  inner = free[first] & free[second]
+  innerFirst, innerSecond, innerWeights = local[first[inner]], local[second[inner]], weights[inner]
+
+  def laplacian(unknowns):
+    result = degrees * unknowns
+    numpy.subtract.at(result, innerFirst, innerWeights * unknowns[innerSecond])
+    numpy.subtract.at(result, innerSecond, innerWeights * unknowns[innerFirst])
+    return result
+
+  solution = values[freeIndices]
+  residual = knowns - laplacian(solution)
+  direction = residual.copy()
+  squared = float(residual @ residual)
+  target = tolerance * max(float(knowns @ knowns), 1.0)
+  for _ in range(4 * len(freeIndices) + 100):
+    if squared <= target:
+      values[freeIndices] = solution
+      return values
+    stepped = laplacian(direction)
+    step = squared / float(direction @ stepped)
+    solution = solution + step * direction
+    residual = residual - step * stepped
+    nextSquared = float(residual @ residual)
+    direction = residual + (nextSquared / squared) * direction
+    squared = nextSquared
+  raise ValueError(failure)
+
+
+def requireAnchored(sceneObject, positions, first, second, free):
+  """Refuse a layout some of whose free vertices no path through free vertices joins to one held still: it would have nothing to span
+  from."""
+  reached = ~free
+  while True:
+    spreading = numpy.zeros(len(free), dtype=bool)
+    spreading[second[reached[first] & ~reached[second]]] = True
+    spreading[first[reached[second] & ~reached[first]]] = True
+    if not spreading.any():
+      break
+    reached |= spreading
+  loose = numpy.flatnonzero(~reached)
+  if len(loose):
+    raise ValueError(
+      f"The folds near {numpy.round(positions[loose[0]], 1).tolist()} lie on a closed piece of '{sceneObject.name}' that the selection takes in"
+      " whole, with no open edge and nothing outside the selection to lay it out from; select less of it"
+    )
+
+
+def writePlanMoves(sceneObject, worldMoves):
+  """Move vertices in plan alike in the mesh and every shaping pass, so each pass keeps its offsets and the base records the new layout;
+  each cave's ring vertex moves as its plug triangle's corners do, so it stays on it in every one."""
+  mesh = sceneObject.data
+  moves = worldMoves @ bridgeMeshAccess.matrixArray(sceneObject.matrix_world.inverted())[:3, :3].T
+  if bridgeCaveData.holdsCaves(sceneObject):
+    caveVertices = bridgeCaveData.CaveVertices(sceneObject)
+    moves[caveVertices.ringRows] = numpy.einsum("rk,rkj->rj", caveVertices.ringWeights, moves[caveVertices.ringCorners])
+  for block in [mesh.vertices] + ([key.data for key in mesh.shape_keys.key_blocks] if mesh.shape_keys is not None else []):
+    coordinates = numpy.empty(len(block) * 3, dtype=numpy.float32)
+    block.foreach_get("co", coordinates)
+    block.foreach_set("co", (coordinates.reshape(-1, 3) + moves).astype(numpy.float32).ravel())
+  mesh.update()
+
+
+class Relay(typing.NamedTuple):
+  positions: numpy.ndarray
+  relaid: numpy.ndarray
+  laidOut: int
+
+
+def relayFolds(sceneObject, positions, within, folded):
+  """Lay out again in plan, heights kept, the ground around the folded faces among the faces `within`, for folds the base's layout cannot
+  unfold: the folds' corners and relayRings rings of vertices beyond them through faces within (never a cave's ring or lining, nor a
+  vertex on the mesh's open edge) take the uniform-weight (Tutte) layout spanning the vertices around them, which hold still. Where that
+  still folds a face it moves, the vertices around were not laid out convexly enough: it tries again with more rings, relayAttempts tries
+  at most, and keeps the try that leaves fewest folds, where it leaves fewer than there were. The move goes into the mesh and every pass
+  alike (writePlanMoves). Returns the positions, the vertices moved, and how many folds it laid out."""
+  loopTotals, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
+  starts = numpy.cumsum(loopTotals) - loopTotals
+  faceOfLoop = numpy.repeat(numpy.arange(len(loopTotals)), loopTotals)
+
+  def touching(vertexMask):
+    return numpy.logical_or.reduceat(vertexMask[loopVertices], starts)
+
+  def corners(faceMask):
+    mask = numpy.zeros(len(positions), dtype=bool)
+    mask[loopVertices[faceMask[faceOfLoop]]] = True
+    return mask
+
+  movable = ~(bridgeCaveData.caveMadeVertices(sceneObject) | bridgeMeshAccess.boundaryVertexMask(sceneObject))
+  through = within & ~bridgeCaveData.caveFaceMask(sceneObject)
+  seeds = corners(folded & within) & movable
+
+  def grown(rings):
+    free = seeds.copy()
+    for _ in range(rings):
+      free |= corners(through & touching(free)) & movable
+    return free
+
+  if not seeds.any():
+    return Relay(positions, numpy.zeros(len(positions), dtype=bool), 0)
+  region = within | touching(grown(relayRings + relayRingGrowth * (relayAttempts - 1)))
+  regionCorners = corners(region)
+
+  def turned(at):
+    return overturnedFaces(sceneObject, at, regionCorners) & region
+
+  first, second = meshEdgeEnds(sceneObject)
+  weights = numpy.ones(len(first))
+  before = turned(positions)
+  best, bestTurned, tried = positions, before, None
+  for attempt in range(relayAttempts):
+    free = grown(relayRings + relayRingGrowth * attempt)
+    if tried is not None and (free == tried).all():
+      break
+    tried = free
+    requireAnchored(sceneObject, positions, first, second, free)
+    middle = positions[free, :2].mean(axis=0)
+    trial = positions.copy()
+    for axis in range(2):
+      trial[:, axis] = middle[axis] + harmonicValues(
+        first, second, weights, positions[:, axis] - middle[axis], free, relayTolerance, f"The layout of the {int(free.sum())} vertices around the folds did not settle",
+      )
+    still = numpy.linalg.norm(trial[:, :2] - positions[:, :2], axis=1) <= layoutTolerance
+    trial[still] = positions[still]
+    folds = turned(trial)
+    if folds.sum() < bestTurned.sum():
+      best, bestTurned = trial, folds
+    if not (folds & touching(free)).any():
+      break
+  relaid = numpy.linalg.norm(best[:, :2] - positions[:, :2], axis=1) > layoutTolerance
+  if relaid.any():
+    writePlanMoves(sceneObject, best - positions)
+  return Relay(best, relaid, int((before & ~bestTurned).sum()))
+
+
+def foldReport(sceneObject, within, touched):
+  """The faces turned over among the faces `within` and those touching the touched vertices, with a few of their centers."""
+  positions, _ = bridgeMeshAccess.readVertexArrays(sceneObject)
+  region = within | touchingFaces(sceneObject, touched)
+  stillFolded = numpy.flatnonzero(overturnedFaces(sceneObject, positions, faceCorners(sceneObject, region)) & region)
+  loopTotals, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
+  sampled = stillFolded[numpy.unique(numpy.linspace(0, len(stillFolded) - 1, min(foldSamples, len(stillFolded))).round().astype(numpy.int64))]
+  centers = numpy.add.reduceat(positions[loopVertices], numpy.cumsum(loopTotals) - loopTotals, axis=0)[sampled] / loopTotals[sampled, None]
+  return {"foldedFaces": len(stillFolded), "foldedAt": numpy.round(centers, 2).tolist()}
+
+
+def unfoldTerrain(sceneObject, selector):
+  """Unfold the selected faces (unfoldFaces), then lay out again the folds that leaves among them (relayFolds): what each did and the
+  folds still left (foldReport), and the vertices either moved."""
   within = bridgeMeshAccess.evaluateSelector(selector, sceneObject, "faces")
   bridgeMeshAccess.requireSelection(within, selector, sceneObject, "faces")
   positions, _ = bridgeMeshAccess.readVertexArrays(sceneObject)
   unfolding = unfoldFaces(sceneObject, positions, within)
-  loopTotals, loopVertices = bridgeMeshAccess.faceLoops(sceneObject)
-  stillFolded = numpy.flatnonzero(unfolding.folded)
-  sampled = stillFolded[numpy.unique(numpy.linspace(0, len(stillFolded) - 1, min(foldSamples, len(stillFolded))).round().astype(numpy.int64))]
-  centers = numpy.add.reduceat(unfolding.positions[loopVertices], numpy.cumsum(loopTotals) - loopTotals, axis=0)[sampled] / loopTotals[sampled, None]
-  result = {
-    "object": objectName, "unfoldedFaces": unfolding.unfolded, "foldedFaces": len(stillFolded), "foldedAt": numpy.round(centers, 2).tolist(),
-    "movedVertices": int(unfolding.moved.sum()),
-  }
-  if len(stillFolded) and not bridgeMeshAccess.hasShapingPasses(sceneObject):
-    result["warning"] = f"'{objectName}' has no shaping passes, so nothing records where its vertices lay in plan before they were moved sideways; its folds were left as they are"
-  return result
+  relay = relayFolds(sceneObject, unfolding.positions, within, unfolding.folded)
+  touched = unfolding.moved | relay.relaid
+  relayMoves = numpy.linalg.norm(relay.positions[:, :2] - unfolding.positions[:, :2], axis=1)
+  return {
+    "object": sceneObject.name, "unfoldedFaces": unfolding.unfolded, "relaidFaces": relay.laidOut, "movedVertices": int(unfolding.moved.sum()),
+    "relaidVertices": int(relay.relaid.sum()), "largestRelayMove": round(float(relayMoves.max(initial=0.0)), 3),
+  } | foldReport(sceneObject, within, touched), touched
 
 
 def movedToProfile(positions, affected, strength, targets, mode):
@@ -1247,7 +1433,6 @@ commands = {
   "decimate": (decimate, True),
   "cleanupMesh": (cleanupMesh, True),
   "followContours": (followContours, True),
-  "unfoldTerrain": (unfoldTerrain, True),
   "cutContours": (cutContours, True),
   "roughen": (roughen, True),
   "warp": (warp, True),

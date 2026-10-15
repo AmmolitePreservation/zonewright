@@ -43,7 +43,8 @@ down = mathutils.Vector((0.0, 0.0, -1.0))
 sideNames = ("both", "left", "right")
 # What each kind is, as placed parts rather than ground, refused in the terrain collection.
 placedKinds = {"wall": "A wall is placed sections", "prefab": "A building is placed parts"}
-# Each kind: its definition's keys, its lay, its walk line (or None), its views, and what it reports once laid (or None).
+# Each kind: its definition's keys, its lay, its walk line (or None), its views, what it reports once laid (or None), and what it stands
+# on besides the ground (or None).
 kinds = {}
 
 
@@ -53,12 +54,12 @@ def placeCollections():
 
 
 class Kind:
-  def __init__(self, keys, lay, walkLine, views, indexKeys=(), finish=None):
-    self.keys, self.lay, self.walkLine, self.views, self.indexKeys, self.finish = keys, lay, walkLine, views, indexKeys, finish
+  def __init__(self, keys, lay, walkLine, views, indexKeys=(), finish=None, standing=None):
+    self.keys, self.lay, self.walkLine, self.views, self.indexKeys, self.finish, self.standing = keys, lay, walkLine, views, indexKeys, finish, standing
 
 
-def registerKind(kind, keys, lay, walkLine, views, indexKeys=(), finish=None):
-  kinds[kind] = Kind(keys, lay, walkLine, views, indexKeys, finish)
+def registerKind(kind, keys, lay, walkLine, views, indexKeys=(), finish=None, standing=None):
+  kinds[kind] = Kind(keys, lay, walkLine, views, indexKeys, finish, standing)
 
 
 def isNumber(value):
@@ -234,12 +235,14 @@ class GroundLookups:
 
 class Laying:
   """What one lay makes, kept apart until every part is made and every check passed: parts under temporary names in a collection of
-  their own outside the scene, and shared meshes to make or replace."""
+  their own outside the scene, shared meshes to make or replace, and what the record keeps of where it laid them (laid, for a later lay
+  standing on them)."""
 
-  def __init__(self, name, definition, kit, lookups):
-    self.name, self.definition, self.kit, self.lookups = name, definition, kit, lookups
+  def __init__(self, name, order, definition, kit, lookups):
+    self.name, self.order, self.definition, self.kit, self.lookups = name, order, definition, kit, lookups
     self.collection = bpy.data.collections.new(name + layingSuffix)
     self.parts, self.sharedMeshes = [], []
+    self.laid = None
 
   def link(self, sceneObject, finalName):
     self.collection.objects.link(sceneObject)
@@ -388,7 +391,7 @@ def commit(laying, kind, order, existing):
     sceneObject[bridgeStructureData.partProperty] = name
   laying.discard()
   removeUnusedShearMeshes()
-  bridgeStructureData.writeStructure(collection, {"kind": kind, "order": order, "definition": laying.definition, "kit": laying.kit.used})
+  bridgeStructureData.writeStructure(collection, {"kind": kind, "order": order, "definition": laying.definition, "kit": laying.kit.used, "laid": laying.laid})
   bridgeStructureData.writeProbes(collection, laying.lookups.rows)
   bpy.context.view_layer.update()
   return collection
@@ -402,11 +405,12 @@ def layStructure(name, kind, definition, existing):
   order = bridgeStructureData.readStructure(existing)["order"] if existing is not None else bridgeStructureData.nextOrder()
   with bridgeKitData.linkingUndone():
     ground = StructureGround()
-    laying = Laying(name, definition, Kit(absoluteKitPath(definition["kitPath"])), GroundLookups(ground.without(skippedNames(order))))
+    laying = Laying(name, order, definition, Kit(absoluteKitPath(definition["kitPath"])), GroundLookups(ground.without(skippedNames(order))))
     report = spec.lay(laying)
     collection = commit(laying, kind, order, existing)
   result = {"structure": {"name": name, "kind": kind, "order": order}} | report | {
-    "parts": describeParts(collection), "standsOn": sorted(laying.lookups.standsOn), "views": spec.views(definition, groundHeight) | orbitView(collection),
+    "parts": describeParts(collection), "standsOn": sorted(laying.lookups.standsOn),
+    "views": spec.views(bridgeStructureData.readStructure(collection), groundHeight) | orbitView(collection),
   }
   if spec.walkLine is not None:
     result["walk"] = bridgeReview.walkRoute(walkLine(collection), walkSpacing)
@@ -476,16 +480,20 @@ def kitState(record):
 
 def describeStaleness(collection, ground):
   record = bridgeStructureData.readStructure(collection)
+  spec = kinds[record["kind"]]
   groundState, standsOn = replayProbes(collection, ground)
+  base, standsOnBase = (None, []) if spec.standing is None else spec.standing(collection.name, record)
   changed, missing = kitState(record)
   why = []
   if groundState["moved"]:
     why.append("ground")
+  if base is not None and base["moved"]:
+    why.append("base")
   if changed:
     why.append("kit")
   if missing:
     why.append("missing")
-  return {"stale": bool(why), "why": why, "ground": groundState, "kitChanged": changed, "missing": missing}, standsOn
+  return {"stale": bool(why), "why": why, "ground": groundState, "base": base, "kitChanged": changed, "missing": missing}, sorted(set(standsOn) | set(standsOnBase))
 
 
 def staleStructures():
@@ -521,9 +529,11 @@ def walkLine(collection):
   return extensions[0] + [list(point) for point in points] + extensions[1]
 
 
-def groundHeight(x, y):
-  """The highest ground players stand on at [x, y], for placing a view's eye (a view is not a probe), or None."""
-  top = bridgeMeshAccess.sceneTopHeight() + overheadLift
+def groundHeight(x, y, top=None):
+  """The highest ground players stand on at [x, y] under top (from over the whole scene without it), for placing a view's eye (a view is
+  not a probe), or None."""
+  if top is None:
+    top = bridgeMeshAccess.sceneTopHeight() + overheadLift
   footing = bridgeMeshAccess.PlayerSurfaces().footingBelow(mathutils.Vector((x, y, top)), top + bridgeMeshAccess.waterReach)
   return None if footing is None else footing.z
 
@@ -570,9 +580,23 @@ def editStructure(name, changes):
   return layStructure(name, record["kind"], definition, collection) | {"changes": changes, "probesMovedSinceLaid": moved}
 
 
+def baseOf(definition):
+  """The structure a structure stands on (its definition's on: a wall run on a wall), or None for one on the ground: kinds without on,
+  and walls laid before runs stood on walls, hold none."""
+  return definition.get("on")
+
+
+def carriedBy(name):
+  """The structures standing on a structure, in the order they were laid."""
+  return [collection.name for collection in bridgeStructureData.structureCollections() if baseOf(bridgeStructureData.readStructure(collection)["definition"]) == name]
+
+
 def removeStructure(name):
   collection = bridgeStructureData.requireStructure(name)
   record = bridgeStructureData.readStructure(collection)
+  carried = carriedBy(name)
+  if carried:
+    raise ValueError(f"{carried} stand on '{name}' (their on): take them back first (removeStructure), or stand them elsewhere (editStructure)")
   parts = [part.name for part in bridgeStructureData.partsOf(collection)]
   removeParts(bridgeStructureData.partsOf(collection))
   bpy.data.collections.remove(collection)
@@ -609,7 +633,7 @@ def getStructures(names):
       entry = {
         "name": collection.name, "kind": record["kind"], "order": record["order"], "definition": shownDefinition(record["definition"]),
         "parts": describeParts(collection), "standsOn": [owner for owner in standsOn if owner not in {part.name for part in bridgeStructureData.partsOf(collection)}],
-      } | state | {"views": ({} if state["missing"] else spec.views(record["definition"], groundHeight)) | orbitView(collection)}
+      } | state | {"views": ({} if state["missing"] else spec.views(record, groundHeight)) | orbitView(collection)}
       if spec.walkLine is not None:
         entry["walkLine"] = [roundVector(point) for point in walkLine(collection)]
       described.append(entry)
@@ -637,7 +661,7 @@ def buildWalkway(name, kitPath, points, width, deck, treads, stairLegs, riser, p
   return buildStructure("walkway", name, locals())
 
 
-def buildWall(name, kitPath, path, frontSide, sections, follow, shearStep, sink, maximumBurial, posts, variants, collection):
+def buildWall(name, kitPath, path, on, frontSide, sections, follow, shearStep, sink, maximumBurial, posts, variants, collection):
   return buildStructure("wall", name, locals())
 
 

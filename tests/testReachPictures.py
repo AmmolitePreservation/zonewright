@@ -180,9 +180,9 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   assert greenShare(pixelsAround(levelPlan, levelReport["plan"], [160, 36])) > 0.9
   assert greenShare(pixelsAround(levelPlan, levelReport["plan"], [185, 36])) == 0
 
-  # renderSketch's lane layer lays the same fill over its plan, only when asked for, with the lane's legend under it and the constants,
-  # what is not modelled, and the limits mapReach states; the corridor past its zone line shows its never reached hatch over the none
-  # region's.
+  # renderSketch's lane layer lays the same fill over its plan, only when asked for, with the lane's legend under it and, in its report
+  # alone, the constants, what is not modelled, and the limits mapReach states; the corridor past its zone line shows its never reached
+  # hatch over the none region's.
   sketchImage, sketchReport = sketched
   plainImage, plainReport = plain
   sketch, bare = Image.open(io.BytesIO(sketchImage)), Image.open(io.BytesIO(plainImage))
@@ -190,6 +190,7 @@ def testMapReachDrawsTheLaneAndItsProblems(stageBlenderServer, tmp_path):
   assert "laneState" not in plainReport and bare.height == plainReport["frameSize"][1] and sketch.height > sketchReport["frameSize"][1]
   laneState = sketchReport["laneState"]
   assert laneState["lane"] == "reused" and {key: laneState[key] for key in ("constants", "notModeled", "limits")} == {key: report[key] for key in ("constants", "notModeled", "limits")}
+  assert sorted(sketchReport.inline["laneState"]) == ["bodyGroup", "lane", "seconds"]
   assert greenShare(pixelsAround(sketch, sketchReport, [20, -10])) > 0.9
   assert greenShare(pixelsAround(bare, plainReport, [20, -10])) == 0
   assert colorShare(pixelsAround(sketch, sketchReport, [125, 103]), laneDrawing.unreachedColor) > 0.1

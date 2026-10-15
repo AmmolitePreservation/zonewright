@@ -439,12 +439,13 @@ def finishPrefab(collection, report):
   return {"entrances": [entrance | {"walk": entranceWalk(entrance)} for entrance in report["entrances"]]}
 
 
-def prefabViews(definition, groundHeight):
+def prefabViews(record, groundHeight):
   """entrance<Name>: standing entranceViewDistance out from each entrance, looking at it."""
-  record = bridgeKitData.readPrefab(bridgeKitData.requirePrefab(bridgeStructures.absoluteKitPath(definition["kitPath"]), definition["prefab"]))
+  definition = record["definition"]
+  prefab = bridgeKitData.readPrefab(bridgeKitData.requirePrefab(bridgeStructures.absoluteKitPath(definition["kitPath"]), definition["prefab"]))
   placement = Placement(definition["location"][:2] + [0.0], definition["facingDegrees"] % 360.0)
   views = {}
-  for entrance in record["entrances"]:
+  for entrance in prefab["entrances"]:
     heading = placement.facingDegrees + entrance["facingDegrees"]
     standAt = placement.plan([entrance["at"]])[0] + headingVector(heading) * entranceViewDistance
     views["entrance" + capitalized(entrance["name"])] = {"standAt": roundVector(standAt), "headingDegrees": round((heading + 180.0) % 360.0, 4), "pitchDegrees": 0.0}

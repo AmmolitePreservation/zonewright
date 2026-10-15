@@ -71,6 +71,25 @@ def testTheNavAndLaneComeBackSummarized():
   assert resultReports.compactContainment("not checked: no safe point") == "not checked: no safe point"
 
 
+def laneTerms():
+  return {"constants": {"stepHeight": {"value": 3.0, "source": "measured"}}, "notModeled": ["jumps"], "limits": ["no regions"]}
+
+
+def testALanesStateComesBackWithoutTheLanesTerms():
+  viewed = {"width": 640, "laneState": {"lane": "reused", "seconds": 0.1, "bodyGroup": "medium", "laneFile": "C:/lane.npz"} | laneTerms()}
+  assert resultReports.withoutLaneTerms(viewed) == {"width": 640, "laneState": {"lane": "reused", "seconds": 0.1, "bodyGroup": "medium", "laneFile": "C:/lane.npz"}}
+  assert viewed["laneState"]["notModeled"] == ["jumps"]
+  assert resultReports.withoutLaneTerms({"width": 640}) == {"width": 640}
+  section = {
+    "caves": [{"cave": "deep", "floor": [[0, 1]] * 5, "strokes": [{"name": "way"}]}],
+    "laneState": {"lane": "computed", "seconds": 2.5, "bodyGroup": "large", "laneCut": "C:/cut.json", "counts": {"bars": 4}} | laneTerms(),
+  }
+  assert resultReports.compactSection(section) == {
+    "caves": [{"cave": "deep", "floor": {"count": 5, "first": [[0, 1]] * 3}, "strokes": {"count": 1, "first": [{"name": "way"}]}}],
+    "laneState": {"lane": "computed", "seconds": 2.5, "bodyGroup": "large", "laneCut": "C:/cut.json", "counts": {"bars": 4}},
+  }
+
+
 def testAReportHoldsTheWholeResultAndOldReportsAreRemoved(tmp_path):
   folder = tmp_path / "reports" / "walkRoute"
   folder.mkdir(parents=True)

@@ -1,7 +1,7 @@
 """Checks before a zone export, writing nothing and changing nothing. Failures stop an export: what no zone file can hold (among it a
 kit that cannot be found), and for a game export what it must have decided (blockout, swimming, the zone row's values, zone line
-targets, the player space's regions, their access, and entries on their footing, structures laid on ground or a kit that changed
-since); the export pipeline (exportPipeline) judges containment, islands, ground, and rows on what it builds. Findings are for an
+targets, the player space's regions, their access, and entries on their footing, structures laid on ground, a wall, or a kit that
+changed since); the export pipeline (exportPipeline) judges containment, islands, ground, and rows on what it builds. Findings are for an
 artist to look at: texture coverage (the base material showing where no surfacing layer covers a face, ground borders without a
 transition strip, stretched or collapsed texture coordinates, faces wound against the rest of their surface), the zone's slot among
 the client's registrations (an id it does not register, a short name it does), and for a test export what a game export would still
@@ -715,10 +715,10 @@ def missingKitStructures(stale):
 
 
 def staleStructures(stale):
-  """Structures laid on ground or a kit that changed since, which refuse a game export."""
+  """Structures laid on ground, a wall, or a kit that changed since, which refuse a game export."""
   return [
-    {"failure": "stale structure", "structure": entry["structure"], "why": entry["why"], "message": f"Structure '{entry['structure']}' was laid on ground or a kit that has changed since ({', '.join(entry['why'])}): editStructure lays it again"}
-    for entry in stale if set(entry["why"]) & {"ground", "kit"}
+    {"failure": "stale structure", "structure": entry["structure"], "why": entry["why"], "message": f"Structure '{entry['structure']}' was laid on ground, a wall, or a kit that has changed since ({', '.join(entry['why'])}): editStructure lays it again"}
+    for entry in stale if set(entry["why"]) & {"ground", "base", "kit"}
   ]
 
 

@@ -1013,6 +1013,25 @@ def subdivide(objectName, selector, cuts):
   return result | bridgeMeshAccess.meshCounts(sceneObject) | {"recutCaves": recut, "settled": {"rounds": rounds, "unsettled": unsettled}}
 
 
+def unfoldTerrain(objectName, selector):
+  """Unfold a terrain's selected faces and lay out again what still folds (bridgeShaping.unfoldTerrain), then, on a mesh holding caves,
+  settle the graded passes and caves that move left stale (settle) and name the folds left after it; whole or not at all."""
+  sceneObject = bridgeMeshAccess.requireEditableMesh(objectName, "unfoldTerrain")
+  if sceneObject.data.users > 1:
+    raise ValueError(f"'{objectName}' shares its mesh with {sceneObject.data.users - 1} other object(s); unfolding lays out one terrain's mesh, so give it a mesh of its own first")
+  with bridgeCaves.restoredOnFailure(sceneObject):
+    result, touched = bridgeShaping.unfoldTerrain(sceneObject, selector)
+    if touched.any() and bridgeCaveData.holdsCaves(sceneObject) and any(staleOnMesh(sceneObject)):
+      groundBefore = groundVertices(sceneObject)
+      try:
+        rounds, unsettled = settle(sceneObject, None)
+      except ValueError as refusal:
+        raise ValueError(f"Unfolding moved ground under graded passes or caves on '{objectName}', and settling them refused, so nothing was changed: {refusal}") from refusal
+      within = bridgeMeshAccess.evaluateSelector(selector, sceneObject, "faces")
+      result |= bridgeShaping.foldReport(sceneObject, within, carried(sceneObject, touched, groundBefore)) | {"settled": {"rounds": rounds, "unsettled": unsettled}}
+  return result
+
+
 def editedRuns(record, changes, runs):
   """The runs an edit changed, for its profile: every run when it changes nothing (a refit), else the main run, each branch it adds or
   changes (the parent of one it takes back), and the run of each floor stroke it adds, changes, or takes back."""
@@ -1080,6 +1099,7 @@ def removeShapingPass(objectName, name):
 commands = {
   "cutCave": (cutCave, True),
   "subdivide": (subdivide, True),
+  "unfoldTerrain": (unfoldTerrain, True),
   "gradeRoute": (gradeRoute, True),
   "regradeTerrain": (regradeTerrain, True),
   "dressFacade": (dressFacade, True),

@@ -1124,8 +1124,9 @@ async def scaleFigureModel(zone, view):
   " (within a cell height of it, and down the face's slope across the column under it) is tinted, the floor under the water through"
   " it, never the scale figure, the walls, or what stands on the floor, nor what the guides' tint covers, under the swim volumes'"
   " tint; a band under the render names the labels it tints. The result's laneState gives whether the lane was computed or reused,"
-  " its body group and lane file, the constants, what is not modelled, and the limits as mapReach does, and laneTint how many of the lane's columns"
-  " the view holds within its far clip and field, the share of its pixels tinted, and the labels. A perspective view's result gives"
+  " its body group and lane file, and laneTint how many of the lane's columns the view holds within its far clip and field, the share"
+  " of its pixels tinted, and the labels; the report file it names (report) holds the whole result, laneState with the constants, what"
+  " is not modelled, and the limits as mapReach gives them. A perspective view's result gives"
   " its vertical field of view. Liquids draw as they"
   " stand at effect time 0, or at"
   " `liquidTime` seconds on the client's effect clock, each layer scrolled by its slides as the client's effects scroll it (time"
@@ -1175,7 +1176,10 @@ async def renderView(
     await anyio.to_thread.run_sync(viewSheets.writeNames, outputPath, description["labels"]["shown"])
   if lane:
     await anyio.to_thread.run_sync(laneDrawing.tintLegendUnder, outputPath, description["laneTint"]["labels"])
-  return [Image(data=outputPath.read_bytes(), format="png"), description | ({} if carried is None else {"carriedLight": carried}) | ({} if viewer is None else {"viewer": viewer}) | ({} if laneState is None else {"laneState": laneState})]
+  result = description | ({} if carried is None else {"carriedLight": carried}) | ({} if viewer is None else {"viewer": viewer})
+  if laneState is not None:
+    result = reported("renderView", result | {"laneState": laneState}, resultReports.withoutLaneTerms)
+  return [Image(data=outputPath.read_bytes(), format="png"), result]
 
 
 # A view's lane tint reads a floor's reach under its column's floor by slope (playerReach.seedTolerance) at this many normal z, 0 to 1.
@@ -1544,7 +1548,7 @@ exportChecksHelp = (
   " since their boxes were accepted, missing view values (fogOn, minClip, maxClip, sky or sky \"none\" stated, and the fog's start, end, and density"
   " when it is on, and its color when the zone draws no sky), a missing safe point or underworld, a safe point over no ground the zone ships above the underworld (an imported"
   " reference zone under it is none), zone lines without a target or sharing a number, a zone without regions, regions whose access is"
-  " undecided (getRegions), a stored entry off its footing (getEntries), structures laid on ground or a kit that has changed since"
+  " undecided (getRegions), a stored entry off its footing (getEntries), structures laid on ground, a wall, or a kit that has changed since"
   " (stale: editStructure lays them again), a nav mesh the Recast helper refuses to build (it names why); containment, judged on the"
   " player's lane as mapReach computes it (and reuses while nothing it depends on changed): every leak (voidEdge, belowUnderworld,"
   " noneRegion, outsideRegions), an entry the safe point and it do not reach both ways unless isolated (disconnectedEntry), and a plot"
@@ -2785,16 +2789,23 @@ async def followContours(context: Context, objectName: str, selector: dict = all
 
 
 @guardedTool(description=(
-  "Unfold the selected faces of a terrain that are turned over (facing down seen from above, or with next to no area in plan): put"
-  " their corners back where the mesh's base lays them out in plan, heights kept as they stand, then the corners of faces beside them"
-  " that turn over in turn, written into the active shaping pass. Use it where earlier sideways moves (a horizontal warp, vertices"
-  " slid onto breaks) left triangles inverted in plan on a steep wall, harmless there, that later shaping flattened so they face"
-  " straight down over the ground folded across them, and measure or placePrefab find no ground there (\"No surface players stand on"
-  " below\", \"No ground within\"); carve and fill unfold the folds they flatten themselves. Returns unfoldedFaces, foldedFaces (still"
-  " turned over: their corners already lie where the base has them, or the cascade outran its rounds) with foldedAt (a few of their"
-  " centers), and movedVertices. Without shaping passes nothing records the layout, so nothing moves and the folds are reported with"
-  " a warning. A cave's (cutCave) lining and the vertices where it meets the ground never move: they follow the ground as every"
-  " shaping does." + selectorHelp))
+  "Unfold the selected faces of a terrain that are turned over (facing down seen from above, or with next to no area in plan). First"
+  " their corners go back where the mesh's base lays them out in plan, heights kept as they stand, then the corners of faces beside"
+  " them that turn over in turn, written into the active shaping pass; a group of vertices put back that would leave a face it touches"
+  " turned over (where the base itself folds, or the ground around keeps sideways moves, such as a warp, that putting back takes away)"
+  " stays where it was rather than spread the fold. The folds that leaves in the selection (and every fold on a mesh without shaping"
+  " passes, which records no layout) are then laid out again in plan: their corners and a few rings of vertices beyond"
+  " them through selected faces take the even (uniform-weight Tutte) layout spanning the vertices around them, which hold still, tried"
+  " again with more rings while it still folds; heights are kept, and the move goes alike into the base and every pass, so each pass"
+  " keeps its offsets and the base records the repaired layout. Use it where earlier sideways moves (a horizontal warp, vertices slid"
+  " onto breaks) left triangles inverted in plan on a steep wall, harmless there, that later shaping flattened so they face straight"
+  " down over the ground folded across them, and measure or placePrefab find no ground there (\"No surface players stand on below\","
+  " \"No ground within\"), a graded route finds rock over its bench, or walkRoute finds drops; carve and fill unfold the folds they"
+  " flatten themselves. Returns unfoldedFaces and movedVertices (the first step), relaidFaces, relaidVertices, and largestRelayMove"
+  " (the layout), and foldedFaces (still turned over) with foldedAt (a few of their centers). A cave's (cutCave) lining and the"
+  " vertices where it meets the ground never move, nor does the mesh's open edge. On a mesh holding caves, the graded passes and caves"
+  " the move leaves stale are then settled as gradeRoute settles them (settled: its rounds and what is still unsettled); whole or not"
+  " at all, so a settle that refuses leaves the mesh as it was." + selectorHelp))
 async def unfoldTerrain(context: Context, objectName: str, selector: dict = allSelector):
   return await callBridge(context, "unfoldTerrain", {"objectName": objectName, "selector": selector})
 
@@ -2937,8 +2948,9 @@ async def renderSketch(
   or over a level reached under it), ledges dark, leak edges magenta, zone lines hatched when reached, swim boxes dashed, seeds as white
   arrows (hollow when isolated), with a legend in a band under the plan naming what it draws, the lane's marks and the plan's own
   layers in the frame (the relief, spot heights, water, regions and their access fills, caves, plots, entries, zone lines, boundaries,
-  and sketch shapes); the result's laneState says whether the lane was computed or reused, the constants it used, what it does not
-  model, and its limits). A cave run's end its cut rounded off closes in a half circle; `caveEndsUnknown` names the caves cut before
+  and sketch shapes); the result's laneState says whether the lane was computed or reused and its body group, and the report file the
+  result names (report) holds the whole result, laneState with the constants the lane used, what it does not model, and its limits).
+  A cave run's end its cut rounded off closes in a half circle; `caveEndsUnknown` names the caves cut before
   their records kept which ends were rounded, whose ends are drawn open (cut them again with editCave). Labels are placed clear of one
   another, and beside the spot heights rather than over them where they can be; an area is named only where it reaches into the
   drawing. frameSize is the plan's size in pixels, above any legend band."""
@@ -2963,12 +2975,15 @@ async def renderSketch(
   if lanePlan is not None:
     frame = planDrawing.PlanFrame(center, width, drawn["size"])
     await anyio.to_thread.run_sync(laneDrawing.legendUnder, outputPath, lanePlan.legend(frame, laneDrawing.planLayerLegend(overlays, frame)))
-  return [Image(data=outputPath.read_bytes(), format="png"), {
+  result = {
     "outputPath": str(outputPath), "center": center, "width": width, "unitsPerPixel": round(width / drawn["size"][0], 4), "heightRange": base["heightRange"],
     "bandHeight": bandHeight, "gridStep": drawn["gridStep"], "sheetColors": drawn["sheetColors"],
     "shapes": {sheet["sheet"]: len(sheet["shapes"]) for sheet in overlays["sheets"]}, **unnamedSwimVolumes(drawn["unnamedSwimVolumes"]),
     "frameSize": drawn["size"], "caveEndsUnknown": sorted({cave["label"] for cave in overlays["caves"] if not cave["endsKnown"]}),
-  } | ({} if laneState is None else {"laneState": laneState})]
+  }
+  if laneState is not None:
+    result = reported("renderSketch", result | {"laneState": laneState}, resultReports.withoutLaneTerms)
+  return [Image(data=outputPath.read_bytes(), format="png"), result]
 
 
 @guardedTool()
@@ -3517,9 +3532,9 @@ async def renderSection(
   taken by a zone line yellow), reached water as a band from its bottom to its top across its swim box in its label's color (water
   the group wades shown by the floor under it), walkable floor never reached dashed grey, a floor's ends kept to the block's
   edge where the lane's columns run past it, and leak edges as magenta ticks down from the floor a fall onto nothing or under the
-  underworld starts from, each named in the legend band with the section's own layers; its laneState gives whether the lane was computed or reused, the constants, what is not
-  modelled, and the limits as mapReach does, the counts of each, and laneCut, a file holding them (s along the line, z height,
-  label)."""
+  underworld starts from, each named in the legend band with the section's own layers; its laneState gives whether the lane was computed or reused, its body group,
+  the counts of each, and laneCut, a file holding them (s along the line, z height, label), and the report file the result names
+  (report) holds laneState with the constants, what is not modelled, and the limits as mapReach gives them."""
   outputPath, cuts, drawn, laneState = await drawnSection(
     context, {"start": start, "end": end, "path": path, "cave": cave, "bottom": bottom, "top": top}, layers, bodyGroup=bodyGroup,
   )
@@ -4640,6 +4655,9 @@ railsHelp = (
   " can be fallen from, as the client's can. Rails need posts on their sides and run the whole stretch: a railed post stands however"
   " low the walk runs, and where what it stands on reaches the rail's height (a walkway's post at a flight's head) the rail meets that."
 )
+# A wall run on the ground sinks its feet this far and is refused buried deeper than this; a run on a wall takes neither.
+wallSink = 1.0
+wallMaximumBurial = 10.0
 
 
 @guardedTool(description=(
@@ -4800,11 +4818,13 @@ async def buildWalkway(
   "Lay one wall or fence of kit sections end to end along the artist's `path` [[x, y] or [x, y, z], ...] (closed when its last point is"
   " its first), as the client lays its wall runs; every path point is a joint. `frontSide` (\"left\" or \"right\" of travel) is the side"
   " the sections' fronts face. `sections` names straight wall pieces of one depth and height, each its own module; each leg is filled"
-  " with the fewest sections, longest first, exactly (within 0.01): a leg no set of modules fills is refused, naming its length, the"
-  " nearest lengths that fill, and how far to move its end. `variants` {\"<section index>\": piece} puts another wall piece of the same"
-  " module and size in that place (a window, a door), indices counted along the whole path from 0. A turn (over 0.5 degrees) needs a"
+  " with the fewest sections, longest first, exactly (within 0.01; depths and heights match within it too): a leg no set of modules"
+  " fills is refused, naming its length, the nearest lengths that fill, and how far to move its end. `variants` {\"<section index>\":"
+  " piece} puts another wall piece of the same module and size in that place (a window, a door), indices counted along the whole path"
+  " from 0. A turn (over 0.5 degrees) needs a"
   " post. `posts` {piece, at (\"joints\": where every two sections meet and the ends; \"turns\": the turns and the ends)}: the post piece"
-  " there, its base `sink` under the lowest ground at its foot, as Freeport's pillars stand at its joints; wider and deeper than the wall,"
+  " there, its base `sink` under the lowest ground at its foot (on a wall, on the top of that wall's post there), as Freeport's pillars"
+  " stand at its joints; wider and deeper than the wall,"
   " else the sections' faces flicker through it. `follow` \"shear\" (the client's way): each section's foot and top slant together to the"
   " ground's fall, verticals vertical: joint heights start at the ground under each joint less sink + shearStep / 2, are lowered until no"
   " section's straight foot stands above the ground less that anywhere along it (sampled every 1 unit along both faces; a joint two"
@@ -4813,25 +4833,39 @@ async def buildWalkway(
   " its piece, any other a mesh object sharing `<piece>Up<r>` or `<piece>Down<r>` (r the rise along the piece's +X in hundredths: the"
   " piece sheared about its middle), so sections of one rise share one model across every wall in the file. `follow` \"step\": each"
   f" section level, its foot sink under the lowest ground under it. The ground is found from {buildTolerances.groundProbeLift:g} above each point's z when given (a"
-  " wall in a cave, on a deck), from above the scene without it (refused where rock lies over ground: give z). Refused: fewer than two"
+  " wall in a cave, on a deck), from above the scene without it (refused where rock lies over ground: give z). `on` names a wall laid"
+  " before this run to stand it on, a storey on a storey: the path is [x, y] and runs along that wall's line (or parallel to it with"
+  " the run's faces within its faces), each section's base at each end the top of that wall's section under it (its base there plus"
+  " its piece's height), each post on the top of that wall's post at its joint; sink and maximumBurial are for the ground, null with"
+  " `on` (1 and 10 by default on the ground). With follow \"shear\" a section rises with the top under it, by whole shear steps;"
+  " with \"step\" the top under each section must be level. Refused on a wall: one laid after this run, or before walls kept the"
+  " sections they lay (lay it again); a path with z; sections deeper than it; a section leaving its top (off its line past its faces,"
+  " across it, or past its end, naming where and why) or over a bend or step in its top (give the run a joint there); a post where it"
+  " has none. The run goes stale (base) when the tops it stands on move or that wall is gone, and that wall cannot be taken back while"
+  " the run stands on it. Refused: fewer than two"
   " points or a leg shorter than the shortest section; sections of different depth or height (between their faces: a variant's frames"
   " may stand proud); a leg the modules cannot fill; a variant of another module or past the last section; a turn without a post"
   " (naming it and its angle); a post no wider or deeper than the wall, or one whose top stands under the wall's top beside it; shearStep"
   " not positive; a section sheared steeper than 30 degrees (step the wall, or run it across the slope); a section buried more than"
   " `maximumBurial` anywhere along it (the ground bulges over its line, or rises along a stepped one), naming it and how deep; the"
   " terrain collection. Returns the legs (length, sections), joints (ground, and height when sheared or the bases of the sections"
-  " meeting there when stepped), sections (piece, base at each end, rise, model, deepest and shallowest burial), the shear models made"
-  " or reused, posts, the placements and triangles per model, and views front<leg> (standing on the ground in front of each leg, short of"
-  " any other leg in the way)." + structureHelp
+  " meeting there when stepped; on a wall the bases), sections (piece, base at each end, rise, model, deepest and shallowest burial, or"
+  " on a wall the sections it stands on), the shear models made or reused, posts, the placements and triangles per model, and views"
+  " front<leg> (standing on the ground in front of each leg, short of any other leg in the way, the ground looked for down from the"
+  " wall's top so a cave's roof or an overhang is passed over; aimed 0.4 of the way up the wall from its own foot: the top it stands on,"
+  " its path's height, else the ground in front)." + structureHelp
 ))
 async def buildWall(
-  context: Context, name: str, kitPath: str | None, path: list[list[float]], frontSide: str, sections: list[str], follow: str = "shear",
-  shearStep: float = 1.0, sink: float = 1.0, maximumBurial: float = 10.0, posts: dict | None = None, variants: dict[str, str] | None = None,
-  collection: str = "structures",
+  context: Context, name: str, kitPath: str | None, path: list[list[float]], frontSide: str, sections: list[str], on: str | None = None,
+  follow: str = "shear", shearStep: float = 1.0, sink: float | None = None, maximumBurial: float | None = None, posts: dict | None = None,
+  variants: dict[str, str] | None = None, collection: str = "structures",
 ):
   requireKitPath(kitPath)
+  if on is None:
+    sink = wallSink if sink is None else sink
+    maximumBurial = wallMaximumBurial if maximumBurial is None else maximumBurial
   built = await callBridge(context, "buildWall", {
-    "name": name, "kitPath": kitPath, "path": path, "frontSide": frontSide, "sections": sections, "follow": follow, "shearStep": shearStep,
+    "name": name, "kitPath": kitPath, "path": path, "on": on, "frontSide": frontSide, "sections": sections, "follow": follow, "shearStep": shearStep,
     "sink": sink, "maximumBurial": maximumBurial, "posts": posts, "variants": variants, "collection": collection,
   })
   return reported("buildWall", built, resultReports.compactStructure)
@@ -4855,7 +4889,8 @@ async def editStructure(context: Context, name: str, changes: dict | None = None
 @guardedTool()
 async def removeStructure(context: Context, name: str):
   """Take a structure back: its collection and parts (and a part's mesh no other object uses), and any shared shear mesh no other wall
-  uses. Returns its kind and definition (kitPath absolute), to build it again with its build tool."""
+  uses. Returns its kind and definition (kitPath absolute), to build it again with its build tool. Refused while a wall run stands on it
+  (its `on`), naming the runs: take them back first."""
   return await callBridge(context, "removeStructure", {"name": name})
 
 
@@ -4864,7 +4899,9 @@ async def getStructures(context: Context, names: list[str] | None = None):
   """Every structure (or those named) in the order they were first laid: kind, order, definition (kitPath absolute), parts with their
   triangles and the export models they become, standsOn (the objects its probes find now), and whether it is stale and why: ground
   (its probes looked up again: how many moved more than 0.01, the largest change and where, and where a look down from over the scene
-  now meets something standing over the ground, overGround: that object, its top and underside, and the ground under it), kit (the
+  now meets something standing over the ground, overGround: that object, its top and underside, and the ground under it), base (a wall
+  run on a wall, under base: the tops and post tops it stands on moved more than 0.01, the largest change, or why it no longer stands
+  on that wall, refused; null for a structure on the ground), kit (the
   pieces or prefabs whose fingerprint changed since it was laid: a span bakes its pieces, so it follows the kit only when laid again; a
   placed prefab follows its pieces at once and goes stale when its prefab's footprint, entrances, or parts change), or missing (its kit file, a piece, or a prefab
   cannot be found); its walk line for a bridge, flight, or walkway; its views (orbit: its parts for renderOrbit). Also the loose kit

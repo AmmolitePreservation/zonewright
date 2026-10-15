@@ -525,6 +525,89 @@ def testSubdividingInFrontOfACaveCutsItAgainAndRegradesTheApproach(stageBlenderS
   assert walkOf(walk)["walkable"]
 
 
+# Moves the vertex of the hall's reach nearest `at` (none of the cave's own) by `shift` in plan, alike in the mesh and every pass, so
+# each pass keeps its offset there and the base's own layout folds.
+foldBaseInReach = r"""
+import numpy
+import bridgeCaveData, bridgeMeshAccess
+ground = bpy.data.objects['ground']
+mesh = ground.data
+shown, _ = bridgeMeshAccess.readVertexArrays(ground)
+candidates = numpy.flatnonzero(bridgeCaveData.reachOf(ground, 'hall') & ~bridgeCaveData.fixedInPlan(ground))
+row = int(candidates[numpy.argmin(numpy.linalg.norm(shown[candidates, :2] - numpy.array(at), axis=1))])
+for block in [mesh.vertices] + [key.data for key in mesh.shape_keys.key_blocks]:
+  block[row].co = (block[row].co[0] + shift[0], block[row].co[1] + shift[1], block[row].co[2])
+mesh.update()
+result = shown[row].tolist()
+"""
+# The ground's faces (none of the cave's) centered in the forecourt east of the mouth that face down seen from above or have no area
+# in plan.
+forecourtFolds = r"""
+import numpy
+import bridgeMeshAccess
+ground = bpy.data.objects['ground']
+mesh = ground.data
+shown, _ = bridgeMeshAccess.readVertexArrays(ground)
+tags = numpy.empty(len(mesh.polygons), dtype=numpy.int32)
+mesh.attributes['zonewrightCaveFace:hall'].data.foreach_get('value', tags)
+result = 0
+for polygon, tag in zip(mesh.polygons, tags):
+  corners = shown[list(polygon.vertices)]
+  middle = corners.mean(axis=0)
+  if tag == 0 and 36 <= middle[0] <= 100 and -70 <= middle[1] <= -24 and -20 <= middle[2] <= 60:
+    following = numpy.roll(corners, -1, axis=0)
+    result += int((corners[:, 0] * following[:, 1] - following[:, 0] * corners[:, 1]).sum() <= 0)
+"""
+snapshotGround = r"""
+ground = bpy.data.objects['ground']
+mesh = ground.data
+result = {
+  'caves': ground['zonewrightCaves'], 'faces': [list(polygon.vertices) for polygon in mesh.polygons], 'mesh': [list(vertex.co) for vertex in mesh.vertices],
+  'passes': {key.name: [list(point.co) for point in key.data] for key in mesh.shape_keys.key_blocks}, 'active': ground.active_shape_key_index,
+}
+"""
+
+
+def testUnfoldingABaseFoldedBeforeACaveRefitsTheCaveWholeOrNotAtAll(stageBlenderServer, tmp_path):
+  # The ground at the cliff's foot east of the mouth, in the hall's reach and clear of the approach's bench and the cliff.
+  forecourt = {"box": {"minimum": [36, -70, -20], "maximum": [100, -24, 60]}}
+  # A spike beside the approach far higher than its batters can reach: grading the approach again on that ground refuses.
+  spike = {"objectName": "ground", "selector": {"box": {"minimum": [36, -138, -100], "maximum": [52, -122, 100]}}, "offset": [0, 0, 2400]}
+
+  async def steps(session):
+    await caveCanyon(session, tmp_path)
+    await session.expectImage("cutCave", hall)
+    foldsCut = (await session.expectSuccess("runPython", {"code": forecourtFolds}))["result"]
+    foldedAt = (await session.expectSuccess("runPython", {"code": "at = [60, -40]\nshift = [13, 5]" + foldBaseInReach}))["result"]
+    foldsMade = (await session.expectSuccess("runPython", {"code": forecourtFolds}))["result"]
+    await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "spike"})
+    await session.expectSuccess("moveVertices", spike)
+    before = (await session.expectSuccess("runPython", {"code": snapshotGround}))["result"]
+    refused = await session.expectError("unfoldTerrain", {"objectName": "ground", "selector": forecourt})
+    kept = (await session.expectSuccess("runPython", {"code": snapshotGround}))["result"]
+    await session.expectSuccess("removeShapingPass", {"objectName": "ground", "name": "spike"})
+    await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "unfold"})
+    unfolded = await session.expectSuccess("unfoldTerrain", {"objectName": "ground", "selector": forecourt})
+    foldsLeft = (await session.expectSuccess("runPython", {"code": forecourtFolds}))["result"]
+    detail = await session.expectSuccess("getObjectDetail", {"name": "ground"})
+    checked = (await session.expectSuccess("runPython", {"code": checkCave}))["result"]
+    again = await session.expectSuccess("unfoldTerrain", {"objectName": "ground", "selector": forecourt})
+    return foldsCut, foldedAt, foldsMade, before, refused, kept, unfolded, foldsLeft, detail, checked, again
+
+  foldsCut, foldedAt, foldsMade, before, refused, kept, unfolded, foldsLeft, detail, checked, again = stageBlenderServer.session(steps)
+  assert foldsCut == 0 and foldsMade > 0 and math.dist(foldedAt[:2], [60, -40]) < 8
+  # Grading the approach again on the spike refuses, so the unfold that moved the cave's ground is taken back whole.
+  assert "settling them refused" in refused and "Route 'approach' runs" in refused
+  assert kept == before
+  # Without it, the fold the base holds is laid out again, the cave on that ground is cut again, and nothing is left stale or folded.
+  assert unfolded["relaidVertices"] > 0 and unfolded["foldedFaces"] == 0 and foldsLeft == 0
+  assert unfolded["settled"]["unsettled"] is None and ["hall"] in [[entry["cave"] for entry in settleRound["refittedCaves"]] for settleRound in unfolded["settled"]["rounds"]]
+  assert [(cave["name"], cave["stale"]) for cave in detail["caves"]] == [("hall", False)] and [entry["stale"] for entry in detail["definedPasses"]] == [False]
+  assert checked["edgesOnThreeOrMoreFaces"] == 0 and checked["openEdges"] == borderEdges and checked["largestRingMiss"] <= 1e-4 and checked["largestLiningMove"] == 0.0
+  # Laid out, the forecourt holds no fold to unfold, so a second unfold moves nothing and has nothing to settle.
+  assert (again["unfoldedFaces"], again["relaidFaces"], again["foldedFaces"], again["movedVertices"], again["relaidVertices"]) == (0, 0, 0, 0, 0) and "settled" not in again
+
+
 def testCaveRefusals(stageBlenderServer, tmp_path):
   async def steps(session):
     await caveCanyon(session, tmp_path)

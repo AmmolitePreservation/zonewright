@@ -77,9 +77,17 @@ def compactEditedCave(edited):
   return edited | {"cut": compactCut(edited["cut"])}
 
 
+def withoutLaneTerms(result):
+  """result with its laneState, if it has one, lacking the lane's terms (playerReach.laneTerms: the constants with their sources, what
+  the lane does not model, and its limits), which are the same on every call."""
+  if "laneState" not in result:
+    return result
+  return result | {"laneState": {key: item for key, item in result["laneState"].items() if key not in ("constants", "notModeled", "limits")}}
+
+
 def compactSection(section):
-  """A section's report: each cave's floor samples and strokes listed."""
-  return section | {"caves": [listedKeys(cave, ("floor", "strokes")) for cave in section["caves"]]}
+  """A section's report: each cave's floor samples and strokes listed, and its lane's state without the lane's terms."""
+  return withoutLaneTerms(section | {"caves": [listedKeys(cave, ("floor", "strokes")) for cave in section["caves"]]})
 
 
 def compactVerification(verified):
