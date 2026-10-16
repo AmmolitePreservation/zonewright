@@ -115,7 +115,9 @@ def bundle(clientRoot, clientModels, taken):
     if held is not None and held != data:
       clash(name, source, objectName)
       return False
-    files[name], originals[name], sources[name] = data, data, source
+    # A model placed again keeps the copy its first placement stored, which may name renamed textures.
+    if name not in originals:
+      files[name], originals[name], sources[name] = data, data, source
     return True
 
   def takeTexture(name, data, holder, objectName):

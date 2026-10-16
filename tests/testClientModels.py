@@ -171,6 +171,7 @@ def testACopiedTextureWhoseNameIsTakenIsStoredUnderItsArchivesName(stageBlenderS
   async def steps(session):
     await groundScene(session, tmp_path)
     await session.expectSuccess("placeObject", crystal | {"name": "crystal", "location": [10, 0, 0], "headingDegrees": 0})
+    await session.expectSuccess("placeObject", crystal | {"name": "crystal2", "location": [10, 30, 0], "headingDegrees": 90})
     await ourBox(session, tmp_path, "ours", "crystal_colp_c", [60, -60, 0])
     await session.expectSuccess("saveFile", {"path": str(tmp_path / "renamed.blend")})
     return await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
@@ -193,7 +194,8 @@ def testACopiedTextureWhoseNameIsTakenIsStoredUnderItsArchivesName(stageBlenderS
   assert all(numpy.array_equal(storedParsed[key], clientParsed[key]) for key in ("vertices", "normals", "uvs", "triangles", "triangleMaterials", "triangleFlags"))
   manifest = json.loads((tmp_path / "renamed_export.json").read_text(encoding="ascii"))
   [copy] = [copy for copy in manifest["clientModels"] if copy["entry"] == "obj_fscrystala.mod"]
-  assert copy["renamedTextures"] == renames and copy["sha256"] == hashlib.sha256(clientModel).hexdigest()
+  assert copy["renamedTextures"] == renames and copy["sha256"] == hashlib.sha256(clientModel).hexdigest() and copy["placements"] == 2
+  # Placed twice, the model is stored once, as the first placement stored it, naming the renamed texture.
   assert copy["storedSha256"] == hashlib.sha256(stored).hexdigest()
   assert "crystals_crystal_colp_c.dds" in [texture["name"] for texture in copy["textures"]]
   # A rename the model does not name is refused.
