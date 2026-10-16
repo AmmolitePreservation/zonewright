@@ -77,6 +77,20 @@ def compactEditedCave(edited):
   return edited | {"cut": compactCut(edited["cut"])}
 
 
+def compactPasses(result, touched=None):
+  """A shaping pass tool's result without the mesh's whole pass list: the pass the call touched (named by touched), the active pass's
+  name (None when none is), and how many passes there are; a facade's refit (removeShapingPass) as a cave edit's."""
+  passes = {entry["name"]: entry for entry in result["passes"]}
+  compact = {key: item for key, item in result.items() if key != "passes"} | {
+    "activePass": next((name for name, entry in passes.items() if entry["active"]), None), "passCount": len(passes),
+  }
+  if touched is not None:
+    compact["pass"] = passes[touched]
+  if compact.get("refit") is not None:
+    compact["refit"] = compactEditedCave(compact["refit"])
+  return compact
+
+
 def withoutLaneTerms(result):
   """result with its laneState, if it has one, lacking the lane's terms (playerReach.laneTerms: the constants with their sources, what
   the lane does not model, and its limits), which are the same on every call."""

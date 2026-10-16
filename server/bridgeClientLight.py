@@ -291,9 +291,9 @@ def surfaceOutput(material, baseColor, alpha, alphaMode, lit, threshold, normal=
 
 
 def drawSides(material):
-  """Draw a surface's faces from the front only, as the client draws every zone and object face, or both for a liquid
-  (docs/clientRendering.md, Back faces)."""
-  material.use_backface_culling = not (bridgeMeshAccess.liquidProperty in material or bridgeMeshAccess.clientLiquidProperty in material)
+  """Draw a surface's faces from the front only, as the client draws every zone and object face, a placed model's liquid among them,
+  or from both sides for a liquid on the zone's terrain (docs/clientRendering.md, Back faces)."""
+  material.use_backface_culling = bridgeMeshAccess.liquidMesh(material) != "terrain"
 
 
 def drawSidesOfAll():

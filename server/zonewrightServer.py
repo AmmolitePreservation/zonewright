@@ -743,7 +743,9 @@ modelSheetViews = ("front", "side", "top", "threeQuarter")
   "Look at models from the catalog on one numbered contact sheet, each drawn as the client draws it in neutral daylight: by ids, or by"
   " the findAssets filters (kind is model), from client zones and object, on-demand, and startup archives. views (front, side, top,"
   " threeQuarter; default threeQuarter) puts each model's views side by side; every view is kept under the tooling root by the model's"
-  " content, so it is rendered once, and describeAssets records what a description was judged from by these images." + findHelp))
+  " content, so it is rendered once, and describeAssets records what a description was judged from by these images. A model the client"
+  " draws no triangle of (one whose materials name no texture) is left off the sheet and listed in notDrawn with why; refused when no model"
+  " matched is drawn." + findHelp))
 async def viewModels(
   context: Context, ids: list[str] | None = None, text: str | None = None, categories: list[str] | None = None, tags: dict | None = None,
   source: str | None = None, described: bool | None = None, sortBy: str = "relevance", limit: int = 24, columns: int | None = None,
@@ -757,26 +759,36 @@ async def viewModels(
     raise ToolError("No models match")
   if len(assets) * len(views) > assetSheets.cellSides[128]:
     raise ToolError(f"{len(assets)} models of {len(views)} views each is more than a sheet holds ({assetSheets.cellSides[128]} cells)")
-  toRender = []
+  toRender, drawn, notDrawn = [], [], []
   for asset in assets:
     files = catalog.viewFiles(asset)
     if not files:
       raise ToolError(f"{asset['id']} has no content digest to keep its views by; survey its source again")
     if not all(files[view].is_file() for view in views):
       zone, model, archive = catalogModelLink(asset)
-      folder, _ = await anyio.to_thread.run_sync(eqModel, zone, model, archive)
+      try:
+        folder, _ = await anyio.to_thread.run_sync(eqModel, zone, model, archive)
+      except ToolError as error:
+        if not isinstance(error.__cause__, eqModels.NothingDrawn):
+          raise
+        notDrawn.append({"id": asset["id"], "why": str(error)})
+        continue
       toRender.append({"folder": str(folder), "outputFolder": str(catalog.modelViewFolder(asset))})
+    drawn.append(asset)
+  if not drawn:
+    raise ToolError(f"No model matched is drawn: {notDrawn}")
   if toRender:
     await callBridge(context, "renderModelViews", {"models": toRender, "views": list(modelSheetViews)})
   interpretations = catalog.interpretations()
   cells, legend = [], []
-  for number, asset in enumerate(assets, start=1):
+  for number, asset in enumerate(drawn, start=1):
     files = catalog.viewFiles(asset)
     size = "x".join(str(round(value)) for value in asset["measured"].get("size", []))
     for view in views:
       cells.append({"image": str(files[view]), "tiled": False, "showAlpha": False, "lines": [f"{number} {asset['name']}", f"{view} {size}{' *' if asset['id'] in interpretations else ''}"]})
     legend.append({"number": number, "id": asset["id"], "views": {view: str(files[view]) for view in views}})
-  return writeSheetImage(cells, columns or (len(views) if len(views) > 1 else 6), legend, 256 if len(cells) <= assetSheets.cellSides[256] else 128)
+  image, sheet = writeSheetImage(cells, columns or (len(views) if len(views) > 1 else 6), legend, 256 if len(cells) <= assetSheets.cellSides[256] else 128)
+  return [image, sheet | {"notDrawn": notDrawn}]
 
 
 @guardedTool()
@@ -1094,7 +1106,9 @@ async def scaleFigureModel(zone, view):
   " shape and layout; \"coverage\" draws only what exportZone would export, each"
   " face in the color of its export check status (checkExport): black where it cannot export, red for zero texture area, brown for a"
   " blockout material, yellow for texture stretched or squeezed, orange where the base material shows, magenta along a ground border"
-  " without a transition strip, grey when fine, and blue wherever a face is seen from its back, lit from the northwest as layout is,"
+  " without a transition strip, grey when fine, and blue wherever a face is seen from its back (a face with a reversed twin on its"
+  " corners, as a fall's sheet or a rope rail is built, shows its status from either side, as the client draws the twin facing the"
+  " viewer), lit from the northwest as layout is,"
   " softer so no shaded face reads as black, and without fog; the result counts the exported faces by status. The value shadings draw"
   " every mesh (each part of a collection instance as placed, and the scale figure) from a value of its own, lit softly from the"
   " northwest, without fog, the result giving the scale: \"objects\" draws each object in its own flat color, the ones the view shows"
@@ -1260,7 +1274,8 @@ async def placeSpawn(
 shipHelp = (
   " The placed model ships with the zone: exportZone copies the client's model and its textures into the zone's archive byte for byte"
   " (an EQG .mod; a classic actor or a skinned model is refused there; a texture whose name the archive already holds with other bytes is"
-  " stored as <its archive's stem>_<name>, and the model names that), and the piece stays the client's mesh, which tools move, turn,"
+  " stored as <its archive's stem>_<name>, and the model names that; a scenery model likewise, and the zone file places that, while an"
+  " interactive one whose name is taken is refused), and the piece stays the client's mesh, which tools move, turn,"
   " and scale but never edit. Not interactive, it is scenery placed by the zone file; interactive, it is a row of EQ's own doors or object"
   " table naming that copy, which the server sends the client, and never also scenery. result.ships says which."
 )
@@ -1863,7 +1878,8 @@ async def renderPoses(context, poses, folder, prefix, exportedOnly, sky, figureM
   " in the zone, and under a landing in another zone the ground on that zone's client collision, where a miss is a finding, its"
   " underworld being unknown here; 9 clientModels, the zone standing alone: every .zon placement and every doors and object row"
   " naming a model the archive holds, every texture its models' drawn materials name in the archive or registered at startup (one the"
-  " manifest records missing for the client too aside), every client model the manifest records in the archive byte for byte (one naming"
+  " manifest records missing for the client too aside), every client model the manifest records in the archive byte for byte under the"
+  " name it was stored under (one naming"
   " a texture stored under another name, the client's with only those names changed) and the client's own entry unchanged, no interactive piece also a .zon placement at its place, and every object row where FindBestZ stands"
   " it on the exported .map; 10 containment, the lane the server files give (seeded where the scene's entries stand, judged with"
   " its regions, plot entrances, and underworld) holding no leak a game export refuses, its reached area beside the manifest's; 11 looks,"
@@ -2338,7 +2354,7 @@ async def sculptAlongPath(
   context: Context, objectName: str, mode: str, path: list[list[float]], strength: float, radius: float | None = None, radii: list[float] | None = None,
   falloff: str = "smooth", direction: list[float] | None = None, iterations: int = 1, profile: list[list[float]] | None = None, conformRim: bool | None = None, conformBreaks: bool = False,
 ):
-  """Sculpt along a polyline path [[x,y,z], ...] within `radius`, or within `radii` (one per path point, the stroke widening or narrowing evenly between them, so one stroke carves a canyon that pinches to a gorge): raise, lower, crease, smooth, flatten as in sculptAtPoint; carve, which cuts vertically down to the path's own heights shaped by `profile` [[lateralFraction, heightAboveFloor], ...] from 0 (center) to 1 (edge); or fill, which raises ground up to such a profile (a mesa: a flat cap, a cliff, a slope at the base). carve and fill strength is a fraction, and their path can be a single point (a pit or a butte). With conformRim (carve only, on by default; needs rising profile heights), vertices just outside the cut slide onto the rim contour so the edge follows the profile rather than the grid; the mesh's open edge stays put. With conformBreaks (carve and fill), the vertices nearest each break of the profile slide onto its contour first wherever the stroke shapes them, so stepped profiles (strata, ledges, terraces) make clean lines along the path instead of zigzags across the grid. carve and fill then triangulate the cells they shaped along the contours, as followContours does (splitCells, turnedDiagonals), and put back where the plain cut leaves them any snapped vertices that leave their cell no diagonal facing up (keptOffContours). Last, carve and fill unfold the faces they shaped that earlier sideways moves left inverted in plan, which a stroke that flattens them would leave facing straight down, as unfoldTerrain does (unfoldedFaces). Results count foldedFaces: faces left turned over, a sign the move was too strong for the mesh's spacing. With shaping passes, the change goes into the active pass. Around a cave (cutCave) its lining stays where it is (caveLiningLeft counts the lining vertices left alone), the vertices where it meets the ground follow that ground, and none of its vertices slides sideways onto a break or rim."""
+  """Sculpt along a polyline path [[x,y,z], ...] within `radius`, or within `radii` (one per path point, the stroke widening or narrowing evenly between them, so one stroke carves a canyon that pinches to a gorge): raise, lower, crease, smooth, flatten as in sculptAtPoint; carve, which cuts vertically down to the path's own heights shaped by `profile` [[lateralFraction, heightAboveFloor], ...] from 0 (center) to 1 (edge); or fill, which raises ground up to such a profile (a mesa: a flat cap, a cliff, a slope at the base). carve and fill strength is a fraction, and their path can be a single point (a pit or a butte). With conformRim (carve only, on by default; needs profile heights that never fall and rise into the edge, so a flat bed or ledge on the way is fine), vertices just outside the cut slide onto the rim contour so the edge follows the profile rather than the grid; the mesh's open edge stays put. With conformBreaks (carve and fill), the vertices nearest each break of the profile slide onto its contour first wherever the stroke shapes them, so stepped profiles (strata, ledges, terraces) make clean lines along the path instead of zigzags across the grid. carve and fill then triangulate the cells they shaped along the contours, as followContours does (splitCells, turnedDiagonals), and put back where the plain cut leaves them any snapped vertices that leave their cell no diagonal facing up (keptOffContours). Last, carve and fill unfold the faces they shaped that earlier sideways moves left inverted in plan, which a stroke that flattens them would leave facing straight down, as unfoldTerrain does (unfoldedFaces). Results count foldedFaces: faces left turned over, a sign the move was too strong for the mesh's spacing. With shaping passes, the change goes into the active pass. Around a cave (cutCave) its lining stays where it is (caveLiningLeft counts the lining vertices left alone), the vertices where it meets the ground follow that ground, and none of its vertices slides sideways onto a break or rim."""
   return await callBridge(context, "sculptAlongPath", {"objectName": objectName, "mode": mode, "path": path, "radius": radius, "radii": radii, "strength": strength, "falloff": falloff, "direction": direction, "iterations": iterations, "profile": profile, "conformRim": conformRim, "conformBreaks": conformBreaks})
 
 
@@ -2362,28 +2378,43 @@ async def sculptOutline(
   return await callBridge(context, "sculptOutline", {"objectName": objectName, "mode": mode, "outline": outline, "base": base, "profile": profile, "strength": strength, "conformBreaks": conformBreaks})
 
 
-@guardedTool()
+passesReturnHelp = (
+  " Returns the pass (its name, strength, muted, and whether it is active), the active pass's name (activePass, null when none is), and"
+  " how many passes the mesh has (passCount); the whole result with every pass is in the report file (report)."
+)
+
+
+@guardedTool(description=(
+  "Add a named shaping pass to a mesh and make it active: vertex moves and sculpting go into the active pass, which can later be"
+  " turned up or down, muted, removed, or collapsed, so a shaping step is revised without redoing the others. Tools that add or remove"
+  " vertices otherwise (delete, extrude, inset, bevel, subdivide, booleanCut, decimate, join) refuse while a mesh has passes; collapse"
+  " them first. Cuts along a line (cutContours, carveWaterBed's cut along the waterline) and turned diagonals keep them, each new vertex"
+  " placed alike in every pass. A cave (cutCave) keeps them too; while a mesh holds caves, the tools that change faces refuse it."
+  + passesReturnHelp
+))
 async def addShapingPass(context: Context, objectName: str, name: str):
-  """Add a named shaping pass to a mesh and make it active: vertex moves and sculpting go into the active pass, which can later be
-  turned up or down, muted, removed, or collapsed, so a shaping step is revised without redoing the others. Tools that add or remove
-  vertices otherwise (delete, extrude, inset, bevel, subdivide, booleanCut, decimate, join) refuse while a mesh has passes; collapse
-  them first. Cuts along a line (cutContours, carveWaterBed's cut along the waterline) and turned diagonals keep them, each new vertex
-  placed alike in every pass. A cave (cutCave) keeps them too; while a mesh holds caves, the tools that change faces refuse it."""
-  return await callBridge(context, "addShapingPass", {"objectName": objectName, "name": name})
+  added = await callBridge(context, "addShapingPass", {"objectName": objectName, "name": name})
+  return reported("addShapingPass", added, lambda result: resultReports.compactPasses(result, name))
 
 
-@guardedTool()
+@guardedTool(description=(
+  "Change a shaping pass: its strength (-1 to 2: 0.5 halves what it holds, -1 inverts it), muted, or makeActive so shaping goes into it."
+  + passesReturnHelp
+))
 async def setShapingPass(context: Context, objectName: str, name: str, strength: float | None = None, muted: bool | None = None, makeActive: bool = False):
-  """Change a shaping pass: its strength (-1 to 2: 0.5 halves what it holds, -1 inverts it), muted, or makeActive so shaping goes into it."""
-  return await callBridge(context, "setShapingPass", {"objectName": objectName, "name": name, "strength": strength, "muted": muted, "makeActive": makeActive})
+  changed = await callBridge(context, "setShapingPass", {"objectName": objectName, "name": name, "strength": strength, "muted": muted, "makeActive": makeActive})
+  return reported("setShapingPass", changed, lambda result: resultReports.compactPasses(result, name))
 
 
 @guardedTool()
 async def removeShapingPass(context: Context, objectName: str, name: str):
   """Remove a shaping pass and what it holds; the other passes keep theirs. A graded route's pass takes its definition with it; a
-  facade's pass (dressFacade) takes the dressing back, cuts its cave again to fit the ground as it was (refit), and box-maps the faces it
-  had moved again from where they now stand (remappedFaces), so the facade can be dressed again."""
-  return await callBridge(context, "removeShapingPass", {"objectName": objectName, "name": name})
+  facade's pass (dressFacade) takes the dressing back, cuts its cave again to fit the ground as it was (refit, its cut listed as
+  editCave's), and box-maps the faces it had moved again from where they now stand (remappedFaces), so the facade can be dressed
+  again. Returns the pass removed, the active pass's name (activePass, null when none is), and how many passes remain (passCount);
+  the whole result with every pass is in the report file (report)."""
+  removed = await callBridge(context, "removeShapingPass", {"objectName": objectName, "name": name})
+  return reported("removeShapingPass", removed, resultReports.compactPasses)
 
 
 @guardedTool()
@@ -4648,6 +4679,11 @@ structureHelp = (
   " probes found), views (renderView views to judge it from, ready for saveReviewCamera; orbit: its parts for renderOrbit), and for a"
   " deck or flight walk: walkRoute along its walk line (walkRoute and renderRouteStrip take the structure's name as route)."
 )
+endViewHelp = (
+  f" An end's view stands on its approach where the ground there lies within {buildTolerances.approachGroundReach:g} of the end's height,"
+  " looked for down from that far over the end so a cave's roof or an overhang over the approach is passed over; else just inside the"
+  " end, on the structure."
+)
 railsHelp = (
   " rails {piece, height, sides (\"both\", \"left\", \"right\" of travel; both by default)}: a rail piece as bars from post to post, their"
   " tops `height` over the deck, each stretched to fit, or a ropeRail swept along the posts at that height following the deck, its"
@@ -4733,7 +4769,9 @@ async def placePrefab(
   " posts do not stand on; a bent station within a width of an end or past"
   " it; an anchor or bent leg with no ground within 300. Returns the plan span, chord, deck length, each end's slope, the steepest, the"
   " lowest deck point, the planks (count and run), posts and anchors with their lengths, rails, bents with each leg's length, the least"
-  " clearance under the deck and where, triangles." + structureHelp
+  " clearance under the deck and where, triangles; views fromStart, fromEnd, across, and below (standing on the ground beside it under"
+  f" its deck, looked for down from {buildTolerances.groundProbeLift:g} over the deck's middle so a cave's roof or an overhang is passed"
+  " over; left out where there is none)." + endViewHelp + structureHelp
 ))
 async def buildBridge(
   context: Context, name: str, kitPath: str | None, start: list[float], end: list[float], width: float, deck: str, profile: dict | None = None,
@@ -4762,7 +4800,8 @@ async def buildBridge(
   f" (set the head at its edge); the treads' underside meeting the ground beyond {buildTolerances.endRest:g} from its ends (naming where); a leg with no"
   " ground within 300; rails without posts. Returns the risers (count and height), run per step, pitch, plan length, the legs and their"
   " lengths, the least clearance, triangles; views fromFoot, fromHead (just behind the head, looking down it), and side (from the side"
-  " standing in the open, not inside a hill beside it)." + structureHelp
+  " whose eye stands in the open, not inside a hill or rock beside it: the ground at the eye's level is the top of a solid it lies in,"
+  " else the ground under it, so a cave's roof or an overhang over it does not bury it)." + endViewHelp + structureHelp
 ))
 async def buildStairs(
   context: Context, name: str, kitPath: str | None, bottom: list[float], top: list[float], width: float, tread: str, riser: float = 1.0,
@@ -4798,7 +4837,8 @@ async def buildStairs(
   f" rock within reach (naming it); a stretch standing more than {buildTolerances.supportTolerance:g} over the ground (it reads as floating, however high a player steps)"
   " with an edge held by neither posts nor brackets"
   " (naming it and the edge). Returns the legs (from, to, plan and laid length, grade, deck planks or flight risers), landings, posts with"
-  " the longest and shortest, brackets with their reach, each end's footing gap, triangles." + structureHelp
+  " the longest and shortest, brackets with their reach, each end's footing gap, triangles; views fromStart, fromEnd, and landing<i>."
+  + endViewHelp + structureHelp
 ))
 async def buildWalkway(
   context: Context, name: str, kitPath: str | None, points: list[list[float]], width: float, deck: str | None = None, treads: str | None = None,
@@ -5092,6 +5132,9 @@ async def runWater(
   " `spacing` units. Mapped as the client maps its falls: the texture spans the lip `acrossRepeats` times (once by default, so a fall"
   " texture's faded side edges frame the fall; more for a fall made of side-by-side strands) and repeats every `worldUnitsPerRepeat`"
   " down the drop, the client's v running down, so a waterfall material's slides as the client's falls carry them flow down. The"
+  " sheet has both sides: the client draws an exported fall's faces from their front only, so its faces come again wound the other"
+  " way on vertices of their own, normals facing back, and the fall shows from behind (from a cave behind it or a ledge), still"
+  " flowing down, its texture mirrored across as a curtain seen from behind is; its face and triangle counts hold both. The"
   " client's falls end at their pool's surface or a little under it. The result's built.insideRock lists rows that pass inside the"
   " rock (raise throw or move the lip) and closestToRock how near the sheet comes. Its waterfall material scrolls in the client; give"
   " the pool below its own body, and its white water with sprayWater (the client's falls have no foam surface: spray and mist where"
@@ -5182,7 +5225,8 @@ async def sprayWater(
   " a fall's lip, bottom, throw, spread, spacing, worldUnitsPerRepeat, or acrossRepeats; any body's material; any body's sprays (the"
   " whole list as sprayWater keeps them, each {at, definition, rings, spacing, count, above}; getWater's may be passed back as they are,"
   " their emitters placed anew; an empty list takes them all off)."
-  " With nothing to change it only rebuilds, for after the ground under it has changed, and places its sprays again." + waterBodyHelp
+  " With nothing to change it only rebuilds, for after the ground under it has changed or to give a fall built with its front alone"
+  " both sides, and places its sprays again." + waterBodyHelp
 ))
 async def editWater(
   context: Context, name: str, level: float | None = None, seed: list[float] | None = None, within: list[list[float]] | None = None,

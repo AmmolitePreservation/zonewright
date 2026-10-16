@@ -343,6 +343,30 @@ def testAnEndsViewStandsOnItsApproachOnlyWhereTheGroundThereLiesNearTheEndsHeigh
   assert built["far"]["views"]["fromStart"] == {"standAt": [22.0, -30.0, 4.25], "headingDegrees": 90.0, "pitchDegrees": -5.0}
 
 
+def testViewsUnderAnOverhangStandOnTheGroundUnderItAndASideEyeOutOfTheRock(stageBlenderServer, tmp_path):
+  foot, head = [-65.0, -60.0, -40.0], [-20.0, -60.0, 0.0]
+
+  async def steps(session):
+    kitPath = await kitAndPlot(session, tmp_path)
+    # A roof over the gorge from y -120 to 40, as a cave's roof or the hill over it would be, and a rock beside the flight past its south end.
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "overhang", "size": [200, 160, 10], "location": [-50, -40, 100]})
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "rock", "size": [20, 20, 60], "location": [-42.5, -124, -40]})
+    flight = await session.expectSuccess("buildStairs", {"name": "roofedFlight", "kitPath": kitPath, "bottom": foot, "top": head, "width": 6, "tread": "testKitTread", "riser": 1})
+    bridge = await session.expectSuccess("buildBridge", bridgeArguments(kitPath, "roofedBridge", start=[-100, -100, 0], end=[-20, -100, 0]))
+    return flight, bridge
+
+  flight, bridge = stageBlenderServer.session(steps)
+  run, rise = head[0] - foot[0], head[2] - foot[2]
+  # The ground near each end's height is found under the roof, so the end views stand on the approaches, not just inside the ends.
+  assert flight["views"]["fromFoot"] == {"standAt": [-77.0, -60.0, -40.0], "headingDegrees": 90.0, "pitchDegrees": round(math.degrees(math.atan2(rise, run + 12)), 2)}
+  assert flight["views"]["fromHead"] == {"standAt": [-17.0, -60.0, 0.0], "headingDegrees": 270.0, "pitchDegrees": round(-math.degrees(math.atan2(eyeHeight + rise / 2, 3 + run / 2)), 2)}
+  assert bridge["views"]["fromStart"] == {"standAt": [-112.0, -100.0, 0.0], "headingDegrees": 90.0, "pitchDegrees": -5.0}
+  assert bridge["views"]["fromEnd"] == {"standAt": [-8.0, -100.0, 0.0], "headingDegrees": 270.0, "pitchDegrees": -5.0}
+  # The side eye 64 north stands in the open under the roof, the one 64 south inside the rock; the bridge is seen from the gorge's floor.
+  assert flight["views"]["side"] == {"eye": [-42.5, 4.0, -20.0], "target": [-42.5, -60.0, -20.0]}
+  assert bridge["views"]["below"] == {"eye": [-60.0, -68.0, round(-40 + eyeHeight, 3)], "target": [-60.0, -100.0, 0.0]}
+
+
 def testOneSidedRailsStandPostsOnTheirSideOnly(stageBlenderServer, tmp_path):
   async def steps(session):
     kitPath = await kitAndPlot(session, tmp_path)

@@ -1,11 +1,16 @@
 import io
 import math
+import sys
+from pathlib import Path
 
 import numpy
 from PIL import Image
 import pytest
 
 from conftest import writeCubeDDS, writePNG
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
+import eqgWriter
 
 texture = (200, 150, 100, 255)
 environment = {
@@ -83,7 +88,13 @@ result = sorted({tuple(polygon.normal) for name in flipped for polygon in bpy.da
 """
 
 
-def testAFaceSeenFromBehindIsNotDrawnButALiquidsIs(stageBlenderServer, tmp_path):
+def downwardSquare(x):
+  """A 64-unit square at height 0 centered on [x, 0], wound to face down, as positions, normals, texture coordinates, and triangles."""
+  positions = [[x - 32, -32, 0], [x + 32, -32, 0], [x + 32, 32, 0], [x - 32, 32, 0]]
+  return positions, [[0, 0, -1]] * 4, [[position[0] / 64, position[1] / 64] for position in positions], [[0, 2, 1], [0, 3, 2]]
+
+
+def testAFaceSeenFromBehindIsNotDrawnButATerrainLiquidsIs(stageBlenderServer, tmp_path):
   texturePath = writePNG(tmp_path / "stone.png", 8, 8, texture)
   leafPath = writePNG(tmp_path / "leaf.png", 8, 8, (60, 160, 40, 255))
   waterPaths = {
@@ -91,6 +102,15 @@ def testAFaceSeenFromBehindIsNotDrawnButALiquidsIs(stageBlenderServer, tmp_path)
     "environmentTexture": str(writeCubeDDS(tmp_path / "water_e.dds", 4, [(200, 150, 100, 255)] * 6)),
   }
   planes = {"floor": ("stone", 0), "flipped": ("stone", 100), "leaf": ("leaf", 200), "water": ("water", 300), "falls": ("falls", 400)}
+  # A zone file whose terrain and one placed model each hold a waterfall square facing down.
+  falls = {"name": "falls", "diffuseTexture": "falls_c.dds", "normalTexture": None, "cutout": False, "liquid": {"liquid": "waterfall", "values": {"slides": [0, 0, 0, 0]}}}
+  imported = {"terrainFalls": ("ter_sides.ter", 500), "objectFalls": ("obj_sides.mod", 600)}
+  placements = [{"model": model, "name": model.split(".")[0].upper(), "position": (0.0, 0.0, 0.0), "rotation": (0.0, 0.0, 0.0), "scale": 1.0} for model, _ in imported.values()]
+  entries = {model: eqgWriter.modelBytes(model[-3:], [falls], *downwardSquare(x), [0, 0], [0, 0]) for model, x in imported.values()}
+  entries["sides.zon"] = eqgWriter.zoneBytes([model for model, _ in imported.values()], placements, [], [])
+  entries["falls_c.dds"] = eqgWriter.ddsBytes(numpy.full((4, 4, 4), (40, 90, 110, 255), dtype=numpy.uint8))
+  archivePath = tmp_path / "sides.eqg"
+  archivePath.write_bytes(eqgWriter.archiveBytes(entries))
 
   async def steps(session):
     await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
@@ -102,20 +122,22 @@ def testAFaceSeenFromBehindIsNotDrawnButALiquidsIs(stageBlenderServer, tmp_path)
       await session.expectSuccess("createPrimitive", {"kind": "plane", "name": name, "size": [64, 64, 0], "location": [x, 0, 0]})
       await session.expectSuccess("assignMaterial", {"objectName": name, "materialName": material})
     normals = (await session.expectSuccess("runPython", {"code": f"flipped = {sorted(set(planes) - {'floor'})!r}" + flipCode}))["result"]
+    await session.expectSuccess("importZoneFile", {"path": str(archivePath)})
     await session.expectSuccess("setZoneProperties", environment)
-    return normals, {name: await renderedPixel(session, {"eye": [x, 0, 20], "target": [x, 0.001, 0]}) for name, (_, x) in planes.items()}
+    places = {name: x for name, (_, x) in planes.items()} | {name: x for name, (_, x) in imported.items()}
+    return normals, {name: await renderedPixel(session, {"eye": [x, 0, 20], "target": [x, 0.001, 0]}) for name, x in places.items()}
 
   normals, pixels = stageBlenderServer.session(steps)
-  # Every plane but the floor faces down and is seen from above, from behind. The client draws a face from its front only, so the
-  # flipped stone and the leaf card are not drawn and the fog color shows through; it draws a liquid from both sides, so the water and
-  # the falls draw. The floor, seen from its front, is lit as the client lights it.
+  # Every square but the floor faces down and is seen from above, from behind. The client draws a face from its front only, so the
+  # flipped stone and the leaf card are not drawn and the fog color shows through, nor is a liquid on a placed model (SModelWaterFall),
+  # as the scene's own water and falls export; it draws a liquid on the zone's terrain (RegionWaterFall) from both sides. The floor,
+  # seen from its front, is lit as the client lights it.
   assert normals == [[0.0, 0.0, -1.0]]
   for measured, expected in zip(pixels["floor"], clientPixel((0, 0, 1))):
     assert abs(measured - expected) <= 1.5 / 255
-  for name in ("flipped", "leaf"):
+  for name in ("flipped", "leaf", "water", "falls", "objectFalls"):
     assert all(abs(measured - fog) <= 1.5 / 255 for measured, fog in zip(pixels[name], environment["fogColor"])), (name, pixels[name])
-  for name in ("water", "falls"):
-    assert max(abs(measured - fog) for measured, fog in zip(pixels[name], environment["fogColor"])) > 20 / 255, (name, pixels[name])
+  assert max(abs(measured - fog) for measured, fog in zip(pixels["terrainFalls"], environment["fogColor"])) > 20 / 255, pixels["terrainFalls"]
 
 
 def testFogIsOffWithTheZonesFogSwitchAndPulledInShortOfTheFarClip(stageBlenderServer, tmp_path):

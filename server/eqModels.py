@@ -40,6 +40,10 @@ colorlessMeshColor = (0, 0, 0, 255)
 sceneLitColor = (0, 0, 0, 255)
 
 
+class NothingDrawn(ValueError):
+  """A model of which the client draws no triangle."""
+
+
 def actorReferences(worldFile, actorFragment):
   """The fragments an actor definition (0x14) draws: mesh references (0x2D) for a static actor, a skeleton reference (0x11) for an animated one."""
   body = actorFragment.body
@@ -999,7 +1003,7 @@ def writePartsCache(modelFolder, parts, textureHolders, label):
     offset += len(part["vertices"])
   triangles = numpy.concatenate(triangleChunks)
   if len(triangles) == 0:
-    raise ValueError(f"{label} has no drawn triangles")
+    raise NothingDrawn(f"{label} has no drawn triangles")
   litParts = sum(part["lighting"] is not None for part in parts)
   if litParts not in (0, len(parts)):
     raise ValueError(f"{label}: {litParts} of {len(parts)} parts carry lighting; how the client lights them together is not known")

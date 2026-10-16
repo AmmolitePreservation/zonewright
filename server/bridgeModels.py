@@ -17,7 +17,6 @@ alphaThreshold = 0.5
 # Direct3D 9 reads a sampler with no texture bound as 0, 0, 0, 1.
 emptySamplerColor = (0.0, 0.0, 0.0, 1.0)
 untinted = 0xFFFFFF
-liquidKeyProperty = "eqLiquidKey"
 mplKeyProperty = "eqMPLKey"
 secondColorAttribute = "eqSecondColor"
 secondUVMap = "eqSecondUV"
@@ -138,11 +137,11 @@ def liquidModelMaterial(folder, textureName, liquid, lit):
   key = json.dumps({"folder": folder, "texture": textureName, "liquid": liquid, "lit": lit}, sort_keys=True)
   materialName = f"eq_{os.path.basename(folder)}_{textureName}_{liquid['liquid']}_{hashlib.sha256(key.encode()).hexdigest()[:8]}{'_lit' if lit else ''}"
   material = bpy.data.materials.get(materialName)
-  if material is not None and material.get(liquidKeyProperty) == key:
+  if material is not None and material.get(bridgeMeshAccess.clientLiquidKeyProperty) == key:
     return material
   material = bpy.data.materials.new(materialName)
   material[bridgeMeshAccess.clientLiquidProperty] = liquid["liquid"]
-  material[liquidKeyProperty] = key
+  material[bridgeMeshAccess.clientLiquidKeyProperty] = key
   material.use_nodes = True
   paths = {kind: os.path.join(folder, name) for kind, name in liquid["textures"].items()}
   bridgeSurfacing.liquidNodes(material, liquid["liquid"], liquid["values"], os.path.join(folder, textureName), paths, lit, liquid["mesh"])

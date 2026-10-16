@@ -4,6 +4,8 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
 import resultReports
 
@@ -69,6 +71,23 @@ def testTheNavAndLaneComeBackSummarized():
     "lane": "computed", "builtFor": ["small", "large"], "regions": {"bay": 0.8}, "plotEntrances": {"count": 2, "missed": {"count": 1, "first": ["102"]}},
   }
   assert resultReports.compactContainment("not checked: no safe point") == "not checked: no safe point"
+
+
+def testAPassToolKeepsThePassItTouchedTheActivePassAndTheCountInline():
+  passes = [{"name": f"pass{index}", "strength": 1.0, "muted": index == 7, "active": index == 30} for index in range(50)]
+  changed = {"object": "ground", "passes": passes}
+  assert resultReports.compactPasses(changed, "pass7") == {"object": "ground", "pass": passes[7], "activePass": "pass30", "passCount": 50}
+  assert len(changed["passes"]) == 50
+  removed = {"object": "ground", "removed": "pass30", "passes": [entry for entry in passes if entry["name"] != "pass30"], "refit": None}
+  assert resultReports.compactPasses(removed) == {"object": "ground", "removed": "pass30", "refit": None, "activePass": None, "passCount": 49}
+  refit = {"restored": {"faces": 12}, "cut": {"runs": {"main": {"floor": [0] * 9}, "side": {}}, "junctions": [{"at": index} for index in range(4)], "floorStrokes": [], "anchoredLights": []}}
+  facade = {"object": "ground", "removed": "facade mouth", "passes": passes[:2], "refit": refit, "remappedFaces": 40}
+  assert resultReports.compactPasses(facade)["refit"] == {
+    "restored": {"faces": 12},
+    "cut": {"runs": ["main", "side"], "junctions": {"count": 4, "first": [{"at": 0}, {"at": 1}, {"at": 2}]}, "floorStrokes": {"count": 0, "first": []}, "anchoredLights": {"count": 0, "first": []}},
+  }
+  with pytest.raises(KeyError):
+    resultReports.compactPasses(changed, "pass50")
 
 
 def laneTerms():

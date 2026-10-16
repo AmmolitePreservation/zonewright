@@ -17,6 +17,8 @@ import clientModelBundle
 import eqArchive
 import eqAxes
 import eqgFiles
+import eqgWriter
+import exportVerification
 import modelMeasures
 import pieceRows
 
@@ -26,6 +28,9 @@ tree = {"zone": "nektulosa", "model": "OBJ_TREE_BG_"}
 kiln = {"zone": None, "model": "IT10801", "interactive": True, "objectType": "potteryKiln"}
 door = {"zone": "eastwastesshard", "model": "OBJ_COLDAIN_1DOOR", "source": "ew_houses.eqg", "openType": 0, "triggerDoor": "book"}
 book = {"zone": "freeportwest", "model": "OBJ_POK_BOOK_", "openType": 58, "destination": {"zone": "qeynos2", "x": 10, "y": 20, "z": 3, "headingDegrees": 90}}
+# One entry name, three different models: each archive's obj_takruins_medrockb.mod has bytes and textures of its own.
+rocks = {archive: {"zone": archive.removesuffix(".eqg"), "model": "OBJ_TAKRUINS_MEDROCKB", "source": archive} for archive in ("mesa.eqg", "redfeather.eqg", "steppes.eqg")}
+rockEntry = "obj_takruins_medrockb.mod"
 
 
 def clientFiles(archiveName, entry):
@@ -203,6 +208,79 @@ def testACopiedTextureWhoseNameIsTakenIsStoredUnderItsArchivesName(stageBlenderS
     clientModelBundle.withTexturesRenamed(clientModel, {"absent.dds": "crystals_absent.dds"}, "obj_fscrystala.mod")
 
 
+def testAClientModelWhoseNameIsTakenIsStoredUnderItsArchivesName(stageBlenderServer, tmp_path):
+  archivePath = tmp_path / "rocks.eqg"
+
+  async def steps(session):
+    await groundScene(session, tmp_path)
+    await session.expectSuccess("placeObject", rocks["redfeather.eqg"] | {"name": "rockA", "location": [10, 0, 0], "headingDegrees": 0})
+    await session.expectSuccess("placeObject", rocks["mesa.eqg"] | {"name": "rockB", "location": [-10, 0, 0], "headingDegrees": 0})
+    await session.expectSuccess("placeObject", rocks["mesa.eqg"] | {"name": "rockC", "location": [-10, 30, 0], "headingDegrees": 90})
+    # A row names its model by entry, so the interactive rock keeps the name though its object sorts last.
+    await session.expectSuccess("placeDoor", rocks["steppes.eqg"] | {"name": "rockRow", "location": [40, 40, 0], "headingDegrees": 0, "openType": 55})
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "rocks.blend")})
+    return await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+
+  exported = stageBlenderServer.session(steps)
+  assert exported["failures"] == []
+  stored = {"steppes.eqg": rockEntry, "redfeather.eqg": f"redfeather_{rockEntry}", "mesa.eqg": f"mesa_{rockEntry}"}
+  archive = eqArchive.EQArchive(archivePath)
+  # Each is the client's model byte for byte under its stored name, beside its own textures (no two share a texture name).
+  for source, name in stored.items():
+    client = clientFiles(source, rockEntry)
+    assert archive.read(name) == client[rockEntry]
+    assert all(archive.read(texture) == data for texture, data in client.items() if texture != rockEntry)
+  zone = eqgFiles.parseZone(archive.read("rocks.zon"), "rocks.zon")
+  # The .zon places the scenery by its stored files, the mesa rock's one copy twice, and never the row's model.
+  assert sorted((placement["name"], placement["model"], placement["position"]) for placement in zone["placements"][1:]) == [
+    ("MESA_OBJ_TAKRUINS_MEDROCKB01", stored["mesa.eqg"], (-10.0, 0.0, 0.0)), ("MESA_OBJ_TAKRUINS_MEDROCKB02", stored["mesa.eqg"], (-10.0, 30.0, 0.0)),
+    ("REDFEATHER_OBJ_TAKRUINS_MEDROCKB01", stored["redfeather.eqg"], (10.0, 0.0, 0.0)),
+  ]
+  assert sorted(zone["modelNames"]) == sorted(["ter_rocks.ter", stored["mesa.eqg"], stored["redfeather.eqg"]])
+  manifest = json.loads((tmp_path / "rocks_export.json").read_text(encoding="ascii"))
+  recorded = {copy["archive"]: copy for copy in manifest["clientModels"]}
+  assert {source: (copy["entry"], copy.get("storedEntry"), copy["placements"], copy["rows"]) for source, copy in recorded.items()} == {
+    "steppes.eqg": (rockEntry, None, 0, 1), "redfeather.eqg": (rockEntry, stored["redfeather.eqg"], 1, 0), "mesa.eqg": (rockEntry, stored["mesa.eqg"], 2, 0),
+  }
+  assert all(copy["sha256"] == hashlib.sha256(clientFiles(source, rockEntry)[rockEntry]).hexdigest() for source, copy in recorded.items())
+  # verifyExport's clientModels check finds each copy under its stored name, and fails a stored copy that is not the client's.
+  verified = exportVerification.clientModelsCheck(archivePath.read_bytes(), None, None, manifest, clientRoot, "rocks")
+  assert verified == {"check": "clientModels", "passed": True, "details": {"copies": 3, "doors": 0, "objects": 0, "failures": []}}
+  swapped = {name: archive.read(name) for name in archive.entries} | {stored["mesa.eqg"]: archive.read(stored["redfeather.eqg"])}
+  broken = exportVerification.clientModelsCheck(eqgWriter.archiveBytes(swapped), None, None, manifest, clientRoot, "rocks")
+  assert broken["passed"] is False and [failure["entry"] for failure in broken["details"]["failures"]] == [stored["mesa.eqg"]]
+
+
+def testTheSameModelDrawnWithOtherTexturesIsStoredApart(stageBlenderServer, tmp_path):
+  ring = "obj_druid_ring_a.mod"
+  archivePath = tmp_path / "rings.eqg"
+
+  async def steps(session):
+    await groundScene(session, tmp_path)
+    for name, source, location in (("ringA", "buriedsea.eqg", [50, 0, 0]), ("ringB", "commonlands.eqg", [-50, 0, 0])):
+      await session.expectSuccess("placeObject", {"zone": source.removesuffix(".eqg"), "model": "OBJ_DRUID_RING_A", "source": source, "name": name, "location": location, "headingDegrees": 0})
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "rings.blend")})
+    return await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+
+  exported = stageBlenderServer.session(steps)
+  buriedsea, commonlands = clientFiles("buriedsea.eqg", ring), clientFiles("commonlands.eqg", ring)
+  renames = {name: f"commonlands_{name}" for name in commonlands if name != ring and commonlands[name] != buriedsea[name]}
+  # One model, byte for byte the same in both archives, drawn with three textures that differ between them.
+  assert buriedsea[ring] == commonlands[ring] and sorted(renames) == ["clz_erosion_ov_vert.dds", "rc_dreadspire_rock.dds", "rc_dreadspire_rock_n.dds"]
+  assert exported["failures"] == []
+  archive = eqArchive.EQArchive(archivePath)
+  assert all(archive.read(name) == data for name, data in buriedsea.items())
+  assert all(archive.read(renames.get(name, name)) == data for name, data in commonlands.items() if name != ring)
+  assert archive.read(f"commonlands_{ring}") == clientModelBundle.withTexturesRenamed(commonlands[ring], renames, ring)
+  zone = eqgFiles.parseZone(archive.read("rings.zon"), "rings.zon")
+  assert sorted((placement["name"], placement["model"]) for placement in zone["placements"][1:]) == [("COMMONLANDS_OBJ_DRUID_RING_A01", f"commonlands_{ring}"), ("OBJ_DRUID_RING_A01", ring)]
+  manifest = json.loads((tmp_path / "rings_export.json").read_text(encoding="ascii"))
+  recorded = {copy["archive"]: copy for copy in manifest["clientModels"]}
+  assert "storedEntry" not in recorded["buriedsea.eqg"] and "renamedTextures" not in recorded["buriedsea.eqg"]
+  assert (recorded["commonlands.eqg"]["storedEntry"], recorded["commonlands.eqg"]["renamedTextures"]) == (f"commonlands_{ring}", renames)
+  assert exportVerification.clientModelsCheck(archivePath.read_bytes(), None, None, manifest, clientRoot, "rings")["passed"] is True
+
+
 def testWhatCannotShipIsRefused(stageBlenderServer, tmp_path):
   startup = clientModelBundle.startupTextures(clientRoot)
   startupName = next(name for name in sorted(startup) if name.endswith(".dds"))
@@ -216,6 +294,9 @@ def testWhatCannotShipIsRefused(stageBlenderServer, tmp_path):
     await session.expectSuccess("placeObject", kiln | {"name": "floating", "location": [-30, 0, 5], "headingDegrees": 0})
     await session.expectSuccess("placeObject", {"zone": "neighborhood", "model": "IT67", "source": "gequip.s3d", "name": "classic", "location": [0, 40, 0], "headingDegrees": 0})
     await ourBox(session, tmp_path, "shadowedByStartup", startupName[:-4], [60, -50, 0])
+    # Two rows naming one model name, each a different model: the second cannot be stored under another name.
+    await session.expectSuccess("placeDoor", rocks["redfeather.eqg"] | {"name": "rockRowA", "location": [60, 0, 0], "headingDegrees": 0, "openType": 55})
+    await session.expectSuccess("placeDoor", rocks["mesa.eqg"] | {"name": "rockRowB", "location": [60, 30, 0], "headingDegrees": 0, "openType": 55})
     await session.expectSuccess("saveFile", {"path": str(tmp_path / "refused.blend")})
     checked = await session.expectSuccess("checkExport", {"path": str(tmp_path / "refused.eqg"), "purpose": "test"})
     refused = await session.expectError("exportZone", {"path": str(tmp_path / "refused.eqg"), "purpose": "test"})
@@ -232,10 +313,13 @@ def testWhatCannotShipIsRefused(stageBlenderServer, tmp_path):
   failures = sorted((failure["failure"], failure.get("object") or failure.get("entry") or failure.get("texture")) for failure in checked["failures"])
   assert failures == sorted([
     ("placed as scenery and as a row", "crystalRow"), ("row cannot hold", "kiln"), ("client model not copied", "classic"),
-    ("own texture shadowed", startupName),
+    ("own texture shadowed", startupName), ("two files under one name", rockEntry),
   ])
+  [rowClash] = [failure for failure in checked["failures"] if failure["failure"] == "two files under one name"]
+  assert rowClash["sources"] == [f"redfeather.eqg:{rockEntry}", f"mesa.eqg:{rockEntry}"]
+  assert "placed by 'rockRowB'; it is an interactive piece, whose doors row names its model OBJ_TAKRUINS_MEDROCKB" in rowClash["message"]
   assert [finding["object"] for finding in checked["findings"] if finding["finding"] == "row moved by the server"] == ["floating"]
-  assert "exportZone (test) refused, nothing written: 4 failure(s)" in refused and not (tmp_path / "refused.eqg").exists()
+  assert "exportZone (test) refused, nothing written: 5 failure(s)" in refused and not (tmp_path / "refused.eqg").exists()
   assert "An interactive door's row needs its openType" in placementRefusals["noOpenType"]
   assert "objectType and displayName belong to an interactive object" in placementRefusals["typeWithoutRow"]
   assert "objectType is one of" in placementRefusals["unknownType"] and "'loom'" in placementRefusals["unknownType"]

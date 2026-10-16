@@ -151,6 +151,57 @@ def testCoverageFindingsNameWhatThePicturesShowAndClearAsEachIsFixed(stageBlende
   assert written["failures"] == [] and [finding["finding"] for finding in written["findings"]] == ["unregistered zone id"] and archivePath.is_file()
 
 
+addReversedTwin = """
+import bmesh
+mesh = bpy.data.objects['twin'].data
+editor = bmesh.new()
+editor.from_mesh(mesh)
+copied = bmesh.ops.duplicate(editor, geom=list(editor.verts) + list(editor.edges) + list(editor.faces))["geom"]
+bmesh.ops.reverse_faces(editor, faces=[element for element in copied if isinstance(element, bmesh.types.BMFace)])
+editor.to_mesh(mesh)
+editor.free()
+turn = bpy.data.objects['twin'].matrix_basis.to_3x3()
+result = sorted([round(component, 3) + 0.0 for component in turn @ polygon.normal] for polygon in mesh.polygons)
+"""
+
+
+def testCoverageShowsATwinnedFacesStatusFromEitherSideAndALoneFacesBackBlue(stageBlenderServer, tmp_path):
+  # Two upright 16-unit squares facing -y: one with a reversed twin on corners of its own, as a fall or a rope rail is built, one alone.
+  squares = {"twin": 0, "lone": 40}
+
+  async def steps(session):
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    await session.expectSuccess("createMaterial", {"name": "stone", "diffuseTexture": str(writePNG(tmp_path / "stone.png", 4, 4, (128, 128, 128, 255)))})
+    for name, x in squares.items():
+      await session.expectSuccess("createPrimitive", {"kind": "plane", "name": name, "size": [16, 16, 0], "location": [x, 0, 8], "rotationDegrees": [90, 0, 0]})
+    normals = (await session.expectSuccess("runPython", {"code": addReversedTwin}))["result"]
+    for name in squares:
+      await session.expectSuccess("assignMaterial", {"objectName": name, "materialName": "stone"})
+      await session.expectSuccess("projectUVs", {"objectName": name, "method": "planar", "worldUnitsPerRepeat": 16, "direction": [0, 1, 0]})
+    await session.expectSuccess("setZoneProperties", environment)
+    views = {}
+    for name, x in squares.items():
+      for side, y in (("front", -30), ("back", 30)):
+        image, _ = await session.expectImage("renderView", {"view": {"eye": [x, y, 8], "target": [x, 0, 8]}, "shading": "coverage"})
+        views[name, side] = numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB"), dtype=numpy.int64)[270, 480]
+    return normals, views
+
+  normals, views = stageBlenderServer.session(steps)
+  assert normals == [[0.0, -1.0, 0.0], [0.0, 1.0, 0.0]]
+
+  def isBlue(color):
+    red, green, blue = color
+    return blue > 2 * green and green > 2 * red
+
+  def isGrey(color):
+    return int(color.max() - color.min()) <= 0.05 * 255 and color.min() > 60
+
+  # The twinned square shows its status from both sides, as the client draws whichever of the two faces the viewer; the lone square is
+  # grey from its front and blue from its back, which the client leaves out.
+  assert isGrey(views["twin", "front"]) and isGrey(views["twin", "back"]), (views["twin", "front"], views["twin", "back"])
+  assert isGrey(views["lone", "front"]) and isBlue(views["lone", "back"]), (views["lone", "front"], views["lone", "back"])
+
+
 def testABorderWantsATransitionOnlyWhereItsGroundReadsAsGroundNotCliff(stageBlenderServer, tmp_path):
   async def steps(session):
     await session.expectSuccess("newFile", {"discardUnsavedChanges": True})

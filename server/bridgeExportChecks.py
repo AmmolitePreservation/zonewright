@@ -56,13 +56,16 @@ coverageLegend = {
   "error": "black: cannot export (no material, a material export cannot read, a bad image, no texture coordinates)",
   "zeroTexture": "red: zero texture area", "blockout": "brown: blockout material", "stretch": "yellow: texture stretched or squeezed",
   "base": "orange: base material showing", "border": "magenta: ground border without a transition strip", "ok": "grey: ok",
-  "back": "blue: a face seen from its back in this view",
+  "back": "blue: a face seen from its back in this view, but for one with a reversed twin on its corners, which shows its status",
 }
 statusNames = tuple(coverageColors)
 backFaceColor = (0.15, 0.4, 1.0)
 # Coverage light keeps half its strength facing away from the layout light, so a shaded grey never reads as an error's black.
 coverageAmbient = 0.5
 coverageAttributeName = "zonewrightCoverage"
+coverageTwinAttributeName = "zonewrightCoverageTwinned"
+# Corners this close are one corner when faces are matched with their reversed twins.
+twinTolerance = 1e-3
 
 
 def requirePurpose(purpose):
@@ -906,16 +909,42 @@ def meshFromData(data, name):
   return mesh
 
 
+def twinnedFaces(data):
+  """Which faces readPart read have a reversed twin on their own corners, as a surface meant to be seen from both sides (a fall, a rope
+  rail, a gable end) is built: wherever one of the two is seen from its back, the other is seen from its front."""
+  faceCount = len(data["loopStarts"])
+  corners = numpy.round(data["positions"][data["loopVertices"]] / twinTolerance).astype(numpy.int64)
+  sums = numpy.add.reduceat(corners, data["loopStarts"])
+  _, groups, counts = numpy.unique(numpy.column_stack([data["loopTotals"], sums]), axis=0, return_inverse=True, return_counts=True)
+  groups = groups.ravel()
+  triangleCorners = data["positions"][data["loopVertices"][data["triangleLoops"]]]
+  crosses = numpy.cross(triangleCorners[:, 1] - triangleCorners[:, 0], triangleCorners[:, 2] - triangleCorners[:, 0])
+  facings = numpy.stack([numpy.bincount(data["trianglePolygons"], weights=crosses[:, axis], minlength=faceCount) for axis in range(3)], axis=1)
+  candidates = {}
+  for face in numpy.flatnonzero(counts[groups] > 1).tolist():
+    start = data["loopStarts"][face]
+    key = tuple(sorted(map(tuple, corners[start:start + data["loopTotals"][face]].tolist())))
+    candidates.setdefault(key, []).append(face)
+  twinned = numpy.zeros(faceCount, dtype=bool)
+  for faces in candidates.values():
+    for face in faces:
+      twinned[face] = any(facings[face] @ facings[other] < 0 for other in faces if other != face)
+  return twinned
+
+
 def coverageMesh(data, statuses):
-  """A copy of an exported mesh's evaluated faces, each colored by its coverage status."""
+  """A copy of an exported mesh's evaluated faces, each colored by its coverage status and marked where it has a reversed twin."""
   mesh = meshFromData(data, bridgeViews.previewName + "Coverage")
   palette = numpy.array([(*coverageColors[name], 1.0) for name in statusNames], dtype=numpy.float32)
   mesh.attributes.new(coverageAttributeName, "FLOAT_COLOR", "FACE").data.foreach_set("color", palette[statuses].ravel())
+  mesh.attributes.new(coverageTwinAttributeName, "FLOAT", "FACE").data.foreach_set("value", twinnedFaces(data).astype(numpy.float32))
   return mesh
 
 
 def coverageMaterial():
-  """Each face's status color lit from the layout light's direction, and blue where the face is seen from its back."""
+  """Each face's status color lit from the layout light's direction, and blue where the face is seen from its back, but for a face
+  with a reversed twin: seen from its back it shows its status lit as the twin facing the viewer is, as the client draws the twin, so
+  a twinned surface shows its status from either side whichever of the two the render draws over the other."""
   material = bpy.data.materials.new(bridgeViews.previewName + "Coverage")
   material.use_nodes = True
   tree = material.node_tree
@@ -925,7 +954,18 @@ def coverageMaterial():
   status.attribute_type = "GEOMETRY"
   status.attribute_name = coverageAttributeName
   geometry = nodes.new("ShaderNodeNewGeometry")
-  color = bridgeSurfacing.mixColors(tree, status.outputs["Color"], (*backFaceColor, 1.0), geometry.outputs["Backfacing"])
+  twinned = nodes.new("ShaderNodeAttribute")
+  twinned.attribute_type = "GEOMETRY"
+  twinned.attribute_name = coverageTwinAttributeName
+  single = nodes.new("ShaderNodeMath")
+  single.operation = "SUBTRACT"
+  single.inputs[0].default_value = 1.0
+  links.new(twinned.outputs["Fac"], single.inputs[1])
+  shownBack = nodes.new("ShaderNodeMath")
+  shownBack.operation = "MULTIPLY"
+  links.new(geometry.outputs["Backfacing"], shownBack.inputs[0])
+  links.new(single.outputs["Value"], shownBack.inputs[1])
+  color = bridgeSurfacing.mixColors(tree, status.outputs["Color"], (*backFaceColor, 1.0), shownBack.outputs["Value"])
   facing = nodes.new("ShaderNodeVectorMath")
   facing.operation = "DOT_PRODUCT"
   links.new(geometry.outputs["Normal"], facing.inputs[0])

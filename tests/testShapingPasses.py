@@ -57,6 +57,11 @@ def testPassesAreAdjustedRemovedAndCollapsedWithoutRedoingOthers(stageBlenderSer
     afterCollapse, detail, subdivided,
   ) = stageBlenderServer.session(steps)
   assert added["passes"] == [{"name": "hill", "strength": 1.0, "muted": False, "active": True}]
+  # Inline, a pass tool gives the pass it touched, the active pass, and the count; its report holds every pass.
+  assert {key: value for key, value in added.inline.items() if key != "report"} == {
+    "object": "ground", "pass": {"name": "hill", "strength": 1.0, "muted": False, "active": True}, "activePass": "hill", "passCount": 1,
+  }
+  assert {key: value for key, value in removed.inline.items() if key != "report"} == {"object": "ground", "removed": "hill", "activePass": "dip", "passCount": 1}
   assert full == [10.0] and half == [5.0]
   # The hill now holds 10 + 2 / 0.5 = 14 units: 7 at half strength, as seen after the raise.
   assert raisedAtHalf == [7.0]

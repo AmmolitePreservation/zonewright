@@ -698,20 +698,25 @@ def fallMesh(name, definition, ground):
   the client maps its falls: u spans the lip `acrossRepeats` times (once, 0 to 1, so a fall texture's faded side edges frame the fall)
   and the client's v runs down the drop, a repeat every worldUnitsPerRepeat, so its liquid's slides flow down as theirs do (Blender's v
   falls down the drop; export counts v down from the texture's top). Smooth shaded, so it lights and exports with normals shared
-  across its rows, as the client's fall sheets carry them (Crescent Reach, Brell's Rest), not stepping row by row."""
+  across its rows, as the client's fall sheets carry them (Crescent Reach, Brell's Rest), not stepping row by row. The client draws an
+  exported fall's faces from their front only, so the sheet's faces come again wound the other way on vertices of their own, their
+  normals facing back, each corner keeping its texture coordinates: from behind the water still runs down and the texture reads
+  mirrored, as a curtain seen from behind does."""
   requireLipFacing(definition, ground)
   grid, points, arc = fallGrid(definition)
   rows = grid.shape[1] - 2
   bottom = definition["bottom"]
   meshEditor = bmesh.new()
-  vertices = [[meshEditor.verts.new(grid[column, row]) for row in range(rows + 2)] for column in range(len(points))]
   uvLayer = meshEditor.loops.layers.uv.new(bridgeSurfacing.uvLayerName)
   fallen = numpy.concatenate([numpy.zeros((len(points), 1)), numpy.cumsum(numpy.linalg.norm(numpy.diff(grid, axis=1), axis=2), axis=1)], axis=1)
   repeat = definition["worldUnitsPerRepeat"]
   across = definition["acrossRepeats"] * arc / arc[-1]
-  for column in range(len(points) - 1):
-    for row in range(rows + 1):
-      corners = ((column, row), (column, row + 1), (column + 1, row + 1), (column + 1, row))
+  quads = [((column, row), (column, row + 1), (column + 1, row + 1), (column + 1, row)) for column in range(len(points) - 1) for row in range(rows + 1)]
+  for back in (False, True):
+    vertices = [[meshEditor.verts.new(grid[column, row]) for row in range(rows + 2)] for column in range(len(points))]
+    for quad in quads:
+      # Reversed from the same first corner, so it splits into triangles along the front's diagonal and covers just what the front does.
+      corners = quad[:1] + quad[:0:-1] if back else quad
       face = meshEditor.faces.new([vertices[c][r] for c, r in corners])
       face.smooth = True
       for loop, (c, r) in zip(face.loops, corners):

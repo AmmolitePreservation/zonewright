@@ -287,10 +287,10 @@ def standalone(entries, zone, startup):
 def clientModelsCheck(archiveBytes, piecesData, mapData, manifest, clientRoot, short):
   """Check 11: the zone stands alone. Every .zon placement and every row names a model the archive holds, every texture its models'
   drawn materials name is in the archive or registered at startup (but one the manifest records missing for the client too), every
-  client model the manifest records is in the archive byte for byte (its SHA-256 and its textures'; a model naming a texture stored
-  under another name, the client's with only those names changed) and the client's own entry still is (an unpatched client), no
-  interactive piece is also a .zon placement at its place, and every object row stands where the server's
-  FindBestZ puts it on the exported .map."""
+  client model the manifest records is in the archive byte for byte under the name it was stored under (its SHA-256 and its
+  textures'; a model naming a texture stored under another name, the client's with only those names changed) and the client's own
+  entry still is (an unpatched client), no interactive piece is also a .zon placement at its place, and every object row stands where
+  the server's FindBestZ puts it on the exported .map."""
   if archiveBytes is None:
     return checked("clientModels", [{"message": "No archive lies at the export's path"}])
   try:
@@ -302,16 +302,17 @@ def clientModelsCheck(archiveBytes, piecesData, mapData, manifest, clientRoot, s
   copies = manifest.get("clientModels")
   if not isinstance(copies, list):
     return checked("clientModels", [{"message": "The manifest records no clientModels: it is not an export that copies client models"}])
-  missingForClient = {(copy["entry"], name) for copy in copies for name in copy.get("missingTextures", [])}
+  missingForClient = {(copy.get("storedEntry", copy["entry"]), name) for copy in copies for name in copy.get("missingTextures", [])}
   for model, textures in standalone(entries, zone, clientModelBundle.startupTextures(clientRoot)).items():
     left = [texture for texture in textures if (model, texture) not in missingForClient]
     if left:
       failures.append({"entry": model, "textures": left, "message": f"{model} names {left}, which neither the archive nor the startup archives hold: the client draws those faces without them"})
   for copy in copies:
-    data = entries.get(copy["entry"])
+    storedEntry = copy.get("storedEntry", copy["entry"])
+    data = entries.get(storedEntry)
     stored = copy["storedSha256"] if "renamedTextures" in copy else copy["sha256"]
     if data is None or sha256(data) != stored:
-      failures.append({"entry": copy["entry"], "message": f"The archive's {copy['entry']} is not {copy['archive']}'s copy the manifest records ({stored})"})
+      failures.append({"entry": storedEntry, "message": f"The archive's {storedEntry} is not {copy['archive']}'s {copy['entry']} as the manifest records it ({stored})"})
     for texture in copy["textures"]:
       held = entries.get(texture["name"])
       if held is None or sha256(held) != texture["sha256"]:
@@ -324,7 +325,7 @@ def clientModelsCheck(archiveBytes, piecesData, mapData, manifest, clientRoot, s
     if sha256(client) != copy["sha256"]:
       failures.append({"entry": copy["entry"], "message": f"The client's {copy['archive']}:{copy['entry']} changed since the export copied it (a patch): export again"})
     elif "renamedTextures" in copy and sha256(clientModelBundle.withTexturesRenamed(client, copy["renamedTextures"], copy["entry"])) != stored:
-      failures.append({"entry": copy["entry"], "message": f"The archive's {copy['entry']} is not the client's with only {copy['renamedTextures']} renamed"})
+      failures.append({"entry": storedEntry, "message": f"The archive's {storedEntry} is not the client's {copy['entry']} with only {copy['renamedTextures']} renamed"})
   pieces = {"doors": [], "objects": []}
   if piecesData is not None:
     try:

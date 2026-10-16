@@ -168,12 +168,14 @@ def testCarveConformsVerticesOntoTheProfilesBreaks(stageBlenderServer):
 def testCarveConformSlidesRimVerticesOntoTheContour(stageBlenderServer):
   path = [[-100, -100, -20], [100, 100, -20]]
   profile = [[0, 0], [0.5, 10], [1, 30]]
+  # A pool's basin: a flat bed out to 0.55 of the radius, then banks rising to the edge.
+  basinProfile = [[0, 0], [0.55, 0], [0.8, 7], [1, 21]]
   readVertices = "result = [list(vertex.co) for vertex in bpy.data.objects['ground'].data.vertices]"
 
   async def steps(session):
     await freshScene(session)
     await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 200], "spacing": 10, "location": [0, 0, 0]})
-    before = (await session.expectSuccess("runPython", {"code": readVertices}))["result"]
+    before =(await session.expectSuccess("runPython", {"code": readVertices}))["result"]
     await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": path, "radius": 40, "strength": 1, "profile": profile})
     after = (await session.expectSuccess("runPython", {"code": readVertices}))["result"]
     nonRising = await session.expectError("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": path, "radius": 40, "strength": 1, "profile": [[0, 0], [0.5, 10], [1, 10]]})
@@ -181,16 +183,32 @@ def testCarveConformSlidesRimVerticesOntoTheContour(stageBlenderServer):
     await session.expectSuccess("createTerrainGrid", {"name": "crossed", "size": [200, 200], "spacing": 10, "location": [0, 300, 0]})
     await session.expectSuccess("sculptAlongPath", {"objectName": "crossed", "mode": "carve", "path": [[-160, 240, -20], [160, 360, -20]], "radius": 40, "strength": 1, "profile": profile})
     crossed = (await session.expectSuccess("runPython", {"code": readVertices.replace("'ground'", "'crossed'")}))["result"]
-    return before, after, nonRising, crossed
+    falling = await session.expectError("sculptAlongPath", {"objectName": "crossed", "mode": "carve", "path": path, "radius": 40, "strength": 1, "profile": [[0, 0], [0.5, 10], [0.8, 6], [1, 30]]})
+    await session.expectSuccess("createTerrainGrid", {"name": "basin", "size": [200, 200], "spacing": 10, "location": [0, -300, 0]})
+    basinBefore = (await session.expectSuccess("runPython", {"code": readVertices.replace("'ground'", "'basin'")}))["result"]
+    await session.expectSuccess("sculptAlongPath", {"objectName": "basin", "mode": "carve", "path": [[-100, -400, -14], [100, -200, -14]], "radius": 45, "strength": 1, "profile": basinProfile})
+    basinAfter = (await session.expectSuccess("runPython", {"code": readVertices.replace("'ground'", "'basin'")}))["result"]
+    return before, after, nonRising, crossed, falling, basinBefore, basinAfter
 
-  before, after, nonRising, crossed = stageBlenderServer.session(steps)
+  before, after, nonRising, crossed, falling, basinBefore, basinAfter = stageBlenderServer.session(steps)
   rimLateral = 40 * (0.5 + 0.5 * (20 - 10) / (30 - 10))
   slid = [(old, new) for old, new in zip(before, after) if new[2] == 0 and (abs(new[0] - old[0]) > 1e-6 or abs(new[1] - old[1]) > 1e-6)]
   assert slid
   for _, new in slid:
     assert abs(abs(new[0] - new[1]) / math.sqrt(2) - rimLateral) < 1e-3
-  assert "conformRim needs profile heights that rise" in nonRising
+  assert "conformRim needs profile heights that rise" in nonRising and "conformRim needs profile heights that rise" in falling
   assert max(abs(x) for x, _, _ in crossed) == 100 and max(abs(y) for _, y, _ in crossed) == 100
+
+  # The basin's vertices are read in its own space (its origin at y -300), where the path runs along x = y.
+  def basinLateral(point):
+    return abs(point[0] - point[1]) / math.sqrt(2)
+
+  # The ground stands 14 over the bed, which the banks reach 0.9 of the way out: the rim vertices just outside slide onto 40.5 out.
+  basinRim = 45 * (0.8 + 0.2 * (14 - 7) / (21 - 7))
+  basinSlid = [new for old, new in zip(basinBefore, basinAfter) if new[2] == 0 and (abs(new[0] - old[0]) > 1e-6 or abs(new[1] - old[1]) > 1e-6)]
+  assert basinSlid and all(abs(basinLateral(new) - basinRim) < 1e-3 for new in basinSlid), sorted(round(basinLateral(new), 3) for new in basinSlid)
+  bed = [point for point in basinAfter if basinLateral(point) < 0.55 * 45]
+  assert bed and all(abs(point[2] + 14) < 1e-3 for point in bed)
 
 
 readShapedMesh = """

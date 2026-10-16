@@ -208,9 +208,22 @@ def validatedProfile(profile, conformRim):
   profileArray = bridgeMeshAccess.toArray(profile)
   if profileArray.ndim != 2 or profileArray.shape[1] != 2 or profileArray[0, 0] != 0 or profileArray[-1, 0] != 1 or (numpy.diff(profileArray[:, 0]) <= 0).any():
     raise ValueError("profile is [[lateralFraction, heightAboveFloor], ...] with fractions rising from 0 (path center) to 1 (stroke edge)")
-  if conformRim and (numpy.diff(profileArray[:, 1]) <= 0).any():
-    raise ValueError("conformRim needs profile heights that rise from the path center to the edge; pass conformRim false for this profile")
+  # A profile flat at its top ends its cut at the stroke's edge rather than on a contour, so it leaves no rim contour to slide onto.
+  heightSteps = numpy.diff(profileArray[:, 1])
+  if conformRim and ((heightSteps < 0).any() or heightSteps[-1] <= 0):
+    raise ValueError(
+      "conformRim needs profile heights that rise to their top at the edge, never falling from the path center (a flat bed or ledge on the"
+      " way is fine); pass conformRim false for this profile"
+    )
   return profileArray
+
+
+def rimFractions(profileArray, heights):
+  """Where a profile whose heights never fall stands at each height between its first and last, as a fraction of the stroke's radius:
+  on a flat stretch of it, at its outer end."""
+  segments = numpy.searchsorted(profileArray[:, 1], heights, side="right") - 1
+  low, high = profileArray[segments], profileArray[segments + 1]
+  return low[:, 0] + (high[:, 0] - low[:, 0]) * (heights - low[:, 1]) / (high[:, 1] - low[:, 1])
 
 
 def medianEdgeLength(sceneObject, positions, vertexMask):
@@ -552,10 +565,11 @@ def profileAlongPath(sceneObject, positions, affected, strength, path, radii, pr
   moving = updated[:, 2] != positions[:, 2]
   if conformRim:
     heightsAboveFloor = positions[:, 2] - floors
-    contourLateral = numpy.interp(heightsAboveFloor, profileArray[:, 1], profileArray[:, 0]) * radiiHere
-    slide = contourLateral - lateral
+    candidates = affected & ~moving & (heightsAboveFloor > profileArray[0, 1]) & (heightsAboveFloor < profileArray[-1, 1]) & (lateral > 0) & ~border
+    slide = numpy.zeros(len(positions))
+    slide[candidates] = rimFractions(profileArray, heightsAboveFloor[candidates]) * radiiHere[candidates] - lateral[candidates]
     rimEdgeLength = medianEdgeLength(sceneObject, positions, moving)
-    sliding = affected & ~moving & (heightsAboveFloor > profileArray[0, 1]) & (heightsAboveFloor < profileArray[-1, 1]) & (slide < 0) & (-slide <= 0.75 * rimEdgeLength) & (lateral > 0) & ~border
+    sliding = candidates & (slide < 0) & (-slide <= 0.75 * rimEdgeLength)
     updated[sliding, :2] += outwards[sliding] * slide[sliding, None]
     first, second = meshEdgeEnds(sceneObject)
     touching = sliding[first] | sliding[second]

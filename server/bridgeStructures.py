@@ -542,11 +542,18 @@ def headingOf(direction):
   return round(math.degrees(math.atan2(direction[0], direction[1])) % 360.0, 3)
 
 
+def groundAtLevel(x, y, level):
+  """The ground at [x, y] for a point at level (PlayerSurfaces.groundAtLevel): the top of a solid the point just over it lies in, else
+  the footing under it, so a cave's roof is never taken for its floor; None where neither is found."""
+  return bridgeMeshAccess.PlayerSurfaces().groundAtLevel(x, y, level)
+
+
 def standView(at, end, direction, groundHeight, pitch=-5.0):
   """Standing on the approach to an end, heading along a direction: where the ground there lies within approachGroundReach of the end's
-  height; else just inside the end, on the structure (a flight's foot against a wall, a lookout's open end over the ground far below),
-  where its edge leaves no doubt what is stood on."""
-  ground = groundHeight(at[0], at[1])
+  height, looked for down from that reach over it so a cave's roof or an overhang over the approach is passed over; else just inside
+  the end, on the structure (a flight's foot against a wall, a lookout's open end over the ground far below), where its edge leaves no
+  doubt what is stood on."""
+  ground = groundHeight(at[0], at[1], at[2] + approachGroundReach)
   near = ground is not None and abs(ground - at[2]) <= approachGroundReach
   inside = numpy.asarray(end, dtype=numpy.float64) + numpy.append(numpy.asarray(direction, dtype=numpy.float64)[:2], 0.0) * endInset
   return {"standAt": roundVector(at if near else inside), "headingDegrees": headingOf(direction), "pitchDegrees": pitch}

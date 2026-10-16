@@ -213,6 +213,27 @@ def testModelSheetDrawsEachModel(stageBlenderServer):
   assert summary["objectCount"] == 0
 
 
+def testAModelSheetLeavesOffAModelTheClientDrawsNothingOfAndSaysWhy(stageBlenderServer):
+  rocks = {"kind": "model", "source": "breedinggrounds", "text": "obj_bgrock", "sortBy": "name", "limit": 8}
+
+  async def steps(session):
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    await session.expectSuccess("surveyAssets", {"zones": ["breedinggrounds"]})
+    found = await session.expectSuccess("findAssets", rocks)
+    image, sheet = await session.expectImage("viewModels", {key: value for key, value in rocks.items() if key != "kind"}, "image/jpeg")
+    alone = await session.expectError("viewModels", {"ids": [asset["id"] for asset in found["assets"] if asset["id"].startswith("model/obj_bgrockb.mod@")]})
+    return found, image, sheet, alone
+
+  found, image, sheet, alone = stageBlenderServer.session(steps)
+  # obj_bgrockb's only material names no texture, so the client draws none of it; the sheet shows the other rocks in the order found.
+  [blank] = [asset["id"] for asset in found["assets"] if asset["id"].startswith("model/obj_bgrockb.mod@")]
+  drawn = [asset["id"] for asset in found["assets"] if asset["id"] != blank]
+  assert drawn and [cell["id"] for cell in sheet["cells"]] == drawn and [cell["number"] for cell in sheet["cells"]] == list(range(1, len(drawn) + 1))
+  assert sheet["notDrawn"] == [{"id": blank, "why": "Model 'obj_bgrockb' from breedinggrounds.eqg has no drawn triangles"}]
+  assert Image.open(io.BytesIO(image)).size == (sheet["width"], sheet["height"])
+  assert "No model matched is drawn" in alone and blank in alone
+
+
 def stagedCatalog(server):
   """The staged server's catalog folder holding the repository's server roles extract and descriptions."""
   folder = server.repositoryPath / "catalog"

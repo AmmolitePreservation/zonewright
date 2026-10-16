@@ -343,6 +343,8 @@ def bridgeWalkLine(definition):
 
 
 def bridgeViewSet(record, groundHeight):
+  """From each end's approach (standView), across from the side, and from below: standing on the ground beside it under its deck,
+  looked for down from just over the deck's middle so a cave's roof or an overhang over it is passed over, where there is any."""
   definition = record["definition"]
   bulge, _ = profileBulge(definition["profile"])
   start, end = numpy.array(definition["start"]), numpy.array(definition["end"])
@@ -354,7 +356,7 @@ def bridgeViewSet(record, groundHeight):
     "across": bridgeStructures.lookView(middle + profile.left * 0.9 * profile.span + up * 0.25 * profile.span, middle),
   }
   below = middle + profile.left * 0.4 * profile.span
-  ground = groundHeight(below[0], below[1])
+  ground = groundHeight(below[0], below[1], middle[2] + groundProbeLift)
   if ground is not None:
     views["below"] = bridgeStructures.lookView((below[0], below[1], ground + bridgeBodyGroups.viewerAt([below[0], below[1], ground]).eyeHeight), middle)
   return views
@@ -564,7 +566,9 @@ def stairsWalkLine(definition):
 
 def stairsViewSet(record, groundHeight):
   """From the foot looking up it, from just behind the head looking down it (from further back a steep flight hides behind its top
-  tread), and from the side its eye stands in the open on, not inside the hill the flight climbs beside."""
+  tread), and from the side its eye stands in the open on, not inside the hill or rock the flight climbs beside: the ground at an eye's
+  level is the top of a solid it lies in, else the ground under it, so a cave's roof or an overhang over an eye in the open does not
+  bury it."""
   definition = record["definition"]
   bottom, top = numpy.array(definition["bottom"]), numpy.array(definition["top"])
   direction = unit(plan(top - bottom))
@@ -573,7 +577,7 @@ def stairsViewSet(record, groundHeight):
   middle = (bottom + top) / 2
   reach = max(run, rise) * 1.2 + 10
   eyes = [middle + leftOf(direction) * side * reach for side in (1, -1)]
-  grounds = [groundHeight(eye[0], eye[1]) for eye in eyes]
+  grounds = [bridgeStructures.groundAtLevel(eye[0], eye[1], eye[2]) for eye in eyes]
   buried = [-math.inf if ground is None else ground - eye[2] for ground, eye in zip(grounds, eyes)]
   headPitch = -math.degrees(math.atan2(bridgeBodyGroups.viewerAt(top.tolist()).eyeHeight + rise / 2, headBack + run / 2))
   return {

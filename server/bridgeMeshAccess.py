@@ -65,13 +65,15 @@ zoneLineProperty = "zonewrightZoneLine"
 heightsWithoutParkedProperty = "zonewrightHeightsWithoutParked"
 # What players pass through: an object marked passable (markPassable), a face an imported client file flags passable (this face
 # attribute), and a face of a cutout or liquid material (createMaterial, createLiquidMaterial; export flags them). A liquid material
-# keeps its liquid and shader values, which export writes as the client's shader properties; a client liquid material keeps only its
-# liquid, as whether players pass through it is its file's flags.
+# keeps its liquid and shader values, which export writes as the client's shader properties; a client liquid material keeps its liquid
+# (whether players pass through it is its file's flags) and the whole liquid it was made from, the mesh its zone file put it on among it
+# (clientLiquidKeyProperty).
 passableProperty = "zonewrightPassable"
 passableAttribute = "zonewrightPassable"
 cutoutProperty = "zonewrightCutout"
 liquidProperty = "zonewrightLiquid"
 clientLiquidProperty = "zonewrightClientLiquid"
+clientLiquidKeyProperty = "eqLiquidKey"
 swumLiquids = ("water", "lava")
 waterReach = 100000.0
 up = mathutils.Vector((0.0, 0.0, 1.0))
@@ -244,6 +246,21 @@ def meshFaces(sceneObject, depsgraph):
 def solidFaces(faces):
   """Which of a mesh's triangles (MeshFaces) players do not pass through."""
   return ~faces.passable
+
+
+def liquidMesh(material):
+  """What a liquid material lies on, which picks the client's effect for it: "object" for one's own (createLiquidMaterial), which only
+  water bodies carry and they export as placed models; a client liquid's "terrain" or "object" as its zone file placed it; None for any
+  other material."""
+  if material is None:
+    return None
+  if liquidProperty in material:
+    return "object"
+  if clientLiquidProperty not in material:
+    return None
+  if clientLiquidKeyProperty not in material:
+    raise ValueError(f"The client liquid material '{material.name}' was made before imports kept what each liquid lies on; import its zone again")
+  return json.loads(material[clientLiquidKeyProperty])["liquid"]["mesh"]
 
 
 def isSwumMaterial(material):

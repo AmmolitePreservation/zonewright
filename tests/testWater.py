@@ -13,6 +13,7 @@ import eqCubeMaps
 import eqEmitters
 import eqgFiles
 import eqgWriter
+import exportVerification
 import previewFrame
 from conftest import writeCubeDDS, writePNG
 import playerScale
@@ -825,6 +826,104 @@ def testFallsAndRiversRunTheirTexturesAsTheClientsDoAndExportSo(stageBlenderServ
     assert numpy.corrcoef(onward(model), model["uvs"][:, 1])[0, 1] > 0.99
 
 
+readFaceCorners = """
+mesh = bpy.data.objects[objectName].data
+layer = mesh.uv_layers.active
+result = [
+  {
+    "vertices": list(polygon.vertices), "normal": list(polygon.normal), "area": polygon.area,
+    "corners": [list(mesh.vertices[mesh.loops[index].vertex_index].co) + list(layer.data[index].uv) + list(mesh.corner_normals[index].vector) for index in polygon.loop_indices],
+  }
+  for polygon in mesh.polygons
+]
+"""
+
+# What a fall built with only its front sheet held: the faces facing out from the cliff (toward -y) and up, without those facing back.
+keepFallFront = """
+import bmesh
+mesh = bpy.data.objects['fall'].data
+editor = bmesh.new()
+editor.from_mesh(mesh)
+bmesh.ops.delete(editor, geom=[face for face in editor.faces if face.normal.y - face.normal.z > 0], context='FACES')
+editor.to_mesh(mesh)
+editor.free()
+result = len(mesh.polygons)
+"""
+
+
+def twinsByCorners(positions, groups):
+  """Groups (faces or triangles) keyed by the corner positions they stand on, rounded, whatever their order."""
+  twins = {}
+  for group, corners in zip(groups, positions):
+    twins.setdefault(tuple(sorted(map(tuple, numpy.round(numpy.asarray(corners, dtype=numpy.float64), 3)))), []).append(group)
+  return twins
+
+
+def testAFallHasBothSidesAndExportsThemPassable(stageBlenderServer, tmp_path):
+  archivePath = tmp_path / "testsides.eqg"
+  # From the pool's far shore, and from between the cliff and the sheet, looking out through it.
+  views = {"front": {"eye": [0, -60, 20], "target": [0, -4, 15]}, "behind": {"eye": [12, -1.5, 20], "target": [-6, -10, 8]}}
+
+  async def steps(session):
+    await cliffScene(session, tmp_path)
+    built = await session.expectSuccess("runPython", {"code": "objectName = 'fall'" + readFaceCorners})
+    counts = next(body for body in (await session.expectSuccess("getWater", {}))["bodies"] if body["name"] == "fall")
+    front = (await session.expectSuccess("runPython", {"code": keepFallFront}))["result"]
+    await session.expectSuccess("editWater", {"name": "fall"})
+    rebuilt = await session.expectSuccess("runPython", {"code": "objectName = 'fall'" + readFaceCorners})
+    await groundForExport(session, tmp_path)
+    await session.expectSuccess("setZoneProperties", environment)
+    scene = {name: (await session.expectImage("renderView", {"view": view, "guides": False}))[0] for name, view in views.items()}
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "testsides.blend")})
+    exported = await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    await session.expectSuccess("importZoneFile", {"path": str(archivePath)})
+    await session.expectSuccess("setZoneProperties", environment)
+    archived = {name: (await session.expectImage("renderView", {"view": view, "guides": False}))[0] for name, view in views.items()}
+    return built["result"], counts, front, rebuilt["result"], exported, scene, archived
+
+  built, counts, front, rebuilt, exported, scene, archived = stageBlenderServer.session(steps)
+  # The 16-wide lip at spacing 8 makes three columns and the 45 drop six rows under the lead-in: 2 x 7 quads a side, both sides counted.
+  assert (counts["faces"], counts["triangles"], counts["vertices"]) == (2 * 2 * 7, 2 * 2 * 2 * 7, 2 * 3 * 8)
+  twins = twinsByCorners([numpy.array(face["corners"])[:, :3] for face in built], built)
+  assert len(twins) == 2 * 7 and all(len(pair) == 2 for pair in twins.values())
+  for first, second in twins.values():
+    # Wound against each other over the same area, one facing out and up as the sheet always has, the other back into the cliff.
+    assert numpy.dot(first["normal"], second["normal"]) < -0.9999 and math.isclose(first["area"], second["area"], rel_tol=1e-6)
+    assert sorted(numpy.dot(face["normal"], [0, -1, 1]) > 0 for face in (first, second)) == [False, True]
+    # Each side on vertices of its own, so its smooth normals face its own way; each spot of the sheet has one texture coordinate on
+    # both sides, so seen from behind the water runs down as in front and the texture reads mirrored across.
+    assert not set(first["vertices"]) & set(second["vertices"])
+    corners = {tuple(numpy.round(corner[:3], 3)): corner for corner in first["corners"]}
+    for corner in second["corners"]:
+      twin = corners[tuple(numpy.round(corner[:3], 3))]
+      assert numpy.allclose(twin[3:5], corner[3:5]) and numpy.dot(twin[5:], corner[5:]) < -0.9999
+  # A fall built with its front alone comes back with both sides when editWater rebuilds it with nothing changed.
+  rebuiltTwins = twinsByCorners([numpy.array(face["corners"])[:, :3] for face in rebuilt], rebuilt)
+  assert front == 2 * 7 and sorted(rebuiltTwins) == sorted(twins) and all(len(pair) == 2 for pair in rebuiltTwins.values())
+  # The archive holds both sides, every triangle passable as liquid triangles are, each paired with its twin wound the other way whose
+  # vertices' normals face its own side.
+  model = eqgFiles.parseModel(eqArchive.EQArchive(archivePath).read("obj_fall.mod"), "obj_fall.mod")
+  assert len(model["triangles"]) == counts["triangles"] == exported["passableTriangles"]["obj_fall.mod"]
+  assert not [finding for finding in exported["findings"] if finding["finding"] == "back faces" and finding["object"] == "fall"]
+  assert sorted(set(model["triangleFlags"].tolist())) == [eqgFiles.passableFlag]
+  corners = model["vertices"][model["triangles"]]
+  facings = numpy.cross(corners[:, 1] - corners[:, 0], corners[:, 2] - corners[:, 0])
+  facings /= numpy.linalg.norm(facings, axis=1, keepdims=True)
+  pairs = twinsByCorners(corners, range(len(corners)))
+  assert len(pairs) == counts["triangles"] // 2 and all(len(pair) == 2 for pair in pairs.values())
+  for first, second in pairs.values():
+    assert facings[first] @ facings[second] < -0.9999
+    for triangle in (first, second):
+      assert (model["normals"][model["triangles"][triangle]] @ facings[triangle] > 0).all()
+  # Read back from the archive, the fall draws as the scene drew it, from in front and from behind, as verifyExport's looks judge it.
+  for name in views:
+    for label, image in (("scene", scene[name]), ("archive", archived[name])):
+      (tmp_path / f"{name}_{label}.png").write_bytes(image)
+    compared = exportVerification.comparedView(name, "test", {}, tmp_path / f"{name}_scene.png", tmp_path / f"{name}_archive.png", tmp_path / f"{name}_difference.png")
+    assert compared["passed"], compared
+
+
 def testFlowSetsSlidesAndGetWaterSaysWhichWayEachBodyFlows(stageBlenderServer, tmp_path):
   async def steps(session):
     await cliffScene(session, tmp_path)
@@ -1488,3 +1587,40 @@ def testSeeThroughLiquidsBlendSmoothlyAndParticlesDrawOverThem(stageBlenderServe
   # Particles draw after every zone surface, blended ones too: mist in front of an opaque sheet shows over it.
   pixels = [numpy.asarray(Image.open(io.BytesIO(image)).convert("L"), dtype=numpy.float64)[250:330, 420:540] for image in (sheet, misted)]
   assert numpy.abs(pixels[1] - pixels[0]).mean() > 5
+
+
+def testAFallDrawsOneLayerFromEitherSideAsTheClientCullsAPlacedModelsBackFaces(stageBlenderServer, tmp_path):
+  front = {"view": {"eye": [0, 20, 20], "target": [0, 60, 20]}, "guides": False}
+  # From between the cliff and the sheet, looking out through it.
+  behind = {"view": {"eye": [10, 57.5, 12], "target": [-15, 40, 18]}, "guides": False}
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 200], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("sculptOutline", {"objectName": "ground", "mode": "fill", "outline": [[-100, 60], [100, 60], [100, 100], [-100, 100]], "base": 0, "profile": [[-2, 0], [0, 40], [200, 40]], "conformBreaks": False})
+    await session.expectSuccess("createMaterial", {"name": "rock", "diffuseTexture": str(writePNG(tmp_path / "rock.png", 4, 4, (40, 30, 20, 255)))})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "rock"})
+    await session.expectSuccess("projectUVs", {"objectName": "ground", "method": "box", "worldUnitsPerRepeat": 64})
+    await session.expectSuccess("createLiquidMaterial", {"name": "veil", "liquid": "waterfall", "diffuseTexture": str(writePNG(tmp_path / "veil.png", 4, 4, (240, 240, 240, 128))), "slides": [0, 0, 0, 0]})
+    await session.expectSuccess("pourWaterfall", {"name": "fall", "lip": [[-20, 60, 41], [20, 60, 41]], "bottom": 0, "throw": 6, "material": "veil"})
+    await session.expectSuccess("setZoneProperties", environment | {"fogOn": False})
+    images = {}
+    for sides, code in (("both", None), ("front", keepFallFront), ("none", "bpy.data.objects['fall'].hide_render = True")):
+      if code is not None:
+        await session.expectSuccess("runPython", {"code": code})
+      for side, view in (("Front", front), ("Behind", behind)):
+        images[sides + side] = (await session.expectImage("renderView", view))[0]
+    return images
+
+  images = stageBlenderServer.session(steps)
+  pixels = {name: numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB"), dtype=numpy.float64) for name, image in images.items()}
+
+  def difference(first, second):
+    return numpy.abs(pixels[first] - pixels[second])
+
+  # The half see-through fall shows from in front and, by its back faces, from behind.
+  assert difference("bothFront", "noneFront").mean() > 10 and difference("bothBehind", "noneBehind").mean() > 10
+  # Its back faces are culled seen from in front, so it draws one layer there, as the sheet alone does.
+  assert difference("bothFront", "frontFront").max() <= 2
+  # The sheet alone, as falls were built before they had backs, is not drawn from behind at all, as the client showed canyonhousing's.
+  assert difference("frontBehind", "noneBehind").max() <= 2

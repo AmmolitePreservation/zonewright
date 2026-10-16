@@ -3,8 +3,9 @@ boundaries merged in as triangles without a material, each model (.mod) at its p
 a version 1 .zon with the swim volumes and zone lines as regions and the scene's point lights, and every material's textures as DDS.
 The terrain placement carries baked light (ter_<zone>.lit) only where caves set daylight: no baked color, the share of scene light as
 alpha; models carry none. The client models the scene uses come in as clientModelBundle copies them: their entries and textures byte
-for byte, the scenery among them placed by the .zon under the client's own entry names. The scene's emitters go beside the archive in
-the client's emitter list, which the client reads loose."""
+for byte, the scenery among them placed by the .zon under the names they are stored under (the client's own entry names, or with their
+archive's name before them where taken). The scene's emitters go beside the archive in the client's emitter list, which the client
+reads loose."""
 import hashlib
 import os
 from pathlib import Path
