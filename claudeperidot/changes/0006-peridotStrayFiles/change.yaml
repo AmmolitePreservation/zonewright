@@ -1,0 +1,32 @@
+title: Peridot's akk-stack root no longer holds six empty stray files (-368.12, -38.21, 0, 100, 154.75, 323.96)
+why: The owner asked for them to go on 2026-10-11. They were empty, left in /opt/eqemu/akk-stack by earlier shell redirections; their owner and mode were not recorded, so the undo makes them again as root.
+kind: lab
+scope:
+  - /opt/eqemu/akk-stack/-368.12 on peridot
+  - /opt/eqemu/akk-stack/-38.21 on peridot
+  - /opt/eqemu/akk-stack/0 on peridot
+  - /opt/eqemu/akk-stack/100 on peridot
+  - /opt/eqemu/akk-stack/154.75 on peridot
+  - /opt/eqemu/akk-stack/323.96 on peridot
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-11, the owner''s later answer: the six empty stray files in Peridot''s akk-stack root, deleted'
+activation: none
+production: none
+commits: []
+steps:
+  - via: facet run
+    host: peridot
+    run: cd /opt/eqemu/akk-stack && sudo rm -- ./-368.12 ./-38.21 ./0 ./100 ./154.75 ./323.96
+undo:
+  - via: facet run
+    host: peridot
+    run: cd /opt/eqemu/akk-stack && sudo touch -- ./-368.12 ./-38.21 ./0 ./100 ./154.75 ./323.96
+checks:
+  - via: facet run
+    host: peridot
+    run: cd /opt/eqemu/akk-stack && for f in ./-368.12 ./-38.21 ./0 ./100 ./154.75 ./323.96; do test -e "$f" && echo "present $f"; done; echo checked
+    expect: only "checked"; no file is present
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

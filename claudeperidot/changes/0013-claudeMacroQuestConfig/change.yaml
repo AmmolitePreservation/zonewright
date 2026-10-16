@@ -1,0 +1,32 @@
+title: The owner's MacroQuest config folder holds claudeperidot_Claudewright.cfg, which unloads mq2netbots and MQ2EQBC and loads MQClaudeLink, each with noauto, when Claude's character enters the world
+why: Every injected client shares the owner's MacroQuest folder and loads its [Plugins], MQ2EQBC (AutoConnect=1 to the owner's EQBCS on Peridot) and mq2netbots among them. MacroQuest runs config\<serverShort>_<character>.cfg as the character enters the world, before any plugin hears the game state change (MQPluginHandler.cpp PluginsSetGameState), and /plugin unloads at once, so MQ2EQBC is gone before its own handler would connect. noauto keeps /plugin from rewriting the owner's [Plugins]. mq2netbots goes first because it calls into MQ2EQBC. MQClaudeLink then serves the link in Claude's client only. The file name is claudeperidot's world short name and Claude's character; it never matches the owner's Peridot_* files. MacroQuest and its plugins also write claudeperidot_Claudewright.ini beside it as the character plays; the undo removes that too.
+kind: client
+scope:
+  - ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Claudewright.cfg
+  - ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Claudewright.ini
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-05, the owner''s answer 12 (link): new plugin MQClaudeLink coupled with an MCP server, both in one new repo PhoenixCampfire/claudelink'
+activation: the character's next entry into the world
+production: none
+commits: []
+steps:
+  - |-
+    $path = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Claudewright.cfg"
+    if (Test-Path -LiteralPath $path) { throw "$path already exists; this change only creates it" }
+    $content = "/plugin mq2netbots unload noauto`r`n/plugin MQ2EQBC unload noauto`r`n/plugin MQClaudeLink load noauto`r`n"
+    [IO.File]::WriteAllText($path, $content, (New-Object System.Text.ASCIIEncoding))
+undo:
+  - |-
+    $path = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Claudewright.cfg"
+    $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($hash -ne 'b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf') { throw "$path changed since apply (sha256 $hash)" }
+    Remove-Item -LiteralPath $path
+    $settings = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Claudewright.ini"
+    if (Test-Path -LiteralPath $settings) { Remove-Item -LiteralPath $settings }
+checks:
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Claudewright.cfg
+    sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

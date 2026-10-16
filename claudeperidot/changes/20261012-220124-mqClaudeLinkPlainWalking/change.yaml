@@ -1,0 +1,71 @@
+title: The owner's MacroQuest tree's plugins folder holds MQClaudeLink 0.7 (claudelink aebca38), whose walks start from plain walking
+why: >-
+  The first measurement walks of 2026-10-12 were invalid until account 86's flymode, left at 1 by an untracked
+  #set flymode 1, was set back (the character never fell, so it climbed everything and never swam), and a #race
+  illusion changed the race shown while the client kept the real race's avatarHeight. The owner wants every walk to
+  start from plain walking. MQClaudeLink 0.7 adds movement, which reads from client memory the player's gravity
+  behavior, stand state, run mode, race shown and profile race, and avatar height, and names what differs from plain
+  walking (flymode, illusion, stand, run); its walk refuses while anything differs, takes what the caller reset as an
+  argument and writes it and the movement state into the trace (claudelinkWalk version 2). The MCP side (no ledger
+  change of its own) resets what movement names before every walk: #set flymode 0, which writes account 86's GM
+  flymode back to 0, the value 0016 recorded; #set race 0, an illusion only; /stand; the client's run_walk command.
+  The DLL was built from claudelink aebca38 (Release, Win32, only the MQClaudeLink project) and kept with its .pdb in
+  %LOCALAPPDATA%\claudelink\builds\mqClaudeLink-aebca38; the build it replaces is 0030's, kept in
+  %LOCALAPPDATA%\claudelink\builds\mqClaudeLink-b00e681, which the undo copies back. The steps refuse while the spare
+  runs, since it holds the DLL loaded; the owner's clients never load MQClaudeLink. Before this record, the 0.7 build
+  sat in the plugins folder for a few minutes with the spare closed (the build writes there); 0030's DLL was copied
+  back before this change was written, and the spare never loaded 0.7 before it.
+kind: client
+scope:
+  - ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.dll
+  - ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.pdb
+  - ~\AppData\Local\claudelink\builds\mqClaudeLink-aebca38
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-12, the owner on the walk tests: "your walk test should probably reset the movement modes and models before testing each time if you didn''t make that fix"'
+activation: the spare's next character login (Claude's cfg loads MQClaudeLink with noauto)
+production: none
+commits: []
+steps:
+  - |-
+    $spare = 'S:\Research\EverQuest\housingclient'
+    $running = @(Get-CimInstance Win32_Process -Filter "Name='eqgame.exe'" | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($spare + '\', [StringComparison]::OrdinalIgnoreCase) })
+    if ($running.Count -gt 0) { throw ("close the spare first; running: " + (($running | ForEach-Object { $_.ProcessId }) -join ', ')) }
+    $plugins = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\plugins"
+    $builds = "$env:LOCALAPPDATA\claudelink\builds"
+    $expected = @{
+      "$builds\mqClaudeLink-aebca38\MQClaudeLink.dll" = '8c05c21259ce295d0593a5725099153a95113ef314bfce27481a1e23b707e786'
+      "$builds\mqClaudeLink-aebca38\MQClaudeLink.pdb" = '423f980ff41352182501ef473f59d4236650a23b8835d31859a7fd70e1b098c4'
+      "$builds\mqClaudeLink-b00e681\MQClaudeLink.dll" = '29c0d6397262d64b653a109bfca2f164236c7e9f009bfb9946b0f8d322048569'
+      "$builds\mqClaudeLink-b00e681\MQClaudeLink.pdb" = '793004869b4b9cab65e7e9ec1d9cee1a316485d3bc1f7232ef6cf373fce938fb'
+      "$plugins\MQClaudeLink.dll" = '29c0d6397262d64b653a109bfca2f164236c7e9f009bfb9946b0f8d322048569'
+    }
+    foreach ($path in $expected.Keys) {
+      if ((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash -ne $expected[$path]) { throw "$path is not the file this change was recorded with" }
+    }
+    Copy-Item -LiteralPath "$builds\mqClaudeLink-aebca38\MQClaudeLink.dll", "$builds\mqClaudeLink-aebca38\MQClaudeLink.pdb" -Destination $plugins -Force
+undo:
+  - |-
+    $spare = 'S:\Research\EverQuest\housingclient'
+    $running = @(Get-CimInstance Win32_Process -Filter "Name='eqgame.exe'" | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($spare + '\', [StringComparison]::OrdinalIgnoreCase) })
+    if ($running.Count -gt 0) { throw ("close the spare first; running: " + (($running | ForEach-Object { $_.ProcessId }) -join ', ')) }
+    $plugins = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\plugins"
+    $builds = "$env:LOCALAPPDATA\claudelink\builds"
+    $expected = @{
+      "$builds\mqClaudeLink-b00e681\MQClaudeLink.dll" = '29c0d6397262d64b653a109bfca2f164236c7e9f009bfb9946b0f8d322048569'
+      "$builds\mqClaudeLink-b00e681\MQClaudeLink.pdb" = '793004869b4b9cab65e7e9ec1d9cee1a316485d3bc1f7232ef6cf373fce938fb'
+      "$plugins\MQClaudeLink.dll" = '8c05c21259ce295d0593a5725099153a95113ef314bfce27481a1e23b707e786'
+    }
+    foreach ($path in $expected.Keys) {
+      if ((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash -ne $expected[$path]) { throw "$path is not the file this change was recorded with" }
+    }
+    Copy-Item -LiteralPath "$builds\mqClaudeLink-b00e681\MQClaudeLink.dll", "$builds\mqClaudeLink-b00e681\MQClaudeLink.pdb" -Destination $plugins -Force
+checks:
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.dll
+    sha256: 8c05c21259ce295d0593a5725099153a95113ef314bfce27481a1e23b707e786
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\plugins\MQClaudeLink.pdb
+    sha256: 423f980ff41352182501ef473f59d4236650a23b8835d31859a7fd70e1b098c4
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: aa9fcf6dcc486da3c

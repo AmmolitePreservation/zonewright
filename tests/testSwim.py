@@ -1,0 +1,432 @@
+import io
+import json
+import sys
+from pathlib import Path
+
+import numpy
+from PIL import Image, ImageDraw
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
+import planDrawing
+from conftest import writePNG
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+minimumSwimDepth = medium.minimumSwimDepth
+from testModelsAndDressing import freshScene
+from testWater import basin, environment, liquidMaterials, meshOf
+
+# Under the pool's middle (bed 20 down at its center) a hollow whose ceiling, at -22, lies within the 4 a box reaches under the bed.
+caveCode = """
+import bmesh
+mesh = bpy.data.meshes.new('cave')
+editor = bmesh.new()
+bmesh.ops.create_cube(editor, size=1.0)
+bmesh.ops.scale(editor, vec=(30, 30, 18), verts=editor.verts)
+bmesh.ops.translate(editor, vec=(0, 0, -31), verts=editor.verts)
+bmesh.ops.reverse_faces(editor, faces=editor.faces)
+editor.to_mesh(mesh)
+editor.free()
+bpy.context.scene.collection.objects.link(bpy.data.objects.new('cave', mesh))
+"""
+
+
+async def pondScene(session, tmp_path):
+  await freshScene(session)
+  await basin(session)
+  await liquidMaterials(session, tmp_path)
+  await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "water"})
+  await session.expectSuccess("setZoneProperties", environment)
+
+
+def boxBottoms(volumes):
+  return {volume["name"]: volume["minimum"][2] for volume in volumes}
+
+
+def testSwimVolumesStartFromThePoolAndKeepWhatIsDoneByHand(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await pondScene(session, tmp_path)
+    undecided = await session.expectSuccess("getSwimVolumes", {})
+    built = await session.expectSuccess("buildSwimVolumes", {"body": "pool"})
+    listed = await session.expectSuccess("getSwimVolumes", {})
+    widened = listed["volumes"][0]["name"]
+    await session.expectSuccess("transformObjects", {"names": [widened], "scale": [1.5, 1, 1]})
+    kept = await session.expectError("buildSwimVolumes", {"body": "pool"})
+    await session.expectSuccess("editWater", {"name": "pool", "level": -7})
+    changed = await session.expectSuccess("getSwimVolumes", {})
+    accepted = await session.expectSuccess("acceptSwimVolumes", {"body": "pool"})
+    await session.expectSuccess("sprayWater", {"name": "pool", "at": {"points": [[0, 0]]}, "definition": 141})
+    sprayed = (await session.expectSuccess("getSwimVolumes", {}))["bodies"][0]["state"]
+    floating = await session.expectSuccess("placeSwimVolume", {"name": "skyPool", "liquid": "water", "minimum": [120, 120, 40], "maximum": [160, 150, 60]})
+    clash = await session.expectError("placeSwimVolume", {"name": "SKYPOOL", "liquid": "water", "minimum": [0, 0, 0], "maximum": [1, 1, 1]})
+    await session.expectSuccess("transformObjects", {"names": ["AWT_skyPool"], "rotateDegrees": [0, 0, 10]})
+    turned = await session.expectSuccess("getSwimVolumes", {})
+    return undecided, built, listed, widened, kept, changed, accepted, sprayed, floating, clash, turned
+
+  undecided, built, listed, widened, kept, changed, accepted, sprayed, floating, clash, turned = stageBlenderServer.session(steps)
+  assert undecided["bodies"] == [{"body": "pool", "state": "undecided", "findings": [], "moreFindings": {}, "boxes": 0}]
+  volumes = listed["volumes"]
+  # The build counts its boxes, and the listing names them all, every one the pool's.
+  assert built["built"] == built["boxes"] == listed["volumeCount"] == len(volumes) == listed["bodies"][0]["boxes"] and built["replaced"] == 0
+  assert all(volume["name"].startswith("AWT_pool") and volume["body"] == "pool" for volume in volumes)
+  # Tops at the surface (-5), bottoms 4 under the bed below them (20 down at the middle), every cell deep enough to swim in covered.
+  assert all(volume["maximum"][2] == -5 for volume in volumes) and min(boxBottoms(volumes).values()) <= -24
+  assert built["state"] == "boxed" and built["findings"] == [] and not any(volume["handEdited"] for volume in volumes)
+  assert widened in kept and "edited or placed by hand" in kept
+  # Lowered two units, the pool's boxes are stale; looked at and accepted, they are current again, the widened box kept as it was.
+  assert changed["bodies"][0]["state"] == "changed"
+  assert accepted["state"] == "boxed" and accepted["boxes"] == built["built"]
+  assert any(finding["finding"] == "top away from the surface" for finding in accepted["findings"])
+  # White water changes nothing players swim in: spraying the pool keeps its boxes accepted.
+  assert sprayed == "boxed"
+  # A pool in the air stands alone; a name that clashes once lowercased is refused; a turned box is an error a zone file cannot hold.
+  assert floating["name"] == "AWT_skyPool" and floating["body"] is None and floating["minimum"] == [120.0, 120.0, 40.0]
+  assert "already exists" in clash
+  assert turned["errors"] == ["'AWT_skyPool' is turned; swim volumes stay square to the axes"] and turned["moreErrors"] == 0
+
+
+def testBoxesStopAboveACaveUnderTheBedAndDrawInViews(stageBlenderServer, tmp_path):
+  view = {"eye": [-120, -120, 30], "target": [0, 0, -15]}
+
+  async def steps(session):
+    await pondScene(session, tmp_path)
+    await session.expectSuccess("runPython", {"code": caveCode})
+    built = await session.expectSuccess("buildSwimVolumes", {"body": "pool"})
+    volumes = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    plain, _ = await session.expectImage("renderView", {"view": view})
+    boxed, _ = await session.expectImage("renderView", {"view": view, "swimVolumes": True})
+    plan, _ = await session.expectImage("renderSketch", {"center": [0, 0], "width": 300, "layers": ["water", "swim"]})
+    section, cut = await session.expectImage("renderSection", {"start": [-120, 0], "end": [120, 0], "bottom": -45, "top": 20})
+    await session.expectSuccess("deleteObjects", {"names": [volume["name"] for volume in volumes]})
+    await session.expectSuccess("editWater", {"name": "pool", "swimmable": False})
+    refused = await session.expectError("buildSwimVolumes", {"body": "pool"})
+    state = (await session.expectSuccess("getSwimVolumes", {}))["bodies"][0]["state"]
+    return built, volumes, plain, boxed, plan, section, cut, refused, state
+
+  built, volumes, plain, boxed, plan, section, cut, refused, state = stageBlenderServer.session(steps)
+  # Without the hollow the boxes reach 4 under the bed, to -24 (the test above); over it they stop a unit over its ceiling at -22, and
+  # the bed beyond it is never deeper than that.
+  overCave = [volume for volume in volumes if all(abs(volume["minimum"][axis] + volume["maximum"][axis]) / 2 < 15 for axis in (0, 1))]
+  assert overCave and min(volume["minimum"][2] for volume in volumes) == -21
+  # Drawn, the boxes tint the view cyan over the water: more blue and green than red where they stand, and evenly where their tops
+  # meet the surface, not in a mottle of the two fighting for depth.
+  plainPixels = numpy.asarray(Image.open(io.BytesIO(plain)).convert("RGB"), dtype=numpy.int64)
+  boxedPixels = numpy.asarray(Image.open(io.BytesIO(boxed)).convert("RGB"), dtype=numpy.int64)
+  tint = (boxedPixels - plainPixels)[200:400, 300:660].mean(axis=(0, 1))
+  assert tint[2] > tint[0] + 15 and tint[1] > tint[0] + 15
+  overWater = (boxedPixels - plainPixels)[230:290, 330:630].reshape(-1, 3)
+  assert overWater[:, 1].mean() > 30 and overWater[:, 1:].std(axis=0).max() < 6
+  assert Image.open(io.BytesIO(plan)).size == (1440, 810)
+  # The section along the x axis cuts the water at -5 and the pool's boxes it crosses (those reaching y 0) as one stretch of water from
+  # the surface down to -21, the boxes over the hollow (120 from the section's start) stopping above the hollow's ceiling, which shows
+  # as ground below it.
+  assert cut["water"] == [{"name": "pool", "levels": [-5.0, -5.0]}] and cut["length"] == 240
+  crossed = [volume for volume in volumes if volume["minimum"][1] <= 0 <= volume["maximum"][1]]
+  span = [min(volume["minimum"][0] for volume in crossed) + 120, max(volume["maximum"][0] for volume in crossed) + 120]
+  assert cut["swim"] == [{"body": "pool", "liquid": "water", "s": span, "z": [-21.0, -5.0], "boxes": len(crossed)}] and len(crossed) > 1
+  sectionImage = Image.open(io.BytesIO(section))
+  assert sectionImage.width == 1440 and sectionImage.height > planDrawing.sectionSize[1]
+  assert "marked not swimmable" in refused and state == "notSwimmable"
+
+
+# The water stands this much deeper than players swim in over the floor, and as much shallower over a shelf whose edge lies inside a
+# column of the water's cells (8 across, from 0), so that column keeps a corner over the deeper water; every depth of the scene is
+# shallowestSwimDepth give or take it. The shelf is a block standing in the ground, its bottom under the ground's face so no face of it lies
+# on another.
+depthMargin = 0.5
+# The ford is sized by the shallowest water any body group swims in.
+shallowestSwimDepth = min(group.minimumSwimDepth for group in playerScale.groups.values())
+shelfTop = 2 * depthMargin
+shelfFooting = 1.0
+shelfEdge = 10.0
+# The section runs through the middles of a row of cells (8 across from 0) across the shelf's edge and the boxes' end, from 2 under the
+# boxes' bottoms to 2 over the water.
+sectionStart, sectionEnd = [-8, 4], [32, 4]
+shelfArea = {"polygon": [[24, -40], [80, -40], [80, 40], [24, 40]]}
+
+
+def planExtent(volumes):
+  """West, east, south, and north edges of the boxes together."""
+  lows, highs = numpy.array([volume["minimum"][:2] for volume in volumes]), numpy.array([volume["maximum"][:2] for volume in volumes])
+  return float(lows[:, 0].min()), float(highs[:, 0].max()), float(lows[:, 1].min()), float(highs[:, 1].max())
+
+
+def planArea(volumes):
+  return sum((volume["maximum"][0] - volume["minimum"][0]) * (volume["maximum"][1] - volume["minimum"][1]) for volume in volumes)
+
+
+def testBuildSwimVolumesLeavesOutShallowCells(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [160, 80], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "shelf", "size": [80 - shelfEdge, 80, shelfTop + shelfFooting], "location": [(80 + shelfEdge) / 2, 0, -shelfFooting]})
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("floodWater", {"name": "ford", "seed": [-40, 0], "level": shallowestSwimDepth + depthMargin, "material": "water"})
+    built = await session.expectSuccess("buildSwimVolumes", {"body": "ford"})
+    volumes = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    section = {"start": sectionStart, "end": sectionEnd, "bottom": min(volume["minimum"][2] for volume in volumes) - 2, "top": shallowestSwimDepth + depthMargin + 2}
+    drawn, cut = await session.expectImage("renderSection", section)
+    shelfOnly = await session.expectError("buildSwimVolumes", {"body": "ford", "area": shelfArea})
+    afterArea = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    await session.expectSuccess("editWater", {"name": "ford", "level": shallowestSwimDepth + 3 * depthMargin})
+    deepened = await session.expectSuccess("buildSwimVolumes", {"body": "ford"})
+    deepVolumes = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    await session.expectSuccess("editWater", {"name": "ford", "level": shallowestSwimDepth - depthMargin})
+    waded = await session.expectError("buildSwimVolumes", {"body": "ford"})
+    kept = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    return built, volumes, drawn, cut, shelfOnly, afterArea, deepened, deepVolumes, waded, kept
+
+  built, volumes, drawn, cut, shelfOnly, afterArea, deepened, deepVolumes, waded, kept = stageBlenderServer.session(steps)
+  (tmp_path / "fordSection.png").write_bytes(drawn)
+  # Deepened until the shelf's water is a margin deeper than players swim in, the boxes cover the whole water, none left out.
+  west, east, south, north = planExtent(deepVolumes)
+  assert deepened["shallowCells"] == 0 and planArea(deepVolumes) == (east - west) * (north - south) and east > shelfEdge + 8
+  # A margin shallower over the shelf, its cells are left out and counted, but for the column the shelf's edge crosses, whose west
+  # corners stand over the deeper water; nor are they reported uncovered. The boxes fill the rest, tops at the surface.
+  assert [planExtent(volumes)[index] for index in (0, 2, 3)] == [west, south, north] and planExtent(volumes)[1] == 16
+  assert planArea(volumes) == (16 - west) * (north - south) and built["shallowCells"] == (east - 16) / 8 * (north - south) / 8
+  # The small group swims from the shallowest depth, so it wades only the shelf's cells the boxes leave out; the medium and large groups
+  # swim only in deeper water than the ford holds, and wade all of it.
+  groups = built["groups"]
+  assert sorted(groups) == ["large", "medium", "small"] and groups["small"]["minimumSwimDepth"] == shallowestSwimDepth
+  assert groups["small"]["wadesCells"] == built["shallowCells"] and groups["small"]["swimsCells"] > 0
+  assert all(groups[name]["swimsCells"] == 0 and groups[name]["wadesCells"] == groups["small"]["wadesCells"] + groups["small"]["swimsCells"] for name in ("medium", "large"))
+  assert built["findings"] == [] and built["state"] == "boxed" and all(volume["maximum"][2] == shallowestSwimDepth + depthMargin for volume in volumes)
+  # In section, the boxes the cut runs through are one stretch of water running to the column over the shelf's edge (x 16, 24 along the
+  # cut from x -8) and stopping there, from 4 under the bed to the surface; the heights are marked every unit, so the water's depth
+  # over the bed and over the shelf reads off the picture, and a legend band under it names the ground, the water, and the boxes.
+  crossed = [volume for volume in volumes if volume["minimum"][1] <= sectionStart[1] <= volume["maximum"][1] and volume["maximum"][0] > sectionStart[0]]
+  assert cut["swim"] == [{"body": "ford", "liquid": "water", "s": [0.0, 16 - sectionStart[0]], "z": [-4.0, shallowestSwimDepth + depthMargin], "boxes": len(crossed)}]
+  assert cut["heightStep"] == 1
+  sectionPicture = Image.open(io.BytesIO(drawn))
+  assert sectionPicture.width == planDrawing.sectionSize[0] and sectionPicture.height > planDrawing.sectionSize[1]
+  # Only the shelf lies inside the area, all of it shallow: the area's rebuild is refused, naming the area and not advising the whole body
+  # be marked not swimmable, and leaves the boxes as they were.
+  assert f"inside the area {json.dumps(shelfArea)} deeper than any body group swims in" in shelfOnly and "players wade all" in shelfOnly
+  assert "swimmable false" not in shelfOnly and afterArea == volumes
+  # Shallower than players swim in everywhere, the water is waded, not swum: the rebuild is refused, naming the depth, and leaves the
+  # boxes as they were.
+  assert f"deeper than any body group swims in ({shallowestSwimDepth:g}, playerScale minimumSwimDepth): players wade all" in waded and "editWater swimmable false" in waded
+  assert kept == deepVolumes
+
+
+markOlderNotSwimmable = """
+import json
+body = bpy.data.objects['pool']
+definition = json.loads(body['zonewrightWater'])
+definition['swimmable'] = False
+body['zonewrightWater'] = json.dumps(definition)
+result = definition['swimmable']
+"""
+
+
+def flagged(body, finding):
+  return {item["box"] for item in body["findings"] if item["finding"] == finding}
+
+
+def testBoxesLeftWithoutWaterAndBoxesOfABodyNoOneSwimsInAreReported(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await pondScene(session, tmp_path)
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[130, 130, -12]], "radius": 50, "strength": 1, "profile": [[0, 0], [1, 12]], "conformRim": False})
+    built = await session.expectSuccess("buildSwimVolumes", {"body": "pool"})
+    volumes = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    await session.expectSuccess("editWater", {"name": "pool", "within": [[-200, -200], [10, -200], [10, 200], [-200, 200]]})
+    halved = (await session.expectSuccess("getSwimVolumes", {}))["bodies"][0]
+    await session.expectSuccess("editWater", {"name": "pool", "within": [], "seed": [130, 130]})
+    moved = (await session.expectSuccess("getSwimVolumes", {}))["bodies"][0]
+    await session.expectSuccess("editWater", {"name": "pool", "seed": [0, 0]})
+    marking = await session.expectError("editWater", {"name": "pool", "swimmable": False})
+    await session.expectSuccess("floodWater", {"name": "fountain", "seed": [130, 130], "level": -5, "material": "water"})
+    await session.expectSuccess("editWater", {"name": "fountain", "swimmable": False})
+    placing = await session.expectError("placeSwimVolume", {"name": "fountainPool", "liquid": "water", "minimum": [120, 120, -10], "maximum": [140, 140, -5], "body": "fountain"})
+    await session.expectSuccess("runPython", {"code": markOlderNotSwimmable})
+    older = await session.expectSuccess("getSwimVolumes", {})
+    exporting = await session.expectError("exportZone", {"path": str(tmp_path / "swimtest.eqg"), "purpose": "test"})
+    return built, volumes, halved, moved, marking, placing, older, exporting
+
+  built, volumes, halved, moved, marking, placing, older, exporting = stageBlenderServer.session(steps)
+  names = [volume["name"] for volume in volumes]
+  east = {volume["name"] for volume in volumes if volume["minimum"][0] >= 10}
+  west = {volume["name"] for volume in volumes if volume["maximum"][0] <= 10}
+  assert east and west and built["findings"] == [] and built["built"] == len(names)
+  # Cut back to the west of x = 10, the pool leaves the boxes east of the cut standing over a drained basin: each is reported, and none
+  # still over the water is.
+  stale = flagged(halved, "mostly without water over it")
+  assert halved["state"] == "changed" and east <= stale and not west & stale
+  # Seeded in the other basin, the pool leaves every box behind.
+  assert flagged(moved, "mostly without water over it") == set(names)
+  # A body no one swims in has no swim volumes: marking one that has them is refused, naming them, as is tying a box to one; boxes of
+  # one, as a file saved before could hold, are errors that export refuses.
+  assert all(name in marking for name in names) and "deleteObjects" in marking
+  assert "marked not swimmable" in placing
+  pool = next(body for body in older["bodies"] if body["body"] == "pool")
+  assert pool["state"] == "notSwimmable" and pool["boxes"] == len(names)
+  assert older["errors"] == [
+    f"'{name}' belongs to 'pool', which is marked not swimmable; delete the box or mark the body swimmable (editWater swimmable true)" for name in names
+  ]
+  assert "marked not swimmable" in exporting
+
+
+# The tools' descriptions promise this many boxes, findings of a kind, and errors in an answer, the rest counted.
+answerListed = 20
+
+
+def testManyBoxesAreCountedAndFiledSoTheAnswerStaysShort(stageBlenderServer, tmp_path):
+  # Five more boxes than an answer lists, tied to the pool but standing over the dry ground beyond its basin, their tops just under it.
+  corners = [([120 + 12 * column, 120 + 12 * row, -10], [130 + 12 * column, 130 + 12 * row, -0.5]) for row in range(5) for column in range(5)]
+  names = [f"AWT_dry{index:02d}" for index in range(len(corners))]
+
+  async def steps(session):
+    await pondScene(session, tmp_path)
+    for name, (minimum, maximum) in zip(names, corners):
+      await session.expectSuccess("placeSwimVolume", {"name": name.removeprefix("AWT_"), "liquid": "water", "minimum": minimum, "maximum": maximum, "body": "pool"})
+    listed = await session.expectSuccess("getSwimVolumes", {})
+    accepted = await session.expectSuccess("acceptSwimVolumes", {"body": "pool"})
+    _, drawn = await session.expectImage("renderSketch", {"center": [150, 150], "width": 3000, "layers": ["swim"], "spotHeights": False})
+    await session.expectSuccess("transformObjects", {"names": names, "rotateDegrees": [0, 0, 10]})
+    turned = await session.expectSuccess("getSwimVolumes", {})
+    checked = await session.expectSuccess("checkExport", {"path": str(tmp_path / "manyboxes.eqg"), "purpose": "test"})
+    return listed, accepted, drawn, turned, checked
+
+  listed, accepted, drawn, turned, checked = stageBlenderServer.session(steps)
+  more = len(corners) - answerListed
+  # The boxes are counted in the answer and listed, each with its corners, in a file it names.
+  assert "volumes" not in listed and listed["volumeCount"] == len(corners)
+  filed = json.loads(Path(listed["volumesFile"]).read_text())
+  assert [volume["name"] for volume in filed] == names and all(volume["body"] == "pool" and volume["handEdited"] for volume in filed)
+  assert filed[0]["minimum"] == [120.0, 120.0, -10.0] and filed[-1]["maximum"] == [178.0, 178.0, -0.5]
+  # Every box stands over dry ground without the pool's water over it: the first of each finding are listed and the rest counted; the
+  # pool's water no box covers is one finding.
+  pool = listed["bodies"][0]
+  boxesByFinding = {}
+  for finding in pool["findings"]:
+    boxesByFinding.setdefault(finding["finding"], []).append(finding.get("box"))
+  assert pool["state"] == "changed" and pool["boxes"] == len(corners)
+  assert boxesByFinding == {"surface uncovered": [None], "mostly over dry ground": names[:answerListed], "mostly without water over it": names[:answerListed]}
+  assert pool["moreFindings"] == {"mostly over dry ground": {"count": more}, "mostly without water over it": {"count": more}}
+  assert accepted["state"] == "boxed" and accepted["boxes"] == len(corners) and accepted["findings"] == pool["findings"] and accepted["moreFindings"] == pool["moreFindings"]
+  # Drawn too small to name, the boxes are listed as far as an answer lists them and the rest counted.
+  assert drawn["unnamedSwimVolumes"] == names[:answerListed] and drawn["moreUnnamedSwimVolumes"] == more
+  # Turned, every box is an error a zone file cannot hold: getSwimVolumes and checkExport list the first and count the rest.
+  assert turned["errors"] == [f"'{name}' is turned; swim volumes stay square to the axes" for name in names[:answerListed]] and turned["moreErrors"] == more
+  swimFailures = [failure for failure in checked["failures"] if failure["failure"] == "swim volume"]
+  assert [failure.get("object") for failure in swimFailures] == names[:answerListed] + [None] and swimFailures[-1]["more"] == more
+
+
+def testLavaTakesLavaSwimVolumesThatShowOverIt(stageBlenderServer, tmp_path):
+  view = {"eye": [-120, -120, 30], "target": [0, 0, -15]}
+
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    diffuse = str(writePNG(tmp_path / "lava_c.png", 4, 4, (250, 90, 10, 255)))
+    second = str(writePNG(tmp_path / "lava_d.png", 4, 4, (255, 200, 40, 255)))
+    normal = str(writePNG(tmp_path / "lava_n.png", 4, 4, (128, 128, 255, 255)))
+    noSecond = await session.expectError("createLiquidMaterial", {"name": "flatLava", "liquid": "lava", "diffuseTexture": diffuse, "normalTexture": normal})
+    await session.expectSuccess("createLiquidMaterial", {"name": "lava", "liquid": "lava", "diffuseTexture": diffuse, "normalTexture": normal, "secondDiffuseTexture": second})
+    await session.expectSuccess("floodWater", {"name": "pit", "seed": [0, 0], "level": -5, "material": "lava"})
+    await session.expectSuccess("setZoneProperties", environment)
+    built = await session.expectSuccess("buildSwimVolumes", {"body": "pit"})
+    volumes = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    plain, _ = await session.expectImage("renderView", {"view": view})
+    boxed, _ = await session.expectImage("renderView", {"view": view, "swimVolumes": True})
+    return noSecond, built, volumes, plain, boxed
+
+  noSecond, built, volumes, plain, boxed = stageBlenderServer.session(steps)
+  assert "missing ['secondDiffuse']" in noSecond
+  assert built["built"] == len(volumes) > 0 and all(volume["name"].startswith("ALV_pit") and volume["liquid"] == "lava" for volume in volumes) and built["findings"] == []
+  # Over the lava's oranges the boxes draw magenta: bluer, and less green, than the lava alone.
+  tint = (numpy.asarray(Image.open(io.BytesIO(boxed)).convert("RGB"), dtype=numpy.int64) - numpy.asarray(Image.open(io.BytesIO(plain)).convert("RGB"), dtype=numpy.int64))[230:290, 330:630].mean(axis=(0, 1))
+  assert tint[2] > 30 and tint[2] > tint[1] + 40
+
+
+def testPlanNamesEachSwimVolumeInsideItClearOfTheOthers(stageBlenderServer, tmp_path):
+  plan = {"center": [0, 0], "width": 260}
+
+  async def steps(session):
+    await pondScene(session, tmp_path)
+    await session.expectSuccess("buildSwimVolumes", {"body": "pool"})
+    volumes = (await session.expectSuccess("getSwimVolumes", {}))["volumes"]
+    _, drawn = await session.expectImage("renderSketch", plan | {"layers": ["water", "swim"], "spotHeights": False})
+    return volumes, drawn
+
+  volumes, drawn = stageBlenderServer.session(steps)
+  frame = planDrawing.PlanFrame(plan["center"], plan["width"], (1440, 810))
+  boxes = [{"name": volume["name"], "liquid": volume["liquid"], "corners": [volume["minimum"], volume["maximum"]]} for volume in volumes]
+  board = planDrawing.LabelBoard(ImageDraw.Draw(Image.new("RGBA", frame.size)), frame.size)
+  labels, unnamed = planDrawing.swimLabels(board, frame, boxes)
+  bounds = {name: board.textBox(position, text, planDrawing.swimLabelSize) for name, text, position in labels}
+  rectangles = {}
+  for box in boxes:
+    corners = [frame.pixel(corner) for corner in box["corners"]]
+    rectangles[box["name"]] = (min(x for x, _ in corners), min(y for _, y in corners), max(x for x, _ in corners), max(y for _, y in corners))
+  # Each box is named inside itself and no name overlaps another; the drawing reports any box it left unnamed.
+  assert sorted(list(bounds) + unnamed) == sorted(rectangles)
+  assert {text for _, text, _ in labels} >= {"AWT_pool01"}
+  for name, (left, top, right, bottom) in bounds.items():
+    boxLeft, boxTop, boxRight, boxBottom = rectangles[name]
+    assert boxLeft <= left and right <= boxRight and boxTop <= top and bottom <= boxBottom
+  named = list(bounds.values())
+  for index, a in enumerate(named):
+    for b in named[index + 1:]:
+      assert a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1]
+  assert drawn["unnamedSwimVolumes"] == unnamed
+
+
+def testASwimVolumeTooNarrowForItsNameIsNamedByItsNumber():
+  frame = planDrawing.PlanFrame([0, 0], 260, (1440, 810))
+  board = planDrawing.LabelBoard(ImageDraw.Draw(Image.new("RGBA", frame.size)), frame.size)
+  boxes = [
+    {"name": "AWT_pool01", "liquid": "water", "corners": [[-40, -60, -5], [40, 60, 0]]},
+    {"name": "AWT_pool02", "liquid": "water", "corners": [[-40, 70, -5], [40, 76, 0]]},
+  ]
+  labels, unnamed = planDrawing.swimLabels(board, frame, boxes)
+  # North (+X) up: the second box is 80 units tall on the plan but only 6 across, too narrow for its name and wide enough for its number.
+  assert [(name, text) for name, text, _ in labels] == [("AWT_pool01", "AWT_pool01"), ("AWT_pool02", "02")] and unnamed == []
+
+
+def pixelsOf(image):
+  return numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB"), dtype=numpy.int64)
+
+
+hideRiver = "bpy.data.objects['river'].hide_render = {hidden}\nresult = bpy.data.objects['river'].hide_render"
+
+
+def testSwimVolumesTintASlopingRiverEvenlyAndNoHigherThanTheyStand(stageBlenderServer, tmp_path):
+  near = {"eye": [-120, -70, 24], "target": [-20, 0, -8]}
+  far = {"eye": [-1300, -1700, 900], "target": [0, 0, -6]}
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [400, 160], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    # A channel whose floor lies 2 deeper than players swim in under the river's lower end, so the river is swum its whole length.
+    riverFloor = -8 - minimumSwimDepth - 2
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[-200, 0, riverFloor], [200, 0, riverFloor]], "radius": 34, "strength": 1, "profile": [[0, 0], [0.55, 0], [1, -riverFloor]], "conformRim": False})
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("runWater", {"name": "river", "path": [[-150, 0, -4], [150, 0, -8]], "reach": 30, "material": "water"})
+    await session.expectSuccess("setZoneProperties", environment)
+    built = await session.expectSuccess("buildSwimVolumes", {"body": "river"})
+    images = {}
+    for name, view in (("near", near), ("far", far)):
+      images[name] = (await session.expectImage("renderView", {"view": view}))[0]
+      images[name + "Swim"] = (await session.expectImage("renderView", {"view": view, "swimVolumes": True}))[0]
+    await session.expectSuccess("runPython", {"code": hideRiver.format(hidden=True)})
+    images["farDry"] = (await session.expectImage("renderView", {"view": far}))[0]
+    await session.expectSuccess("runPython", {"code": hideRiver.format(hidden=False)})
+    river = await meshOf(session, "river")
+    return built, images, river
+
+  built, images, river = stageBlenderServer.session(steps)
+  # The river falls 4 over its length, so its boxes step down a unit at a time with their tops up to a unit under its surface; drawn,
+  # they tint the river evenly, more blue and green than red, where boxes and a sloping surface once broke it into a sawtooth.
+  levels = numpy.array(river["vertices"])[:, 2]
+  assert built["built"] >= 4 and levels.max() - levels.min() > 3.9
+  tint = (pixelsOf(images["nearSwim"]) - pixelsOf(images["near"]))[380:440, 20:260].reshape(-1, 3)
+  assert tint[:, 1].mean() > 30 and tint[:, 2].mean() > tint[:, 0].mean() + 30 and tint[:, 1:].std(axis=0).max() < 6
+  # From far off the tint rises no higher in the view than the water does: no box is drawn above where it stands (lifted by the square
+  # of the distance, they once stood 4 rows of pixels above it here).
+  water = numpy.abs(pixelsOf(images["far"]) - pixelsOf(images["farDry"])).sum(axis=2) > 12
+  tinted = numpy.abs(pixelsOf(images["farSwim"]) - pixelsOf(images["far"])).sum(axis=2) > 12
+  columns = numpy.flatnonzero(water.any(axis=0) & tinted.any(axis=0))
+  assert len(columns) > 40 and (tinted.argmax(axis=0)[columns] >= water.argmax(axis=0)[columns] - 1).all()

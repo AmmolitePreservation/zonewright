@@ -1,0 +1,37 @@
+title: The spare client holds arttest.eqg with ramps 70 to 89 degrees, in the client's arttest slot (id 996)
+why: >-
+  arttest's export after its ramps were extended past 80 degrees (every body climbed 80 with the frame limiter suspended) and its
+  pool, ceilings and openings moved 100 along x; it replaces 0028's archive, reverted. zonewright's game export, built by
+  measurementZone/buildMeasurementZone.py into %LOCALAPPDATA%\zonewright\staging\arttest and passed by verifyExport.
+kind: client
+scope:
+  - S:\Research\EverQuest\housingclient\arttest.eqg
+disposition: exploration
+significance: minor
+ownerClearance:
+  ownerMessage: conformSurfaceEdges and the smaller items seem worth tying up before we move on
+activation: the spare zoning into arttest (#zone arttest, GM status 80 or more)
+production: none
+commits: []
+steps:
+  - |-
+    $ErrorActionPreference = 'Stop'
+    $source = Join-Path $env:LOCALAPPDATA 'zonewright\staging\arttest\arttest.eqg'
+    $target = 'S:\Research\EverQuest\housingclient\arttest.eqg'
+    if (Get-Process -Name eqgame -ErrorAction SilentlyContinue | Where-Object { $_.Path -like 'S:\Research\EverQuest\housingclient\*' }) { throw 'the spare client is running' }
+    if (Test-Path -LiteralPath $target) { throw "$target exists already" }
+    $expected = 'C686C5EDF9A6EFC658A070247EA8BBF10DF6EEF9DECD743A07DA3136E90C790F'
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $source).Hash -ne $expected) { throw "$source is not the verified export" }
+    Copy-Item -LiteralPath $source -Destination $target
+undo:
+  - |-
+    $ErrorActionPreference = 'Stop'
+    $target = 'S:\Research\EverQuest\housingclient\arttest.eqg'
+    if (Get-Process -Name eqgame -ErrorAction SilentlyContinue | Where-Object { $_.Path -like 'S:\Research\EverQuest\housingclient\*' }) { throw 'the spare client is running' }
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash -ne 'C686C5EDF9A6EFC658A070247EA8BBF10DF6EEF9DECD743A07DA3136E90C790F') { throw "$target is not the file this change copied" }
+    Remove-Item -LiteralPath $target -Confirm:$false
+checks:
+  - path: S:\Research\EverQuest\housingclient\arttest.eqg
+    sha256: c686c5edf9a6efc658a070247ea8bbf10df6eef9decd743a07da3136e90c790f
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

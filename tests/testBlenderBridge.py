@@ -1,0 +1,372 @@
+import math
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+eyeHeight = medium.eyeHeight
+from previewFrame import renderHeight, verticalFieldOfViewDegrees
+
+groundSceneCode = """
+import bpy
+mesh = bpy.data.meshes.new('ground')
+mesh.from_pydata([(-200, -200, 0), (200, -200, 0), (200, 200, 0), (-200, 200, 0)], [], [(0, 1, 2, 3)])
+ground = bpy.data.objects.new('ground', mesh)
+bpy.context.scene.collection.objects.link(ground)
+material = bpy.data.materials.new('grass')
+material.use_nodes = True
+material.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.2, 0.45, 0.15, 1)
+mesh.materials.append(material)
+"""
+zoneProperties = {
+  "ambientColor": [0.3, 0.3, 0.35], "specialAmbientColor": [0, 0, 0], "bounceColor": [0, 0, 0], "sunColor": [0.6, 0.57, 0.5],
+  "sunAzimuthDegrees": 135, "sunElevationDegrees": 45, "fogColor": [0.55, 0.6, 0.7], "fogStart": 30, "fogEnd": 200, "fogDensity": 0.33, "fogOn": True, "maxClip": 400,
+  "newEngineZone": False,
+}
+eyeLevelView = {"standAt": [0, 0, 0], "headingDegrees": 0, "pitchDegrees": 0}
+
+
+async def buildGroundScene(session):
+  await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+  await session.expectSuccess("runPython", {"code": groundSceneCode})
+  await session.expectSuccess("setZoneProperties", zoneProperties)
+
+
+def testRunPythonKeepsNamespaceAndReturnsOutput(stageBlenderServer):
+  async def steps(session):
+    first = await session.expectSuccess("runPython", {"code": "width = 6\nprint('hello from blender')"})
+    second = await session.expectSuccess("runPython", {"code": "result = {'area': width * 7, 'version': bpy.app.version_string}"})
+    return first, second
+
+  first, second = stageBlenderServer.session(steps)
+  assert first == {"output": "hello from blender\n", "result": None}
+  assert second["result"]["area"] == 42
+  assert second["result"]["version"].startswith("5.2.2")
+
+
+def testRunPythonErrorCarriesTraceback(stageBlenderServer):
+  async def steps(session):
+    return await session.expectError("runPython", {"code": "def explode():\n  raise ValueError('boom')\nexplode()"})
+
+  errorText = stageBlenderServer.session(steps)
+  assert "ValueError: boom" in errorText
+  assert "Traceback (most recent call last)" in errorText
+  assert 'File "<runPython>", line 2, in explode' in errorText
+
+
+def testRefusalsComeBackAsTheirMessageAloneAndOtherErrorsWithTheirTraceback(stageBlenderServer, tmp_path):
+  notBlend = tmp_path / "notBlend.blend"
+  notBlend.write_text("not a blend file", encoding="ascii")
+
+  async def steps(session):
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    refused = await session.expectError("renderView", {"view": {"eye": [0, 0, 10], "target": [0, 10, 10]}})
+    missing = await session.expectError("openFile", {"path": str(tmp_path / "absent.blend")})
+    unreadable = await session.expectError("openFile", {"path": str(notBlend)})
+    scripted = await session.expectError("runPython", {"code": "lookup = {}\nlookup['absent']"})
+    return refused, missing, unreadable, scripted
+
+  refused, missing, unreadable, scripted = stageBlenderServer.session(steps)
+  assert refused == (
+    "Error executing tool renderView: Zone properties missing: ['ambientColor', 'specialAmbientColor', 'bounceColor', 'sunColor',"
+    " 'sunAzimuthDegrees', 'sunElevationDegrees', 'fogColor', 'fogStart', 'fogEnd', 'fogDensity', 'fogOn', 'maxClip', 'newEngineZone'];"
+    " set them with setZoneProperties (a sky supplies the light and the fog color)"
+  )
+  assert missing == f"Error executing tool openFile: '{tmp_path / 'absent.blend'}' does not exist"
+  # Blender's own failure to read a file is no refusal the bridge made: it keeps the traceback down to the call that failed.
+  assert unreadable.startswith("Error executing tool openFile: RuntimeError: ") and "Traceback (most recent call last)" in unreadable
+  assert 'bridgeCommands.py", line' in unreadable and "in openFile" in unreadable
+  assert scripted.startswith("Error executing tool runPython: KeyError: 'absent'") and 'File "<runPython>", line 2, in <module>' in scripted
+
+
+def testCrashIsReportedAndNextCallStartsFresh(freshBlenderServer):
+  async def steps(session):
+    await session.expectSuccess("runPython", {"code": "survivor = 1"})
+    crashText = await session.expectError("runPython", {"code": "import os\nos._exit(7)"})
+    crashedStatus = await session.expectSuccess("getToolingStatus")
+    afterCrash = await session.expectSuccess("runPython", {"code": "result = 'survivor' in globals()"})
+    runningStatus = await session.expectSuccess("getToolingStatus")
+    return crashText, crashedStatus["bridge"], afterCrash, runningStatus["bridge"]
+
+  crashText, crashedBridge, afterCrash, runningBridge = freshBlenderServer.session(steps)
+  assert "Blender exited with code 7 during runPython" in crashText
+  assert crashedBridge["state"] == "crashed"
+  assert crashedBridge["exitCode"] == 7
+  assert afterCrash["result"] is False
+  assert runningBridge["state"] == "running"
+
+
+def testUnsavedChangesBlockNewFileUntilDiscarded(stageBlenderServer):
+  async def steps(session):
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    await session.expectSuccess("runPython", {"code": "bpy.data.objects.new('marker', None)"})
+    refusal = await session.expectError("newFile")
+    discarded = await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    summary = await session.expectSuccess("getSceneSummary")
+    return refusal, discarded, summary
+
+  refusal, discarded, summary = stageBlenderServer.session(steps)
+  assert "Refusing to start a new file: the open file has unsaved changes" in refusal
+  assert discarded == {"filePath": None, "unsavedChanges": False, "scene": "Scene"}
+  assert summary["objectCount"] == 0
+
+
+def testSaveStoresTexturesAsRelativePathsAndReopens(stageBlenderServer, tmp_path):
+  workFolder = tmp_path / "work"
+  (workFolder / "textures").mkdir(parents=True)
+  texturePath = workFolder / "textures" / "grass.png"
+  blendPath = workFolder / "scratch.blend"
+  textureCode = f"""
+image = bpy.data.images.new('grassTexture', 8, 8)
+image.filepath_raw = r'{texturePath}'
+image.file_format = 'PNG'
+image.save()
+image.source = 'FILE'
+material = bpy.data.materials['grass']
+texture = material.node_tree.nodes.new('ShaderNodeTexImage')
+texture.image = image
+material.node_tree.links.new(texture.outputs['Color'], material.node_tree.nodes['Principled BSDF'].inputs['Base Color'])
+"""
+
+  async def steps(session):
+    await buildGroundScene(session)
+    await session.expectSuccess("runPython", {"code": textureCode})
+    saved = await session.expectSuccess("saveFile", {"path": str(blendPath)})
+    await session.expectSuccess("newFile")
+    reopened = await session.expectSuccess("openFile", {"path": str(blendPath)})
+    summary = await session.expectSuccess("getSceneSummary")
+    return saved, reopened, summary
+
+  saved, reopened, summary = stageBlenderServer.session(steps)
+  assert saved == {"filePath": str(blendPath), "unsavedChanges": False, "scene": "Scene"}
+  assert reopened["filePath"] == str(blendPath)
+  images = {image["name"]: image for image in summary["images"]}
+  assert images["grassTexture"]["filePath"] == "//textures\\grass.png"
+  assert images["grassTexture"]["packed"] is False
+  assert {"name": "grass", "textures": ["grassTexture"]} in summary["materials"]
+  assert summary["zoneProperties"]["fogEnd"] == 200
+  assert summary["zoneProperties"]["newEngineZone"] is False
+  assert [sceneObject["name"] for sceneObject in summary["objects"]] == ["ground"]
+  assert summary["objects"][0]["triangles"] == 2
+
+
+def testSaveRefusesPackedImage(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await buildGroundScene(session)
+    await session.expectSuccess("runPython", {"code": f"""
+image = bpy.data.images.new('baked', 4, 4)
+image.filepath_raw = r'{tmp_path / "baked.png"}'
+image.file_format = 'PNG'
+image.save()
+image.source = 'FILE'
+image.pack()
+texture = bpy.data.materials['grass'].node_tree.nodes.new('ShaderNodeTexImage')
+texture.image = image
+"""})
+    return await session.expectError("saveFile", {"path": str(tmp_path / "packed.blend")})
+
+  errorText = stageBlenderServer.session(steps)
+  assert "Cannot save: image 'baked' is packed into the .blend" in errorText
+  assert not (tmp_path / "packed.blend").exists()
+
+
+def testRenderWithoutZonePropertiesFails(stageBlenderServer):
+  async def steps(session):
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    await session.expectSuccess("runPython", {"code": groundSceneCode})
+    return await session.expectError("renderView", {"view": eyeLevelView})
+
+  assert "Zone properties missing: ['ambientColor', 'specialAmbientColor', 'bounceColor', 'sunColor', 'sunAzimuthDegrees', 'sunElevationDegrees', 'fogColor', 'fogStart', 'fogEnd', 'fogDensity', 'fogOn', 'maxClip', 'newEngineZone']" in stageBlenderServer.session(steps)
+
+
+def testMisspelledOrMissingArgumentsAreRefused(stageBlenderServer):
+  async def steps(session):
+    misspelled = await session.expectError("setZoneProperties", {"properties": {"fogStart": 10}})
+    empty = await session.expectError("setZoneProperties", {})
+    return misspelled, empty
+
+  misspelled, empty = stageBlenderServer.session(steps)
+  assert "properties" in misspelled and "Extra inputs are not permitted" in misspelled
+  assert "setZoneProperties needs at least one of ['ambientColor'" in empty
+
+
+def testRenderIsDeterministicFoggedAndFiled(stageBlenderServer):
+  async def steps(session):
+    await buildGroundScene(session)
+    firstImage, firstDescription = await session.expectImage("renderView", {"view": eyeLevelView})
+    secondImage, secondDescription = await session.expectImage("renderView", {"view": eyeLevelView})
+    sky = await session.expectSuccess("runPython", {"code": f"""
+image = bpy.data.images.load(r'{firstDescription['outputPath']}')
+width, height = image.size
+index = ((height - 1) * width + width // 2) * 4
+result = list(image.pixels[index:index + 3])
+"""})
+    return firstImage, firstDescription, secondImage, secondDescription, sky["result"]
+
+  firstImage, firstDescription, secondImage, secondDescription, skyPixel = stageBlenderServer.session(steps)
+  assert firstImage == secondImage
+  assert Path(firstDescription["outputPath"]).read_bytes() == firstImage
+  assert firstDescription["outputPath"] != secondDescription["outputPath"]
+  assert firstImage[:8] == b"\x89PNG\r\n\x1a\n"
+  assert (firstDescription["width"], firstDescription["height"]) == (960, 540)
+  # The preview writes raw values, as the client does: where nothing is drawn, the fog color itself.
+  for measured, fogComponent in zip(skyPixel, zoneProperties["fogColor"]):
+    assert abs(measured - fogComponent) <= 1 / 255
+
+
+def testEyeLevelViewPlacesFigureAndPickMeasuresTheGround(stageBlenderServer):
+  pixel = [480, 500]
+
+  async def steps(session):
+    await buildGroundScene(session)
+    _, description = await session.expectImage("renderView", {"view": eyeLevelView})
+    picked = await session.expectSuccess("pick", {"view": eyeLevelView, "pixel": pixel})
+    sky = await session.expectSuccess("pick", {"view": eyeLevelView, "pixel": [480, 10]})
+    _, fromAbove = await session.expectImage("renderView", {"view": eyeLevelView | {"standAt": [0, 0]}})
+    return description, picked, sky, fromAbove
+
+  description, picked, sky, fromAbove = stageBlenderServer.session(steps)
+  assert description["eye"] == [0.0, 0.0, round(eyeHeight, 3)] and fromAbove["eye"] == [0.0, 0.0, round(eyeHeight, 3)]
+  assert description["figure"] == [1.5, 15.0, 0.0]
+  depression = math.atan((pixel[1] + 0.5 - renderHeight / 2) / (renderHeight / 2) * math.tan(math.radians(verticalFieldOfViewDegrees / 2)))
+  assert picked["hit"] is True
+  assert picked["object"] == "ground"
+  assert picked["material"] == "grass"
+  assert picked["normal"] == [0.0, 0.0, 1.0]
+  assert abs(picked["position"][1] - eyeHeight / math.tan(depression)) < 0.01
+  assert abs(picked["distance"] - eyeHeight / math.sin(depression)) < 0.01
+  assert sky["hit"] is False
+
+
+def testStandAtFindsAFloorFromJustUnderItAndFigureAtStandsTheFigureByHand(stageBlenderServer):
+  # A ramp 20 wide rising 0.4 a unit over the ground plane: its floor at y 50 is 20 high, at y 60 24.
+  rampCode = """
+mesh = bpy.data.meshes.new('ramp')
+mesh.from_pydata([(-10, 0, 0), (10, 0, 0), (10, 100, 40), (-10, 100, 40)], [], [(0, 1, 2, 3)])
+bpy.context.scene.collection.objects.link(bpy.data.objects.new('ramp', mesh))
+"""
+
+  async def steps(session):
+    await buildGroundScene(session)
+    await session.expectSuccess("runPython", {"code": rampCode})
+    _, underFloor = await session.expectImage("renderView", {"view": {"standAt": [0, 50, 18], "headingDegrees": 0, "pitchDegrees": 0}})
+    noRoom = await session.expectError("renderView", {"view": {"standAt": [9, 50, 20], "headingDegrees": 90, "pitchDegrees": 0}})
+    _, byHand = await session.expectImage("renderView", {"view": {"standAt": [9, 50, 20], "headingDegrees": 90, "pitchDegrees": 0, "figureAt": [0, 60, 23]}})
+    return underFloor, noRoom, byHand
+
+  underFloor, noRoom, byHand = stageBlenderServer.session(steps)
+  assert underFloor["ground"][:2] == [0.0, 50.0] and abs(underFloor["ground"][2] - 20.0) <= 0.01
+  assert abs(underFloor["eye"][2] - (20.0 + eyeHeight)) <= 0.01
+  assert "No room for the scale figure" in noRoom and "figureAt" in noRoom
+  assert byHand["figure"][:2] == [0.0, 60.0] and abs(byHand["figure"][2] - 24.0) <= 0.01
+  assert abs(byHand["ground"][2] - 20.0) <= 0.01
+
+
+def testMapViewLooksStraightDownWithoutFogAndPicksWhereItShows(stageBlenderServer):
+  async def steps(session):
+    await buildGroundScene(session)
+    # Fog this thick hides the ground in any view from more than 2 units away.
+    await session.expectSuccess("setZoneProperties", {"fogStart": 0, "fogEnd": 2})
+    mapView = {"map": {"center": [100, 50], "width": 400}}
+    _, description = await session.expectImage("renderView", {"view": mapView})
+    middle = await session.expectSuccess("runPython", {"code": f"""
+image = bpy.data.images.load(r'{description['outputPath']}')
+width, height = image.size
+index = ((height // 2) * width + width // 4) * 4
+result = list(image.pixels[index:index + 3])
+"""})
+    # North up, as the in-game map: the pixel a quarter across and a quarter down lies 100 units west (+Y) and 56.25 north (+X) of the center.
+    picked = await session.expectSuccess("pick", {"view": mapView, "pixel": [240, 135]})
+    return description, middle["result"], picked
+
+  description, middle, picked = stageBlenderServer.session(steps)
+  assert description["unitsPerPixel"] == 400 / 960 and description["mapHeight"] == 225
+  assert max(abs(measured - fogComponent) for measured, fogComponent in zip(middle, zoneProperties["fogColor"])) > 0.1
+  assert picked["hit"] is True and picked["object"] == "ground" and picked["direction"] == [0.0, 0.0, -1.0]
+  assert abs(picked["position"][0] - (100 + 56.25 - 400 / 960 / 2)) < 0.01 and abs(picked["position"][1] - (50 + 100 - 400 / 960 / 2)) < 0.01
+
+
+def testLayoutShadingColorsByHeightAndSlope(stageBlenderServer):
+  mesaCode = """
+mesh = bpy.data.meshes.new('mesa')
+mesh.from_pydata([(50, -50, 100), (150, -50, 100), (150, 50, 100), (50, 50, 100)], [], [(0, 1, 2, 3)])
+bpy.context.scene.collection.objects.link(bpy.data.objects.new('mesa', mesh))
+"""
+
+  async def steps(session):
+    await buildGroundScene(session)
+    await session.expectSuccess("runPython", {"code": mesaCode})
+    _, description = await session.expectImage("renderView", {"view": {"map": {"center": [0, 0], "width": 400}}, "shading": "layout"})
+    pixels = await session.expectSuccess("runPython", {"code": f"""
+image = bpy.data.images.load(r'{description['outputPath']}')
+width, height = image.size
+def pixel(row):
+  index = ((height - 1 - row) * width + width // 2) * 4
+  return list(image.pixels[index:index + 3])
+result = [pixel(510), pixel(30)]
+"""})
+    return description, pixels["result"]
+
+  description, (ground, mesa) = stageBlenderServer.session(steps)
+  assert description["heightRange"] == [0.0, 100.0] and description["bandHeight"] == 50.0
+  # Flat ground faces the layout light at 45 degrees: 0.3 + 0.7 * cos(45) of the lowest and the highest height color.
+  shade = 0.3 + 0.7 * 0.7071
+  for measured, lowest in zip(ground, (0.22, 0.36, 0.26)):
+    assert abs(measured - shade * lowest) <= 2 / 255
+  for measured, highest in zip(mesa, (0.92, 0.9, 0.87)):
+    assert abs(measured - shade * highest) <= 2 / 255
+
+
+def testLayoutBandsAlternateSoTheyReadAtAnyHeightRange(stageBlenderServer):
+  # A ramp rising 1 in 2 north from 0 to 50, east of the mesa that holds the scene's range at 0 to 100: bands 5 tall are 10 apart
+  # on it, each a tenth of the range, so neighboring bands barely differ in color.
+  rampCode = """
+mesh = bpy.data.meshes.new('ramp')
+mesh.from_pydata([(0, -150, 0), (100, -150, 50), (100, -100, 50), (0, -100, 0)], [], [(0, 1, 2, 3)])
+bpy.context.scene.collection.objects.link(bpy.data.objects.new('ramp', mesh))
+mesh = bpy.data.meshes.new('mesa')
+mesh.from_pydata([(50, -50, 100), (150, -50, 100), (150, 50, 100), (50, 50, 100)], [], [(0, 1, 2, 3)])
+bpy.context.scene.collection.objects.link(bpy.data.objects.new('mesa', mesh))
+"""
+
+  async def steps(session):
+    await buildGroundScene(session)
+    await session.expectSuccess("runPython", {"code": rampCode})
+    _, description = await session.expectImage("renderView", {"view": {"map": {"center": [0, 0], "width": 400}}, "shading": "layout", "bandHeight": 5})
+    pixels = await session.expectSuccess("runPython", {"code": f"""
+image = bpy.data.images.load(r'{description['outputPath']}')
+width, height = image.size
+unitsPerPixel = {description['unitsPerPixel']}
+column = int(round(width / 2 + 125 / unitsPerPixel))
+def brightness(x):
+  row = int(round(height / 2 - x / unitsPerPixel))
+  index = ((height - 1 - row) * width + column) * 4
+  return sum(image.pixels[index:index + 3])
+result = [brightness(10 * band) for band in range(1, 10)]
+"""})
+    return description, pixels["result"]
+
+  description, brightness = stageBlenderServer.session(steps)
+  assert description["heightRange"] == [0.0, 100.0]
+  # Every other band is a shade darker: odd bands (5, 15, ... high) darker than the even ones either side of them.
+  for band, (lower, upper) in enumerate(zip(brightness, brightness[1:]), start=1):
+    assert (lower < upper) == (band % 2 == 1), (band, brightness)
+    assert abs(upper - lower) / max(upper, lower) > 0.03, (band, brightness)
+
+
+def testSyncStopsAnIdleBridgeButRefusesUnsavedChanges(freshBlenderServer):
+  async def steps(session):
+    await session.expectSuccess("runPython", {"code": "bpy.data.objects.new('marker', None)"})
+    refusal = await session.expectError("syncTooling")
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    synced = await session.expectSuccess("syncTooling")
+    status = await session.expectSuccess("getToolingStatus")
+    return refusal, synced, status
+
+  refusal, synced, status = freshBlenderServer.session(steps)
+  assert "unsaved changes; save it or open another file with discardUnsavedChanges before syncing" in refusal
+  assert synced["actions"] == []
+  assert status["bridge"] == {"state": "notStarted"}

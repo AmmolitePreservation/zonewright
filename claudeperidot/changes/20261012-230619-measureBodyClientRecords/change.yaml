@@ -1,0 +1,332 @@
+title: The owner's MacroQuest login.db and MQ2ChatWnd.ini hold what MQ2AutoLogin and MQ2ChatWnd write for the 32 body characters Measurehum
+  to Measuredkf and the logins claudeperidot/eqLogin2 and eqLogin3
+why: 'Recorded before the body characters and the two new logins first reach character select and the world (plan step 22), as 0014
+  and 0017 recorded Claudewright''s. MQ2AutoLogin, loaded in every client from the owner''s [Plugins], records each login it performs
+  in config\login.db when the client reaches character select: the account (its password stored as the owner''s are) and a character
+  and persona row per character listed. MQ2ChatWnd writes a [claudeperidot.<name>] section in config\MQ2ChatWnd.ini when each character''s
+  window is made. The ledger never writes either file; the steps refuse, and the checks are each character''s persona row and chat window
+  section, which pass once every body has entered the world. The undo removes exactly these characters'' rows and sections, and the
+  two new logins'' account rows once no character uses them; the account names come from the credentials, never a file. MacroQuest writes
+  each character''s claudeperidot_<name>.ini, which 20261012-230618-measureBodyLogins records and removes.'
+kind: client
+scope:
+- ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+- ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-12, the owner on measuring bodies: "permanent character per body seems like the obvious fix. make sure you
+    measured gender in your assessments assuming gender mattered."'
+activation: none
+production: none
+commits: []
+steps:
+- throw 'MQ2AutoLogin and MQ2ChatWnd write these rows and sections themselves when the body characters log in through claudelink; the
+  ledger records them and never writes login.db or MQ2ChatWnd.ini'
+undo:
+- |-
+  Add-Type -TypeDefinition @'
+  using System;
+  using System.Runtime.InteropServices;
+  public static class ClaudePeridotLoginNames
+  {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct Credential
+    {
+      public int Flags;
+      public int Type;
+      public string TargetName;
+      public string Comment;
+      public long LastWritten;
+      public int CredentialBlobSize;
+      public IntPtr CredentialBlob;
+      public int Persist;
+      public int AttributeCount;
+      public IntPtr Attributes;
+      public string TargetAlias;
+      public string UserName;
+    }
+    [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool CredRead(string target, int type, int flags, out IntPtr credential);
+    [DllImport("advapi32.dll")]
+    public static extern void CredFree(IntPtr buffer);
+  }
+  '@
+  $accounts = @()
+  foreach ($target in @('claudeperidot/eqLogin2', 'claudeperidot/eqLogin3')) {
+    $pointer = [IntPtr]::Zero
+    if (-not [ClaudePeridotLoginNames]::CredRead($target, 1, 0, [ref]$pointer)) {
+      throw "the credential $target is gone (Windows error $([Runtime.InteropServices.Marshal]::GetLastWin32Error())); undo this change before 20261012-230618-measureBodyLogins"
+    }
+    try {
+      $credential = [Runtime.InteropServices.Marshal]::PtrToStructure($pointer, [type][ClaudePeridotLoginNames+Credential])
+      $accounts += $credential.UserName
+    } finally {
+      [ClaudePeridotLoginNames]::CredFree($pointer)
+    }
+  }
+  $env:CLAUDEPERIDOT_LOGIN_ACCOUNTS = $accounts -join ','
+  $script = @'
+  import os, pathlib, sqlite3
+  path = pathlib.Path.home() / "LocalProjects" / "mqPeridot" / "build" / "bin" / "release" / "config" / "login.db"
+  accounts = [account.lower() for account in os.environ["CLAUDEPERIDOT_LOGIN_ACCOUNTS"].split(",")]
+  names = ["measurehum", "measurehuf", "measurebam", "measurebaf", "measureerm", "measureerf", "measureelm", "measureelf", "measurehim", "measurehif", "measuredam", "measuredaf", "measureham", "measurehaf", "measuredwm", "measuredwf", "measuretrm", "measuretrf", "measureogm", "measureogf", "measurehom", "measurehof", "measuregnm", "measuregnf", "measureikm", "measureikf", "measurekem", "measurekef", "measurefrm", "measurefrf", "measuredkm", "measuredkf"]
+  connection = sqlite3.connect(path)
+  with connection:
+    marks = ",".join("?" * len(names))
+    characters = f"SELECT id FROM characters WHERE server = 'claudeperidot' AND lower(character) IN ({marks})"
+    connection.execute(f"DELETE FROM profiles WHERE character_id IN ({characters})", names)
+    connection.execute(f"DELETE FROM personas WHERE character_id IN ({characters})", names)
+    connection.execute(f"DELETE FROM characters WHERE id IN ({characters})", names)
+    for account in accounts:
+      connection.execute("DELETE FROM accounts WHERE lower(account) = ? AND id NOT IN (SELECT account_id FROM characters)", (account,))
+  connection.close()
+  '@
+  $script | python -
+  if ($LASTEXITCODE -ne 0) { throw "removing the rows failed with exit code $LASTEXITCODE" }
+  Remove-Item Env:\CLAUDEPERIDOT_LOGIN_ACCOUNTS
+- |-
+  $path = "$env:USERPROFILE\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini"
+  $names = @('Measurehum', 'Measurehuf', 'Measurebam', 'Measurebaf', 'Measureerm', 'Measureerf', 'Measureelm', 'Measureelf', 'Measurehim', 'Measurehif', 'Measuredam', 'Measuredaf', 'Measureham', 'Measurehaf', 'Measuredwm', 'Measuredwf', 'Measuretrm', 'Measuretrf', 'Measureogm', 'Measureogf', 'Measurehom', 'Measurehof', 'Measuregnm', 'Measuregnf', 'Measureikm', 'Measureikf', 'Measurekem', 'Measurekef', 'Measurefrm', 'Measurefrf', 'Measuredkm', 'Measuredkf')
+  $encoding = [Text.Encoding]::GetEncoding(28591)
+  $text = [IO.File]::ReadAllText($path, $encoding)
+  $newline = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
+  $suffix = ''
+  if ($text.EndsWith($newline)) { $text = $text.Substring(0, $text.Length - $newline.Length); $suffix = $newline }
+  $lines = [System.Collections.Generic.List[string]]($text -split [regex]::Escape($newline))
+  foreach ($name in $names) {
+    $start = $lines.IndexOf("[claudeperidot.$name]")
+    if ($start -lt 0) { continue }
+    $end = $start + 1
+    while ($end -lt $lines.Count -and -not $lines[$end].StartsWith('[')) { $end++ }
+    $lines.RemoveRange($start, $end - $start)
+  }
+  [IO.File]::WriteAllText($path, ($lines -join $newline) + $suffix, $encoding)
+checks:
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurehum
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurehuf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurebam
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurebaf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureerm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureerf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureelm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureelf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurehim
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurehif
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuredam
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuredaf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureham
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurehaf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuredwm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuredwf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuretrm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuretrf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureogm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureogf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurehom
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurehof
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuregnm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuregnf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureikm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measureikf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurekem
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurekef
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurefrm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measurefrf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuredkm
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+  server: claudeperidot
+  character: Measuredkf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurehum
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurehuf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurebam
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurebaf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureerm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureerf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureelm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureelf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurehim
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurehif
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuredam
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuredaf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureham
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurehaf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuredwm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuredwf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuretrm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuretrf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureogm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureogf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurehom
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurehof
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuregnm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuregnf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureikm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measureikf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurekem
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurekef
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurefrm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measurefrf
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuredkm
+  key: WindowTitle
+  value: MQ
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\MQ2ChatWnd.ini
+  section: claudeperidot.Measuredkf
+  key: WindowTitle
+  value: MQ
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: a7c1bc5a9c47369be

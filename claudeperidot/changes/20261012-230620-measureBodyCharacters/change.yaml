@@ -1,0 +1,57 @@
+title: Accounts 87 and 88 (the logins claudeperidot/eqLogin2 and eqLogin3) have status 255 and flymode 0, and accounts 86 to 88 hold
+  the 32 body characters Measurehum to Measuredkf, one per playable race and gender, level 1 with no items in arttest, bound at the
+  Plane of Knowledge's safe point
+why: 'The player measurement walks (plan step 22) walk every playable race and gender, each with its own permanent character, instead
+  of rewriting Claudewright''s race for each body (the churn of 20261012-194333 to -194340). The client sizes the player''s own spawn
+  from its real race and gender (a #race illusion leaves avatarHeight at the real race''s), so each body is a character of that race
+  and gender. The ledger writes the rows EQEmu''s character creation writes, as 0015 did for Claudewright: character_data with the creation
+  defaults (level 1, 75 in every stat with 30 points unspent, 1000 hit points, hunger and thirst 6000), the five bind points at the
+  Plane of Knowledge''s safe point -285, -148, -159, swimming 100 and sense heading 200, and common tongue at 100 (the race and class
+  starting skills and the other racial languages are left out, which a GM walking lanes never needs); no items, no buffs. Each starts
+  in arttest (996) at its safe point -20, 200, 0. Each is a warrior with deity 396 (agnostic), which char_create_combinations allows
+  for every race but these: erudite and high elf have no warrior and are wizards (deity 396), and iksar, froglok and drakkin warriors
+  take their only deities, 203, 208 and 216. Names are Measure plus zonewright''s model code. RoF2 lists 12 characters per account (EQEmu
+  world/worlddb.cpp GetCharSelectInfo), so they span three accounts: claudeperidot/eqLogin: Measurehum, Measurehuf, Measurebam, Measurebaf,
+  Measureerm, Measureerf, Measureelm, Measureelf, Measurehim, Measurehif, Measuredam; claudeperidot/eqLogin2: Measuredaf, Measureham,
+  Measurehaf, Measuredwm, Measuredwf, Measuretrm, Measuretrf, Measureogm, Measureogf, Measurehom, Measurehof, Measuregnm; claudeperidot/eqLogin3:
+  Measuregnf, Measureikm, Measureikf, Measurekem, Measurekef, Measurefrm, Measurefrf, Measuredkm, Measuredkf. Accounts 87 and 88 are
+  the world account rows the first logins with claudeperidot/eqLogin2 and eqLogin3 made (play, ls_id local, lsaccount_id 86 and 87;
+  their names stay in Credential Manager); they get Claudewright''s account setup, GM status 255 and flymode 0 (0016). Their MacroQuest
+  cfgs (20261012-230618) are in place before any of them enters the world. The scope lists the child tables before character_data so
+  revert removes them while their predicate still finds the characters; once a character plays, EQEmu rewrites these rows, and revert
+  refuses until they are put right by hand.'
+kind: db
+scope:
+- table: character_bind
+  where: id IN (SELECT id FROM character_data WHERE name IN ('Measurehum', 'Measurehuf', 'Measurebam', 'Measurebaf', 'Measureerm', 'Measureerf',
+    'Measureelm', 'Measureelf', 'Measurehim', 'Measurehif', 'Measuredam', 'Measuredaf', 'Measureham', 'Measurehaf', 'Measuredwm', 'Measuredwf',
+    'Measuretrm', 'Measuretrf', 'Measureogm', 'Measureogf', 'Measurehom', 'Measurehof', 'Measuregnm', 'Measuregnf', 'Measureikm', 'Measureikf',
+    'Measurekem', 'Measurekef', 'Measurefrm', 'Measurefrf', 'Measuredkm', 'Measuredkf'))
+- table: character_skills
+  where: id IN (SELECT id FROM character_data WHERE name IN ('Measurehum', 'Measurehuf', 'Measurebam', 'Measurebaf', 'Measureerm', 'Measureerf',
+    'Measureelm', 'Measureelf', 'Measurehim', 'Measurehif', 'Measuredam', 'Measuredaf', 'Measureham', 'Measurehaf', 'Measuredwm', 'Measuredwf',
+    'Measuretrm', 'Measuretrf', 'Measureogm', 'Measureogf', 'Measurehom', 'Measurehof', 'Measuregnm', 'Measuregnf', 'Measureikm', 'Measureikf',
+    'Measurekem', 'Measurekef', 'Measurefrm', 'Measurefrf', 'Measuredkm', 'Measuredkf'))
+- table: character_languages
+  where: id IN (SELECT id FROM character_data WHERE name IN ('Measurehum', 'Measurehuf', 'Measurebam', 'Measurebaf', 'Measureerm', 'Measureerf',
+    'Measureelm', 'Measureelf', 'Measurehim', 'Measurehif', 'Measuredam', 'Measuredaf', 'Measureham', 'Measurehaf', 'Measuredwm', 'Measuredwf',
+    'Measuretrm', 'Measuretrf', 'Measureogm', 'Measureogf', 'Measurehom', 'Measurehof', 'Measuregnm', 'Measuregnf', 'Measureikm', 'Measureikf',
+    'Measurekem', 'Measurekef', 'Measurefrm', 'Measurefrf', 'Measuredkm', 'Measuredkf'))
+- table: character_data
+  where: name IN ('Measurehum', 'Measurehuf', 'Measurebam', 'Measurebaf', 'Measureerm', 'Measureerf', 'Measureelm', 'Measureelf', 'Measurehim',
+    'Measurehif', 'Measuredam', 'Measuredaf', 'Measureham', 'Measurehaf', 'Measuredwm', 'Measuredwf', 'Measuretrm', 'Measuretrf', 'Measureogm',
+    'Measureogf', 'Measurehom', 'Measurehof', 'Measuregnm', 'Measuregnf', 'Measureikm', 'Measureikf', 'Measurekem', 'Measurekef', 'Measurefrm',
+    'Measurefrf', 'Measuredkm', 'Measuredkf')
+- table: account
+  where: id IN (87, 88)
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-12, the owner on measuring bodies: "permanent character per body seems like the obvious fix. make sure you
+    measured gender in your assessments assuming gender mattered."'
+activation: the characters appear at each account's next character select; the accounts' status at their next login
+production: none
+commits: []
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: a7c1bc5a9c47369be

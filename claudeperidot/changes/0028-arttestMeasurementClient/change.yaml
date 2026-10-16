@@ -1,0 +1,37 @@
+title: The spare client holds arttest.eqg, the measurement zone of design #10, in the client's unused arttest slot (id 996)
+why: >-
+  Design #10 (RoF2 player measurements) walks a measurement zone (risers 4.50 to 5.30, ramps 70 to 80 degrees, a pool with a
+  sloping bed, stepped ceilings, narrowing openings) with the spare to measure each body group's step, slope, swim depth,
+  clearance, and eye. The client loads a zone's files by the id it registers; eqgame.exe registers arttest ("Art Testing
+  Domain") under 996, the spare's folder holds no arttest files, and claudeperidot's zone row for it (min_status 80) has no
+  zone_points, spawns, doors, or maps, so the slot is unused. The archive is zonewright's game export, verified by verifyExport,
+  built by measurementZone/buildMeasurementZone.py into %LOCALAPPDATA%\zonewright\staging\arttest; 0029 sets its zone row, and
+  a lab change still to be numbered puts its server maps in place.
+kind: client
+scope:
+  - S:\Research\EverQuest\housingclient\arttest.eqg
+disposition: exploration
+significance: minor
+ownerClearance: pending
+activation: the spare zoning into arttest (#zone arttest, GM status 80 or more)
+production: none
+commits: []
+steps:
+  - |-
+    $source = Join-Path $env:LOCALAPPDATA 'zonewright\staging\arttest\arttest.eqg'
+    $target = 'S:\Research\EverQuest\housingclient\arttest.eqg'
+    if (Test-Path -LiteralPath $target) { throw "$target exists already; the slot is not unused" }
+    $expected = '820F9D026EEFEDA3271F7EC48A19B806CDBA562BC30E0367B2B82BFDC7D78610'
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $source).Hash -ne $expected) { throw "$source is not the verified export" }
+    Copy-Item -LiteralPath $source -Destination $target
+undo:
+  - |-
+    $target = 'S:\Research\EverQuest\housingclient\arttest.eqg'
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash -ne '820F9D026EEFEDA3271F7EC48A19B806CDBA562BC30E0367B2B82BFDC7D78610') { throw "$target is not the file this change copied" }
+    Remove-Item -LiteralPath $target
+checks:
+  - path: S:\Research\EverQuest\housingclient\arttest.eqg
+    sha256: 820f9d026eefeda3271f7ec48a19b806cdba562bc30e0367b2b82bfdc7d78610
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: a777aef0d52e23a8f

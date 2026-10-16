@@ -1,0 +1,76 @@
+title: The spare's claudelinkZones.json registers Kilnhollow (787, kilnhollow, eqstr 35154) and its eqstr_us.txt holds the line 35154 Kilnhollow
+why: >-
+  Kilnhollow (zone id 787, short name kilnhollow, long name Kilnhollow) is not in the RoF2 client's built-in zone
+  table. MQClaudeLink 0.9 (change 20261013-003425-mqClaudeLinkCustomZones) adds each entry of claudelinkZones.json
+  beside the spare's eqgame.exe through the client's own EQWorldData::AddZone; this change writes that file with
+  Kilnhollow's one entry, field for field eq-core-dll's ZoneEntry: zoneType 0 (no expansion, as EQEmu's guide's
+  example), zoneID 787, zoneShortName kilnhollow, zoneLongName Kilnhollow, eqStrID 35154, zoneFlags2 4 (the flags
+  the client gives highpasshold and the guide's example), x 0, y 0, z 0 (no high flags, access level or minimum
+  level). Character select shows a zone's name from the eqstr_us.txt line its eqStrID names, so the spare's
+  eqstr_us.txt gets the line 35154 Kilnhollow: the file's highest id is 35153 and 35154 is unused (the guide picks the
+  same next id), the line goes at the end, after 35153, and the entry count on the file's second line goes from 7135
+  to 7136 (7135 lines follow the header before the change); every other byte is unchanged, and the file stays CRLF.
+  The undo takes the line off and the count back and the result's hash is the original file's
+  (d7c93d62996eb6c4fb7b3f7f13bde5fb4fcdf5b1c1f1e145b9a09709463f60be, 432249 bytes), then removes the zones file.
+  To replicate in production: in eq-core-dll's _options.h set areCustomZonesEnabled = true and put
+  ZoneEntry(0, 787, "kilnhollow", "Kilnhollow", 35154, 4, 0, 0, 0) in Zones[]; append the line 35154 Kilnhollow to
+  the production client's eqstr_us.txt and raise the count on its second line by one (check first that its 35154 is
+  unused); ship both with the zone's files; and keep the zone row's zoneidnumber 787, short_name kilnhollow and
+  long_name Kilnhollow, as the guide says. The steps refuse while the spare runs, when the zones file already exists, or
+  when eqstr_us.txt is not the recorded file.
+kind: client
+scope:
+  - S:\Research\EverQuest\housingclient\claudelinkZones.json
+  - S:\Research\EverQuest\housingclient\eqstr_us.txt
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-12, the owner on Kilnhollow''s client side: "yes, that''s your baby. have at it. just make sure you know what you did so you can replicate it if/when we start using this in production and don''t make it too hacky"; and on registering the zone: "option b. no need to compile new code if it''s just a temporary solution and you can do it via claudelink"'
+activation: the spare's next launch
+production: none
+commits: []
+steps:
+  - |-
+    $ErrorActionPreference = 'Stop'
+    $spare = 'S:\Research\EverQuest\housingclient'
+    $running = @(Get-CimInstance Win32_Process -Filter "Name='eqgame.exe'" | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($spare + '\', [StringComparison]::OrdinalIgnoreCase) })
+    if ($running.Count -gt 0) { throw ("close the spare first; running: " + (($running | ForEach-Object { $_.ProcessId }) -join ', ')) }
+    $eqstr = "$spare\eqstr_us.txt"
+    $zones = "$spare\claudelinkZones.json"
+    if (Test-Path -LiteralPath $zones) { throw "$zones already exists" }
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $eqstr).Hash -ne 'd7c93d62996eb6c4fb7b3f7f13bde5fb4fcdf5b1c1f1e145b9a09709463f60be') { throw "$eqstr is not the file this change was recorded with" }
+    $encoding = [Text.Encoding]::GetEncoding(28591)
+    $text = [IO.File]::ReadAllText($eqstr, $encoding)
+    $header = "EQST0002`r`n0 7135`r`n"
+    $text = "EQST0002`r`n0 7136`r`n" + $text.Substring($header.Length) + "35154 Kilnhollow`r`n"
+    [IO.File]::WriteAllText($eqstr, $text, $encoding)
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $eqstr).Hash -ne '9f2dbb75550339c4cb704095ddad62de41cd00ad872bace6779564b66f349a95') { throw "$eqstr is not the file this change writes" }
+    $entries = "[`r`n" + '  {"zoneType": 0, "zoneID": 787, "zoneShortName": "kilnhollow", "zoneLongName": "Kilnhollow", "eqStrID": 35154, "zoneFlags2": 4, "x": 0, "y": 0, "z": 0}' + "`r`n]`r`n"
+    [IO.File]::WriteAllText($zones, $entries, $encoding)
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $zones).Hash -ne '05e71a131465d9c6263aa55ee87fbce1514a567154cb6bcad3eff6e489628993') { throw "$zones is not the file this change writes" }
+undo:
+  - |-
+    $ErrorActionPreference = 'Stop'
+    $spare = 'S:\Research\EverQuest\housingclient'
+    $running = @(Get-CimInstance Win32_Process -Filter "Name='eqgame.exe'" | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($spare + '\', [StringComparison]::OrdinalIgnoreCase) })
+    if ($running.Count -gt 0) { throw ("close the spare first; running: " + (($running | ForEach-Object { $_.ProcessId }) -join ', ')) }
+    $eqstr = "$spare\eqstr_us.txt"
+    $zones = "$spare\claudelinkZones.json"
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $eqstr).Hash -ne '9f2dbb75550339c4cb704095ddad62de41cd00ad872bace6779564b66f349a95') { throw "$eqstr is not as this change left it" }
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $zones).Hash -ne '05e71a131465d9c6263aa55ee87fbce1514a567154cb6bcad3eff6e489628993') { throw "$zones is not this change's file" }
+    $encoding = [Text.Encoding]::GetEncoding(28591)
+    $text = [IO.File]::ReadAllText($eqstr, $encoding)
+    $header = "EQST0002`r`n0 7136`r`n"
+    $line = "35154 Kilnhollow`r`n"
+    $text = "EQST0002`r`n0 7135`r`n" + $text.Substring($header.Length, $text.Length - $header.Length - $line.Length)
+    [IO.File]::WriteAllText($eqstr, $text, $encoding)
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $eqstr).Hash -ne 'd7c93d62996eb6c4fb7b3f7f13bde5fb4fcdf5b1c1f1e145b9a09709463f60be') { throw "$eqstr did not come back to the original file" }
+    Remove-Item -LiteralPath $zones -Confirm:$false
+checks:
+  - path: S:\Research\EverQuest\housingclient\claudelinkZones.json
+    sha256: 05e71a131465d9c6263aa55ee87fbce1514a567154cb6bcad3eff6e489628993
+  - path: S:\Research\EverQuest\housingclient\eqstr_us.txt
+    sha256: 9f2dbb75550339c4cb704095ddad62de41cd00ad872bace6779564b66f349a95
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: aec90e6f46005bf77

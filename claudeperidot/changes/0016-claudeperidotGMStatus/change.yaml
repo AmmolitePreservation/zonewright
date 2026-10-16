@@ -1,0 +1,19 @@
+title: Account 86, the spare's login account, has status 255 (GM)
+why: >-
+  Claude's GM account on claudeperidot (plan step 13, the GM fixture; GM status opens every zone): status 255
+  lets the spare's character use every GM command, #zone and #goto among them, which the link drives. Account 86 is
+  the world account row the spare's first login made (play); its name stays in Credential Manager. The account table
+  holds logins, so stage keeps its saved row and revert on claudeperidot. EQEmu rewrites the row at logins (its
+  checksum columns), so revert refuses after one until the row is put right by hand.
+kind: db
+scope:
+  - table: account
+    where: id = 86
+disposition: fixture
+significance: minor
+ownerClearance: pending
+activation: the account's next login (relog)
+production: none
+commits: []
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

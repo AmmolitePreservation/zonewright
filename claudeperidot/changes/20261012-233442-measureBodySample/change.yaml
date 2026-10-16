@@ -1,0 +1,46 @@
+title: Account 86 holds Claudewright and the seven sample body characters (Measurehum, Measureelf, Measuredwm, Measureogm, Measuregnf,
+  Measurekef, Measuredkm); the other 25 body characters and the extra accounts 87 and 88 with their logins are gone
+why: >-
+  The owner wants a representative sample, not every race and gender: each body group's tallest, shortest, widest and thinnest,
+  height being the avatarHeight the client tests. That is seven characters (small: dwarf male, gnome female; medium: drakkin male,
+  wood elf female, human male; large: ogre male, vah shir female), which fit one account with Claudewright under RoF2's 12 per
+  account. This deletes the other 25 characters of 20261012-230620 with every row play gave them (bind, skills, languages,
+  currency, pet info, alternate abilities, stats record, experience modifiers), moves the five sample characters on accounts 87
+  and 88 to 86, and deletes accounts 87 and 88, their account_ip rows, and their login server accounts (login_accounts 86 and 87).
+  player_event_logs keeps its rows: it is the record of what was done.
+kind: db
+scope:
+- table: character_bind
+  where: id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)
+- table: character_skills
+  where: id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)
+- table: character_languages
+  where: id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)
+- table: character_currency
+  where: id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)
+- table: character_pet_info
+  where: char_id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)
+- table: character_alternate_abilities
+  where: id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)
+- table: character_stats_record
+  where: character_id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)
+- table: character_exp_modifiers
+  where: character_id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)
+- table: character_data
+  where: id BETWEEN 118 AND 149
+- table: account
+  where: id IN (86, 87, 88)
+- table: account_ip
+  where: accid IN (87, 88)
+- table: login_accounts
+  where: id IN (86, 87)
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-12, the owner on the 32 body characters: "great and this should fit in a single account now right?" then "no, not
+    once they''re finished, now. fuckin'' clean that shit up."'
+activation: account 86's next character select; accounts 87 and 88 can no longer log in
+production: none
+commits: []
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

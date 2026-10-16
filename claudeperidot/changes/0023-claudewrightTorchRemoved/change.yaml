@@ -1,0 +1,19 @@
+title: Claudewright's Torch (0022) is removed, leaving it with no items
+why: >-
+  The carried-light shots are taken. 0022 cannot revert: the world server gave the torch's inventory row a guid (118)
+  when Claudewright logged in, so its row is no longer the one apply wrote. This deletes the character's inventory
+  again, as 0020 did, so calibration shots carry no light.
+kind: db
+scope:
+  - table: inventory
+    where: character_id IN (SELECT id FROM character_data WHERE name = 'Claudewright')
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: "you should make sure your character is a human with no equipment. now that you're on your own little test shard. (2026-10-11)"
+activation: the character's next login (the spare is closed while it applies)
+production: none
+commits: []
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: a971da362190202ed

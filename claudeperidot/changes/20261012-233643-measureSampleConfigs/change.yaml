@@ -1,0 +1,58 @@
+title: The owner's MacroQuest config folder holds claudeperidot_<name>.cfg for each of the seven sample body characters, identical to Claudewright's
+why: The seven sample body characters (plan step 22, 20261012-233442) enter the world on account 86; each needs 0013's cfg so MacroQuest unloads
+  mq2netbots and MQ2EQBC (AutoConnect to the owner's EQBCS on Peridot) and loads MQClaudeLink before any plugin hears the character enter the
+  world. 20261012-230618 made these for all 32 bodies and two more logins and was reverted when the bodies were cut to the sample. MacroQuest
+  writes claudeperidot_<name>.ini beside each as the character plays; the undo removes those too.
+kind: client
+scope:
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehum.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureelf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredwm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureogm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuregnf.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurekef.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredkm.cfg
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehum.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureelf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredwm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureogm.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuregnf.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurekef.ini
+- ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredkm.ini
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-12, the owner on the 32 body characters: "great and this should fit in a single account now right?" then "no, not once
+    they''re finished, now. fuckin'' clean that shit up."'
+activation: each sample body character's next entry into the world
+production: none
+commits: []
+steps:
+- "$config = \"$env:USERPROFILE\\LocalProjects\\mqPeridot\\build\\bin\\release\\config\"\n$names = @('Measurehum', 'Measureelf', 'Measuredwm',\
+  \ 'Measureogm', 'Measuregnf', 'Measurekef', 'Measuredkm')\n$content = \"/plugin mq2netbots unload noauto`r`n/plugin MQ2EQBC unload noauto`r`n/plugin\
+  \ MQClaudeLink load noauto`r`n\"\nforeach ($name in $names) {\n  if (Test-Path -LiteralPath \"$config\\claudeperidot_$name.cfg\") { throw \"\
+  $config\\claudeperidot_$name.cfg already exists; this change only creates it\" }\n}\nforeach ($name in $names) {\n  [IO.File]::WriteAllText(\"\
+  $config\\claudeperidot_$name.cfg\", $content, (New-Object System.Text.ASCIIEncoding))\n}"
+undo:
+- "$config = \"$env:USERPROFILE\\LocalProjects\\mqPeridot\\build\\bin\\release\\config\"\n$names = @('Measurehum', 'Measureelf', 'Measuredwm',\
+  \ 'Measureogm', 'Measuregnf', 'Measurekef', 'Measuredkm')\nforeach ($name in $names) {\n  $path = \"$config\\claudeperidot_$name.cfg\"\n  $hash\
+  \ = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()\n  if ($hash -ne 'b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf')\
+  \ { throw \"$path changed since apply (sha256 $hash)\" }\n}\nforeach ($name in $names) {\n  Remove-Item -LiteralPath \"$config\\claudeperidot_$name.cfg\"\
+  \n  if (Test-Path -LiteralPath \"$config\\claudeperidot_$name.ini\") { Remove-Item -LiteralPath \"$config\\claudeperidot_$name.ini\" }\n}"
+checks:
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurehum.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureelf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredwm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measureogm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuregnf.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measurekef.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+- path: ~\LocalProjects\mqPeridot\build\bin\release\config\claudeperidot_Measuredkm.cfg
+  sha256: b25878ecbd5521f722f1ff2bd64318e6fe60b28ec67e06c9b5985fb77f07a3cf
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

@@ -1,0 +1,37 @@
+UPDATE account SET status = 255, flymode = 0 WHERE id IN (87, 88);
+INSERT INTO character_data (account_id, name, gender, race, class, level, deity, birthday, last_login, zone_id, x, y, z, heading, str, sta, cha, dex, `int`, agi, wis, points, cur_hp, hunger_level, thirst_level) VALUES
+  (86, 'Measurehum', 0, 1, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (86, 'Measurehuf', 1, 1, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (86, 'Measurebam', 0, 2, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (86, 'Measurebaf', 1, 2, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (86, 'Measureerm', 0, 3, 12, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (86, 'Measureerf', 1, 3, 12, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (86, 'Measureelm', 0, 4, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (86, 'Measureelf', 1, 4, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (86, 'Measurehim', 0, 5, 12, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (86, 'Measurehif', 1, 5, 12, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (86, 'Measuredam', 0, 6, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measuredaf', 1, 6, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measureham', 0, 7, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measurehaf', 1, 7, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measuredwm', 0, 8, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measuredwf', 1, 8, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measuretrm', 0, 9, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measuretrf', 1, 9, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measureogm', 0, 10, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measureogf', 1, 10, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measurehom', 0, 11, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measurehof', 1, 11, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (87, 'Measuregnm', 0, 12, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (88, 'Measuregnf', 1, 12, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (88, 'Measureikm', 0, 128, 1, 1, 203, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (88, 'Measureikf', 1, 128, 1, 1, 203, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (88, 'Measurekem', 0, 130, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (88, 'Measurekef', 1, 130, 1, 1, 396, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (88, 'Measurefrm', 0, 330, 1, 1, 208, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (88, 'Measurefrf', 1, 330, 1, 1, 208, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (88, 'Measuredkm', 0, 522, 1, 1, 216, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000),
+  (88, 'Measuredkf', 1, 522, 1, 1, 216, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), 996, -20, 200, 0, 0, 75, 75, 75, 75, 75, 75, 75, 30, 1000, 6000, 6000);
+INSERT INTO character_bind (id, slot, zone_id, instance_id, x, y, z, heading) SELECT character_data.id, slots.slot, 202, 0, -285, -148, -159, 0 FROM character_data JOIN (SELECT 0 AS slot UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) AS slots WHERE character_data.name IN ('Measurehum', 'Measurehuf', 'Measurebam', 'Measurebaf', 'Measureerm', 'Measureerf', 'Measureelm', 'Measureelf', 'Measurehim', 'Measurehif', 'Measuredam', 'Measuredaf', 'Measureham', 'Measurehaf', 'Measuredwm', 'Measuredwf', 'Measuretrm', 'Measuretrf', 'Measureogm', 'Measureogf', 'Measurehom', 'Measurehof', 'Measuregnm', 'Measuregnf', 'Measureikm', 'Measureikf', 'Measurekem', 'Measurekef', 'Measurefrm', 'Measurefrf', 'Measuredkm', 'Measuredkf');
+INSERT INTO character_skills (id, skill_id, value) SELECT character_data.id, skills.skill_id, skills.value FROM character_data JOIN (SELECT 50 AS skill_id, 100 AS value UNION ALL SELECT 40, 200) AS skills WHERE character_data.name IN ('Measurehum', 'Measurehuf', 'Measurebam', 'Measurebaf', 'Measureerm', 'Measureerf', 'Measureelm', 'Measureelf', 'Measurehim', 'Measurehif', 'Measuredam', 'Measuredaf', 'Measureham', 'Measurehaf', 'Measuredwm', 'Measuredwf', 'Measuretrm', 'Measuretrf', 'Measureogm', 'Measureogf', 'Measurehom', 'Measurehof', 'Measuregnm', 'Measuregnf', 'Measureikm', 'Measureikf', 'Measurekem', 'Measurekef', 'Measurefrm', 'Measurefrf', 'Measuredkm', 'Measuredkf');
+INSERT INTO character_languages (id, lang_id, value) SELECT id, 0, 100 FROM character_data WHERE name IN ('Measurehum', 'Measurehuf', 'Measurebam', 'Measurebaf', 'Measureerm', 'Measureerf', 'Measureelm', 'Measureelf', 'Measurehim', 'Measurehif', 'Measuredam', 'Measuredaf', 'Measureham', 'Measurehaf', 'Measuredwm', 'Measuredwf', 'Measuretrm', 'Measuretrf', 'Measureogm', 'Measureogf', 'Measurehom', 'Measurehof', 'Measuregnm', 'Measuregnf', 'Measureikm', 'Measureikf', 'Measurekem', 'Measurekef', 'Measurefrm', 'Measurefrf', 'Measuredkm', 'Measuredkf');

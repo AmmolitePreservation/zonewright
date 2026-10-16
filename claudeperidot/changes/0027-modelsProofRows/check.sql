@@ -1,0 +1,1 @@
+SELECT ((SELECT COUNT(*) FROM zone WHERE short_name = 'interiorwalltest' AND version = 0 AND zoneidnumber = 767) = 1 AND (SELECT COUNT(*) FROM zone_points WHERE zone = 'interiorwalltest') = 0 AND (SELECT COUNT(*) FROM doors WHERE zone = 'interiorwalltest') = 2 AND (SELECT COUNT(*) FROM object WHERE zoneid = 767) = 1) AS applied;

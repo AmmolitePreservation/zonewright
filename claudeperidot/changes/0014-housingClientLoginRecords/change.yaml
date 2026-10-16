@@ -1,0 +1,77 @@
+title: The owner's MacroQuest login.db holds MQ2AutoLogin's rows for the spare's login on claudeperidot (the server name pair, Claude's account, and the character Claudewright with its persona)
+why: >-
+  MQ2AutoLogin, loaded in every client from the owner's [Plugins], records each login it performs when the client reaches character select (MQ2AutoLogin.cpp SetGameState, detect_info on by default) - the server's short and long name, the account with its password stored as the owner's are (XORed with the cached master password, or no row when that is not available), and a character and persona row per character - and the loader adds the persona when the character loads. The spare logs in with /login: from the credential 0012, so these rows appear on the spare's first launch and are the only writes Claude's login makes to the owner's login.db. They are recorded before that launch; the ledger never writes login.db, and the check is the persona row. The undo removes exactly these rows, finding the account by the name in the credential.
+kind: client
+scope:
+  - ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-05, the owner''s answer 15 (login server): claudeperidot''s own'
+activation: none
+production: none
+commits: []
+steps:
+  - |-
+    throw 'MQ2AutoLogin writes these rows itself when the spare reaches character select through claudelink''s launchClient; the ledger records them and never writes login.db'
+undo:
+  - |-
+    Add-Type -TypeDefinition @'
+    using System;
+    using System.Runtime.InteropServices;
+    public static class ClaudePeridotLoginName
+    {
+      [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+      public struct Credential
+      {
+        public int Flags;
+        public int Type;
+        public string TargetName;
+        public string Comment;
+        public long LastWritten;
+        public int CredentialBlobSize;
+        public IntPtr CredentialBlob;
+        public int Persist;
+        public int AttributeCount;
+        public IntPtr Attributes;
+        public string TargetAlias;
+        public string UserName;
+      }
+      [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
+      public static extern bool CredRead(string target, int type, int flags, out IntPtr credential);
+      [DllImport("advapi32.dll")]
+      public static extern void CredFree(IntPtr buffer);
+    }
+    '@
+    $pointer = [IntPtr]::Zero
+    if (-not [ClaudePeridotLoginName]::CredRead('claudeperidot/eqLogin', 1, 0, [ref]$pointer)) {
+      throw "the credential claudeperidot/eqLogin is gone (Windows error $([Runtime.InteropServices.Marshal]::GetLastWin32Error())); undo 0014 before 0012"
+    }
+    try {
+      $credential = [Runtime.InteropServices.Marshal]::PtrToStructure($pointer, [type][ClaudePeridotLoginName+Credential])
+      $env:CLAUDEPERIDOT_LOGIN_ACCOUNT = $credential.UserName
+    } finally {
+      [ClaudePeridotLoginName]::CredFree($pointer)
+    }
+    $script = @'
+    import os, pathlib, sqlite3
+    path = pathlib.Path.home() / "LocalProjects" / "mqPeridot" / "build" / "bin" / "release" / "config" / "login.db"
+    account = os.environ["CLAUDEPERIDOT_LOGIN_ACCOUNT"].lower()
+    connection = sqlite3.connect(path)
+    with connection:
+      characters = "SELECT id FROM characters WHERE server = 'claudeperidot' AND account_id IN (SELECT id FROM accounts WHERE account = ?)"
+      connection.execute(f"DELETE FROM personas WHERE character_id IN ({characters})", (account,))
+      connection.execute(f"DELETE FROM characters WHERE id IN ({characters})", (account,))
+      connection.execute("DELETE FROM accounts WHERE account = ? AND id NOT IN (SELECT account_id FROM characters)", (account,))
+      connection.execute("DELETE FROM servers WHERE short_name = 'claudeperidot' AND long_name = 'claudeperidot'")
+    connection.close()
+    '@
+    $script | python -
+    if ($LASTEXITCODE -ne 0) { throw "removing the rows failed with exit code $LASTEXITCODE" }
+    Remove-Item Env:\CLAUDEPERIDOT_LOGIN_ACCOUNT
+checks:
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\config\login.db
+    server: claudeperidot
+    character: Claudewright
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

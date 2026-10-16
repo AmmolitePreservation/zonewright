@@ -1,0 +1,33 @@
+title: housingclient's eqgame.exe is large-address aware (PE characteristics at the PE header + 0x16 changed from 0x0102 to 0x0122)
+why: About 4x the address-space headroom for the spare's long sessions (owner's answer 10), with relaunch on low free address space kept as the safety net. Only the spare's copy is patched; the owner's eqgame.exe (SHA-256 2a8702ad...) is untouched. MacroQuest's version gate reads eqgame.exe's date strings, which the patch leaves alone.
+kind: client
+scope:
+  - S:\Research\EverQuest\housingclient\eqgame.exe
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-05, the owner''s answer 10 (LAA patch): yes, on the spare''s eqgame.exe only'
+activation: none
+production: none
+commits: []
+steps:
+  - |-
+    $path = 'S:\Research\EverQuest\housingclient\eqgame.exe'
+    $bytes = [IO.File]::ReadAllBytes($path)
+    $characteristics = [BitConverter]::ToInt32($bytes, 0x3C) + 0x16
+    if ([BitConverter]::ToUInt16($bytes, $characteristics) -ne 0x0102) { throw "the characteristics of $path are not 0x0102" }
+    $bytes[$characteristics] = 0x22
+    [IO.File]::WriteAllBytes($path, $bytes)
+undo:
+  - |-
+    $path = 'S:\Research\EverQuest\housingclient\eqgame.exe'
+    $bytes = [IO.File]::ReadAllBytes($path)
+    $characteristics = [BitConverter]::ToInt32($bytes, 0x3C) + 0x16
+    if ([BitConverter]::ToUInt16($bytes, $characteristics) -ne 0x0122) { throw "the characteristics of $path are not 0x0122" }
+    $bytes[$characteristics] = 0x02
+    [IO.File]::WriteAllBytes($path, $bytes)
+checks:
+  - path: S:\Research\EverQuest\housingclient\eqgame.exe
+    sha256: 09ca82298b2647943ee1c56d5042e936d0737d3e54257d593ab4da2becb55b67
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

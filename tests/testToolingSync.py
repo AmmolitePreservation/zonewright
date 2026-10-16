@@ -1,0 +1,185 @@
+import http.server
+import io
+import json
+import socket
+import struct
+import subprocess
+import threading
+import urllib.request
+import zipfile
+
+import pytest
+
+from conftest import pinnedBlender, pinnedRecast
+
+pytestmark = pytest.mark.install
+
+
+def blenderAction(action, version):
+  return {"tool": "blender", "action": action, "version": version}
+
+
+def extensionAction(action, extensionID, version):
+  return {"tool": "extension", "action": action, "id": extensionID, "version": version}
+
+
+def testSyncInstallsUpgradesRemovesAndPinsCatalogReleases(stageServer, blenderArchivePin, buildExtensionPin):
+  version = blenderArchivePin["version"]
+  probeV1 = buildExtensionPin("zonewrightProbe", "1.0.0")
+  server = stageServer({"blender": blenderArchivePin, "extensions": {"zonewrightProbe": probeV1}})
+  (server.toolingRoot / "blender" / "0.0.1").mkdir(parents=True)
+
+  result, progressMessages = server.callToolExpectingSuccess("syncTooling")
+  assert result["actions"][:3] == [
+    blenderAction("installed", version),
+    blenderAction("removed", "0.0.1"),
+    extensionAction("installed", "zonewrightProbe", "1.0.0"),
+  ]
+  fetched, built, profiled = result["actions"][3:]
+  assert fetched == {"tool": "recast", "action": "fetched", "commit": pinnedRecast["commit"]}
+  assert (built["tool"], built["action"], built["fingerprint"]) == ("recastHelper", "built", result["status"]["recastHelper"]["fingerprint"])
+  assert result["status"]["recastHelper"]["state"] == "built"
+  assert (profiled["tool"], profiled["action"], profiled["reasons"]) == ("machineProfile", "profiled", ["no machine profile"])
+  assert profiled["gpuBackend"] in ("vulkan", "opengl")
+  assert f"downloading Blender {version}" in progressMessages
+  assert f"extracting Blender {version}" in progressMessages
+  assert "benchmarking the vulkan GPU backend" in progressMessages
+  assert "benchmarking the opengl GPU backend" in progressMessages
+  installPath = server.toolingRoot / "blender" / version
+  assert (installPath / "portable").is_dir()
+  assert (installPath / "portable" / "extensions" / "user_default" / "zonewrightProbe" / "blender_manifest.toml").is_file()
+  assert result["status"]["blender"]["state"] == "installed"
+  assert result["status"]["blender"]["installedVersions"] == [version]
+  assert result["status"]["extensions"] == {"pinned": {"zonewrightProbe": {"pinnedVersion": "1.0.0", "state": "installed"}}, "unpinned": {}}
+  assert sorted(entry.name for entry in server.toolingRoot.iterdir()) == ["blender", "logs", "machineProfile.json", "recast", "recastHelper"]
+
+  result, progressMessages = server.callToolExpectingSuccess("syncTooling")
+  assert result["actions"] == []
+  assert progressMessages == []
+
+  probeV2 = buildExtensionPin("zonewrightProbe", "1.1.0")
+  secondProbe = buildExtensionPin("zonewrightSecondProbe", "2.0.0")
+  server.writeManifest({"blender": blenderArchivePin, "extensions": {"zonewrightProbe": probeV2, "zonewrightSecondProbe": secondProbe}})
+  result, _ = server.callToolExpectingSuccess("syncTooling")
+  assert result["actions"] == [
+    extensionAction("removed", "zonewrightProbe", "1.0.0"),
+    extensionAction("installed", "zonewrightProbe", "1.1.0"),
+    extensionAction("installed", "zonewrightSecondProbe", "2.0.0"),
+  ]
+
+  result, _ = server.callToolExpectingSuccess("removeExtension", {"extensionID": "zonewrightSecondProbe"})
+  assert result["actions"] == [extensionAction("removed", "zonewrightSecondProbe", "2.0.0")]
+  assert server.readManifest()["extensions"] == {"zonewrightProbe": probeV2}
+  assert result["status"]["extensions"] == {"pinned": {"zonewrightProbe": {"pinnedVersion": "1.1.0", "state": "installed"}}, "unpinned": {}}
+
+  executablePath = installPath / "blender.exe"
+  runningBlender = subprocess.Popen([str(executablePath), "--background", "--factory-startup", "--python-expr", "import time; time.sleep(600)"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+  try:
+    errorText = server.callToolExpectingError("syncTooling")
+  finally:
+    runningBlender.kill()
+    runningBlender.wait()
+  assert "Blender is running from the tooling root" in errorText
+  assert str(executablePath) in errorText
+
+  # addExtension pins the catalog's own release of an extension and installs it beside the ones already pinned.
+  request = urllib.request.Request(
+    f"https://extensions.blender.org/api/v1/extensions/?blender_version={version}&platform=windows-x64",
+    headers={"User-Agent": "zonewright"},
+  )
+  with urllib.request.urlopen(request) as response:
+    catalog = json.loads(response.read())["data"]
+  smallestAddon = min((entry for entry in catalog if entry["type"] == "add-on"), key=lambda entry: entry["archive_size"])
+  extensionID = smallestAddon["id"]
+  result, _ = server.callToolExpectingSuccess("addExtension", {"extensionID": extensionID})
+  assert server.readManifest()["extensions"] == {
+    "zonewrightProbe": probeV2,
+    extensionID: {"version": smallestAddon["version"], "url": smallestAddon["archive_url"], "sha256": smallestAddon["archive_hash"].removeprefix("sha256:")},
+  }
+  assert extensionAction("installed", extensionID, smallestAddon["version"]) in result["actions"]
+  assert result["status"]["extensions"]["pinned"] == {
+    "zonewrightProbe": {"pinnedVersion": "1.1.0", "state": "installed"},
+    extensionID: {"pinnedVersion": smallestAddon["version"], "state": "installed"},
+  }
+  errorText = server.callToolExpectingError("addExtension", {"extensionID": extensionID, "version": "0.0.0"})
+  assert f"offers only {extensionID} {smallestAddon['version']}" in errorText
+
+
+def testAddUnknownExtensionFails(stageServer):
+  server = stageServer({"blender": pinnedBlender, "extensions": {}})
+  errorText = server.callToolExpectingError("addExtension", {"extensionID": "zonewrightNoSuchExtension"})
+  assert "lists 0 entries for 'zonewrightNoSuchExtension'" in errorText
+  assert server.readManifest()["extensions"] == {}
+
+
+def testRemoveUnpinnedExtensionFails(stageServer):
+  server = stageServer({"blender": pinnedBlender, "extensions": {}})
+  errorText = server.callToolExpectingError("removeExtension", {"extensionID": "zonewrightProbe"})
+  assert "Extension 'zonewrightProbe' is not pinned" in errorText
+
+
+def testHashMismatchFailsAndLeavesNothing(stageServer, buildExtensionPin):
+  badPin = buildExtensionPin("zonewrightProbe", "1.0.0") | {"version": pinnedBlender["version"], "sha256": "0" * 64}
+  server = stageServer({"blender": badPin, "extensions": {}})
+  errorText = server.callToolExpectingError("syncTooling")
+  assert "does not match pinned" in errorText
+  assert sorted(entry.name for entry in server.toolingRoot.iterdir()) == ["blender", "logs"]
+  assert list((server.toolingRoot / "blender").iterdir()) == []
+
+
+def testDownloadFailureReportsReason(stageServer, tmp_path):
+  missingPin = {"version": pinnedBlender["version"], "url": (tmp_path / "absent.zip").as_uri(), "sha256": "0" * 64}
+  server = stageServer({"blender": missingPin, "extensions": {}})
+  errorText = server.callToolExpectingError("syncTooling")
+  assert "download failed" in errorText
+  assert list((server.toolingRoot / "blender").iterdir()) == []
+
+
+def testBrokenInstallFailsWithoutTouchingIt(stageServer):
+  server = stageServer({"blender": pinnedBlender, "extensions": {}})
+  brokenPath = server.toolingRoot / "blender" / pinnedBlender["version"]
+  brokenPath.mkdir(parents=True)
+  errorText = server.callToolExpectingError("syncTooling")
+  assert "is broken" in errorText
+  assert list(brokenPath.iterdir()) == []
+
+
+def testDownloadsRetryAResetConnectionAndNameTheReasonWhenItKeepsFailing(stageServer):
+  archive = io.BytesIO()
+  with zipfile.ZipFile(archive, "w") as contents:
+    contents.writestr("blender/readme.txt", "not Blender")
+  counts = {"requests": 0, "resets": 1}
+
+  class FlakyServer(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+      counts["requests"] += 1
+      if counts["resets"] > 0:
+        counts["resets"] -= 1
+        # A zero linger makes close send a reset, as a server dropping the connection does.
+        self.connection.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
+        self.connection.close()
+        return
+      self.send_response(200)
+      self.send_header("Content-Length", str(len(archive.getvalue())))
+      self.end_headers()
+      self.wfile.write(archive.getvalue())
+
+    def log_message(self, *arguments):
+      pass
+
+  server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), FlakyServer)
+  threading.Thread(target=server.serve_forever, daemon=True).start()
+  try:
+    pin = {"version": pinnedBlender["version"], "url": f"http://127.0.0.1:{server.server_port}/blender.zip", "sha256": "0" * 64}
+    staged = stageServer({"blender": pin, "extensions": {}})
+    afterOneReset = staged.callToolExpectingError("syncTooling")
+    requestsAfterOneReset = counts["requests"]
+    counts.update(requests=0, resets=99)
+    keptFailing = staged.callToolExpectingError("syncTooling")
+    requestsKeptFailing = counts["requests"]
+  finally:
+    server.shutdown()
+    server.server_close()
+  # The first attempt is reset and the second downloads the archive whole, which then fails only on its pinned hash.
+  assert requestsAfterOneReset == 2 and "does not match pinned" in afterOneReset
+  assert requestsKeptFailing == 3 and "download failed after 3 attempts: ConnectionResetError" in keptFailing

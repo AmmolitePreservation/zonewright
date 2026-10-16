@@ -1,0 +1,21 @@
+title: Claudewright is a ogre female (race 10, gender 1) for the player measurement walks
+why: >-
+  Design #10's walks (plan step 19) measure each body group's limiting bodies in arttest; the ogre female is the large group's tallest body (model 11.65). The client
+  sizes the player's own spawn itself from its race and gender (the server sends size 0), and a #race illusion leaves the
+  client's avatarHeight at the human's 3.75 (tried in arttest 2026-10-12: race 12 shown, avatarHeight and height unchanged),
+  so the character's real race and gender change, written with the spare closed. Claudewright stays a wizard: neither the
+  server nor the client checks race and class when an existing character logs in. A later change (the next body, then
+  claudewrightHumanAgain) writes the row again; this one cannot revert by the ledger once play rewrites the row.
+kind: db
+scope:
+  - table: character_data
+    where: name = 'Claudewright'
+disposition: exploration
+significance: minor
+ownerClearance: pending
+activation: the character's next login (the spare is closed while it applies)
+production: none
+commits: []
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: aad5149887b7f716f

@@ -1,0 +1,1 @@
+SELECT COUNT(*) AS applied FROM zone WHERE short_name = 'arttest' AND version = 0 AND zoneidnumber = 996 AND safe_x = -20.0 AND safe_y = 200.0 AND safe_z = 0.0 AND safe_heading = 128.0 AND underworld = -60.0 AND minclip = 450.0 AND maxclip = 1500.0 AND sky = 1 AND ztype = 0 AND time_type = 1 AND min_status = 80;

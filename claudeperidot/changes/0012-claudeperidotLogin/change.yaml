@@ -1,0 +1,97 @@
+title: Credential Manager holds claudeperidot/eqLogin, the spare client's login on claudeperidot (a generated account name and password)
+why: The spare client logs in to claudeperidot's own login server with an account of Claude's, never the owner's (plan section 4). The step generates the account name (claude plus six lowercase letters and digits) and a 15-character password of letters and digits, the only characters MQ2AutoLogin's /login:server^account^password patterns split correctly, and stores them only in Credential Manager (generic credential, persisted for this machine), so neither reaches a file, a commit, a log or a command line. claudelink's launchClient reads them from there. The login server creates the account on the first login (auto_create_accounts), which is play.
+kind: client
+scope:
+  - ~\AppData\Local\Microsoft\Credentials
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-05, the owner''s answer 15 (login server): claudeperidot''s own'
+activation: none
+production: none
+commits: []
+steps:
+  - |-
+    $target = 'claudeperidot/eqLogin'
+    Add-Type -TypeDefinition @'
+    using System;
+    using System.Runtime.InteropServices;
+    public static class ClaudePeridotCredential
+    {
+      [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+      public struct Credential
+      {
+        public int Flags;
+        public int Type;
+        public string TargetName;
+        public string Comment;
+        public long LastWritten;
+        public int CredentialBlobSize;
+        public IntPtr CredentialBlob;
+        public int Persist;
+        public int AttributeCount;
+        public IntPtr Attributes;
+        public string TargetAlias;
+        public string UserName;
+      }
+      [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
+      public static extern bool CredWrite(ref Credential credential, int flags);
+      [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
+      public static extern bool CredRead(string target, int type, int flags, out IntPtr credential);
+      [DllImport("advapi32.dll")]
+      public static extern void CredFree(IntPtr buffer);
+    }
+    '@
+    $existing = [IntPtr]::Zero
+    if ([ClaudePeridotCredential]::CredRead($target, 1, 0, [ref]$existing)) {
+      [ClaudePeridotCredential]::CredFree($existing)
+      throw "$target already exists; this change only creates it"
+    }
+    $random = New-Object System.Security.Cryptography.RNGCryptoServiceProvider
+    function New-RandomText([string]$alphabet, [int]$length) {
+      $text = New-Object System.Text.StringBuilder
+      $byte = New-Object byte[] 1
+      $limit = 256 - (256 % $alphabet.Length)
+      while ($text.Length -lt $length) {
+        $random.GetBytes($byte)
+        if ($byte[0] -lt $limit) { [void]$text.Append($alphabet[$byte[0] % $alphabet.Length]) }
+      }
+      $text.ToString()
+    }
+    $account = 'claude' + (New-RandomText 'abcdefghijklmnopqrstuvwxyz0123456789' 6)
+    $password = New-RandomText 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789' 15
+    $blob = [Runtime.InteropServices.Marshal]::StringToCoTaskMemUni($password)
+    try {
+      $credential = New-Object ClaudePeridotCredential+Credential
+      $credential.Type = 1
+      $credential.TargetName = $target
+      $credential.Comment = 'claudeperidot spare client login (zonewright claudeperidot ledger 0012)'
+      $credential.CredentialBlobSize = $password.Length * 2
+      $credential.CredentialBlob = $blob
+      $credential.Persist = 2
+      $credential.UserName = $account
+      if (-not [ClaudePeridotCredential]::CredWrite([ref]$credential, 0)) {
+        throw "CredWrite failed with Windows error $([Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+      }
+    } finally {
+      [Runtime.InteropServices.Marshal]::ZeroFreeCoTaskMemUnicode($blob)
+    }
+undo:
+  - |-
+    $target = 'claudeperidot/eqLogin'
+    Add-Type -TypeDefinition @'
+    using System;
+    using System.Runtime.InteropServices;
+    public static class ClaudePeridotCredentialDelete
+    {
+      [DllImport("advapi32.dll", EntryPoint = "CredDeleteW", CharSet = CharSet.Unicode, SetLastError = true)]
+      public static extern bool CredDelete(string target, int type, int flags);
+    }
+    '@
+    if (-not [ClaudePeridotCredentialDelete]::CredDelete($target, 1, 0)) {
+      throw "CredDelete of $target failed with Windows error $([Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+    }
+checks:
+  - credential: claudeperidot/eqLogin
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

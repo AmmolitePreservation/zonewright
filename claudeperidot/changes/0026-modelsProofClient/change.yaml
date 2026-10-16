@@ -1,0 +1,39 @@
+title: The spare client holds interiorwalltest.eqg, the client models proof's archive
+why: >-
+  The client loads a zone's files by the short name it registers, here interiorwalltest (id 767), for which it ships no file. The
+  proof's archive (exportZone, %LOCALAPPDATA%\zonewright\proof\modelsByReference\export) holds its terrain, the client models it uses
+  copied byte for byte with their textures, and its .zon placing the scenery; it needs no interiorwalltest_assets.txt and the export
+  wrote none, nor an emitter list. Its doors and object rows are 0027 and its server maps 0025. The step refuses when the client
+  already holds a file of that name or the export's archive is not the verified one, and the spare must be closed.
+kind: client
+scope:
+  - S:\Research\EverQuest\housingclient\interiorwalltest.eqg
+disposition: exploration
+significance: minor
+ownerClearance: pending
+activation: the spare's next zoning into interiorwalltest
+production: none
+commits: []
+steps:
+  - |-
+    $ErrorActionPreference = 'Stop'
+    $source = Join-Path $env:LOCALAPPDATA 'zonewright\proof\modelsByReference\export\interiorwalltest.eqg'
+    $target = 'S:\Research\EverQuest\housingclient\interiorwalltest.eqg'
+    $expected = 'D447B2BDEDB14390247920BDE00B7E52807A39D4E50269262D5881FF97180892'
+    if (Get-Process -Name eqgame -ErrorAction SilentlyContinue | Where-Object { $_.Path -like 'S:\Research\EverQuest\housingclient\*' }) { throw 'the spare client is running' }
+    if (Test-Path $target) { throw "$target already exists" }
+    if ((Get-FileHash $source -Algorithm SHA256).Hash -ne $expected) { throw "$source is not the verified export" }
+    Copy-Item $source $target
+    if ((Get-FileHash $target -Algorithm SHA256).Hash -ne $expected) { throw "$target does not match the export" }
+undo:
+  - |-
+    $ErrorActionPreference = 'Stop'
+    $target = 'S:\Research\EverQuest\housingclient\interiorwalltest.eqg'
+    if ((Get-FileHash $target -Algorithm SHA256).Hash -ne 'D447B2BDEDB14390247920BDE00B7E52807A39D4E50269262D5881FF97180892') { throw "$target is not the proof's archive; nothing removed" }
+    Remove-Item $target -Confirm:$false
+checks:
+  - path: S:\Research\EverQuest\housingclient\interiorwalltest.eqg
+    sha256: d447b2bdedb14390247920bde00b7e52807a39d4e50269262d5881ff97180892
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: a67f456fe92628bed

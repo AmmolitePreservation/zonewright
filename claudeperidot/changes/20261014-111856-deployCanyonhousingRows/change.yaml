@@ -1,0 +1,28 @@
+title: canyonhousing (zone 788) holds exactly its game export's zone row and 0 zone_points, 0 doors and 6 object rows
+why: 'zonewright''s deployZone: the server side of canyonhousing as its game export (C:\Users\Toshiro\AppData\Local\zonewright\staging\canyonhousing\canyonhousing_export.json,
+  archive SHA-256 d479b2b671bab17457ac2906762a1bdbabed9c0e4925c3710d30462256495ee5) writes it. The scope is every row of the
+  zone in zone, zone_points, doors and object; apply deletes them and inserts the export''s (the zone row copying every column
+  the export does not write from highpasshold''s version-0 row), so rows of the zone the export does not hold are removed
+  and nothing outside the zone is written; the export''s own guards are the ledger''s scope guards here.'
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: '2026-10-14, the owner: "the neutral area IS the hub ... be creative and make it your masterpiece"; 2026-10-13:
+    "pick the neutral area and build that out then show it to me in the world when you feel ilke you''ve captured the concept
+    art"'
+activation: restart world and the zone processes (world reads the zone table at boot; a zone process loads its zone points,
+  doors and objects at boot)
+production: none
+commits: []
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+kind: db
+scope:
+- table: zone
+  where: short_name = 'canyonhousing'
+- table: zone_points
+  where: zone = 'canyonhousing'
+- table: doors
+  where: zone = 'canyonhousing'
+- table: object
+  where: zoneid = 788

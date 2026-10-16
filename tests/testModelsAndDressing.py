@@ -1,0 +1,449 @@
+import math
+
+
+async def freshScene(session):
+  await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+
+
+def testScaleFigureWalksAheadUntilAWall(stageBlenderServer):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [100, 100], "spacing": 10, "location": [0, 0, 0]})
+    await session.expectSuccess("setZoneProperties", {
+      "ambientColor": [0.3, 0.3, 0.3], "specialAmbientColor": [0, 0, 0], "bounceColor": [0, 0, 0], "sunColor": [0.6, 0.6, 0.6],
+      "sunAzimuthDegrees": 0, "sunElevationDegrees": 45, "fogColor": [0.5, 0.5, 0.5], "fogStart": 50, "fogEnd": 300, "fogDensity": 0.33, "fogOn": True, "maxClip": 600,
+      "newEngineZone": False,
+    })
+    _, open = await session.expectImage("renderView", {"view": {"standAt": [0, 0, 0], "headingDegrees": 0, "pitchDegrees": 0}})
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "dais", "size": [40, 40, 3], "location": [0, 25.5, 0]})
+    _, stepped = await session.expectImage("renderView", {"view": {"standAt": [0, 0, 0], "headingDegrees": 0, "pitchDegrees": 0}})
+    await session.expectSuccess("deleteObjects", {"names": ["dais"]})
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "wall", "size": [40, 2, 20], "location": [0, 9, 0]})
+    _, walled = await session.expectImage("renderView", {"view": {"standAt": [0, 0, 0], "headingDegrees": 0, "pitchDegrees": 0}})
+    return open, stepped, walled
+
+  open, stepped, walled = stageBlenderServer.session(steps)
+  assert open["figure"] == [1.5, 15.0, 0.0]
+  # She steps up a riser of 3, under a player's step (playerScale), as a player would, and walks on along its top.
+  assert stepped["figure"] == [1.5, 15.0, 3.0]
+  assert walled["figure"] == [1.5, 6.0, 0.0]
+
+
+def testDeleteFacesInsideAnObject(stageBlenderServer):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [100, 100], "spacing": 10, "location": [0, 0, 0]})
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "boulder", "size": [25, 25, 20], "location": [0, 0, -10]})
+    deleted = await session.expectSuccess("deleteFaces", {"objectName": "ground", "selector": {"insideObject": "boulder"}})
+    everything = await session.expectError("deleteFaces", {"objectName": "boulder", "selector": {"all": True}})
+    return deleted, everything
+
+  deleted, everything = stageBlenderServer.session(steps)
+  assert deleted["deletedFaces"] == 4
+  assert deleted["faces"] == 96
+  assert "matches every face of 'boulder'; delete the object instead" in everything
+
+
+def testJoinObjectsMergesMeshesAndMaterials(stageBlenderServer, tmp_path):
+  from conftest import writePNG
+  barkTexture = writePNG(tmp_path / "bark.png", 4, 4, (90, 60, 30, 255))
+  leafTexture = writePNG(tmp_path / "leaf.png", 4, 4, (30, 90, 30, 255))
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createMaterial", {"name": "bark", "diffuseTexture": str(barkTexture)})
+    await session.expectSuccess("createMaterial", {"name": "leaf", "diffuseTexture": str(leafTexture)})
+    await session.expectSuccess("createPrimitive", {"kind": "cylinder", "name": "trunk", "size": [2, 2, 8], "location": [0, 0, 0], "segments": 6})
+    await session.expectSuccess("createPrimitive", {"kind": "cone", "name": "canopy", "size": [10, 10, 20], "location": [0, 0, 6], "segments": 8})
+    await session.expectSuccess("assignMaterial", {"objectName": "trunk", "materialName": "bark"})
+    await session.expectSuccess("assignMaterial", {"objectName": "canopy", "materialName": "leaf"})
+    joined = await session.expectSuccess("joinObjects", {"names": ["canopy", "trunk"], "into": "canopy"})
+    trunkGone = await session.expectError("getObjectDetail", {"name": "trunk"})
+    detail = await session.expectSuccess("getObjectDetail", {"name": "canopy"})
+    return joined, trunkGone, detail
+
+  joined, trunkGone, detail = stageBlenderServer.session(steps)
+  assert joined["vertices"] == 9 + 12
+  assert joined["materials"] == ["leaf", "bark"]
+  assert detail["dimensions"] == [10.0, 10.0, 26.0]
+  assert detail["materials"] == [{"material": "leaf", "faces": 9}, {"material": "bark", "faces": 8}]
+  assert "No object named 'trunk'" in trunkGone
+
+
+def testScatterAvoidsObjectsWithClearance(stageBlenderServer):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 200], "spacing": 10, "location": [0, 0, 0]})
+    await session.expectSuccess("createPrimitive", {"kind": "cylinder", "name": "tower", "size": [20, 20, 40], "location": [0, 0, 0], "segments": 16})
+    await session.expectSuccess("createPrimitive", {"kind": "cone", "name": "pine", "size": [4, 4, 10], "location": [0, 0, -500], "segments": 6})
+    scattered = await session.expectSuccess("scatterInRegion", {
+      "sourceObject": "pine", "region": {"circle": {"center": [0, 0], "radius": 50}}, "density": 40, "minimumSpacing": 5,
+      "collection": "grove", "surfaceObjects": ["ground"], "avoidObjects": ["tower"], "avoidClearance": 8, "seed": 2,
+    })
+    summary = await session.expectSuccess("getSceneSummary", {"objectLimit": 500})
+    return scattered, summary
+
+  scattered, summary = stageBlenderServer.session(steps)
+  grove = [sceneObject["location"] for sceneObject in summary["objects"] if "grove" in sceneObject["collections"]]
+  assert scattered["rejected"]["nearAvoidedObject"] > 0
+  assert scattered["placed"] == len(grove)
+  assert scattered["placed"] + scattered["rejected"]["nearAvoidedObject"] == scattered["spacedCandidates"]
+  assert all(math.hypot(x, y) > 10 + 8 - 0.5 for x, y, _ in grove)
+
+
+def testCarveWidensAlongThePathWithRadii(stageBlenderServer):
+  readVertices = "result = [list(vertex.co) for vertex in bpy.data.objects['ground'].data.vertices]"
+  carve = {"objectName": "ground", "mode": "carve", "path": [[-80, 0, -20], [80, 0, -20]], "strength": 1, "profile": [[0, 0], [1, 30]], "conformRim": False}
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 200], "spacing": 5, "location": [0, 0, 0]})
+    both = await session.expectError("sculptAlongPath", carve | {"radius": 10, "radii": [10, 50]})
+    miscounted = await session.expectError("sculptAlongPath", carve | {"radii": [10, 30, 50]})
+    await session.expectSuccess("sculptAlongPath", carve | {"radii": [10, 50]})
+    return both, miscounted, (await session.expectSuccess("runPython", {"code": readVertices}))["result"]
+
+  both, miscounted, vertices = stageBlenderServer.session(steps)
+  assert "Give either radius" in both and "one positive radius per path point (2)" in miscounted
+
+  def carvedRow(x):
+    return sorted(round(y, 3) for vx, y, z in vertices if abs(vx - x) < 1e-3 and z < -0.01)
+
+  # The profile reaches the ground (height 0, 20 above the floor) two thirds of the way out, so the cut is 2/3 of the radius wide on each
+  # side: radius 10 at the start, 30 halfway, 50 at the end.
+  assert carvedRow(-80) == [-5, 0, 5]
+  assert carvedRow(0) == [-15, -10, -5, 0, 5, 10, 15]
+  assert carvedRow(80) == list(range(-30, 35, 5))
+  assert round(min(z for x, y, z in vertices if abs(y) < 1e-3 and -80 <= x <= 80), 3) == -20
+
+
+def testFillRaisesGroundToAProfileAndLeavesHigherGround(stageBlenderServer):
+  readVertices = "result = [list(vertex.co) for vertex in bpy.data.objects['ground'].data.vertices]"
+  fill = {"objectName": "ground", "mode": "fill", "path": [[0, 0, 0]], "radius": 40, "strength": 1, "profile": [[0, 30], [0.5, 30], [1, 0]]}
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 200], "spacing": 10, "location": [0, 0, 0]})
+    await session.expectSuccess("moveVertices", {"objectName": "ground", "selector": {"sphere": {"center": [0, 0, 0], "radius": 1}}, "offset": [0, 0, 50]})
+    conformed = await session.expectError("sculptAlongPath", fill | {"conformRim": True})
+    atPoint = await session.expectError("sculptAtPoint", {"objectName": "ground", "mode": "fill", "center": [0, 0, 0], "radius": 40, "strength": 1})
+    await session.expectSuccess("sculptAlongPath", fill)
+    return conformed, atPoint, (await session.expectSuccess("runPython", {"code": readVertices}))["result"]
+
+  conformed, atPoint, vertices = stageBlenderServer.session(steps)
+  assert "only carve takes it" in conformed and "use sculptAlongPath, whose path can be a single point" in atPoint
+
+  def heightAt(x, y):
+    return next(round(z, 3) for vx, vy, z in vertices if abs(vx - x) < 1e-3 and abs(vy - y) < 1e-3)
+
+  # The raised center stays above the fill; the cap is 30 out to radius 20, then falls evenly to the ground at radius 40.
+  assert heightAt(0, 0) == 50 and heightAt(10, 0) == 30 and heightAt(20, 0) == 30 and heightAt(30, 0) == 15 and heightAt(40, 0) == 0
+  assert heightAt(50, 0) == 0
+
+
+def testCarveConformsVerticesOntoTheProfilesBreaks(stageBlenderServer):
+  readVertices = "result = [list(vertex.co) for vertex in bpy.data.objects['ground'].data.vertices]"
+  # A ledge: the floor at -20 out to 45% of the radius (18 units), then a wall up to the ground.
+  carve = {"objectName": "ground", "mode": "carve", "path": [[-100, 0, -20], [100, 0, -20]], "radius": 40, "strength": 1, "profile": [[0, 0], [0.45, 2], [1, 25]], "conformRim": False}
+
+  async def steps(session):
+    results = {}
+    for conform in (False, True):
+      await freshScene(session)
+      await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [96, 96], "spacing": 8, "location": [0, 0, 0]})
+      await session.expectSuccess("sculptAlongPath", carve | {"conformBreaks": conform})
+      results[conform] = (await session.expectSuccess("runPython", {"code": readVertices}))["result"]
+    return results
+
+  results = stageBlenderServer.session(steps)
+  # The grid lines at y = +-16 lie within half an edge (4 units) of the break at 18; with conformBreaks they move onto it at the
+  # break's height, so the ledge's edge runs straight along the cut instead of falling between grid lines. The vertices on the
+  # grid's open edge (x = +-48) stay, as the border never slides.
+  assert not any(abs(abs(y) - 18) < 1e-3 for _, y, _ in results[False])
+  snapped = [(y, z) for x, y, z in results[True] if abs(abs(y) - 18) < 1e-3]
+  assert len(snapped) == 2 * 11 and all(abs(z - (-18)) < 1e-3 for _, z in snapped)
+  assert not any(abs(abs(y) - 16) < 1e-3 and abs(x) < 48 for x, y, _ in results[True])
+
+
+def testCarveConformSlidesRimVerticesOntoTheContour(stageBlenderServer):
+  path = [[-100, -100, -20], [100, 100, -20]]
+  profile = [[0, 0], [0.5, 10], [1, 30]]
+  # A pool's basin: a flat bed out to 0.55 of the radius, then banks rising to the edge.
+  basinProfile = [[0, 0], [0.55, 0], [0.8, 7], [1, 21]]
+  readVertices = "result = [list(vertex.co) for vertex in bpy.data.objects['ground'].data.vertices]"
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 200], "spacing": 10, "location": [0, 0, 0]})
+    before =(await session.expectSuccess("runPython", {"code": readVertices}))["result"]
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": path, "radius": 40, "strength": 1, "profile": profile})
+    after = (await session.expectSuccess("runPython", {"code": readVertices}))["result"]
+    nonRising = await session.expectError("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": path, "radius": 40, "strength": 1, "profile": [[0, 0], [0.5, 10], [1, 10]]})
+    # A slanted cut running off the terrain: sliding toward it would push border vertices below it out past the border.
+    await session.expectSuccess("createTerrainGrid", {"name": "crossed", "size": [200, 200], "spacing": 10, "location": [0, 300, 0]})
+    await session.expectSuccess("sculptAlongPath", {"objectName": "crossed", "mode": "carve", "path": [[-160, 240, -20], [160, 360, -20]], "radius": 40, "strength": 1, "profile": profile})
+    crossed = (await session.expectSuccess("runPython", {"code": readVertices.replace("'ground'", "'crossed'")}))["result"]
+    falling = await session.expectError("sculptAlongPath", {"objectName": "crossed", "mode": "carve", "path": path, "radius": 40, "strength": 1, "profile": [[0, 0], [0.5, 10], [0.8, 6], [1, 30]]})
+    await session.expectSuccess("createTerrainGrid", {"name": "basin", "size": [200, 200], "spacing": 10, "location": [0, -300, 0]})
+    basinBefore = (await session.expectSuccess("runPython", {"code": readVertices.replace("'ground'", "'basin'")}))["result"]
+    await session.expectSuccess("sculptAlongPath", {"objectName": "basin", "mode": "carve", "path": [[-100, -400, -14], [100, -200, -14]], "radius": 45, "strength": 1, "profile": basinProfile})
+    basinAfter = (await session.expectSuccess("runPython", {"code": readVertices.replace("'ground'", "'basin'")}))["result"]
+    return before, after, nonRising, crossed, falling, basinBefore, basinAfter
+
+  before, after, nonRising, crossed, falling, basinBefore, basinAfter = stageBlenderServer.session(steps)
+  rimLateral = 40 * (0.5 + 0.5 * (20 - 10) / (30 - 10))
+  slid = [(old, new) for old, new in zip(before, after) if new[2] == 0 and (abs(new[0] - old[0]) > 1e-6 or abs(new[1] - old[1]) > 1e-6)]
+  assert slid
+  for _, new in slid:
+    assert abs(abs(new[0] - new[1]) / math.sqrt(2) - rimLateral) < 1e-3
+  assert "conformRim needs profile heights that rise" in nonRising and "conformRim needs profile heights that rise" in falling
+  assert max(abs(x) for x, _, _ in crossed) == 100 and max(abs(y) for _, y, _ in crossed) == 100
+
+  # The basin's vertices are read in its own space (its origin at y -300), where the path runs along x = y.
+  def basinLateral(point):
+    return abs(point[0] - point[1]) / math.sqrt(2)
+
+  # The ground stands 14 over the bed, which the banks reach 0.9 of the way out: the rim vertices just outside slide onto 40.5 out.
+  basinRim = 45 * (0.8 + 0.2 * (14 - 7) / (21 - 7))
+  basinSlid = [new for old, new in zip(basinBefore, basinAfter) if new[2] == 0 and (abs(new[0] - old[0]) > 1e-6 or abs(new[1] - old[1]) > 1e-6)]
+  assert basinSlid and all(abs(basinLateral(new) - basinRim) < 1e-3 for new in basinSlid), sorted(round(basinLateral(new), 3) for new in basinSlid)
+  bed = [point for point in basinAfter if basinLateral(point) < 0.55 * 45]
+  assert bed and all(abs(point[2] + 14) < 1e-3 for point in bed)
+
+
+readShapedMesh = """
+depsgraph = bpy.context.evaluated_depsgraph_get()
+evaluated = bpy.data.objects[objectName].evaluated_get(depsgraph)
+mesh = evaluated.to_mesh()
+result = {"vertices": [list(vertex.co) for vertex in mesh.vertices], "faces": [list(polygon.vertices) for polygon in mesh.polygons]}
+evaluated.to_mesh_clear()
+"""
+
+
+def planarSignedArea(points):
+  return sum(x0 * y1 - x1 * y0 for (x0, y0, _), (x1, y1, _) in zip(points, points[1:] + points[:1])) / 2
+
+
+def planarArea(points):
+  return abs(planarSignedArea(points))
+
+
+def testFillTriangulatesAlongItsBreaksAtAnyAngle(stageBlenderServer):
+  # A mesa: a cap, a cliff, a ledge, and a slope, with breaks 18, 24, and 30 units from the path.
+  profile = [[0, 30], [0.45, 28], [0.6, 12], [0.75, 10], [1, 0]]
+  breakLaterals = [18, 24, 30]
+  angles = [30, 45]
+
+  async def steps(session):
+    await freshScene(session)
+    results = {}
+    for index, angle in enumerate(angles):
+      name = f"ground{angle}"
+      await session.expectSuccess("createTerrainGrid", {"name": name, "size": [240, 240], "spacing": 8, "location": [300 * index, 0, 0]})
+      await session.expectSuccess("addShapingPass", {"objectName": name, "name": "mesa"})
+      direction = (math.cos(math.radians(angle)), math.sin(math.radians(angle)))
+      path = [[300 * index - 150 * direction[0], -150 * direction[1], 0], [300 * index + 150 * direction[0], 150 * direction[1], 0]]
+      stroke = await session.expectSuccess("sculptAlongPath", {
+        "objectName": name, "mode": "fill", "path": path, "radius": 40, "strength": 1, "profile": profile, "conformBreaks": True,
+      })
+      shaped = (await session.expectSuccess("runPython", {"code": f"objectName = '{name}'" + readShapedMesh}))["result"]
+      await session.expectSuccess("setShapingPass", {"objectName": name, "name": "mesa", "muted": True})
+      muted = (await session.expectSuccess("runPython", {"code": f"objectName = '{name}'" + readShapedMesh}))["result"]
+      results[angle] = (stroke, shaped, muted, direction)
+    return results
+
+  results = stageBlenderServer.session(steps)
+  # Vertex coordinates are the grid's own, centered on the path.
+  for angle, (stroke, shaped, muted, direction) in results.items():
+    vertices = shaped["vertices"]
+
+    def lateral(vertex):
+      return abs(vertex[0] * direction[1] - vertex[1] * direction[0])
+
+    def along(vertex):
+      return vertex[0] * direction[0] + vertex[1] * direction[1]
+
+    interior = [face for face in shaped["faces"] if all(abs(along(vertices[index])) < 100 for index in face)]
+    straddling = [
+      face for face in interior for breakLateral in breakLaterals
+      if min(lateral(vertices[index]) for index in face) < breakLateral - 0.01 and max(lateral(vertices[index]) for index in face) > breakLateral + 0.01
+    ]
+    slivers = [face for face in shaped["faces"] if planarArea([vertices[index] for index in face]) < 0.1 * 8 * 8 / 2]
+    assert stroke["splitCells"] > 0 and stroke["foldedFaces"] == 0, (angle, stroke)
+    assert straddling == [], (angle, len(straddling), len(interior))
+    assert slivers == [], (angle, len(slivers))
+    assert max(abs(z) for _, _, z in muted["vertices"]) == 0 and len(muted["vertices"]) == 31 * 31
+
+
+def testFollowContoursTurnsDiagonalsAlongAStep(stageBlenderServer):
+  # A step across the grid's diagonal: 10 on one side, 0 on the other, 5 on the line.
+  stepHeights = """
+for vertex in bpy.data.objects[objectName].data.vertices:
+  across = vertex.co.x - direction * vertex.co.y
+  vertex.co.z = 10 if across > 1e-3 else (5 if across > -1e-3 else 0)
+"""
+
+  async def steps(session):
+    await freshScene(session)
+    results = {}
+    for index, direction in enumerate([1, -1]):
+      name = f"step{index}"
+      await session.expectSuccess("createTerrainGrid", {"name": name, "size": [80, 80], "spacing": 8, "location": [100 * index, 0, 0]})
+      await session.expectSuccess("runPython", {"code": f"objectName = '{name}'\ndirection = {direction}" + stepHeights})
+      before = (await session.expectSuccess("runPython", {"code": f"objectName = '{name}'" + readShapedMesh}))["result"]
+      followed = await session.expectSuccess("followContours", {"objectName": name})
+      after = (await session.expectSuccess("runPython", {"code": f"objectName = '{name}'" + readShapedMesh}))["result"]
+      results[direction] = (before, followed, after)
+    return results
+
+  results = stageBlenderServer.session(steps)
+
+  def spanningStep(mesh):
+    return [face for face in mesh["faces"] if {0, 10} <= {round(mesh["vertices"][index][2]) for index in face}]
+
+  for before, followed, after in results.values():
+    assert len(spanningStep(before)) == 10 and spanningStep(after) == []
+    assert (followed["splitCells"], followed["faces"]) == (100, 200)
+    assert after["vertices"] == before["vertices"]
+  # The fixed split runs one way across every cell, so it already follows one grid's step; the other turns the 10 cells the step
+  # crosses and the 9 on each side that touch its line.
+  assert sorted(followed["turnedDiagonals"] for _, followed, _ in results.values()) == [0, 28]
+
+
+def testFillOnAWarpedGridLeavesNoFoldedTriangles(stageBlenderServer):
+  # Snapping slides vertices across a warped grid toward a curving break; three corners of a cell can land on the line with the
+  # middle one just past it.
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [320, 320], "spacing": 8, "location": [0, 0, 0]})
+    await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "bend"})
+    await session.expectSuccess("warp", {"objectName": "ground", "featureSize": 60, "amplitude": 6, "seed": 1})
+    await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "mesa"})
+    await session.expectSuccess("sculptAlongPath", {
+      "objectName": "ground", "mode": "fill", "path": [[-140, -60, 0], [-20, 30, 0], [140, 10, 0]], "radii": [50, 60, 45], "strength": 1,
+      "profile": [[0, 30], [0.45, 28], [0.6, 12], [0.75, 10], [1, 0]], "conformBreaks": True,
+    })
+    return (await session.expectSuccess("runPython", {"code": "objectName = 'ground'" + readShapedMesh}))["result"]
+
+  shaped = stageBlenderServer.session(steps)
+  vertices = shaped["vertices"]
+
+  areas = [planarSignedArea([vertices[index] for index in face]) for face in shaped["faces"]]
+  assert sum(area <= 0 for area in areas) == 0
+  assert sum(area < 0.1 * 8 * 8 / 2 for area in areas) == 0
+
+
+def testFillPutsEveryBreakItCrossesOnVerticesAndLeavesGroundAboveItInPlace(stageBlenderServer):
+  # An 8-unit grid with the rows past y = +-40 moved out 12, as where a warp stretched it: the break 49 from the path lies 9 from the
+  # nearest row (y = +-40), farther than half the grid's usual edge. East of x = 38 the rows from y = 40 out stand on a mound 25 high,
+  # above the fill there, so the fill leaves them alone.
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [160, 160], "spacing": 8, "location": [0, 0, 0]})
+    for side in (1, -1):
+      await session.expectSuccess("moveVertices", {"objectName": "ground", "selector": {"box": {"minimum": [-100, 43, -1] if side == 1 else [-100, -100, -1], "maximum": [100, 100, 1] if side == 1 else [100, -43, 1]}}, "offset": [0, 12 * side, 0]})
+    await session.expectSuccess("moveVertices", {"objectName": "ground", "selector": {"box": {"minimum": [38, 38, -1], "maximum": [100, 100, 1]}}, "offset": [0, 0, 25]})
+    stroke = await session.expectSuccess("sculptAlongPath", {
+      "objectName": "ground", "mode": "fill", "path": [[-100, 0, 0], [100, 0, 0]], "radius": 70, "strength": 1,
+      "profile": [[0, 30], [0.7, 20], [1, 0]], "conformBreaks": True,
+    })
+    return stroke, (await session.expectSuccess("runPython", {"code": "objectName = 'ground'" + readShapedMesh}))["result"]
+
+  stroke, shaped = stageBlenderServer.session(steps)
+  vertices = shaped["vertices"]
+  # Each edge from the row at 40 to the row at 60 crosses the break, and its nearer end (on the row at 40) slides onto it at the
+  # break's height, except on the grid's open edge (x = +-80) and on the mound.
+  onBreak = sorted((round(x), round(y)) for x, y, z in vertices if abs(abs(y) - 49) < 1e-3 and abs(z - 20) < 1e-3)
+  assert onBreak == sorted([(x, -49) for x in range(-72, 80, 8)] + [(x, 49) for x in range(-72, 38, 8)])
+  mound = sorted((round(x, 3), round(y, 3), round(z, 3)) for x, y, z in vertices if y > 38 and x > 38)
+  assert mound == [(float(x), float(y), 25.0) for x in range(40, 88, 8) for y in (40, 60, 68, 76, 84, 92)]
+  # Away from the mound and the open edge no face reaches across the break, so the ledge is one clean line.
+  straddling = [
+    face for face in shaped["faces"]
+    if -80 < min(vertices[index][0] for index in face) and max(vertices[index][0] for index in face) < 38
+    and min(abs(vertices[index][1]) for index in face) < 49 - 0.01 < 49 + 0.01 < max(abs(vertices[index][1]) for index in face)
+    and len({vertices[index][1] > 0 for index in face}) == 1
+  ]
+  assert straddling == [] and stroke["foldedFaces"] == 0
+
+
+def testCarveWhoseLastBreakMeetsTheGroundFoldsNothing(stageBlenderServer):
+  # The break at 0.8 stands 20 above the floor, exactly at the ground: break snapping and rim sliding aim at one contour from either
+  # side.
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [320, 320], "spacing": 8, "location": [0, 0, 0]})
+    await session.expectSuccess("sculptAlongPath", {
+      "objectName": "ground", "mode": "carve", "path": [[-150, -40, -20], [150, 40, -20]], "radius": 60, "strength": 1,
+      "profile": [[0, 0], [0.5, 10], [0.8, 20], [1, 30]], "conformBreaks": True,
+    })
+    return (await session.expectSuccess("runPython", {"code": "objectName = 'ground'" + readShapedMesh}))["result"]
+
+  shaped = stageBlenderServer.session(steps)
+  vertices = shaped["vertices"]
+  areas = [planarSignedArea([vertices[index] for index in face]) for face in shaped["faces"]]
+  assert sum(area <= 0 for area in areas) == 0
+  assert sum(area < 0.1 * 8 * 8 / 2 for area in areas) == 0
+
+
+def testCarveIntoASteepWallFoldsNothing(stageBlenderServer):
+  # A stepped canyon, then a terrace bowl cut into its wall at an angle: break snapping and rim sliding over steep, uneven ground.
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [480, 480], "spacing": 8, "location": [0, 0, 0]})
+    canyon = await session.expectSuccess("sculptAlongPath", {
+      "objectName": "ground", "mode": "carve", "path": [[-240, -30, -200], [240, 30, -200]], "radius": 150, "strength": 1,
+      "profile": [[0, 0], [0.1, 10], [0.3, 30], [0.38, 110], [0.46, 120], [0.58, 190], [0.66, 200], [0.85, 210], [1, 260]], "conformBreaks": True,
+    })
+    terrace = await session.expectSuccess("sculptAlongPath", {
+      "objectName": "ground", "mode": "carve", "path": [[-60, 140, -40], [40, 100, -40], [140, 40, -38]], "radius": 60, "strength": 1,
+      "profile": [[0, 0], [0.6, 4], [0.8, 30], [1, 100]], "conformBreaks": True,
+    })
+    return canyon, terrace, (await session.expectSuccess("runPython", {"code": "objectName = 'ground'" + readShapedMesh}))["result"]
+
+  canyon, terrace, shaped = stageBlenderServer.session(steps)
+  vertices = shaped["vertices"]
+  areas = [planarSignedArea([vertices[index] for index in face]) for face in shaped["faces"]]
+  assert (canyon["foldedFaces"], terrace["foldedFaces"]) == (0, 0)
+  assert sum(area <= 0 for area in areas) == 0
+
+
+def testScarpFilledOverAWarpedGridFoldsNothing(stageBlenderServer):
+  # A broad warp and a long, bending scarp: where a ledge line crosses the squeezed grid, a vertex from below can snap onto it between
+  # two that snapped from above, leaving its cell no diagonal that both faces up and has area. The grid is triangulated beforehand
+  # with each of its two diagonals throughout, as earlier shaping leaves it.
+  tilt = """
+for vertex in bpy.data.objects[objectName].data.vertices:
+  vertex.co.z = slope * (vertex.co.x + direction * vertex.co.y)
+"""
+
+  async def steps(session):
+    await freshScene(session)
+    results = []
+    for direction in (1, -1):
+      name = f"ground{direction}"
+      await session.expectSuccess("createTerrainGrid", {"name": name, "size": [1024, 1104], "spacing": 16, "location": [1104, 1560, 700]})
+      await session.expectSuccess("runPython", {"code": f"objectName = '{name}'; slope = 0.1; direction = {direction}" + tilt})
+      await session.expectSuccess("followContours", {"objectName": name})
+      await session.expectSuccess("runPython", {"code": f"objectName = '{name}'; slope = 0; direction = {direction}" + tilt})
+      await session.expectSuccess("addShapingPass", {"objectName": name, "name": "bend"})
+      await session.expectSuccess("warp", {
+        "objectName": name, "featureSize": 900, "amplitude": 100, "seed": 3,
+        "selector": {"box": {"minimum": [-4200, -2090, -100], "maximum": [4200, 2090, 1000]}}, "fadeDistance": 300,
+      })
+      await session.expectSuccess("addShapingPass", {"objectName": name, "name": "scarp"})
+      scarp = await session.expectSuccess("sculptAlongPath", {
+        "objectName": name, "mode": "fill", "path": [[-600, 1950, 700], [0, 1750, 700], [700, 1850, 700], [1300, 1600, 700], [2000, 1550, 700], [2500, 1800, 700]],
+        "radii": [400, 500, 450, 550, 550, 450], "strength": 1, "profile": [[0, 480], [0.4, 470], [0.5, 360], [0.6, 340], [0.72, 170], [0.86, 50], [1, 0]],
+        "conformBreaks": True,
+      })
+      results.append((scarp, (await session.expectSuccess("runPython", {"code": f"objectName = '{name}'" + readShapedMesh}))["result"]))
+    return results
+
+  for scarp, shaped in stageBlenderServer.session(steps):
+    vertices = shaped["vertices"]
+    faces = [(planarSignedArea([vertices[index] for index in face]), max(vertices[index][2] for index in face) - min(vertices[index][2] for index in face)) for face in shaped["faces"]]
+    assert scarp["foldedFaces"] == 0
+    assert sum(area <= 0 for area, _ in faces) == 0
+    # A sliver lying flat along a ledge line shows nothing; one with relief would show as a spike.
+    assert [round(relief, 2) for area, relief in faces if area < 0.05 * 16 * 16 and relief > 0.5] == []

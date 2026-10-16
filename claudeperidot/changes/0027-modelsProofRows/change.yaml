@@ -1,0 +1,30 @@
+title: interiorwalltest (zone 767) holds the client models proof's zone row, two doors, and a kiln object
+why: >-
+  Toolset 9's proof (zonewright, client models in our zones): a zone exported by exportZone whose scenery is client models copied into
+  its own archive from several archives (crystals.eqg, live_event_objects.eqg, and the freeportwest and highpasshold zone archives) and
+  whose interactive pieces are server rows naming the copies in that archive: an opening door (OBJ_SWITCH_HOT_GENERIC_DOOR_, opentype 0,
+  as Peridot's own freeportwest rows of it), a teleporting book (OBJ_POK_BOOK_, opentype 58, to (-100, -100, 0) in the zone), and a
+  pottery kiln (IT10801_ACTORDEF, object type 22). It loads with no interiorwalltest_assets.txt. The rows are the writes of the export's
+  server\sql\interiorwalltest.sql and interiorwalltest_pieces.sql (verifyExport passed all eleven checks; archive SHA-256
+  d447b2bdedb14390247920bde00b7e52807a39d4e50269262d5881ff97180892), without their own guards, which the ledger's scope guards replace.
+  The slot: interiorwalltest is a short name eqgame.exe registers (id 767, a developer test zone) for which the client ships no file and
+  claudeperidot's database holds no zone, zone_points, doors, object, or spawn2 row, so loading it touches nothing a played zone uses; of
+  the twelve registered slots with neither, it is the one plainly meant for tests. Its server maps are 0025 and its archive in the spare
+  client is 0026; apply those first.
+kind: db
+scope:
+  - table: zone
+    where: short_name = 'interiorwalltest'
+  - table: doors
+    where: zone = 'interiorwalltest'
+  - table: object
+    where: zoneid = 767
+disposition: exploration
+significance: minor
+ownerClearance: pending
+activation: restart world and the zone processes (world reads the zone table at boot; a zone process loads its doors and objects at boot)
+production: none
+commits: []
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe
+  agent: a67f456fe92628bed

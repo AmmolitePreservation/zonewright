@@ -1,0 +1,105 @@
+{
+  "sensitive": true,
+  "checksum": "92e978e51189bc86dd826377e5a0b627aacb48f36b53590da8f7cec5a9eb271b",
+  "tables": [
+    {
+      "table": "inventory",
+      "where": "character_id IN (SELECT id FROM character_data WHERE name = 'Claudewright')",
+      "columns": [
+        {
+          "name": "character_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "slot_id",
+          "type": "mediumint",
+          "charset": ""
+        },
+        {
+          "name": "item_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "charges",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "color",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "augment_one",
+          "type": "mediumint",
+          "charset": ""
+        },
+        {
+          "name": "augment_two",
+          "type": "mediumint",
+          "charset": ""
+        },
+        {
+          "name": "augment_three",
+          "type": "mediumint",
+          "charset": ""
+        },
+        {
+          "name": "augment_four",
+          "type": "mediumint",
+          "charset": ""
+        },
+        {
+          "name": "augment_five",
+          "type": "mediumint",
+          "charset": ""
+        },
+        {
+          "name": "augment_six",
+          "type": "mediumint",
+          "charset": ""
+        },
+        {
+          "name": "instnodrop",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "custom_data",
+          "type": "text",
+          "charset": "latin1"
+        },
+        {
+          "name": "ornament_icon",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ornament_idfile",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ornament_hero_model",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "guid",
+          "type": "bigint",
+          "charset": ""
+        }
+      ],
+      "digest": "2a1cd479431dc3b5da10af87cb01b9acec2e80ebfa3ec12711c0495b8a70b127",
+      "rowCount": 1
+    }
+  ],
+  "hostCopy": {
+    "folder": "/opt/eqemu/ledger/0020-claudewrightUnequipped",
+    "savedSHA256": "15e492a7993acc680b0020f128af2ed6e43727749baebc3f9e16a19d6f6f7e98",
+    "revertSHA256": "99651d123ee2a534471422d56246be153e63116171cf4789b61c37bf6800ba18",
+    "because": "inventory is a player, state, login or bot table"
+  }
+}

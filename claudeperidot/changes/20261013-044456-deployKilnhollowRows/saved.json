@@ -1,0 +1,992 @@
+{
+  "sensitive": false,
+  "checksum": "30bf1cedce4454d3214c35fdfb31c3e0f234b3b9540580403fa54ff8ebf06d54",
+  "tables": [
+    {
+      "table": "zone",
+      "where": "short_name = 'kilnhollow'",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "zoneidnumber",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "version",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "short_name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "long_name",
+          "type": "text",
+          "charset": "latin1"
+        },
+        {
+          "name": "min_status",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "map_file_name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "note",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "min_expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "max_expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "content_flags",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "content_flags_disabled",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "file_name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "safe_x",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "safe_y",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "safe_z",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "safe_heading",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "graveyard_id",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "min_level",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "max_level",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "timezone",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "maxclients",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ruleset",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "underworld",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "minclip",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "maxclip",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_minclip",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_maxclip",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_blue",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_red",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_green",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "sky",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "ztype",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "zone_exp_multiplier",
+          "type": "decimal",
+          "charset": ""
+        },
+        {
+          "name": "walkspeed",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "time_type",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_red1",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_green1",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_blue1",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_minclip1",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_maxclip1",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_red2",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_green2",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_blue2",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_minclip2",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_maxclip2",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_red3",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_green3",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_blue3",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_minclip3",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_maxclip3",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_red4",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_green4",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_blue4",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fog_minclip4",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_maxclip4",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "fog_density",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "flag_needed",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "canbind",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "cancombat",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "canlevitate",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "castoutdoor",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "hotzone",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "insttype",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "shutdowndelay",
+          "type": "bigint",
+          "charset": ""
+        },
+        {
+          "name": "peqzone",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "bypass_expansion_check",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "suspendbuffs",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "rain_chance1",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_chance2",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_chance3",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_chance4",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_duration1",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_duration2",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_duration3",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "rain_duration4",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_chance1",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_chance2",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_chance3",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_chance4",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_duration1",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_duration2",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_duration3",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "snow_duration4",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "gravity",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "type",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "skylock",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "fast_regen_hp",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "fast_regen_mana",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "fast_regen_endurance",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "npc_max_aggro_dist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "client_update_range",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "underworld_teleport_index",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "lava_damage",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "min_lava_damage",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "idle_when_empty",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "seconds_before_idle",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "shard_at_player_count",
+          "type": "int",
+          "charset": ""
+        }
+      ],
+      "digest": null,
+      "rowCount": 0,
+      "rows": []
+    },
+    {
+      "table": "zone_points",
+      "where": "zone = 'kilnhollow'",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "zone",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "version",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "number",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "y",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "x",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "z",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "heading",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "target_y",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "target_x",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "target_z",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "target_heading",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "zoneinst",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "target_zone_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "target_instance",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "buffer",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "client_version_mask",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "min_expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "max_expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "content_flags",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "content_flags_disabled",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "is_virtual",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "height",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "width",
+          "type": "int",
+          "charset": ""
+        }
+      ],
+      "digest": null,
+      "rowCount": 0,
+      "rows": []
+    },
+    {
+      "table": "doors",
+      "where": "zone = 'kilnhollow'",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "doorid",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "zone",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "version",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "pos_y",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "pos_x",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "pos_z",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "heading",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "opentype",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "guild",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "lockpick",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "keyitem",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "nokeyring",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "triggerdoor",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "triggertype",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "disable_timer",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "doorisopen",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "door_param",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "dest_zone",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "dest_instance",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "dest_x",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "dest_y",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "dest_z",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "dest_heading",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "invert_state",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "incline",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "size",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "buffer",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "client_version_mask",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "is_ldon_door",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "close_timer_ms",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "dz_switch_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "min_expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "max_expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "content_flags",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "content_flags_disabled",
+          "type": "varchar",
+          "charset": "latin1"
+        }
+      ],
+      "digest": null,
+      "rowCount": 0,
+      "rows": []
+    },
+    {
+      "table": "object",
+      "where": "zoneid = 787",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "zoneid",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "version",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "xpos",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "ypos",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "zpos",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "heading",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "itemid",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "charges",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "objectname",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "type",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "icon",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "size_percentage",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "unknown24",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "unknown60",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "unknown64",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "unknown68",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "unknown72",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "unknown76",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "unknown84",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "size",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "solid_type",
+          "type": "mediumint",
+          "charset": ""
+        },
+        {
+          "name": "incline",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "tilt_x",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "tilt_y",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "display_name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "min_expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "max_expansion",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "content_flags",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "content_flags_disabled",
+          "type": "varchar",
+          "charset": "latin1"
+        }
+      ],
+      "digest": null,
+      "rowCount": 0,
+      "rows": []
+    }
+  ]
+}

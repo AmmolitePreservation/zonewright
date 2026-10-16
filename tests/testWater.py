@@ -1,0 +1,1626 @@
+import io
+import math
+import sys
+import time
+from pathlib import Path
+
+import numpy
+from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
+import eqArchive
+import eqCubeMaps
+import eqEmitters
+import eqgFiles
+import eqgWriter
+import exportVerification
+import previewFrame
+from conftest import writeCubeDDS, writePNG
+import playerScale
+
+# The medium body group, which holds the walked human male, is the one these tests size their courses by.
+medium = playerScale.groups["medium"]
+minimumSwimDepth = medium.minimumSwimDepth
+from testModelsAndDressing import freshScene, readShapedMesh
+
+environment = {
+  "ambientColor": [0.3, 0.3, 0.3], "specialAmbientColor": [0, 0, 0], "bounceColor": [0, 0, 0], "sunColor": [0.6, 0.6, 0.6],
+  "sunAzimuthDegrees": 0, "sunElevationDegrees": 45, "fogColor": [0.5, 0.5, 0.5], "fogStart": 50, "fogEnd": 3000, "fogDensity": 0.1, "fogOn": True, "maxClip": 6000,
+  "newEngineZone": False,
+}
+
+readGroundUnderBoundary = """
+import bmesh, mathutils
+water = bpy.data.objects[waterName]
+editor = bmesh.new()
+editor.from_mesh(water.data)
+boundary = [vertex.co.copy() for vertex in editor.verts if vertex.is_boundary]
+editor.free()
+water.hide_viewport = True
+depsgraph = bpy.context.evaluated_depsgraph_get()
+heights = []
+for point in boundary:
+  hit = bpy.context.scene.ray_cast(depsgraph, mathutils.Vector((point.x, point.y, 1000)), mathutils.Vector((0, 0, -1)))
+  heights.append(None if not hit[0] else hit[1].z)
+water.hide_viewport = False
+result = {"levels": [point.z for point in boundary], "ground": heights}
+"""
+
+
+async def liquidMaterials(session, tmp_path):
+  diffuse = writePNG(tmp_path / "water_c.png", 4, 4, (40, 90, 110, 255))
+  normal = writePNG(tmp_path / "water_n.png", 4, 4, (128, 128, 255, 255))
+  environment = writeCubeDDS(tmp_path / "water_e.dds", 4, [(200, 150, 100, 255)] * 6)
+  fall = writePNG(tmp_path / "fall_c.png", 4, 4, (220, 230, 240, 160))
+  await session.expectSuccess("createLiquidMaterial", {"name": "water", "liquid": "water", "diffuseTexture": str(diffuse), "normalTexture": str(normal), "environmentTexture": str(environment)})
+  await session.expectSuccess("createLiquidMaterial", {"name": "falls", "liquid": "waterfall", "diffuseTexture": str(fall)})
+
+
+async def basin(session):
+  """A flat grid at 0 with a cone-shaped basin at the origin: -20 at its middle, rising evenly to 0 at 100 out."""
+  await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [400, 400], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+  await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[0, 0, -20]], "radius": 100, "strength": 1, "profile": [[0, 0], [1, 20]], "conformRim": False})
+
+
+async def meshOf(session, name):
+  return (await session.expectSuccess("runPython", {"code": f"objectName = {name!r}" + readShapedMesh}))["result"]
+
+
+def testPoolFloodsItsBasinToItsLevelUnderItsBanks(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    await liquidMaterials(session, tmp_path)
+    flooded = await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "water"})
+    atFive = await meshOf(session, "pool")
+    banks = (await session.expectSuccess("runPython", {"code": "waterName = 'pool'" + readGroundUnderBoundary}))["result"]
+    lowered = await session.expectSuccess("editWater", {"name": "pool", "level": -10})
+    atTen = await meshOf(session, "pool")
+    halved = await session.expectSuccess("shapeWaterExtent", {"name": "pool", "mode": "remove", "area": {"polygon": [[12, -200], [200, -200], [200, 200], [12, 200]]}})
+    westOnly = await meshOf(session, "pool")
+    dry = await session.expectError("floodWater", {"name": "dryPool", "seed": [90, 0], "level": -5, "material": "water"})
+    wrongLiquid = await session.expectError("floodWater", {"name": "fallPool", "seed": [0, 0], "level": -5, "material": "falls"})
+    everywhere = await session.expectSuccess("floodWater", {"name": "sea", "seed": [150, 150], "level": 1, "material": "water"})
+    return flooded, atFive, banks, lowered, atTen, halved, westOnly, dry, wrongLiquid, everywhere
+
+  flooded, atFive, banks, lowered, atTen, halved, westOnly, dry, wrongLiquid, everywhere = stageBlenderServer.session(steps)
+  # The cone stands below -5 within 75 of its middle: the surface lies flat at the level over all of that, reaching at most a few cells
+  # past it so its edge lies under the banks.
+  five = numpy.array(atFive["vertices"])
+  assert numpy.allclose(five[:, 2], -5) and five[:, 0].max() >= 75 and numpy.linalg.norm(five[:, :2], axis=1).max() <= 75 + 3 * 8 * math.sqrt(2)
+  assert all(ground is not None and ground >= level - 1e-6 for level, ground in zip(banks["levels"], banks["ground"]))
+  assert flooded["built"]["deepest"] == 15 and flooded["built"]["reachesGroundEnd"] == []
+  ten = numpy.array(atTen["vertices"])
+  assert numpy.allclose(ten[:, 2], -10) and ten[:, 0].max() < five[:, 0].max()
+  # The stroke takes the east of the pool away; the surface stops within a cell of its edge.
+  assert numpy.array(westOnly["vertices"])[:, 0].max() <= 16 and halved["definition"]["strokes"][0]["mode"] == "remove"
+  assert "the ground is at -2.0 and the level -5.0" in dry
+  assert "A pool takes a liquid material" in wrongLiquid and "is waterfall" in wrongLiquid
+  assert everywhere["built"]["groundEndPoints"] > 0
+
+
+def testRiverRunsBetweenItsEndsFallingWithItsPath(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [400, 200], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[-200, 4, -10], [200, 4, -10]], "radius": 20, "strength": 1, "profile": [[0, 0], [1, 10]], "conformRim": False})
+    await liquidMaterials(session, tmp_path)
+    river = await session.expectSuccess("runWater", {"name": "river", "path": [[-100, 4, -4], [100, 4, -6]], "reach": 30, "material": "water"})
+    shape = await meshOf(session, "river")
+    backwards = await session.expectError("runWater", {"name": "backwards", "path": [[100, 4, -6], [-100, 4, -4]], "reach": 30, "material": "water"})
+    return river, shape, backwards
+
+  river, shape, backwards = stageBlenderServer.session(steps)
+  # A path given from the mouth would run the river and its texture uphill: refused.
+  assert "rises from -6.0 at point 1 to -4.0 at point 2: start it at its upstream end" in backwards
+  vertices = numpy.array(shape["vertices"])
+  # Cut square across at both ends of its path, and falling evenly along it from -4 to -6.
+  assert vertices[:, 0].min() >= -100 - 1e-3 and vertices[:, 0].max() <= 100 + 1e-3
+  assert numpy.isclose(vertices[:, 0].min(), -100, atol=1e-3) and numpy.isclose(vertices[:, 0].max(), 100, atol=1e-3)
+  assert numpy.allclose(vertices[:, 2], -4 - (vertices[:, 0] + 100) / 200 * 2, atol=1e-3)
+  # Within reach of the path only where the channel is below its level.
+  assert numpy.abs(vertices[:, 1] - 4).max() <= 20 + 2 * 8
+  assert river["built"]["deepest"] <= 6 + 1e-6
+
+
+def testFallHangsFromItsLipAndRefusesOneRunningBackwards(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 200], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("sculptOutline", {"objectName": "ground", "mode": "fill", "outline": [[-100, 0], [100, 0], [100, 100], [-100, 100]], "base": 0, "profile": [[-2, 0], [0, 40], [200, 40]], "conformBreaks": False})
+    await liquidMaterials(session, tmp_path)
+    fall = await session.expectSuccess("pourWaterfall", {"name": "fall", "lip": [[-20, 0, 41], [20, 0, 41]], "bottom": 0, "throw": 6, "material": "falls"})
+    shape = await meshOf(session, "fall")
+    backwards = await session.expectError("pourWaterfall", {"name": "backwards", "lip": [[20, 0, 41], [-20, 0, 41]], "bottom": 0, "material": "falls"})
+    belowLip = await session.expectError("pourWaterfall", {"name": "upwards", "lip": [[-20, 0, 41], [20, 0, 41]], "bottom": 45, "material": "falls"})
+    wider = await session.expectSuccess("editWater", {"name": "fall", "spread": 1.5})
+    widerShape = await meshOf(session, "fall")
+    plunging = await session.expectSuccess("editWater", {"name": "fall", "spread": 1, "throw": 0})
+    thrown = await session.expectSuccess("editWater", {"name": "fall", "throw": 10})
+    thrownShape = await meshOf(session, "fall")
+    widerLip = await session.expectSuccess("editWater", {"name": "fall", "lip": [[-30, 0, 41], [30, 0, 41]]})
+    widerLipShape = await meshOf(session, "fall")
+    smooth = (await session.expectSuccess("runPython", {"code": "result = sorted({polygon.use_smooth for polygon in bpy.data.objects['fall'].data.polygons})"}))["result"]
+    return fall, shape, backwards, belowLip, wider, widerShape, plunging, thrown, thrownShape, widerLip, widerLipShape, smooth
+
+  fall, shape, backwards, belowLip, wider, widerShape, plunging, thrown, thrownShape, widerLip, widerLipShape, smooth = stageBlenderServer.session(steps)
+  # The sheet is smooth shaded, lit and exported with normals shared across its rows as the client's fall sheets carry them.
+  assert smooth == [True]
+  vertices = numpy.array(shape["vertices"])
+  top, bottom = vertices[numpy.isclose(vertices[:, 2], 41)], vertices[numpy.isclose(vertices[:, 2], 0)]
+  # It starts lipLeadIn behind the lip, turns over at the lip, and lands `throw` out in front, as wide as the lip.
+  assert sorted({round(y, 3) for y in top[:, 1]}) == [0.0, 4.0]
+  assert numpy.allclose(bottom[:, 1], -6) and numpy.isclose(bottom[:, 0].min(), -20) and numpy.isclose(bottom[:, 0].max(), 20)
+  assert fall["built"]["drop"] == 41 and fall["built"]["rows"] == 6 and fall["built"]["insideRock"]["vertices"] == 0
+  assert "reverse it" in backwards and "must lie below every point of its lip" in belowLip
+  widerBottom = numpy.array(widerShape["vertices"])[numpy.isclose(numpy.array(widerShape["vertices"])[:, 2], 0)]
+  assert numpy.isclose(widerBottom[:, 0].max(), 30) and wider["definition"]["spread"] == 1.5
+  # Dropping straight down the cliff face, the sheet runs inside the rock under the lip; thrown 10 out it clears the rock, landing 10
+  # in front of the lip.
+  assert plunging["built"]["insideRock"]["vertices"] > 0 and thrown["built"]["insideRock"]["vertices"] == 0
+  thrownVertices = numpy.array(thrownShape["vertices"])
+  assert numpy.allclose(thrownVertices[numpy.isclose(thrownVertices[:, 2], 0), 1], -10)
+  # A wider lip widens the sheet from its top, where it turns over the lip, to its foot.
+  lipVertices = numpy.array(widerLipShape["vertices"])
+  for row in (lipVertices[numpy.isclose(lipVertices[:, 2], 41) & numpy.isclose(lipVertices[:, 1], 0)], lipVertices[numpy.isclose(lipVertices[:, 2], 0)]):
+    assert numpy.isclose(row[:, 0].min(), -30) and numpy.isclose(row[:, 0].max(), 30)
+  assert widerLip["definition"]["lip"] == [[-30.0, 0.0, 41.0], [30.0, 0.0, 41.0]]
+
+
+shoreRadii = """
+import math, mathutils
+bodies = [sceneObject for sceneObject in bpy.context.scene.objects if 'zonewrightWater' in sceneObject]
+for body in bodies:
+  body.hide_viewport = True
+depsgraph = bpy.context.evaluated_depsgraph_get()
+
+def height(x, y):
+  return bpy.context.scene.ray_cast(depsgraph, mathutils.Vector((x, y, 1000.0)), mathutils.Vector((0.0, 0.0, -1.0)))[1].z
+
+radii = []
+for index in range(72):
+  angle = 2 * math.pi * index / 72
+  low, high = 40.0, 99.0
+  for _ in range(40):
+    middle = (low + high) / 2
+    low, high = (middle, high) if height(middle * math.cos(angle), middle * math.sin(angle)) < level else (low, middle)
+  radii.append(low)
+for body in bodies:
+  body.hide_viewport = False
+result = radii
+"""
+
+readFaces = """
+mesh = bpy.data.objects[objectName].data
+result = {
+  "vertices": [list(vertex.co) for vertex in mesh.vertices], "faces": [list(polygon.vertices) for polygon in mesh.polygons],
+  "materials": [mesh.materials[polygon.material_index].name for polygon in mesh.polygons],
+}
+"""
+
+
+async def shoreOf(session, level):
+  """Where the ground crosses `level` going out from the basin's middle, at 72 headings evenly round it, with the water hidden."""
+  return (await session.expectSuccess("runPython", {"code": f"level = {level!r}" + shoreRadii}))["result"]
+
+
+async def facesOf(session, name):
+  return (await session.expectSuccess("runPython", {"code": f"objectName = {name!r}" + readFaces}))["result"]
+
+
+async def surfaceMaterials(session, tmp_path):
+  for name, color in (("stone", (120, 120, 120, 255)), ("sand", (200, 180, 120, 255)), ("mud", (60, 45, 30, 255))):
+    await session.expectSuccess("createMaterial", {"name": name, "diffuseTexture": str(writePNG(tmp_path / f"{name}.png", 4, 4, color))})
+
+
+def faceCorners(painted, level):
+  """For each face: whether every corner lies at or under `level`, whether any does, and the face's middle in plan."""
+  vertices = numpy.array(painted["vertices"])
+  under = vertices[:, 2] <= level + 1e-3
+  return (
+    numpy.array([under[face].all() for face in painted["faces"]]), numpy.array([under[face].any() for face in painted["faces"]]),
+    numpy.array([vertices[face, :2].mean(axis=0) for face in painted["faces"]]),
+  )
+
+
+def outerRadii(points, sectors):
+  """The farthest of [x, y] points from the basin's middle in each of `sectors` equal sectors round it."""
+  farthest = numpy.zeros(sectors)
+  angles = numpy.arctan2(points[:, 1], points[:, 0]) % (2 * math.pi)
+  numpy.maximum.at(farthest, (angles / (2 * math.pi) * sectors).astype(int) % sectors, numpy.linalg.norm(points, axis=1))
+  return farthest
+
+
+def testCarvingKeepsTheWaterlineWhereItWasAndTheBedMeetsIt(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    await liquidMaterials(session, tmp_path)
+    await surfaceMaterials(session, tmp_path)
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "water"})
+    before = await meshOf(session, "ground")
+    shoreBefore = await shoreOf(session, -5)
+    carved = await session.expectSuccess("carveWaterBed", {"name": "pool", "objectName": "ground", "depth": 6, "shoreWidth": 20})
+    after = await meshOf(session, "ground")
+    shoreAfter = await shoreOf(session, -5)
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "stone"})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "sand", "selector": {"underWater": "pool"}})
+    banks = await session.expectError("assignMaterial", {"objectName": "ground", "materialName": "mud", "selector": {"nearWater": {"water": "pool", "distance": 0}}})
+    painted = await facesOf(session, "ground")
+    return before, shoreBefore, carved, after, shoreAfter, banks, painted
+
+  before, shoreBefore, carved, after, shoreAfter, banks, painted = stageBlenderServer.session(steps)
+  old, new = numpy.array(before["vertices"]), numpy.array(after["vertices"])
+  count = len(old)
+  # The carve first cuts the ground along the waterline, then lowers only what lies under it, so the shore stays where it was all round.
+  assert max(abs(first - second) for first, second in zip(shoreBefore, shoreAfter)) < 0.01
+  assert carved["waterlineCut"]["splitEdges"] > 72 and len(new) == count + carved["waterlineCut"]["splitEdges"]
+  assert numpy.allclose(new[count:, 2], -5, atol=1e-3)
+  atOrAbove = old[:, 2] >= -5
+  assert numpy.array_equal(new[:count][atOrAbove], old[atOrAbove]) and (new[:count, 2] <= old[:, 2] + 1e-6).all()
+  # 60 out the cone stands at -8, 15 in from the waterline at 75: lowered toward -11 by most of the depth; the deepest ground stays.
+  radius = numpy.linalg.norm(old[:, :2], axis=1)
+  ring = (radius > 58) & (radius < 62)
+  assert (new[:count][ring, 2] < -9.5).all() and (old[ring, 2] > -8.5).all()
+  assert numpy.allclose(new[:count][radius < 20, 2], old[radius < 20, 2]) and carved["deepestBed"] == -20
+  # Along the cut the bed is exactly the faces under the water, and it reaches the waterline in every direction.
+  allUnder, _, _ = faceCorners(painted, -5)
+  sand = numpy.array([material == "sand" for material in painted["materials"]])
+  assert numpy.array_equal(sand, allUnder)
+  vertices = numpy.array(painted["vertices"])
+  bedCorners = vertices[numpy.unique(numpy.concatenate([face for face, isSand in zip(painted["faces"], sand) if isSand]))][:, :2]
+  shoreBySector = numpy.array(shoreAfter).reshape(36, 2).max(axis=1)
+  assert numpy.abs(outerRadii(bedCorners, 36) - shoreBySector).max() < 0.5
+  assert "distance must be positive" in banks
+
+
+def shoreAt(shore, points):
+  """The basin's shore radius (shoreOf, 72 headings) at the heading of each [x, y] point."""
+  headings = 2 * math.pi * numpy.arange(72) / 72
+  return numpy.interp(numpy.arctan2(points[:, 1], points[:, 0]) % (2 * math.pi), headings, shore, period=2 * math.pi)
+
+
+def testBedAndBankSelectorsFollowTheWaterlineAndEndOnItsCuts(stageBlenderServer, tmp_path):
+  async def paint(session, distance):
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "stone"})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "sand", "selector": {"underWater": "pool"}})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "mud", "selector": {"nearWater": {"water": "pool", "distance": distance}}})
+    return await facesOf(session, "ground")
+
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    await liquidMaterials(session, tmp_path)
+    await surfaceMaterials(session, tmp_path)
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "water"})
+    shore = await shoreOf(session, -5)
+    painted = {distance: await paint(session, distance) for distance in (6, 1)}
+    cut = await session.expectSuccess("cutContours", {"objectName": "ground", "levels": [0, 6], "waterline": "pool"})
+    again = await session.expectSuccess("cutContours", {"objectName": "ground", "levels": [0, 6], "waterline": "pool"})
+    painted["cut"] = await paint(session, 6)
+    refusals = [
+      await session.expectError("cutContours", {"objectName": "ground", "levels": [-2], "waterline": "pool"}),
+      await session.expectError("cutContours", {"objectName": "ground", "levels": [3], "waterline": "pool", "distanceFrom": {"material": "sand"}}),
+    ]
+    return shore, painted, cut, again, refusals
+
+  shore, painted, cut, again, refusals = stageBlenderServer.session(steps)
+  shoreBySector = numpy.array(shore).reshape(36, 2).max(axis=1)
+  for key, distance in ((6, 6), (1, 1), ("cut", 6)):
+    allUnder, _, _ = faceCorners(painted[key], -5)
+    vertices = numpy.array(painted[key]["vertices"])
+    materials = numpy.array(painted[key]["materials"])
+    # The bed is the faces wholly under the water: none reaches above the waterline, none under it is left out.
+    assert numpy.array_equal(materials == "sand", allUnder)
+    # The banks are every face the waterline crosses or meets, so no ground shows between bed and bank, and every face out of the water
+    # all of whose corners lie within the distance of the waterline (here, of the basin's shore round its middle), and no other.
+    outward = numpy.linalg.norm(vertices[:, :2], axis=1) - shoreAt(shore, vertices)
+    farthest = numpy.array([outward[face].max() for face in painted[key]["faces"]])
+    mud = materials == "mud"
+    meets = numpy.array([(vertices[face, 2] <= -5 + 1e-3).any() for face in painted[key]["faces"]]) & ~allUnder
+    assert meets.any() and (mud | ~meets).all()
+    assert (farthest[mud & ~meets] <= distance + 0.4).all() and (mud | allUnder | (farthest > distance - 0.4)).all()
+  # Uncut, the band's outer edge is whole faces; cut along the waterline and 6 out from it first, the bed reaches the waterline and the
+  # band ends 6 out from it in every direction, and cutting again finds nothing more to cut.
+  vertices = numpy.array(painted["cut"]["vertices"])
+  allUnder, _, _ = faceCorners(painted["cut"], -5)
+  bedCorners = vertices[numpy.unique(numpy.concatenate([face for face, under in zip(painted["cut"]["faces"], allUnder) if under]))][:, :2]
+  assert numpy.abs(outerRadii(bedCorners, 36) - shoreBySector).max() < 0.5
+  mud = numpy.array(painted["cut"]["materials"]) == "mud"
+  bankCorners = vertices[numpy.unique(numpy.concatenate([face for face, isMud in zip(painted["cut"]["faces"], mud) if isMud]))][:, :2]
+  assert numpy.abs(outerRadii(bankCorners, 36) - (shoreBySector + 6)).max() < 0.5
+  assert cut["splitEdges"] > 144 and again["splitEdges"] == 0
+  assert "0 (the waterline) or more" in refusals[0] and "give one of them" in refusals[1]
+
+
+readShapedFacesAndShores = """
+import mathutils
+ground = bpy.data.objects['ground']
+depsgraph = bpy.context.evaluated_depsgraph_get()
+evaluated = ground.evaluated_get(depsgraph)
+mesh = evaluated.to_mesh()
+vertices = [list(vertex.co) for vertex in mesh.vertices]
+faces = [list(polygon.vertices) for polygon in mesh.polygons]
+materials = [ground.data.materials[polygon.material_index].name for polygon in mesh.polygons]
+evaluated.to_mesh_clear()
+bpy.data.objects['river'].hide_viewport = True
+depsgraph = bpy.context.evaluated_depsgraph_get()
+
+def height(x, y):
+  return bpy.context.scene.ray_cast(depsgraph, mathutils.Vector((x, y, 1000.0)), mathutils.Vector((0.0, 0.0, -1.0)))[1].z
+
+shores = []
+for x in range(-130, 131, 2):
+  level = -6 - x / 75
+  for side in (1, -1):
+    low, high = 15.0, 34.0
+    for _ in range(40):
+      middle = (low + high) / 2
+      low, high = (middle, high) if height(x, side * middle) < level else (low, middle)
+    shores.append([x, side * low])
+bpy.data.objects['river'].hide_viewport = False
+result = {"vertices": vertices, "faces": faces, "materials": materials, "shores": shores}
+"""
+
+
+def distancesToPolyline(points, polyline):
+  starts, spans = polyline[:-1], polyline[1:] - polyline[:-1]
+  offsets = points[:, None, :] - starts[None]
+  along = numpy.clip((offsets * spans[None]).sum(axis=2) / (spans * spans).sum(axis=1)[None], 0, 1)
+  return numpy.linalg.norm(offsets - along[:, :, None] * spans[None], axis=2).min(axis=1)
+
+
+def testABankBandEndsOnItsCutAlongASlopingRiverAndTheCutKeepsShapingPasses(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [400, 160], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("addShapingPass", {"objectName": "ground", "name": "channel"})
+    # A straight channel along x, flat at -10 out to 18.7 each side and rising to the plain at 34: a river falling from -4 to -8 along
+    # it meets the banks along lines that close in on the middle as it falls.
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[-200, 0, -10], [200, 0, -10]], "radius": 34, "strength": 1, "profile": [[0, 0], [0.55, 0], [1, 10]], "conformRim": False})
+    await liquidMaterials(session, tmp_path)
+    await surfaceMaterials(session, tmp_path)
+    await session.expectSuccess("runWater", {"name": "river", "path": [[-150, 0, -4], [150, 0, -8]], "reach": 30, "material": "water"})
+    cut = await session.expectSuccess("cutContours", {"objectName": "ground", "levels": [0, 3], "waterline": "river"})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "stone"})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "sand", "selector": {"underWater": "river"}})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "mud", "selector": {"nearWater": {"water": "river", "distance": 3}}})
+    painted = (await session.expectSuccess("runPython", {"code": readShapedFacesAndShores}))["result"]
+    await session.expectSuccess("setShapingPass", {"objectName": "ground", "name": "channel", "muted": True})
+    flat = await meshOf(session, "ground")
+    return cut, painted, flat
+
+  cut, painted, flat = stageBlenderServer.session(steps)
+  vertices = numpy.array(painted["vertices"])
+  shores = numpy.array(painted["shores"])
+  banks = [shores[shores[:, 1] > 0], shores[shores[:, 1] < 0]]
+  fromShore = numpy.where(vertices[:, 1] > 0, distancesToPolyline(vertices[:, :2], banks[0]), distancesToPolyline(vertices[:, :2], banks[1]))
+  under = vertices[:, 2] <= -6 - vertices[:, 0] / 75 + 1e-3
+  faces = [numpy.array(face) for face in painted["faces"]]
+  # Away from the river's ends, the bed is exactly the faces under the water, and the bank exactly the faces out of it lying within
+  # 3 of the waterline: both end on the lines cut along the waterline and 3 out from it, on either bank as the river falls.
+  middle = numpy.array([numpy.abs(vertices[face, 0]).max() <= 120 for face in faces])
+  materials = numpy.array(painted["materials"])
+  allUnder = numpy.array([under[face].all() for face in faces])
+  farthest = numpy.array([fromShore[face].max() for face in faces])
+  assert numpy.array_equal((materials == "sand")[middle], allUnder[middle])
+  mud = (materials == "mud") & middle
+  assert mud.sum() > 60 and (farthest[mud] <= 3 + 0.15).all()
+  assert ((materials == "mud") | allUnder | (farthest > 3 - 0.15))[middle].all()
+  for bank in (1, -1):
+    for start in range(-120, 120, 16):
+      corners = numpy.unique(numpy.concatenate([face for face, isMud in zip(faces, mud) if isMud and start <= vertices[face, 0].mean() < start + 16 and vertices[face, 1].mean() * bank > 0]))
+      assert abs(fromShore[corners].max() - 3) < 0.15
+  # The cut put each new vertex alike in the channel's shaping pass: with the pass muted the ground is the flat grid it was.
+  assert cut["splitEdges"] > 100 and numpy.abs(numpy.array(flat["vertices"])[:, 2]).max() < 1e-4
+
+
+def testWaterExportsTheClientsShadersAndSwimVolumes(stageBlenderServer, tmp_path):
+  archivePath = tmp_path / "testwater.eqg"
+
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    await liquidMaterials(session, tmp_path)
+    ground = writePNG(tmp_path / "ground.png", 4, 4, (90, 120, 60, 255))
+    await session.expectSuccess("createMaterial", {"name": "grass", "diffuseTexture": str(ground)})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "grass"})
+    await session.expectSuccess("projectUVs", {"objectName": "ground", "method": "planar", "worldUnitsPerRepeat": 64, "direction": [0, 0, 1]})
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "water"})
+    await session.expectSuccess("pourWaterfall", {"name": "fall", "lip": [[-10, 60, 20], [10, 60, 20]], "bottom": -5, "throw": 0, "material": "falls"})
+    missing = await session.expectError("createLiquidMaterial", {"name": "flat", "liquid": "water", "diffuseTexture": str(tmp_path / "water_c.png"), "normalTexture": str(tmp_path / "water_n.png")})
+    stray = await session.expectError("createLiquidMaterial", {"name": "fallBias", "liquid": "waterfall", "diffuseTexture": str(tmp_path / "fall_c.png"), "fresnelBias": 0.3})
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "testwater.blend")})
+    undecided = await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+    refusedForGame = await session.expectSuccess("checkExport", {"path": str(archivePath), "purpose": "game"})
+    await session.expectSuccess("buildSwimVolumes", {"body": "pool"})
+    boxes = [volume["name"] for volume in (await session.expectSuccess("getSwimVolumes", {}))["volumes"]]
+    await session.expectSuccess("saveFile", {})
+    exported = await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+    return missing, stray, undecided, refusedForGame, boxes, exported
+
+  missing, stray, undecided, refusedForGame, boxes, exported = stageBlenderServer.session(steps)
+  assert "missing ['environment']" in missing and "does not take ['fresnelBias']" in stray
+  archive = eqArchive.EQArchive(archivePath)
+  zone = eqgFiles.parseZone(archive.read("testwater.zon"), "testwater.zon")
+  # Export derives no swim volumes: without boxes the pool is listed as undecided and the .zon gets no regions; with them, exactly those.
+  assert undecided["regions"] == [] and undecided["swim"] == {"undecided": ["pool"], "changed": []}
+  assert [finding for finding in undecided["findings"] if finding["finding"].startswith("swim")] == [{"finding": "swim undecided", "body": "pool", "at": [0.0, 0.0, -5.0]}]
+  # A game export refuses a pool whose swimming is undecided.
+  assert {"failure": "swim undecided", "body": "pool", "at": [0.0, 0.0, -5.0]} in refusedForGame["failures"]
+  assert exported["regions"] == [region["name"] for region in zone["regions"]] == boxes and exported["swim"] == {"undecided": [], "changed": []}
+  assert all(abs(region["center"][2] + region["halfExtents"][2] - -5) <= 1 and region["rotation"] == (0.0, 0.0, 0.0) for region in zone["regions"])
+  pool, fall = (eqgFiles.parseModel(archive.read(f"obj_{name}.mod"), name)["materials"][0] for name in ("pool", "fall"))
+  assert pool["shader"] == "Opaque_MaxWater.fx" and fall["shader"] == "Opaque_MaxWaterFall.fx"
+  assert pool["properties"]["e_TextureEnvironment0"] == "water_e.dds" and pool["properties"]["e_fWaterColor1"] == 0xFF000A1C
+  assert exported["housing"] is None
+
+
+simulateOlderGroup = """
+tree = bpy.data.node_groups["eqClientLight"]
+tree["eqVersion"] = 4
+tree.interface.remove(tree.interface.items_tree["Added"])
+result = [item.name for item in tree.interface.items_tree]
+"""
+
+
+def testMaterialsSavedBeforeTheAddedLightInputDrawUnchanged(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    grass = writePNG(tmp_path / "grass.png", 4, 4, (90, 120, 60, 255))
+    await session.expectSuccess("createMaterial", {"name": "grass", "diffuseTexture": str(grass)})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "grass"})
+    await session.expectSuccess("projectUVs", {"objectName": "ground", "method": "planar", "worldUnitsPerRepeat": 64, "direction": [0, 0, 1]})
+    await session.expectSuccess("setZoneProperties", environment)
+    view = {"eye": [-150, -150, 80], "target": [0, 0, -10]}
+    current, _ = await session.expectImage("renderView", {"view": view})
+    older = (await session.expectSuccess("runPython", {"code": simulateOlderGroup}))["result"]
+    rebuilt, _ = await session.expectImage("renderView", {"view": view})
+    return current, older, rebuilt
+
+  current, older, rebuilt = stageBlenderServer.session(steps)
+  # A group saved before the added light input existed is rebuilt with it, and what it draws does not change.
+  assert "Added" not in older and rebuilt == current
+
+
+def boundaryVertices(shape):
+  """The vertices on a mesh's open edge: on an edge only one face uses."""
+  uses = {}
+  for face in shape["faces"]:
+    for first, second in zip(face, face[1:] + face[:1]):
+      edge = (min(first, second), max(first, second))
+      uses[edge] = uses.get(edge, 0) + 1
+  return sorted({vertex for edge, count in uses.items() if count == 1 for vertex in edge})
+
+
+def alongAndAcross(points, path):
+  """For points: how far along a straight path from its start each lies, and how far across it."""
+  start, end = numpy.array(path[0][:2], dtype=numpy.float64), numpy.array(path[-1][:2], dtype=numpy.float64)
+  direction = (end - start) / numpy.linalg.norm(end - start)
+  offsets = points[:, :2] - start
+  return offsets @ direction, offsets @ numpy.array([-direction[1], direction[0]])
+
+
+def testRiverSidesRunStraightAtReachAndItsEndsSquare(stageBlenderServer, tmp_path):
+  path = [[-150, -75, -4], [150, 75, -6]]
+  shorter = [[-50, -25, -4 - 2 / 3], [150, 75, -6]]
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [400, 304], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    # A channel across the grid's diagonal, flat at -10 for 18 each side of its middle and rising to the ground 30 out: the river's
+    # level stands over 25 each side of the path, wider than its reach.
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[-200, -100, -10], [200, 100, -10]], "radius": 30, "strength": 1, "profile": [[0, 0], [0.6, 0], [1, 10]], "conformRim": False})
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("runWater", {"name": "river", "path": path, "reach": 10, "material": "water"})
+    full = await facesOf(session, "river")
+    await session.expectSuccess("editWater", {"name": "river", "path": shorter})
+    short = await facesOf(session, "river")
+    return full, short
+
+  full, short = stageBlenderServer.session(steps)
+  length = math.dist(path[0][:2], path[1][:2])
+  for shape, start in ((full, 0.0), (short, math.dist(path[0][:2], shorter[0][:2]))):
+    vertices = numpy.array(shape["vertices"])
+    along, across = alongAndAcross(vertices, path)
+    edge = numpy.array(boundaryVertices(shape))
+    # The river spreads 10 from its path and no farther, its sides cut straight along that reach rather than stepping cell by cell,
+    # its ends square across the path where it starts and ends; shortened, it starts at its new first point, the stretch above gone.
+    assert numpy.abs(across).max() <= 10 + 1e-3
+    sides = edge[(along[edge] > start + 1e-2) & (along[edge] < length - 1e-2)]
+    assert len(sides) > 40 and numpy.allclose(numpy.abs(across[sides]), 10, atol=1e-3)
+    assert along.min() >= start - 1e-3 and along.max() <= length + 1e-3
+    for end in (start, length):
+      atEnd = numpy.abs(along - end) < 1e-3
+      assert numpy.isclose(across[atEnd].min(), -10, atol=1e-3) and numpy.isclose(across[atEnd].max(), 10, atol=1e-3)
+
+
+def roundedVertices(shape):
+  return sorted(map(tuple, numpy.round(numpy.array(shape["vertices"]), 3).tolist()))
+
+
+def testPoolWithinSeedAndStrokesShapeWhereItSpreads(stageBlenderServer, tmp_path):
+  within = [[-200, -200], [220, -200], [-200, 220]]
+
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    # A second basin 184 from the first, apart from it: -12 at its middle, rising to the ground at 50 out.
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[130, 130, -12]], "radius": 50, "strength": 1, "profile": [[0, 0], [1, 12]], "conformRim": False})
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "water"})
+    whole = await meshOf(session, "pool")
+    await session.expectSuccess("editWater", {"name": "pool", "within": within})
+    cut = await meshOf(session, "pool")
+    added = await session.expectSuccess("shapeWaterExtent", {"name": "pool", "mode": "add", "area": {"circle": {"center": [20, 20], "radius": 20}}})
+    cove = await meshOf(session, "pool")
+    unchanged = [
+      await session.expectSuccess("shapeWaterExtent", {"name": "pool", "mode": "add", "area": {"circle": {"center": [130, 130], "radius": 30}}}),
+      await session.expectSuccess("shapeWaterExtent", {"name": "pool", "mode": "add", "area": {"circle": {"center": [-180, -180], "radius": 12}}}),
+      await session.expectSuccess("shapeWaterExtent", {"name": "pool", "mode": "add", "area": {"circle": {"center": [-20, -20], "radius": 12}}}),
+      await session.expectSuccess("shapeWaterExtent", {"name": "pool", "mode": "remove", "area": {"circle": {"center": [-180, 180], "radius": 12}}}),
+    ]
+    stillCove = await meshOf(session, "pool")
+    kept = (await session.expectSuccess("getWater", {}))["bodies"][0]["definition"]["strokes"]
+    await session.expectSuccess("editWater", {"name": "pool", "within": [], "strokes": []})
+    restored = await meshOf(session, "pool")
+    moved = await session.expectSuccess("editWater", {"name": "pool", "seed": [130, 130]})
+    return whole, cut, added, cove, unchanged, stillCove, kept, restored, moved
+
+  whole, cut, added, cove, unchanged, stillCove, kept, restored, moved = stageBlenderServer.session(steps)
+  # Inside a within outline that crosses open water, the pool ends along the outline itself (x + y = 20), not a cell past it.
+  cutVertices = numpy.array(cut["vertices"])
+  sums = cutVertices[:, 0] + cutVertices[:, 1]
+  assert (sums <= 20 + 1e-3).all() and (numpy.abs(sums - 20) < 1e-3).sum() >= 10
+  # An added stroke floods the low ground it opens to the water, past the outline.
+  coveVertices = numpy.array(cove["vertices"])
+  inCove = numpy.linalg.norm(coveVertices[:, :2] - [20, 20], axis=1) <= 20 + 1e-3
+  assert (inCove | (coveVertices[:, 0] + coveVertices[:, 1] <= 20 + 1e-3)).all() and (coveVertices[inCove, 0] + coveVertices[inCove, 1] > 40).any()
+  # A stroke that changes nothing yet is kept for the edit it may be laid ahead of, the result saying so and why: low ground a ridge
+  # cuts off, ground above the level, ground already under the water, a removed area holding no water. The water is as it was.
+  assert added["strokeChanged"] is True and "whyUnchanged" not in added
+  assert all(result["strokeChanged"] is False for result in unchanged)
+  cutOff, dry, covered, empty = (result["whyUnchanged"] for result in unchanged)
+  assert "nothing joins them to the water" in cutOff
+  assert "at or above the water's level" in dry and "already covers" in covered and "none of the water lies inside the area yet" in empty
+  assert roundedVertices(stillCove) == roundedVertices(cove)
+  assert [stroke["area"]["circle"]["center"] for stroke in kept] == [[20, 20], [130, 130], [-180, -180], [-20, -20], [-180, 180]]
+  # Without its outline and strokes the pool is whole again; seeded in the other basin it fills that one instead.
+  assert roundedVertices(restored) == roundedVertices(whole)
+  assert all(80 < value < 180 for value in moved["visibleExtent"]["minimum"] + moved["visibleExtent"]["maximum"])
+
+
+def testAStrokeLaidAheadOfARaisedLevelHoldsTheWaterWhenItArrives(stageBlenderServer, tmp_path):
+  stroke = {"polygon": [[100, -20], [108, -20], [108, 20], [100, 20]]}
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [400, 200], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    # A pit 12 deep at the middle, and a side channel running east from its rim with its floor at -3: dry while the pool stands at -5.
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[0, 0, -12]], "radius": 50, "strength": 1, "profile": [[0, 0], [1, 12]], "conformRim": False})
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[40, 0, -3], [180, 0, -3]], "radius": 12, "strength": 1, "profile": [[0, 0], [0.5, 0], [1, 3]], "conformRim": False})
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "water"})
+    ahead = await session.expectSuccess("shapeWaterExtent", {"name": "pool", "mode": "remove", "area": stroke})
+    await session.expectSuccess("editWater", {"name": "pool", "level": -2})
+    held = await meshOf(session, "pool")
+    await session.expectSuccess("editWater", {"name": "pool", "strokes": []})
+    unbounded = await meshOf(session, "pool")
+    return ahead, held, unbounded
+
+  ahead, held, unbounded = stageBlenderServer.session(steps)
+  # Laid across the dry channel, the stroke changes nothing yet and is kept, saying so; raised to -2, the pool runs into the channel
+  # and stops along the stroke's near edge, where without it the water runs on to the channel's end.
+  assert ahead["strokeChanged"] is False and "none of the water lies inside the area yet" in ahead["whyUnchanged"]
+  assert ahead["definition"]["strokes"] == [{"mode": "remove", "area": stroke}]
+  heldX = numpy.array(held["vertices"])[:, 0]
+  assert 99 < heldX.max() <= 100 + 1e-3
+  assert numpy.array(unbounded["vertices"])[:, 0].max() > 170
+
+
+def testGetWaterReportsEachBodyAndTheWaterPlayersSee(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[-200, 150, -8], [200, 150, -8]], "radius": 20, "strength": 1, "profile": [[0, 0], [1, 8]], "conformRim": False})
+    await liquidMaterials(session, tmp_path)
+    made = [
+      await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "water"}),
+      await session.expectSuccess("runWater", {"name": "river", "path": [[-150, 150, -3], [150, 150, -4]], "reach": 12, "material": "water"}),
+      await session.expectSuccess("pourWaterfall", {"name": "fall", "lip": [[-10, 60, 20], [10, 60, 20]], "bottom": -5, "throw": 0, "material": "falls"}),
+    ]
+    listed = await session.expectSuccess("getWater", {})
+    pool = await meshOf(session, "pool")
+    return made, listed, pool
+
+  made, listed, pool = stageBlenderServer.session(steps)
+  bodies = {body["name"]: body for body in listed["bodies"]}
+  assert sorted(bodies) == ["fall", "pool", "river"]
+  for body in made:
+    assert bodies[body["name"]] == {key: value for key, value in body.items() if key != "built"}
+  assert [bodies[name]["kind"] for name in ("pool", "river", "fall")] == ["pool", "river", "fall"]
+  assert bodies["pool"]["levels"] == [-5, -5] and bodies["river"]["levels"] == [-4, -3] and bodies["fall"]["levels"] == [-5, 20]
+  # The extent given is the water players see: the pool out to its waterline 75 from its middle, though its surface runs on a cell or
+  # two under the banks; the river between its ends and within reach of its path.
+  extent = bodies["pool"]["visibleExtent"]
+  assert all(abs(abs(value) - 75) < 0.6 for value in extent["minimum"] + extent["maximum"])
+  assert numpy.abs(numpy.array(pool["vertices"])[:, :2]).max() > 80
+  river = bodies["river"]["visibleExtent"]
+  assert river["minimum"][0] == -150 and river["maximum"][0] == 150 and 138 <= river["minimum"][1] < river["maximum"][1] <= 162
+
+
+planWater = """
+import bridgeSketch
+result = bridgeSketch.planOverlays(None, ["water"], [])["water"]
+"""
+sectionWater = """
+import bridgeSketch
+result = bridgeSketch.sectionCuts([-130, 0], [130, 0], None, None, -30, 12, ["water"])["water"]
+"""
+
+
+def planPixel(image, point, center, width):
+  """The mean color of the 3 x 3 pixels of a plan drawing at a world [x, y] point."""
+  pixels = numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB"), dtype=numpy.float64)
+  height = width * pixels.shape[0] / pixels.shape[1]
+  column = round((point[0] - center[0] + width / 2) / width * pixels.shape[1])
+  row = round((center[1] + height / 2 - point[1]) / height * pixels.shape[0])
+  return pixels[row - 1:row + 2, column - 1:column + 2].reshape(-1, 3).mean(axis=0)
+
+
+def testPlansAndSectionsDrawTheWaterPlayersSeeAndTheTuckStopsWhereItHides(stageBlenderServer, tmp_path):
+  plan = {"center": [0, 0], "width": 260, "spotHeights": False}
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [240, 240], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    # A pit with a flat floor at -10 out to 45 and a wall up to the plain at 0 by 50: at level -2 its waterline lies 49 out, and the
+    # plain stands exactly shoreTuck (2) over the level.
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[0, 0, -10]], "radius": 50, "strength": 1, "profile": [[0, 0], [0.9, 0], [1, 10]], "conformRim": False})
+    await liquidMaterials(session, tmp_path)
+    pit = await session.expectSuccess("floodWater", {"name": "pit", "seed": [0, 0], "level": -2, "material": "water"})
+    pitShape = await meshOf(session, "pit")
+    pitShore = await shoreOf(session, -2)
+    await freshScene(session)
+    await basin(session)
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "water"})
+    await session.expectSuccess("setZoneProperties", environment)
+    overlaid = (await session.expectSuccess("runPython", {"code": planWater}))["result"]
+    cut = (await session.expectSuccess("runPython", {"code": sectionWater}))["result"]
+    drawn, _ = await session.expectImage("renderSketch", plan | {"layers": ["water"]})
+    bare, _ = await session.expectImage("renderSketch", plan | {"layers": []})
+    poolShape = await meshOf(session, "pool")
+    return pit, pitShape, pitShore, overlaid, cut, drawn, bare, poolShape
+
+  pit, pitShape, pitShore, overlaid, cut, drawn, bare, poolShape = stageBlenderServer.session(steps)
+  # The plain standing shoreTuck over the level already hides the surface's edge: it stops within a cell of the waterline instead of
+  # running on under the plain; the extent given reaches the waterline as the ground's 8-unit faces lay it, and no farther.
+  shoreX = [radius * math.cos(2 * math.pi * index / 72) for index, radius in enumerate(pitShore)]
+  assert numpy.linalg.norm(numpy.array(pitShape["vertices"])[:, :2], axis=1).max() <= max(pitShore) + 8 * math.sqrt(2) + 1
+  assert abs(pit["visibleExtent"]["maximum"][0] - max(shoreX)) < 0.3 and abs(pit["visibleExtent"]["minimum"][0] - min(shoreX)) < 0.3
+  # The plan holds the pool out to its waterline (75), not the surface tucked under the banks past it (more than 80 out).
+  points = numpy.array([corner for x0, y0, x1, y1 in overlaid[0]["runs"] for corner in ((x0, y0), (x1, y1))] + [point for loop in overlaid[0]["loops"] for point in loop])
+  assert 74.4 < numpy.linalg.norm(points, axis=1).max() < 75.6 and numpy.abs(numpy.array(poolShape["vertices"])[:, :2]).max() > 80
+  # Drawn, the plan tints the water inside the waterline and leaves the bare relief between it and the tucked surface's edge.
+  heading = math.radians(35)
+  inside, tucked = ([radius * math.cos(heading), radius * math.sin(heading)] for radius in (70, 79))
+  assert planPixel(drawn, inside, plan["center"], plan["width"])[2] - planPixel(bare, inside, plan["center"], plan["width"])[2] > 20
+  assert numpy.abs(planPixel(drawn, tucked, plan["center"], plan["width"]) - planPixel(bare, tucked, plan["center"], plan["width"])).max() < 2
+  # The section's water runs from shore to shore, 75 each side of the middle (130 along the section), not on into the banks.
+  segments = numpy.array(cut[0]["segments"])
+  assert abs(segments[:, [0, 2]].min() - 55) < 0.6 and abs(segments[:, [0, 2]].max() - 205) < 0.6
+
+
+def testWaterToolsKeepUpWithALargeLake(stageBlenderServer, tmp_path):
+  async def timed(session, tool, arguments):
+    start = time.perf_counter()
+    await session.expectSuccess(tool, arguments)
+    return time.perf_counter() - start
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [1200, 1200], "spacing": 8, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[0, 0, -20]], "radius": 420, "strength": 1, "profile": [[0, 0], [0.8, 10], [1, 20]], "conformRim": False})
+    await session.expectSuccess("roughen", {"objectName": "ground", "featureSize": 80, "amplitude": 3, "seed": 3})
+    await liquidMaterials(session, tmp_path)
+    await surfaceMaterials(session, tmp_path)
+    await session.expectSuccess("floodWater", {"name": "lake", "seed": [0, 0], "level": -5, "material": "water"})
+    return {
+      "getWater": await timed(session, "getWater", {}),
+      "nearWater": await timed(session, "assignMaterial", {"objectName": "ground", "materialName": "mud", "selector": {"nearWater": {"water": "lake", "distance": 6}}}),
+      "carve": await timed(session, "carveWaterBed", {"name": "lake", "objectName": "ground", "depth": 4, "shoreWidth": 16}),
+    }
+
+  seconds = stageBlenderServer.session(steps)
+  # An 840-wide lake on a 150 x 150 grid: describing it, painting its banks, and carving its bed each take a moment (they took 1.7, 1.7,
+  # and 2.5 seconds when its visible water was sampled at a quarter of its spacing and its waterline found point by point).
+  assert seconds["getWater"] < 1.0 and seconds["nearWater"] < 1.0 and seconds["carve"] < 2.0, seconds
+
+
+# The plateau's second channel is deep enough for a ribbon standing a margin deeper than players swim in, a margin under the plateau.
+ribbonMargin = 1.0
+ribbonFloor = 40 - minimumSwimDepth - 2 * ribbonMargin
+ribbonLevel = ribbonFloor + minimumSwimDepth + ribbonMargin
+
+
+async def cliffScene(session, tmp_path):
+  """A plateau at 40 north of y = 0 whose channels (banks back up to 40 by 16 out) run south, at x = 0 to the cliff's edge (floor 34)
+  and at x = -60 to y = 60 (floor ribbonFloor); a bowl at the cliff's foot (-12 at (0, -30), up to 0 by 60 out); the river at 37 down
+  the first channel, a fall 16 wide over its end, and a pool at -5 under it."""
+  await freshScene(session)
+  await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [240, 240], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
+  await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[0, -30, -12]], "radius": 60, "strength": 1, "profile": [[0, 0], [1, 12]], "conformRim": False})
+  await session.expectSuccess("sculptOutline", {"objectName": "ground", "mode": "fill", "outline": [[-120, 0], [120, 0], [120, 120], [-120, 120]], "base": 0, "profile": [[-2, 0], [0, 40], [200, 40]], "conformBreaks": False})
+  for path in ([[0, 120, 34], [0, 0, 34]], [[-60, 120, ribbonFloor], [-60, 60, ribbonFloor]]):
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": path, "radius": 16, "strength": 1, "profile": [[0, 0], [1, 40 - path[0][2]]], "conformRim": False})
+  await liquidMaterials(session, tmp_path)
+  await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, -30], "level": -5, "material": "water"})
+  await session.expectSuccess("runWater", {"name": "river", "path": [[0, 118, 37], [0, 2, 37]], "reach": 12, "material": "water", "worldUnitsPerRepeat": 20})
+  await session.expectSuccess("pourWaterfall", {"name": "fall", "lip": [[-8, 0, 37], [8, 0, 37]], "bottom": -8, "throw": 6, "material": "falls", "worldUnitsPerRepeat": 32})
+
+
+readCorners = """
+mesh = bpy.data.objects[objectName].data
+layer = mesh.uv_layers.active
+result = [list(mesh.vertices[loop.vertex_index].co) + list(layer.data[loop.index].uv) for loop in mesh.loops]
+"""
+
+
+async def cornersOf(session, name):
+  """Every face corner of a body: [x, y, z, u, v], v as Blender counts it, up from the texture's bottom."""
+  return numpy.array((await session.expectSuccess("runPython", {"code": f"objectName = {name!r}" + readCorners}))["result"])
+
+
+async def groundForExport(session, tmp_path):
+  grass = writePNG(tmp_path / "grass.png", 4, 4, (90, 120, 60, 255))
+  await session.expectSuccess("createMaterial", {"name": "grass", "diffuseTexture": str(grass)})
+  await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "grass"})
+  await session.expectSuccess("projectUVs", {"objectName": "ground", "method": "planar", "worldUnitsPerRepeat": 64, "direction": [0, 0, 1]})
+
+
+def testFallsAndRiversRunTheirTexturesAsTheClientsDoAndExportSo(stageBlenderServer, tmp_path):
+  archivePath = tmp_path / "testflow.eqg"
+
+  async def steps(session):
+    await cliffScene(session, tmp_path)
+    fall = await cornersOf(session, "fall")
+    river = await cornersOf(session, "river")
+    strands = await session.expectSuccess("editWater", {"name": "fall", "acrossRepeats": 2})
+    twice = await cornersOf(session, "fall")
+    none = await session.expectError("editWater", {"name": "fall", "acrossRepeats": 0})
+    await session.expectSuccess("editWater", {"name": "fall", "acrossRepeats": 1})
+    ribbon = await session.expectSuccess("runWater", {"name": "ribbon", "path": [[-60, 118, ribbonLevel], [-60, 64, ribbonLevel]], "reach": 12, "material": "falls"})
+    await session.expectSuccess("buildSwimVolumes", {"body": "ribbon"})
+    ribbonBoxes = [volume["name"] for volume in (await session.expectSuccess("getSwimVolumes", {}))["volumes"] if volume["body"] == "ribbon"]
+    # A strand 8 wide, its texture spanning it once and repeating every 64 down its drop: a texel 8 times longer down it than across.
+    await session.expectSuccess("pourWaterfall", {"name": "strand", "lip": [[60, 0, 41], [68, 0, 41]], "bottom": -8, "material": "falls"})
+    await groundForExport(session, tmp_path)
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "testflow.blend")})
+    checked = await session.expectSuccess("checkExport", {"path": str(archivePath), "purpose": "test"})
+    await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+    return fall, river, strands, twice, none, ribbon, ribbonBoxes, checked
+
+  fall, river, strands, twice, none, ribbon, ribbonBoxes, checked = stageBlenderServer.session(steps)
+  # The client maps its falls so, however long a texel lies: a fall's sheet is no stretched texture, in checkExport or coverage.
+  assert not [finding for finding in checked["findings"] if finding["finding"] == "texture stretched or squeezed" and finding["object"] in ("fall", "strand")]
+  # The fall spans its lip once, 0 at its left end to 1 at its right, so a fall texture's faded sides frame it; its v falls a repeat
+  # every 32 units down the drop from the lead-in behind the lip (0), 4 before the lip.
+  assert numpy.allclose(fall[:, 3], (fall[:, 0] + 8) / 16) and fall[:, 3].min() == 0 and fall[:, 3].max() == 1
+  assert numpy.allclose(fall[numpy.isclose(fall[:, 1], 4), 4], 0) and numpy.allclose(fall[numpy.isclose(fall[:, 1], 0) & numpy.isclose(fall[:, 2], 37), 4], -4 / 32)
+  assert (fall[numpy.isclose(fall[:, 2], -8), 4] < -49 / 32).all() and numpy.corrcoef(fall[:, 2], fall[:, 4])[0, 1] > 0.99
+  assert numpy.allclose(twice[:, 3], (twice[:, 0] + 8) / 8) and strands["definition"]["acrossRepeats"] == 2
+  assert "acrossRepeats is a whole number of times the texture spans the lip, 1 or more, got 0" in none
+  # The river runs u across (rightward looking downstream, here -x) and its v falls downstream a repeat every 20, so the client's v,
+  # once export counts it down from the texture's top, rises downstream.
+  assert numpy.allclose(river[:, 4], -(118 - river[:, 1]) / 20) and numpy.allclose(river[:, 3], -river[:, 0] / 20)
+  # A river may be a waterfall ribbon over its bed, as Crescent Reach's are; where it stands deeper than minimumSwimDepth over its
+  # channel's floor, players swim in it as water.
+  assert ribbon["material"] == "falls" and ribbonBoxes and all(name.startswith("AWT_") for name in ribbonBoxes)
+  archive = eqArchive.EQArchive(archivePath)
+  # Exported, the client's v counts down the drop and downstream, as most client falls and Brell's Rest's and Beasts' Domain's rivers
+  # run it, so the client's own slides flow their way.
+  for name, onward in (("fall", lambda model: -model["vertices"][:, 2]), ("river", lambda model: 118 - model["vertices"][:, 1])):
+    model = eqgFiles.parseModel(archive.read(f"obj_{name}.mod"), name)
+    assert numpy.corrcoef(onward(model), model["uvs"][:, 1])[0, 1] > 0.99
+
+
+readFaceCorners = """
+mesh = bpy.data.objects[objectName].data
+layer = mesh.uv_layers.active
+result = [
+  {
+    "vertices": list(polygon.vertices), "normal": list(polygon.normal), "area": polygon.area,
+    "corners": [list(mesh.vertices[mesh.loops[index].vertex_index].co) + list(layer.data[index].uv) + list(mesh.corner_normals[index].vector) for index in polygon.loop_indices],
+  }
+  for polygon in mesh.polygons
+]
+"""
+
+# What a fall built with only its front sheet held: the faces facing out from the cliff (toward -y) and up, without those facing back.
+keepFallFront = """
+import bmesh
+mesh = bpy.data.objects['fall'].data
+editor = bmesh.new()
+editor.from_mesh(mesh)
+bmesh.ops.delete(editor, geom=[face for face in editor.faces if face.normal.y - face.normal.z > 0], context='FACES')
+editor.to_mesh(mesh)
+editor.free()
+result = len(mesh.polygons)
+"""
+
+
+def twinsByCorners(positions, groups):
+  """Groups (faces or triangles) keyed by the corner positions they stand on, rounded, whatever their order."""
+  twins = {}
+  for group, corners in zip(groups, positions):
+    twins.setdefault(tuple(sorted(map(tuple, numpy.round(numpy.asarray(corners, dtype=numpy.float64), 3)))), []).append(group)
+  return twins
+
+
+def testAFallHasBothSidesAndExportsThemPassable(stageBlenderServer, tmp_path):
+  archivePath = tmp_path / "testsides.eqg"
+  # From the pool's far shore, and from between the cliff and the sheet, looking out through it.
+  views = {"front": {"eye": [0, -60, 20], "target": [0, -4, 15]}, "behind": {"eye": [12, -1.5, 20], "target": [-6, -10, 8]}}
+
+  async def steps(session):
+    await cliffScene(session, tmp_path)
+    built = await session.expectSuccess("runPython", {"code": "objectName = 'fall'" + readFaceCorners})
+    counts = next(body for body in (await session.expectSuccess("getWater", {}))["bodies"] if body["name"] == "fall")
+    front = (await session.expectSuccess("runPython", {"code": keepFallFront}))["result"]
+    await session.expectSuccess("editWater", {"name": "fall"})
+    rebuilt = await session.expectSuccess("runPython", {"code": "objectName = 'fall'" + readFaceCorners})
+    await groundForExport(session, tmp_path)
+    await session.expectSuccess("setZoneProperties", environment)
+    scene = {name: (await session.expectImage("renderView", {"view": view, "guides": False}))[0] for name, view in views.items()}
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "testsides.blend")})
+    exported = await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+    await session.expectSuccess("newFile", {"discardUnsavedChanges": True})
+    await session.expectSuccess("importZoneFile", {"path": str(archivePath)})
+    await session.expectSuccess("setZoneProperties", environment)
+    archived = {name: (await session.expectImage("renderView", {"view": view, "guides": False}))[0] for name, view in views.items()}
+    return built["result"], counts, front, rebuilt["result"], exported, scene, archived
+
+  built, counts, front, rebuilt, exported, scene, archived = stageBlenderServer.session(steps)
+  # The 16-wide lip at spacing 8 makes three columns and the 45 drop six rows under the lead-in: 2 x 7 quads a side, both sides counted.
+  assert (counts["faces"], counts["triangles"], counts["vertices"]) == (2 * 2 * 7, 2 * 2 * 2 * 7, 2 * 3 * 8)
+  twins = twinsByCorners([numpy.array(face["corners"])[:, :3] for face in built], built)
+  assert len(twins) == 2 * 7 and all(len(pair) == 2 for pair in twins.values())
+  for first, second in twins.values():
+    # Wound against each other over the same area, one facing out and up as the sheet always has, the other back into the cliff.
+    assert numpy.dot(first["normal"], second["normal"]) < -0.9999 and math.isclose(first["area"], second["area"], rel_tol=1e-6)
+    assert sorted(numpy.dot(face["normal"], [0, -1, 1]) > 0 for face in (first, second)) == [False, True]
+    # Each side on vertices of its own, so its smooth normals face its own way; each spot of the sheet has one texture coordinate on
+    # both sides, so seen from behind the water runs down as in front and the texture reads mirrored across.
+    assert not set(first["vertices"]) & set(second["vertices"])
+    corners = {tuple(numpy.round(corner[:3], 3)): corner for corner in first["corners"]}
+    for corner in second["corners"]:
+      twin = corners[tuple(numpy.round(corner[:3], 3))]
+      assert numpy.allclose(twin[3:5], corner[3:5]) and numpy.dot(twin[5:], corner[5:]) < -0.9999
+  # A fall built with its front alone comes back with both sides when editWater rebuilds it with nothing changed.
+  rebuiltTwins = twinsByCorners([numpy.array(face["corners"])[:, :3] for face in rebuilt], rebuilt)
+  assert front == 2 * 7 and sorted(rebuiltTwins) == sorted(twins) and all(len(pair) == 2 for pair in rebuiltTwins.values())
+  # The archive holds both sides, every triangle passable as liquid triangles are, each paired with its twin wound the other way whose
+  # vertices' normals face its own side.
+  model = eqgFiles.parseModel(eqArchive.EQArchive(archivePath).read("obj_fall.mod"), "obj_fall.mod")
+  assert len(model["triangles"]) == counts["triangles"] == exported["passableTriangles"]["obj_fall.mod"]
+  assert not [finding for finding in exported["findings"] if finding["finding"] == "back faces" and finding["object"] == "fall"]
+  assert sorted(set(model["triangleFlags"].tolist())) == [eqgFiles.passableFlag]
+  corners = model["vertices"][model["triangles"]]
+  facings = numpy.cross(corners[:, 1] - corners[:, 0], corners[:, 2] - corners[:, 0])
+  facings /= numpy.linalg.norm(facings, axis=1, keepdims=True)
+  pairs = twinsByCorners(corners, range(len(corners)))
+  assert len(pairs) == counts["triangles"] // 2 and all(len(pair) == 2 for pair in pairs.values())
+  for first, second in pairs.values():
+    assert facings[first] @ facings[second] < -0.9999
+    for triangle in (first, second):
+      assert (model["normals"][model["triangles"][triangle]] @ facings[triangle] > 0).all()
+  # Read back from the archive, the fall draws as the scene drew it, from in front and from behind, as verifyExport's looks judge it.
+  for name in views:
+    for label, image in (("scene", scene[name]), ("archive", archived[name])):
+      (tmp_path / f"{name}_{label}.png").write_bytes(image)
+    compared = exportVerification.comparedView(name, "test", {}, tmp_path / f"{name}_scene.png", tmp_path / f"{name}_archive.png", tmp_path / f"{name}_difference.png")
+    assert compared["passed"], compared
+
+
+def testFlowSetsSlidesAndGetWaterSaysWhichWayEachBodyFlows(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await cliffScene(session, tmp_path)
+    water = {"liquid": "water", "diffuseTexture": str(tmp_path / "water_c.png"), "normalTexture": str(tmp_path / "water_n.png"), "environmentTexture": str(tmp_path / "water_e.dds")}
+    flowing = await session.expectSuccess("createLiquidMaterial", water | {"name": "flowing", "flow": [0.2, 0.05]})
+    ribbon = await session.expectSuccess("createLiquidMaterial", {"name": "ribbon", "liquid": "waterfall", "diffuseTexture": str(tmp_path / "fall_c.png"), "flow": [0.5, 0.25]})
+    await session.expectSuccess("createLiquidMaterial", {"name": "backwards", "liquid": "waterfall", "diffuseTexture": str(tmp_path / "fall_c.png"), "slides": [0, 0.3, 0, 0.2]})
+    both = await session.expectError("createLiquidMaterial", water | {"name": "both", "flow": [0.2, 0.05], "slides": [0, 0.2, 0, -0.1]})
+    jumping = await session.expectSuccess("createLiquidMaterial", water | {"name": "jumping", "slides": [0, 0.075, 0, 0.03]})
+    jumpingFlow = await session.expectSuccess("createLiquidMaterial", water | {"name": "jumpingFlow", "flow": [0.2, 0.0075]})
+    creep = await session.expectSuccess("createLiquidMaterial", {"name": "creep", "liquid": "lava", "diffuseTexture": str(tmp_path / "fall_c.png"), "normalTexture": str(tmp_path / "water_n.png"), "secondDiffuseTexture": str(tmp_path / "water_c.png"), "slides": [0.005, -0.007, 0.006, -0.005]})
+    lava = await session.expectSuccess("createLiquidMaterial", {"name": "lava", "liquid": "lava", "diffuseTexture": str(tmp_path / "fall_c.png"), "normalTexture": str(tmp_path / "water_n.png"), "secondDiffuseTexture": str(tmp_path / "water_c.png")})
+    outOfDomain = [await session.expectError("createLiquidMaterial", water | {"name": f"odd{key}", key: value}) for key, value in (("fresnelBias", 2), ("fresnelPower", 0), ("reflectionAmount", -1))]
+    still = await session.expectSuccess("getWater", {})
+    flows = []
+    for material in ("flowing", "ribbon", "backwards"):
+      await session.expectSuccess("editWater", {"name": "river", "material": material})
+      flows.append({body["name"]: body["flow"] for body in (await session.expectSuccess("getWater", {}))["bodies"]}["river"])
+    return flowing, ribbon, both, jumping, jumpingFlow, creep, lava, outOfDomain, still, flows
+
+  flowing, ribbon, both, jumping, jumpingFlow, creep, lava, outOfDomain, still, (downstream, ribbonFlow, upstream) = stageBlenderServer.session(steps)
+  # Flow sets the slides as the effects take them: water's second layer, at twice the coordinates, moves by minus half its slide; a
+  # waterfall's layers by minus theirs.
+  assert flowing["values"]["slides"] == [0, 0.2, 0, -0.1] and ribbon["values"]["slides"] == [0, -0.5, 0, -0.25]
+  assert flowing["jumpsAtWrap"] == [] and "not both" in both
+  # A layer whose slide times 100 is no whole number of repeats jumps when the effect clock wraps, as the client's own slow lava does;
+  # it is made as given, and the result says how far it jumps and the nearest values either side that do not, as the artist gave them.
+  assert jumping["values"]["slides"] == [0, 0.075, 0, 0.03]
+  assert jumping["jumpsAtWrap"] == [{"slide": "first y", "value": 0.075, "jumpRepeats": 0.5, "seamless": [0.07, 0.08]}]
+  assert jumpingFlow["jumpsAtWrap"] == [{"flow": "second", "value": 0.0075, "jumpRepeats": 0.5, "seamless": [0.005, 0.01]}]
+  assert creep["values"]["slides"] == [0.005, -0.007, 0.006, -0.005] and [jump["slide"] for jump in creep["jumpsAtWrap"]] == ["first x", "first y", "second x", "second y"]
+  # Lava left to the client's own takes Brell's Rest's lava_lake02_c slides, which most of the client's lava-textured materials carry.
+  assert lava["values"]["slides"] == [-0.01, -0.01, 0.01, -0.01] and lava["jumpsAtWrap"] == []
+  assert "fresnelBias is the share of the reflection seen straight down, 0 to 1" in outOfDomain[0] and "got 2" in outOfDomain[0]
+  assert "fresnelPower is how sharply the reflection grows toward grazing angles, above 0" in outOfDomain[1]
+  assert "reflectionAmount is how strongly the environment mirrors, 0 or more" in outOfDomain[2]
+  flows = {body["name"]: body["flow"] for body in still["bodies"]}
+  # The client's own still water: its two layers move against each other, the first along +x and -y, the second back.
+  assert flows["pool"] == {"flow": "still", "layers": {"first": {"velocity": [1.28, -1.28]}, "second": {"velocity": [-0.96, 0.96]}}}
+  assert flows["river"]["flow"] == "still"
+  # The default waterfall, wtr_waterfall_tile's slides, flows down: its color 0.32 and its alpha 0.5 repeats a second at 32 units a
+  # repeat, the color drifting across the 16-wide lip at 0.12 of it.
+  assert flows["fall"] == {"flow": "down", "layers": {"color": {"along": 10.24, "across": 1.92}, "alpha": {"along": 16.0, "across": 0.0}}}
+  assert downstream == {"flow": "downstream", "layers": {"first": {"along": 4.0, "across": 0.0}, "second": {"along": 1.0, "across": 0.0}}}
+  assert ribbonFlow == {"flow": "downstream", "layers": {"color": {"along": 10.0, "across": 0.0}, "alpha": {"along": 5.0, "across": 0.0}}}
+  # Slides copied from a fall whose v runs the other way move a river's texture upstream, and getWater says so.
+  assert upstream == {"flow": "upstream", "layers": {"color": {"along": -6.0, "across": 0.0}, "alpha": {"along": -4.0, "across": 0.0}}}
+
+
+def testSprayWaterPlacesWhiteWaterWhereTheWaterStrikesAndKeepsItWithTheBody(stageBlenderServer, tmp_path):
+  archivePath = tmp_path / "testspray.eqg"
+
+  async def steps(session):
+    await cliffScene(session, tmp_path)
+    foot = await session.expectSuccess("sprayWater", {"name": "fall", "at": "foot", "definition": 133, "rings": 142})
+    lip = await session.expectSuccess("sprayWater", {"name": "fall", "at": "lip", "definition": 101, "count": 3, "above": 2})
+    rapids = await session.expectSuccess("sprayWater", {"name": "river", "at": {"points": [[2, 92], [-5, 71], [4, 52]]}, "definition": 277})
+    join = await session.expectSuccess("sprayWater", {"name": "pool", "at": {"points": [[0, -40]]}, "definition": 141})
+    refusals = [
+      await session.expectError("sprayWater", {"name": "pool", "at": {"points": [[100, 100]]}, "definition": 141}),
+      await session.expectError("sprayWater", {"name": "river", "at": "foot", "definition": 133}),
+      await session.expectError("sprayWater", {"name": "fall", "at": "lip", "definition": 101, "rings": 142}),
+      await session.expectError("sprayWater", {"name": "fall", "at": "foot", "definition": 100000}),
+      await session.expectError("sprayWater", {"name": "fall", "at": "foot", "definition": 133, "spacing": 10, "count": 2}),
+      await session.expectError("sprayWater", {"name": "river", "at": {"along": [[0, 100], [0, 40]]}, "definition": 277, "spacing": 20}),
+    ]
+    unchanged = {body["name"]: body for body in (await session.expectSuccess("getWater", {}))["bodies"]}
+    lowered = await session.expectSuccess("editWater", {"name": "pool", "level": -6})
+    afterLowering = {body["name"]: body for body in (await session.expectSuccess("getWater", {}))["bodies"]}
+    await groundForExport(session, tmp_path)
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "testspray.blend")})
+    exported = await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+    keptLip = await session.expectSuccess("editWater", {"name": "fall", "sprays": afterLowering["fall"]["sprays"][1:]})
+    deleted = await session.expectSuccess("deleteObjects", {"names": ["fall"]})
+    left = (await session.expectSuccess("runPython", {"code": "result = sorted(o.name for o in bpy.data.objects if 'zonewrightWaterSpray' in o)"}))["result"]
+    return foot, lip, rapids, join, refusals, unchanged, lowered, afterLowering, exported, keptLip, deleted, left
+
+  foot, lip, rapids, join, refusals, unchanged, lowered, afterLowering, exported, keptLip, deleted, left = stageBlenderServer.session(steps)
+
+  def emitters(body, index):
+    return {emitter["name"]: (emitter["definition"], emitter["position"], emitter["on"]) for emitter in body["sprays"][index]["emitters"]}
+
+  def footY(level):
+    # The sheet's rows lie every 7.5 down its 45 drop, each out from the lip by throw times the square root of its share of the drop;
+    # where it passes the pool's level is found between the two rows either side.
+    above, below = -6 * math.sqrt(5 / 6), -6.0
+    return round(above + (-0.5 - level) / 7.5 * (below - above), 2)
+
+  # A row with neither spacing nor count spaces its emitters a disc width apart, twice crwaterfallbottom's radius of 35: so the 16-wide
+  # foot takes one, in its middle, where the sheet passes into the pool, 1 over it, with its rings 0.5 over it.
+  assert foot["sprays"][0]["spacing"] == 70
+  assert emitters(foot, 0) == {"fallRings1_1": (142, [0.0, footY(-5), -4.5], "water"), "fallSpray1_1": (133, [0.0, footY(-5), -4.0], "water")}
+  assert emitters(lip, 1) == {f"fallSpray2_{number}": (101, [x, 0.0, 39.0], "lip") for number, x in ((1, -5.33), (2, 0.0), (3, 5.33))}
+  # Rapids are splashes laid by hand where the water breaks, one at each point on the river's surface; no row is spread along it.
+  assert emitters(rapids, 0) == {f"riverSpray1_{number}": (277, [x, y, 38.0], "water") for number, (x, y) in enumerate(((2.0, 92.0), (-5.0, 71.0), (4.0, 52.0)), 1)}
+  assert emitters(join, 0) == {"poolSpray1_1": (141, [0.0, -40.0, -4.0], "water")}
+  assert "Spray 2 of 'pool' (at points, definition 141) cannot stand: the point [100.0, 100.0] is not over the surface" in refusals[0]
+  assert "\"foot\" is a fall's" in refusals[1] and "Rings lie on water" in refusals[2]
+  assert "client environment emitter definition, 1 to" in refusals[3] and "its spacing or its count, one of them" in refusals[4]
+  assert "A spray's at is \"foot\", \"lip\", or {\"points\"" in refusals[5]
+  # A refused spray changes nothing.
+  assert [len(unchanged[name]["sprays"]) for name in ("fall", "river", "pool")] == [2, 1, 1]
+  # Lowering the pool places its own spray and the fall's foot again on the water as it now stands.
+  assert lowered["built"]["fallFeetSprayedAgain"] == ["fall"] and emitters(lowered, 0) == {"poolSpray1_1": (141, [0.0, -40.0, -5.0], "water")}
+  assert emitters(afterLowering["fall"], 0)["fallSpray1_1"] == (133, [0.0, footY(-6), -5.0], "water")
+  # Export writes every spray as the client's emitter list carries emitters.
+  listed = eqEmitters.parseEmitters(Path(exported["emitterList"]).read_text(encoding="latin1"), "list")
+  assert sorted((emitter["name"], emitter["definition"], emitter["lifespan"]) for emitter in listed) == sorted(
+    [("fallSpray1_1", 133, 4000000), ("fallRings1_1", 142, 4000000), ("poolSpray1_1", 141, 4000000)]
+    + [(f"fallSpray2_{number}", 101, 4000000) for number in (1, 2, 3)] + [(f"riverSpray1_{number}", 277, 4000000) for number in (1, 2, 3)]
+  )
+  # The sprays are the body's: editWater's sprays keeps only the lip's (getWater's own entries passed back), and deleting the fall takes
+  # them with it, leaving the others' be.
+  assert [spray["at"] for spray in keptLip["sprays"]] == ["lip"] and sorted(emitters(keptLip, 0)) == ["fallSpray1_1", "fallSpray1_2", "fallSpray1_3"]
+  assert deleted["removedSprays"] == ["fallSpray1_1", "fallSpray1_2", "fallSpray1_3"]
+  assert left == ["poolSpray1_1", "riverSpray1_1", "riverSpray1_2", "riverSpray1_3"]
+
+
+readEmitters = """
+import json
+result = {}
+for emitter in bpy.data.objects:
+  if 'zonewrightWaterSpray' in emitter:
+    spec = json.loads(emitter['zonewrightWaterSpray'])
+    result[emitter.name] = {"body": spec["body"], "on": spec["on"], "position": [round(value, 2) for value in emitter.matrix_world.translation], "hidden": emitter.hide_render}
+"""
+
+
+async def emittersOf(session):
+  return (await session.expectSuccess("runPython", {"code": readEmitters}))["result"]
+
+
+def testAFallsFootIsSprayedAgainOnlyWithTheWaterItLandsIn(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await cliffScene(session, tmp_path)
+    await session.expectSuccess("sprayWater", {"name": "fall", "at": "foot", "definition": 99, "rings": 142})
+    # A second fall pours off the plateau's east end onto a ledge past the end of the ground; with the ledge taken away, nothing lies
+    # under its foot.
+    await session.expectSuccess("createTerrainGrid", {"name": "ledge", "size": [20, 40], "spacing": 4, "location": [132, 20, -20], "collection": "terrain"})
+    await session.expectSuccess("pourWaterfall", {"name": "edgeFall", "lip": [[120, 10, 40], [120, 30, 40]], "bottom": -20, "throw": 6, "material": "falls"})
+    await session.expectSuccess("sprayWater", {"name": "edgeFall", "at": "foot", "definition": 133})
+    await session.expectSuccess("deleteObjects", {"names": ["ledge"]})
+    pool = await meshOf(session, "pool")
+    lowered = await session.expectSuccess("editWater", {"name": "pool", "level": -5.5})
+    edgeFall = await session.expectError("editWater", {"name": "edgeFall"})
+    # A stroke that takes the pool away from under the fall's foot would leave its ripple rings on dry ground: refused, the pool as it was.
+    before = await meshOf(session, "pool")
+    dried = await session.expectError("shapeWaterExtent", {"name": "pool", "mode": "remove", "area": {"polygon": [[-40, -16], [40, -16], [40, 10], [-40, 10]]}})
+    after = await meshOf(session, "pool")
+    # Hand tweaks to an emitter stand while the water under it stays where it was: rebuilding the pool as it is keeps them, and spraying
+    # the river, which the fall does not land in, leaves the fall's emitters alone.
+    await session.expectSuccess("transformObjects", {"names": ["fallSpray1_1"], "translate": [0, -2, 0]})
+    await session.expectSuccess("runPython", {"code": "bpy.data.objects['fallRings1_1'].hide_render = True"})
+    tweaked = await emittersOf(session)
+    rebuilt = await session.expectSuccess("editWater", {"name": "pool"})
+    river = await session.expectSuccess("sprayWater", {"name": "river", "at": {"points": [[0, 60]]}, "definition": 141})
+    kept = await emittersOf(session)
+    # Deleting the pool places the fall's foot again on the bowl, refused while its rings would lie there.
+    ringed = await session.expectError("deleteObjects", {"names": ["pool"]})
+    await session.expectSuccess("editWater", {"name": "fall", "sprays": [{"at": "foot", "definition": 99, "rings": None, "spacing": 60, "count": None, "above": 1}]})
+    deleted = await session.expectSuccess("deleteObjects", {"names": ["pool"]})
+    dry = await emittersOf(session)
+    ground = await session.expectSuccess("measure", {"points": [dry["fallSpray1_1"]["position"][:2] + [20]], "snapToSurface": True})
+    return pool, lowered, edgeFall, before, dried, after, tweaked, rebuilt, river, kept, ringed, deleted, dry, ground
+
+  pool, lowered, edgeFall, before, dried, after, tweaked, rebuilt, river, kept, ringed, deleted, dry, ground = stageBlenderServer.session(steps)
+  # The pool is edited though another fall's foot has nothing under it: only the fall that lands in the pool is sprayed again.
+  assert lowered["definition"]["level"] == -5.5 and lowered["built"]["fallFeetSprayedAgain"] == ["fall"]
+  assert numpy.allclose(numpy.array(pool["vertices"])[:, 2], -5)
+  assert "Spray 1 of 'edgeFall' (at its foot, definition 133) cannot stand: nothing lies under the foot of the fall at [126.0, 10.0, -20.0]" in edgeFall
+  assert "Spray 1 of 'fall' (at its foot, definition 99) lays ripple rings (142), which lie on water, but dry ground lies under 1 of its 1 emitters" in dried
+  assert before == after
+  assert rebuilt["built"]["fallFeetSprayedAgain"] == ["fall"] and "fallFeetSprayedAgain" not in river["built"]
+  assert kept["fallSpray1_1"] == tweaked["fallSpray1_1"] and kept["fallRings1_1"]["hidden"] is True
+  assert "lays ripple rings (142)" in ringed and "'fall'" in ringed
+  # Deleted, the pool takes its own spray with it; the fall's foot now strikes the bowl and stands 1 over it.
+  assert deleted["fallFeetSprayedAgain"] == ["fall"] and dry["fallSpray1_1"]["on"] == "ground"
+  assert abs(dry["fallSpray1_1"]["position"][2] - (ground["points"][0][2] + 1)) < 0.1
+
+
+def testWaterBodiesMoveCopyAndRenameWithTheirSprays(stageBlenderServer, tmp_path):
+  async def steps(session):
+    await cliffScene(session, tmp_path)
+    await session.expectSuccess("sprayWater", {"name": "fall", "at": "foot", "definition": 133})
+    renamed = await session.expectSuccess("organize", {"renames": {"fall": "oldFall"}})
+    afterRename = await emittersOf(session)
+    # A new body given the old name sprays under its own name.
+    await session.expectSuccess("pourWaterfall", {"name": "fall", "lip": [[-40, 0, 41], [-24, 0, 41]], "bottom": -8, "throw": 6, "material": "falls"})
+    newFall = await session.expectSuccess("sprayWater", {"name": "fall", "at": "foot", "definition": 133})
+    # A spray whose emitter's name another object holds is refused before the body changes.
+    await session.expectSuccess("createPrimitive", {"kind": "cube", "name": "riverSpray1_1", "size": [1, 1, 1], "location": [200, 200, 0]})
+    clash = await session.expectError("sprayWater", {"name": "river", "at": {"points": [[0, 60]]}, "definition": 141})
+    river = {body["name"]: body for body in (await session.expectSuccess("getWater", {}))["bodies"]}["river"]
+    copied = await session.expectSuccess("duplicateObjects", {"names": ["oldFall"], "offset": [20, 0, 0]})
+    copy = {body["name"]: body for body in (await session.expectSuccess("getWater", {}))["bodies"]}["oldFall.001"]
+    moved = await session.expectSuccess("transformObjects", {"names": ["oldFall.001"], "translate": [10, 0, 0]})
+    turned = await session.expectError("transformObjects", {"names": ["oldFall.001"], "rotateDegrees": [0, 0, 10]})
+    rebuilt = await session.expectSuccess("editWater", {"name": "oldFall.001"})
+    shape = await meshOf(session, "oldFall.001")
+    return renamed, afterRename, newFall, clash, river, copied, copy, moved, turned, rebuilt, shape
+
+  renamed, afterRename, newFall, clash, river, copied, copy, moved, turned, rebuilt, shape = stageBlenderServer.session(steps)
+  assert renamed["objects"][0]["name"] == "oldFall"
+  assert {name: emitter["body"] for name, emitter in afterRename.items()} == {"oldFallSpray1_1": "oldFall"}
+  assert [emitter["name"] for emitter in newFall["sprays"][0]["emitters"]] == ["fallSpray1_1"]
+  assert "an emitter 'riverSpray1_1', and an object of that name already exists" in clash and river["definition"]["sprays"] == []
+  # The copy is built from the original's definition moved by the offset, its sprays placed for it.
+  assert copied == {"oldFall": "oldFall.001"} and copy["definition"]["lip"] == [[12.0, 0.0, 37.0], [28.0, 0.0, 37.0]]
+  assert [(emitter["name"], emitter["position"][0]) for emitter in copy["sprays"][0]["emitters"]] == [("oldFall.001Spray1_1", 20.0)]
+  # Translated, a body moves what it is made from and is built again there with its sprays; a rebuild keeps it where it went.
+  moved = moved["objects"][0]
+  assert rebuilt["definition"]["lip"] == [[22.0, 0.0, 37.0], [38.0, 0.0, 37.0]] and rebuilt["sprays"][0]["emitters"][0]["position"][0] == 30.0
+  assert numpy.isclose(numpy.array(shape["vertices"])[:, 0].min(), 22) and moved["location"] == [0.0, 0.0, 0.0]
+  assert "are water bodies" in turned and "editWater" in turned
+
+
+def testFallFeetStrikeTheWaterOrGroundThatShowsAndRingsLieOnlyOnWater(stageBlenderServer, tmp_path):
+  ring = [[40 * math.cos(turn * math.pi / 12), 75 + 40 * math.sin(turn * math.pi / 12)] for turn in range(24)]
+
+  async def steps(session):
+    await freshScene(session)
+    # A plateau at 80 north of y = 120 over flat ground at 0, and a bowl (-12 at (0, 75), up to 0 by 42 out) whose pool at -2, held
+    # within 40 of its middle, shows to y 112.8 and runs on under the bank past it.
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [240, 240], "spacing": 4, "location": [0, 80, 0], "collection": "terrain"})
+    await session.expectSuccess("sculptOutline", {"objectName": "ground", "mode": "fill", "outline": [[-120, 120], [120, 120], [120, 200], [-120, 200]], "base": 0, "profile": [[-4, 0], [0, 80], [400, 80]], "conformBreaks": False})
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[0, 75, -12]], "radius": 42, "strength": 1, "profile": [[0, 0], [0.6, 4], [1, 12]], "conformRim": False})
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("pourWaterfall", {"name": "fall", "lip": [[-16, 120, 76], [16, 120, 76]], "bottom": -4, "throw": 6, "material": "falls"})
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 75], "level": -2, "within": ring, "material": "water"})
+    ringed = await session.expectError("sprayWater", {"name": "fall", "at": "foot", "definition": 133, "rings": 142, "count": 3})
+    bank = await session.expectSuccess("sprayWater", {"name": "fall", "at": "foot", "definition": 133, "count": 3})
+    under = await session.expectSuccess("measure", {"points": [emitter["position"][:2] + [50] for emitter in bank["sprays"][0]["emitters"]], "snapToSurface": True})
+    # A fall poured to the very height of the flat ground in front of the cliff stands its spray on that ground.
+    await session.expectSuccess("pourWaterfall", {"name": "groundFall", "lip": [[-84, 120, 81], [-76, 120, 81]], "bottom": 0, "throw": 4, "material": "falls"})
+    groundFall = await session.expectSuccess("sprayWater", {"name": "groundFall", "at": "foot", "definition": 133})
+    return ringed, bank, under, groundFall
+
+  ringed, bank, under, groundFall = stageBlenderServer.session(steps)
+  # The foot lands at y 114.1, past where the pool shows: it strikes the bank, not the water tucked under it, so rings are refused there.
+  assert "dry ground lies under 3 of its 3 emitters" in ringed
+  # Each emitter stands 1 over the bank, within what the row's spacing between the sheet's columns leaves of the bank's curve.
+  emitters = bank["sprays"][0]["emitters"]
+  assert [emitter["on"] for emitter in emitters] == ["ground"] * 3
+  assert all(abs(emitter["position"][2] - (point[2] + 1)) < 0.1 for emitter, point in zip(emitters, under["points"]))
+  assert groundFall["sprays"][0]["emitters"] == [{"name": "groundFallSpray1_1", "role": "spray", "definition": 133, "position": [-80.0, 116.0, 1.0], "on": "ground"}]
+
+
+def testAFallStrikesTheTopOfASlabOfWater(stageBlenderServer, tmp_path):
+  values = {"fresnelBias": 0.25, "fresnelPower": 8.0, "reflectionAmount": 0.7, "reflectionColor": [1, 1, 1], "waterColor1": [0, 0.04, 0.11], "waterColor2": [0, 0.23, 0.17], "slides": [0, 0, 0, 0]}
+  slabMaterial = {"name": "slab", "diffuseTexture": "water_c.dds", "normalTexture": "water_n.dds", "cutout": False, "liquid": {"liquid": "water", "values": values, "environmentTexture": "black_e.dds"}}
+  # A slab of water as the client's zones model some (Highpass Hold's pool): a top at 3 facing up and an underside 0.2 below facing down.
+  top, _ = quad(-30, 30, -30, -1)
+  slab = ([[x, y, 3.0] for x, y, _ in top] + [[x, y, 2.8] for x, y, _ in top], [[0, 1, 2], [0, 2, 3], [4, 6, 5], [4, 7, 6]])
+  far = meshOfQuads([(quad(500, 510, 500, 510), 0)])
+  positions, triangles = slab
+  archivePath = tmp_path / "slab.eqg"
+  archivePath.write_bytes(eqgWriter.archiveBytes({
+    "slab.zon": eqgWriter.zoneBytes(["ter_slab.ter", "obj_slab.mod"], [
+      {"model": "ter_slab.ter", "name": "TER_slab", "position": (0.0, 0.0, 0.0), "rotation": (0.0, 0.0, 0.0), "scale": 1.0},
+      {"model": "obj_slab.mod", "name": "OBJ_slab", "position": (0.0, 0.0, 0.0), "rotation": (0.0, 0.0, 0.0), "scale": 1.0},
+    ], [], []),
+    "ter_slab.ter": eqgWriter.modelBytes("ter", [slabMaterial], *far),
+    "obj_slab.mod": eqgWriter.modelBytes("mod", [slabMaterial], positions, [[0, 0, 1]] * 4 + [[0, 0, -1]] * 4, [[x / 40, y / 40] for x, y, _ in positions], triangles, [0] * 4, [eqgFiles.passableFlag] * 4),
+    "water_c.dds": solidDDS((40, 90, 110, 255)), "water_n.dds": solidDDS((128, 128, 255, 255)),
+    "black_e.dds": writeCubeDDS(tmp_path / "black_e.dds", 4, [(0, 0, 0, 255)] * 6).read_bytes(),
+  }))
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 200], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("sculptOutline", {"objectName": "ground", "mode": "fill", "outline": [[-100, 0], [100, 0], [100, 100], [-100, 100]], "base": 0, "profile": [[-2, 0], [0, 40], [200, 40]], "conformBreaks": False})
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("importZoneFile", {"path": str(archivePath)})
+    await session.expectSuccess("pourWaterfall", {"name": "fall", "lip": [[-20, 0, 41], [20, 0, 41]], "bottom": 0, "throw": 6, "material": "falls"})
+    return await session.expectSuccess("sprayWater", {"name": "fall", "at": "foot", "definition": 99, "rings": 142})
+
+  sprayed = stageBlenderServer.session(steps)
+  # Cast down from the lip, the foot strikes the slab's top, its rings 0.5 over it, not its underside.
+  emitters = {emitter["role"]: emitter for emitter in sprayed["sprays"][0]["emitters"]}
+  assert emitters["rings"]["on"] == "water" and emitters["rings"]["position"][2] == 3.5 and emitters["spray"]["position"][2] == 4.0
+
+
+def stripes(path, band, background):
+  """A 4 x 64 texture of background with a band of color across its rows 28 to 35, a line of constant v."""
+  image = Image.new("RGBA", (4, 64), background)
+  for row in range(28, 36):
+    for column in range(4):
+      image.putpixel((column, row), band)
+  image.save(path)
+  return str(path)
+
+
+def downwardShift(first, second, column, rows, reach):
+  """How many pixels down a view a pattern moved between two renders, along a column: the shift within reach whose rows match best,
+  once each column's slow change of shade down the view (water darkening toward the camera) is taken out."""
+  smoothing = numpy.ones(41) / 41
+  profiles = [numpy.asarray(Image.open(io.BytesIO(image)).convert("L"), dtype=numpy.float64)[rows[0]:rows[1], column - 2:column + 3].mean(axis=1) for image in (first, second)]
+  before, after = ((profile - numpy.convolve(profile, smoothing, mode="same"))[20:-20] for profile in profiles)
+  scores = {shift: (before[max(0, -shift):len(before) - max(0, shift)] * after[max(0, shift):len(after) - max(0, -shift)]).mean() for shift in range(-reach, reach + 1)}
+  return max(scores, key=scores.get)
+
+
+def testLiquidTimeScrollsEachLayerAlongItsBodyAsTheClientDoes(stageBlenderServer, tmp_path):
+  fallView = {"eye": [0, -60, 15], "target": [0, 0, 15]}
+  riverView = {"eye": [0, 20, 90], "target": [0, 60, 37]}
+
+  async def steps(session):
+    await cliffScene(session, tmp_path)
+    await session.expectSuccess("setZoneProperties", environment)
+    await session.expectSuccess("createLiquidMaterial", {"name": "stripedFall", "liquid": "waterfall", "diffuseTexture": stripes(tmp_path / "fallBand.png", (255, 255, 255, 255), (20, 20, 20, 255)), "flow": [0.25, 0.25]})
+    await session.expectSuccess("createLiquidMaterial", {
+      "name": "stripedRiver", "liquid": "water", "diffuseTexture": str(tmp_path / "water_c.png"), "environmentTexture": writeCubeDDS(tmp_path / "black_e.dds", 4, [(0, 0, 0, 255)] * 6).as_posix(),
+      "normalTexture": stripes(tmp_path / "riverBand.png", (255, 128, 128, 255), (128, 128, 255, 255)), "waterColor1": [0, 0, 0], "waterColor2": [1, 1, 1],
+      "reflectionAmount": 0, "flow": [0.25, 0.25],
+    })
+    await session.expectSuccess("editWater", {"name": "fall", "material": "stripedFall", "worldUnitsPerRepeat": 20})
+    await session.expectSuccess("editWater", {"name": "river", "material": "stripedRiver", "worldUnitsPerRepeat": 40})
+    renders = {}
+    for name, view, times in (("fall", fallView, (10, 11)), ("river", riverView, (10, 10.5))):
+      renders[name] = [(await session.expectImage("renderView", {"view": view, "liquidTime": time}))[0] for time in times]
+    backwards = await session.expectError("renderView", {"view": fallView, "liquidTime": -1})
+    await session.expectSuccess("runPython", {"code": "tree = bpy.data.materials['stripedRiver'].node_tree\nfor node in [node for node in tree.nodes if node.type == 'ATTRIBUTE']:\n  tree.nodes.remove(node)"})
+    older = await session.expectError("renderView", {"view": riverView, "liquidTime": 10})
+    await session.expectImage("renderView", {"view": riverView})
+    return renders, backwards, older
+
+  renders, backwards, older = stageBlenderServer.session(steps)
+  # Pixels a unit spans a unit away, across the middle of the preview's frame.
+  perUnit = 270 / math.tan(math.radians(previewFrame.verticalFieldOfViewDegrees) / 2)
+  # The fall's band moves down it 0.25 repeats a second, a quarter of its 20-unit repeat: 5 units seen from 57 away.
+  assert abs(downwardShift(*renders["fall"], 480, (60, 440), 100) - 5 / 57 * perUnit) <= 10
+  # The river's bands (its normal map at the texture coordinates and at twice them, both moving 0.25 repeats a second) move
+  # downstream, toward the camera looking upstream: 5 units in half a second, foreshortened this far off and this steeply down.
+  assert 0.035 * perUnit <= downwardShift(*renders["river"], 480, (120, 420), 60) <= 0.07 * perUnit
+  assert "liquidTime is seconds on the client's effect clock, 0 or more" in backwards
+  # A material made before previews scrolled would draw still at any time, so a view at a liquid time refuses it; at time 0 it draws.
+  assert "Liquid materials ['stripedRiver'] were made before previews scrolled liquids" in older
+
+
+def patchColor(png, row, column, half=10):
+  """The median color of a square of a rendered view."""
+  pixels = numpy.asarray(Image.open(io.BytesIO(png)).convert("RGB"), dtype=numpy.float64)
+  return numpy.median(pixels[row - half:row + half, column - half:column + half].reshape(-1, 3), axis=0)
+
+
+cubeFaceColors = [(200, 40, 40, 255), (40, 200, 40, 255), (40, 40, 200, 255), (200, 200, 40, 255), (40, 200, 200, 255), (200, 40, 200, 255)]
+
+
+def testWaterMirrorsTheCubeFaceItsReflectedViewFinds(stageBlenderServer, tmp_path):
+  # Each view's middle lies on the pool; seen from it, the view reflected off the water runs up (cube +Y, the client's lookup turning
+  # the world's z up into the cube's y), or out along +X, -X, +Y (cube +Z), or -Y (cube -Z).
+  views = {
+    2: {"eye": [30, 20, 150], "target": [0, 0, -5]}, 0: {"eye": [-90, 10, 5], "target": [0, 0, -5]}, 1: {"eye": [90, 10, 5], "target": [0, 0, -5]},
+    4: {"eye": [10, -90, 5], "target": [0, 0, -5]}, 5: {"eye": [10, 90, 5], "target": [0, 0, -5]},
+  }
+
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    diffuse = str(writePNG(tmp_path / "water_c.png", 4, 4, (40, 90, 110, 255)))
+    normal = str(writePNG(tmp_path / "water_n.png", 4, 4, (128, 128, 255, 255)))
+    flat = str(writePNG(tmp_path / "flat_e.png", 4, 4, (200, 150, 100, 255)))
+    notCube = await session.expectError("createLiquidMaterial", {"name": "flatMirror", "liquid": "water", "diffuseTexture": diffuse, "normalTexture": normal, "environmentTexture": flat})
+    # Black water with fresnel held at 1 (bias 1) draws its reflection alone.
+    await session.expectSuccess("createLiquidMaterial", {
+      "name": "mirror", "liquid": "water", "diffuseTexture": diffuse, "normalTexture": normal, "environmentTexture": str(writeCubeDDS(tmp_path / "six_e.dds", 8, cubeFaceColors)),
+      "fresnelBias": 1.0, "reflectionAmount": 1.0, "reflectionColor": [1, 1, 1], "waterColor1": [0, 0, 0], "waterColor2": [0, 0, 0],
+    })
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "mirror"})
+    await session.expectSuccess("setZoneProperties", environment | {"fogOn": False})
+    return notCube, {face: (await session.expectImage("renderView", {"view": view, "guides": False}))[0] for face, view in views.items()}
+
+  notCube, images = stageBlenderServer.session(steps)
+  assert "flat_e.png is not a DDS cube map" in notCube
+  drawn = {face: patchColor(image, 270, 480) for face, image in images.items()}
+  assert all(numpy.abs(drawn[face] - cubeFaceColors[face][:3]).max() <= 1 for face in drawn), drawn
+
+
+calmWater = """
+import bpy, bridgeSurfacing
+bpy.ops.mesh.primitive_plane_add(size=200, location=(0, 0, 0))
+plane = bpy.context.active_object
+material = bpy.data.materials.new("calm")
+material.use_nodes = True
+values = {"fresnelBias": 1.0, "fresnelPower": 8.0, "reflectionAmount": 1.0, "reflectionColor": [1, 1, 1], "waterColor1": [0, 0, 0], "waterColor2": [0, 0, 0]}
+bridgeSurfacing.liquidNodes(material, "water", values, diffusePath, {"environment": lookupPath}, False, "object")
+plane.data.materials.append(material)
+result = plane.name
+"""
+
+
+def testCalmWaterSeenStraightDownMirrorsTheFaceAbove(stageBlenderServer, tmp_path):
+  # A client water without a normal map is flat, so in a map every pixel's reflected view is exactly up.
+  cube = writeCubeDDS(tmp_path / "six_e.dds", 8, cubeFaceColors)
+  lookup = tmp_path / "six_e.lookup.png"
+  lookup.write_bytes(eqCubeMaps.environmentLookupPNG(cube.read_bytes(), cube.name))
+  diffuse = writePNG(tmp_path / "water_c.png", 4, 4, (40, 90, 110, 255))
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("runPython", {"code": f"diffusePath = {str(diffuse)!r}\nlookupPath = {str(lookup)!r}\n" + calmWater})
+    await session.expectSuccess("setZoneProperties", environment | {"fogOn": False})
+    return (await session.expectImage("renderView", {"view": {"map": {"center": [0, 0], "width": 100}}, "guides": False}))[0]
+
+  view = stageBlenderServer.session(steps)
+  assert numpy.abs(patchColor(view, 270, 480) - cubeFaceColors[2][:3]).max() <= 1
+
+
+def testOwnLavaGlowsUnlitWhereItsAlphaIsClearAndExportsItsMask(stageBlenderServer, tmp_path):
+  crust, glow = (250, 90, 10), (255, 200, 40)
+  archivePath = tmp_path / "lavaplot.eqg"
+  # From straight above, 400 across centered on (70, 70): +X up and -Y to the right, 2.4 pixels a unit.
+  plan = {"map": {"center": [70, 70], "width": 400}}
+  crustPixel, glowPixel = (438, 648), (102, 312)
+
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [[140, 140, -20]], "radius": 50, "strength": 1, "profile": [[0, 0], [1, 20]], "conformRim": False})
+    ground = writePNG(tmp_path / "ground.png", 4, 4, (90, 120, 60, 255))
+    await session.expectSuccess("createMaterial", {"name": "grass", "diffuseTexture": str(ground)})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "grass"})
+    await session.expectSuccess("projectUVs", {"objectName": "ground", "method": "planar", "worldUnitsPerRepeat": 64, "direction": [0, 0, 1]})
+    normal = str(writePNG(tmp_path / "lava_n.png", 4, 4, (128, 128, 255, 255)))
+    second = str(writePNG(tmp_path / "lava_d.png", 4, 4, (*glow, 255)))
+    for name, alpha in (("crust", 255), ("glow", 0)):
+      diffuse = str(writePNG(tmp_path / f"{name}_c.png", 4, 4, (*crust, alpha)))
+      await session.expectSuccess("createLiquidMaterial", {"name": name, "liquid": "lava", "diffuseTexture": diffuse, "normalTexture": normal, "secondDiffuseTexture": second})
+    await session.expectSuccess("floodWater", {"name": "crustpool", "seed": [0, 0], "level": -5, "material": "crust"})
+    await session.expectSuccess("floodWater", {"name": "glowpool", "seed": [140, 140], "level": -5, "material": "glow"})
+    await session.expectSuccess("setZoneProperties", environment | {"fogOn": False})
+    day, _ = await session.expectImage("renderView", {"view": plan, "guides": False})
+    await session.expectSuccess("setZoneProperties", environment | {"ambientColor": [0.05, 0.05, 0.05], "sunColor": [0, 0, 0], "fogOn": False})
+    night, _ = await session.expectImage("renderView", {"view": plan, "guides": False})
+    await session.expectSuccess("saveFile", {"path": str(tmp_path / "lavaplot.blend")})
+    await session.expectSuccess("exportZone", {"path": str(archivePath), "purpose": "test"})
+    return day, night
+
+  day, night = stageBlenderServer.session(steps)
+  # The crust is the diffuse lit by the scene (ambient 0.3 plus the sun's 0.6 at 45 degrees on level ground, then 0.05 at night); the
+  # glow is the second diffuse whatever the light, as SModelLava draws a placed object's lava (an exported pool is one).
+  dayLight = 0.3 + 0.6 * math.sin(math.radians(45))
+  assert numpy.abs(patchColor(day, *crustPixel) - numpy.array(crust) * dayLight).max() <= 1.5
+  assert numpy.abs(patchColor(night, *crustPixel) - numpy.array(crust) * 0.05).max() <= 1.5
+  assert numpy.abs(patchColor(day, *glowPixel) - glow).max() <= 1 and numpy.abs(patchColor(night, *glowPixel) - glow).max() <= 1
+  archive = eqArchive.EQArchive(archivePath)
+  material = eqgFiles.parseModel(archive.read("obj_glowpool.mod"), "obj_glowpool.mod")["materials"][0]
+  assert material["shader"] == "Opaque_MaxLava.fx"
+  assert {key: material["properties"][key] for key in ("e_TextureDiffuse0", "e_TextureDiffuse1", "e_TextureNormal0")} == {
+    "e_TextureDiffuse0": "glow_c.dds", "e_TextureDiffuse1": "lava_d.dds", "e_TextureNormal0": "lava_n.dds",
+  }
+  # The glow's mask, the first diffuse's alpha, ships as painted.
+  shipped = numpy.asarray(Image.open(io.BytesIO(archive.read("glow_c.dds"))).convert("RGBA"))
+  assert (shipped == (*crust, 0)).all()
+
+
+def solidDDS(rgba):
+  return eqgWriter.ddsBytes(numpy.full((4, 4, 4), rgba, dtype=numpy.uint8))
+
+
+def quad(x0, x1, y0, y1):
+  """A level square at height 0 as positions and two triangles."""
+  return [[x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0]], [[0, 1, 2], [0, 2, 3]]
+
+
+def meshOfQuads(quads):
+  """Positions, normals, texture coordinates, triangles, and each triangle's material for (square, material) pairs."""
+  positions, triangles, materials = [], [], []
+  for (corners, faces), material in quads:
+    triangles += [[corner + len(positions) for corner in face] for face in faces]
+    positions += corners
+    materials += [material] * len(faces)
+  uvs = [[position[0] / 40, position[1] / 40] for position in positions]
+  return positions, [[0, 0, 1]] * len(positions), uvs, triangles, materials, [0] * len(triangles)
+
+
+def testImportedLiquidsDrawAsTheClientsEffectsDrawThemOnTheirMeshes(stageBlenderServer, tmp_path):
+  glow = (100, 60, 20)
+  waterColors = {"red": [0.6, 0.1, 0.1], "blue": [0.1, 0.1, 0.6]}
+  lava = {"name": "lava", "diffuseTexture": "lava_c.dds", "normalTexture": "lava_n.dds", "cutout": False, "liquid": {"liquid": "lava", "values": {"slides": [0, 0, 0, 0]}, "secondDiffuseTexture": "lava_d.dds"}}
+
+  def water(name, color, environment):
+    values = {"fresnelBias": 1.0, "fresnelPower": 8.0, "reflectionAmount": 1.0, "reflectionColor": [1, 1, 1], "waterColor1": color, "waterColor2": color, "slides": [0, 0, 0, 0]}
+    return {"name": name, "diffuseTexture": "water_c.dds", "normalTexture": "water_n.dds", "cutout": False, "liquid": {"liquid": "water", "values": values, "environmentTexture": environment}}
+
+  # The terrain and an object carry the same lava, its diffuse all glow (alpha 0). The object's three waters share a diffuse: red and
+  # blue mirror a black cube map, and the third, red again, a white 2D map, which the client cannot load as a cube and so reflects nothing.
+  terrain = meshOfQuads([(quad(-30, -10, 50, 70), 0)])
+  pools = meshOfQuads([(quad(-30, -10, 20, 40), 0), (quad(10, 30, 50, 70), 1), (quad(10, 30, 20, 40), 2), (quad(10, 30, -10, 10), 3)])
+  placements = [
+    {"model": "ter_liquids.ter", "name": "TER_liquids", "position": (0.0, 0.0, 0.0), "rotation": (0.0, 0.0, 0.0), "scale": 1.0},
+    {"model": "obj_pools.mod", "name": "OBJ_pools", "position": (0.0, 0.0, 0.0), "rotation": (0.0, 0.0, 0.0), "scale": 1.0},
+  ]
+  archivePath = tmp_path / "liquids.eqg"
+  archivePath.write_bytes(eqgWriter.archiveBytes({
+    "liquids.zon": eqgWriter.zoneBytes(["ter_liquids.ter", "obj_pools.mod"], placements, [], []),
+    "ter_liquids.ter": eqgWriter.modelBytes("ter", [lava], *terrain),
+    "obj_pools.mod": eqgWriter.modelBytes("mod", [lava, water("red", waterColors["red"], "black_e.dds"), water("blue", waterColors["blue"], "black_e.dds"), water("redFlat", waterColors["red"], "white_e.dds")], *pools),
+    "lava_c.dds": solidDDS((250, 90, 10, 0)), "lava_d.dds": solidDDS((*glow, 255)), "lava_n.dds": solidDDS((128, 128, 255, 255)),
+    "water_c.dds": solidDDS((40, 90, 110, 255)), "water_n.dds": solidDDS((128, 128, 255, 255)), "white_e.dds": solidDDS((255, 255, 255, 255)),
+    "black_e.dds": writeCubeDDS(tmp_path / "black_e.dds", 4, [(0, 0, 0, 255)] * 6).read_bytes(),
+  }))
+
+  async def steps(session):
+    await freshScene(session)
+    imported = await session.expectSuccess("importZoneFile", {"path": str(archivePath)})
+    await session.expectSuccess("setZoneProperties", environment | {"fogOn": False})
+    # From straight above, 160 across centered on (0, 30): +X up and -Y to the right, 6 pixels a unit.
+    view, _ = await session.expectImage("renderView", {"view": {"map": {"center": [0, 30], "width": 160}}, "guides": False})
+    return imported, view
+
+  imported, view = stageBlenderServer.session(steps)
+  assert imported["source"]["environmentMapsNotCube"] == ["white_e.dds"]
+  # Lava glows at twice its second diffuse on the terrain (RegionLava) and at once on an object (SModelLava), unlit either way.
+  assert numpy.abs(patchColor(view, 390, 300) - numpy.array(glow) * 2).max() <= 1
+  assert numpy.abs(patchColor(view, 390, 480) - glow).max() <= 1
+  # Each water keeps its own colors, lit by the scene (ambient 0.3 plus the sun's 0.6 at 45 degrees), the 2D map adding nothing.
+  light = 0.3 + 0.6 * math.sin(math.radians(45))
+  drawn = {name: patchColor(view, 150, column) for name, column in (("red", 300), ("blue", 480), ("redFlat", 660))}
+  expected = {"red": waterColors["red"], "blue": waterColors["blue"], "redFlat": waterColors["red"]}
+  assert all(numpy.abs(drawn[name] - numpy.array(expected[name]) * 255 * light).max() <= 1.5 for name in drawn), drawn
+
+
+readFaceMapping = """
+mesh = bpy.data.objects[objectName].data
+layer = mesh.uv_layers.active
+result = [[list(mesh.vertices[mesh.loops[index].vertex_index].co[:2]) + list(layer.data[index].uv) for index in polygon.loop_indices] for polygon in mesh.polygons]
+"""
+
+
+def polygonArea(points):
+  x, y = numpy.asarray(points, dtype=numpy.float64).T
+  return 0.5 * abs(x @ numpy.roll(y, -1) - y @ numpy.roll(x, -1))
+
+
+def testARiversTextureTurnsWithItsBendInsteadOfFolding(stageBlenderServer, tmp_path):
+  bendPath = [[-150, -40], [0, -40], [110, 70]]
+  hairpinPath = [[-150, 140], [0, 140], [30, 115], [0, 90], [-150, 90]]
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [400, 400], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
+    for path, radius in ((bendPath, 26), (hairpinPath, 22)):
+      await session.expectSuccess("sculptAlongPath", {"objectName": "ground", "mode": "carve", "path": [point + [-12] for point in path], "radius": radius, "strength": 1, "profile": [[0, 0], [1, 12]], "conformRim": False})
+    await liquidMaterials(session, tmp_path)
+    bend = await session.expectSuccess("runWater", {"name": "bend", "path": [point + [-4] for point in bendPath], "reach": 20, "material": "water", "worldUnitsPerRepeat": 20})
+    faces = (await session.expectSuccess("runPython", {"code": "objectName = 'bend'" + readFaceMapping}))["result"]
+    hairpin = await session.expectSuccess("runWater", {"name": "hairpin", "path": [point + [-4 - index * 0.25] for index, point in enumerate(hairpinPath)], "reach": 22, "material": "water"})
+    return bend, faces, hairpin
+
+  bend, faces, hairpin = stageBlenderServer.session(steps)
+  # Mapped along its path with the 45 degree bend rounded to three times its reach, each face's texture covers its own area to within
+  # a third at the reach (a little more where the surface runs on under the banks), squeezed on the inside of the bend and stretched on
+  # the outside; none collapses where the outside fans round the corner.
+  ratios = numpy.array([polygonArea([corner[2:] for corner in face]) * 20 * 20 / polygonArea([corner[:2] for corner in face]) for face in faces if polygonArea([corner[:2] for corner in face]) > 1])
+  assert 0.5 < ratios.min() and ratios.max() < 1.5, (ratios.min(), ratios.max())
+  assert bend["built"]["tightBends"] == []
+  # A hairpin whose legs leave the bend no room to round it at its reach is named: its inside squeezes.
+  assert hairpin["built"]["tightBends"] == [[30.0, 115.0]]
+
+
+def testAWaterMaterialsEnvironmentLookupIsMadeAgainWhenAFileOpensWithoutIt(stageBlenderServer, tmp_path):
+  view = {"eye": [-60, -60, 20], "target": [0, 0, -5]}
+  workFile = tmp_path / "lookup.blend"
+  lookupPath = "result = [bpy.path.abspath(image.filepath) for image in bpy.data.images if 'sky_e@' in image.filepath]"
+
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    await liquidMaterials(session, tmp_path)
+    cube = writeCubeDDS(tmp_path / "sky_e.dds", 8, cubeFaceColors)
+    await session.expectSuccess("createLiquidMaterial", {
+      "name": "sky", "liquid": "water", "diffuseTexture": str(tmp_path / "water_c.png"), "normalTexture": str(tmp_path / "water_n.png"),
+      "environmentTexture": str(cube), "fresnelBias": 1.0, "reflectionAmount": 1.0,
+    })
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "sky"})
+    await session.expectSuccess("setZoneProperties", environment | {"fogOn": False})
+    await session.expectSuccess("saveFile", {"path": str(workFile)})
+    before, _ = await session.expectImage("renderView", {"view": view, "guides": False})
+    # The lookup lives under the tooling root, not in the work file: on another machine, or once the cache is cleared, it is missing.
+    lookups = (await session.expectSuccess("runPython", {"code": lookupPath}))["result"]
+    assert len(lookups) == 1
+    Path(lookups[0]).unlink()
+    reopened = await session.expectSuccess("openFile", {"path": str(workFile), "discardUnsavedChanges": True})
+    after, _ = await session.expectImage("renderView", {"view": view, "guides": False})
+    cube.unlink()
+    noCube = await session.expectSuccess("openFile", {"path": str(workFile), "discardUnsavedChanges": True})
+    return before, reopened, after, noCube, cube
+
+  before, reopened, after, noCube, cube = stageBlenderServer.session(steps)
+  # Reopened, the water mirrors its sky as it did when it was made, and the result says its lookup was made again.
+  pixels = [numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB"), dtype=numpy.int64) for image in (before, after)]
+  assert numpy.abs(pixels[0] - pixels[1]).max() <= 1
+  assert reopened["environmentLookupsMade"] == ["sky"] and reopened["unsavedChanges"] is False
+  # Without its cube map the water mirrors nothing, and opening the file says so.
+  assert noCube["environmentMapsMissing"] == [{"material": "sky", "cubeMap": str(cube)}]
+
+
+def testOwnWaterIsLitByItsSurfaceAsTheClientsVertexLightIs(stageBlenderServer, tmp_path):
+  # A normal map of steep ridges, which lit by the sun would stripe the water light and dark.
+  ridges = Image.new("RGBA", (8, 8))
+  for column in range(8):
+    for row in range(8):
+      ridges.putpixel((column, row), (220, 128, 160, 255) if column < 4 else (36, 128, 160, 255))
+  ridges.save(tmp_path / "ridges_n.png")
+
+  async def steps(session):
+    await freshScene(session)
+    await basin(session)
+    await liquidMaterials(session, tmp_path)
+    await session.expectSuccess("createLiquidMaterial", {
+      "name": "grey", "liquid": "water", "diffuseTexture": str(tmp_path / "water_c.png"), "normalTexture": str(tmp_path / "ridges_n.png"),
+      "environmentTexture": str(writeCubeDDS(tmp_path / "black_e.dds", 4, [(0, 0, 0, 255)] * 6)), "waterColor1": [0.5, 0.5, 0.5],
+      "waterColor2": [0.5, 0.5, 0.5], "reflectionAmount": 0, "slides": [0, 0, 0, 0],
+    })
+    await session.expectSuccess("floodWater", {"name": "pool", "seed": [0, 0], "level": -5, "material": "grey", "worldUnitsPerRepeat": 8})
+    await session.expectSuccess("setZoneProperties", environment | {"fogOn": False})
+    return (await session.expectImage("renderView", {"view": {"map": {"center": [0, 0], "width": 40}}, "guides": False}))[0]
+
+  view = stageBlenderServer.session(steps)
+  # Lit by the surface's own normal, the grey water is ambient 0.3 plus the sun's 0.6 at 45 degrees everywhere: no ridge shows.
+  pixels = numpy.asarray(Image.open(io.BytesIO(view)).convert("L"), dtype=numpy.float64)[100:440, 200:760]
+  assert pixels.std() < 1 and abs(pixels.mean() - 0.5 * (0.3 + 0.6 * math.sin(math.radians(45))) * 255) <= 1.5, (pixels.std(), pixels.mean())
+
+
+def speckle(image, rows, columns):
+  """How much a patch of a view varies from pixel to pixel: the spread of each pixel from the mean of the 5 by 5 around it."""
+  pixels = numpy.asarray(Image.open(io.BytesIO(image)).convert("L"), dtype=numpy.float64)
+  patch = pixels[rows[0] - 2:rows[1] + 2, columns[0] - 2:columns[1] + 2]
+  windows = numpy.lib.stride_tricks.sliding_window_view(patch, (5, 5))
+  return float((patch[2:-2, 2:-2] - windows.mean(axis=(2, 3))).std())
+
+
+def testSeeThroughLiquidsBlendSmoothlyAndParticlesDrawOverThem(stageBlenderServer, tmp_path):
+  # The plateau stands north of y = 60, so a view of its fall from the south has the world's origin, where water bodies keep theirs,
+  # behind it.
+  view = {"view": {"eye": [0, 20, 20], "target": [0, 60, 20]}, "guides": False}
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 200], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("sculptOutline", {"objectName": "ground", "mode": "fill", "outline": [[-100, 60], [100, 60], [100, 100], [-100, 100]], "base": 0, "profile": [[-2, 0], [0, 40], [200, 40]], "conformBreaks": False})
+    await session.expectSuccess("createMaterial", {"name": "rock", "diffuseTexture": str(writePNG(tmp_path / "rock.png", 4, 4, (40, 30, 20, 255)))})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "rock"})
+    await session.expectSuccess("projectUVs", {"objectName": "ground", "method": "box", "worldUnitsPerRepeat": 64})
+    await session.expectSuccess("createLiquidMaterial", {"name": "veil", "liquid": "waterfall", "diffuseTexture": str(writePNG(tmp_path / "veil.png", 4, 4, (240, 240, 240, 128))), "slides": [0, 0, 0, 0]})
+    await session.expectSuccess("createLiquidMaterial", {"name": "sheet", "liquid": "waterfall", "diffuseTexture": str(writePNG(tmp_path / "sheet.png", 4, 4, (240, 240, 240, 255))), "slides": [0, 0, 0, 0]})
+    await session.expectSuccess("pourWaterfall", {"name": "fall", "lip": [[-20, 60, 41], [20, 60, 41]], "bottom": 0, "throw": 6, "material": "veil"})
+    await session.expectSuccess("setZoneProperties", environment | {"fogOn": False})
+    veiled, _ = await session.expectImage("renderView", view)
+    await session.expectSuccess("editWater", {"name": "fall", "material": "sheet"})
+    sheet, _ = await session.expectImage("renderView", view)
+    await session.expectSuccess("placeEmitters", {"emitters": [{"name": "mist", "position": [0, 45, 12], "definition": 99, "lifespan": 4000000}]})
+    misted, _ = await session.expectImage("renderView", view)
+    return veiled, sheet, misted
+
+  veiled, sheet, misted = stageBlenderServer.session(steps)
+  # Half see-through, the fall blends evenly over the rock behind it, as the client's source-alpha blend draws it, not as a grain of
+  # whole fall and whole rock pixels.
+  assert speckle(veiled, (200, 340), (380, 580)) < 2
+  # Particles draw after every zone surface, blended ones too: mist in front of an opaque sheet shows over it.
+  pixels = [numpy.asarray(Image.open(io.BytesIO(image)).convert("L"), dtype=numpy.float64)[250:330, 420:540] for image in (sheet, misted)]
+  assert numpy.abs(pixels[1] - pixels[0]).mean() > 5
+
+
+def testAFallDrawsOneLayerFromEitherSideAsTheClientCullsAPlacedModelsBackFaces(stageBlenderServer, tmp_path):
+  front = {"view": {"eye": [0, 20, 20], "target": [0, 60, 20]}, "guides": False}
+  # From between the cliff and the sheet, looking out through it.
+  behind = {"view": {"eye": [10, 57.5, 12], "target": [-15, 40, 18]}, "guides": False}
+
+  async def steps(session):
+    await freshScene(session)
+    await session.expectSuccess("createTerrainGrid", {"name": "ground", "size": [200, 200], "spacing": 4, "location": [0, 0, 0], "collection": "terrain"})
+    await session.expectSuccess("sculptOutline", {"objectName": "ground", "mode": "fill", "outline": [[-100, 60], [100, 60], [100, 100], [-100, 100]], "base": 0, "profile": [[-2, 0], [0, 40], [200, 40]], "conformBreaks": False})
+    await session.expectSuccess("createMaterial", {"name": "rock", "diffuseTexture": str(writePNG(tmp_path / "rock.png", 4, 4, (40, 30, 20, 255)))})
+    await session.expectSuccess("assignMaterial", {"objectName": "ground", "materialName": "rock"})
+    await session.expectSuccess("projectUVs", {"objectName": "ground", "method": "box", "worldUnitsPerRepeat": 64})
+    await session.expectSuccess("createLiquidMaterial", {"name": "veil", "liquid": "waterfall", "diffuseTexture": str(writePNG(tmp_path / "veil.png", 4, 4, (240, 240, 240, 128))), "slides": [0, 0, 0, 0]})
+    await session.expectSuccess("pourWaterfall", {"name": "fall", "lip": [[-20, 60, 41], [20, 60, 41]], "bottom": 0, "throw": 6, "material": "veil"})
+    await session.expectSuccess("setZoneProperties", environment | {"fogOn": False})
+    images = {}
+    for sides, code in (("both", None), ("front", keepFallFront), ("none", "bpy.data.objects['fall'].hide_render = True")):
+      if code is not None:
+        await session.expectSuccess("runPython", {"code": code})
+      for side, view in (("Front", front), ("Behind", behind)):
+        images[sides + side] = (await session.expectImage("renderView", view))[0]
+    return images
+
+  images = stageBlenderServer.session(steps)
+  pixels = {name: numpy.asarray(Image.open(io.BytesIO(image)).convert("RGB"), dtype=numpy.float64) for name, image in images.items()}
+
+  def difference(first, second):
+    return numpy.abs(pixels[first] - pixels[second])
+
+  # The half see-through fall shows from in front and, by its back faces, from behind.
+  assert difference("bothFront", "noneFront").mean() > 10 and difference("bothBehind", "noneBehind").mean() > 10
+  # Its back faces are culled seen from in front, so it draws one layer there, as the sheet alone does.
+  assert difference("bothFront", "frontFront").max() <= 2
+  # The sheet alone, as falls were built before they had backs, is not drawn from behind at all, as the client showed canyonhousing's.
+  assert difference("frontBehind", "noneBehind").max() <= 2

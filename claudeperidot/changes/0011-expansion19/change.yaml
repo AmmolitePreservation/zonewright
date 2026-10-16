@@ -1,0 +1,15 @@
+title: Expansion:CurrentExpansion is 19 (Rain of Fear) in the default ruleset
+why: Every zone's RoF2-era version, spawns and doors load on Claude's test server; the owner set claudeperidot to the maximum expansion so every zone can be explored and tested.
+kind: db
+scope:
+  - table: rule_values
+    where: ruleset_id = 1 AND rule_name = 'Expansion:CurrentExpansion'
+disposition: fixture
+significance: minor
+ownerClearance:
+  ownerMessage: "2026-10-05: \"for the NEW server you can set it to the max expansion rule so we can go to all the zones\"; answer to the expansion question: \"19 (Recommended)\""
+activation: start world with the server stopped (a running world ignores the rule until it boots)
+production: none
+commits: []
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

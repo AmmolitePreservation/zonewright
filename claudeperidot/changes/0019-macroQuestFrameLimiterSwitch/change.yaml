@@ -1,0 +1,62 @@
+title: The owner's MacroQuest tree builds MQ2Main.dll from its local claude branch, which exports SetFrameLimiterSuspended, so MQClaudeLink can suspend the frame limiter in the spare's process only
+why: >-
+  MacroQuest's frame limiter throttles any client whose window is not the foreground window to the shared
+  MacroQuest.ini [FrameLimiter] BackgroundFPS (2.77) and overrides the client's own caps, so the spare, never in the
+  foreground, took its screenshots at 2.5 to 3 fps; the limiter has no exported API and its TLO only reads. The owner
+  chose route (b) on 2026-10-11. The tree (~\LocalProjects\mqPeridot, upstream macroquest/macroquest on local branch
+  emu at e1d7294e) gets a local branch claude with one commit, 245f1eaa, in setFrameLimiterSuspended.patch here:
+  MQ2FrameLimiter.cpp exports extern "C" void SetFrameLimiterSuspended(bool suspended), which suspends the limiter in
+  the calling process only (it neither throttles nor overrides the client's caps, and nothing is written to any
+  settings file), and ${FrameLimiter.Status} reads Suspended meanwhile. The owner's clients never call it; MQClaudeLink
+  0.4 resolves it with GetProcAddress for its frameLimiter command and around each screenshot. The branch is never
+  pushed (origin is upstream), and the owner's uncommitted src\MacroQuest.sln change and untracked plugin folders stay
+  as they are. Only the MQ2Main project is built (no project references, no post-build step, which would otherwise
+  hard-link the ten stock sample macros into build\bin\release\macros, where they are absent; the first build here did,
+  and they were removed again); its exports are
+  the previous build's 903 plus SetFrameLimiterSuspended. The steps refuse while any eqgame.exe or MacroQuest.exe runs.
+  The previous MQ2Main.dll, .lib and .pdb (built 2025-11-10 from emu) were also copied to Claude's session scratchpad
+  (...\scratchpad\mqBackup) as a quick undo while it lasts; the recorded undo checks out emu and rebuilds MQ2Main.
+kind: client
+scope:
+  - ~\LocalProjects\mqPeridot\src\main\MQ2FrameLimiter.cpp
+  - ~\LocalProjects\mqPeridot\build\bin\release\MQ2Main.dll
+  - ~\LocalProjects\mqPeridot\build\bin\release\MQ2Main.exp
+  - ~\LocalProjects\mqPeridot\build\bin\release\MQ2Main.lib
+  - ~\LocalProjects\mqPeridot\build\bin\release\MQ2Main.pdb
+  - ~\LocalProjects\mqPeridot\build\obj\Win32\release\MQ2Main
+disposition: fixture
+significance: significant
+ownerClearance:
+  ownerMessage: '2026-10-11, the owner''s choice: "MQ export (Recommended): Add a small exported switch to MQ2Main in your mqPeridot fork that lifts the limiter in one client''s memory. It writes no files and affects only the spare. Needs one MacroQuest rebuild: you close the loader and clients, I build, you restart."'
+activation: the MacroQuest loader's next start, with every EverQuest client closed (the owner restarts it)
+production: none
+commits: []
+steps:
+  - |-
+    $tree = "$env:USERPROFILE\LocalProjects\mqPeridot"
+    $running = @(Get-Process -Name eqgame, MacroQuest -ErrorAction SilentlyContinue)
+    if ($running.Count -gt 0) { throw ("close every EverQuest client and the MacroQuest loader first; running: " + (($running | ForEach-Object { "$($_.Name) $($_.Id)" }) -join ', ')) }
+    git -C $tree checkout -q claude
+    if ($LASTEXITCODE -ne 0) { throw "checking out claude in $tree failed with exit code $LASTEXITCODE" }
+    git -C $tree merge-base --is-ancestor 245f1eaadd7ea79b80a226431e6c84cfd95ddfa3 HEAD
+    if ($LASTEXITCODE -ne 0) { throw "the claude branch in $tree does not hold 245f1eaa" }
+  - |-
+    $tree = "$env:USERPROFILE\LocalProjects\mqPeridot"
+    & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' "$tree\src\main\MQ2Main.vcxproj" /p:Configuration=Release /p:Platform=Win32 /p:BuildProjectReferences=false /p:PostBuildEventUseInBuild=false /p:SolutionDir=$tree\src\ /nologo /v:minimal
+    if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE" }
+undo:
+  - |-
+    $tree = "$env:USERPROFILE\LocalProjects\mqPeridot"
+    $running = @(Get-Process -Name eqgame, MacroQuest -ErrorAction SilentlyContinue)
+    if ($running.Count -gt 0) { throw ("close every EverQuest client and the MacroQuest loader first; running: " + (($running | ForEach-Object { "$($_.Name) $($_.Id)" }) -join ', ')) }
+    git -C $tree checkout -q emu
+    if ($LASTEXITCODE -ne 0) { throw "checking out emu in $tree failed with exit code $LASTEXITCODE" }
+  - |-
+    $tree = "$env:USERPROFILE\LocalProjects\mqPeridot"
+    & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' "$tree\src\main\MQ2Main.vcxproj" /p:Configuration=Release /p:Platform=Win32 /p:BuildProjectReferences=false /p:PostBuildEventUseInBuild=false /p:SolutionDir=$tree\src\ /nologo /v:minimal
+    if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE" }
+checks:
+  - path: ~\LocalProjects\mqPeridot\build\bin\release\MQ2Main.dll
+    exports: SetFrameLimiterSuspended
+author:
+  session: session_0121Qm1vvZgAKaiV6dKmANxe

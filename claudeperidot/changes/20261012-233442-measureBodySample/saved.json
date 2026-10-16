@@ -1,0 +1,1443 @@
+{
+  "sensitive": true,
+  "checksum": "74ab0a71dfca653f9f9c10411f06e2be2a90db669319dc1251cd3dbdef5f37e6",
+  "tables": [
+    {
+      "table": "character_bind",
+      "where": "id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "zone_id",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "instance_id",
+          "type": "mediumint",
+          "charset": ""
+        },
+        {
+          "name": "x",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "y",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "z",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "heading",
+          "type": "float",
+          "charset": ""
+        }
+      ],
+      "digest": "aa53a9c78609af5dedb2992e30dda48ae57568498b37f8a55d5dfaa5eb58a5a4",
+      "rowCount": 125
+    },
+    {
+      "table": "character_skills",
+      "where": "id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "skill_id",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "value",
+          "type": "smallint",
+          "charset": ""
+        }
+      ],
+      "digest": "6e4fa9f42d77331e529b3a3dd452358e0c0c9a2e5e36389e85fd37a5c1e3ae30",
+      "rowCount": 50
+    },
+    {
+      "table": "character_languages",
+      "where": "id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "lang_id",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "value",
+          "type": "smallint",
+          "charset": ""
+        }
+      ],
+      "digest": "4c17b9f68853dbdedf917d720032ea8004cfb7dcde9b1b858d462d66bf9d9070",
+      "rowCount": 25
+    },
+    {
+      "table": "character_currency",
+      "where": "id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "platinum",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "gold",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "silver",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "copper",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "platinum_bank",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "gold_bank",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "silver_bank",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "copper_bank",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "platinum_cursor",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "gold_cursor",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "silver_cursor",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "copper_cursor",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "radiant_crystals",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "career_radiant_crystals",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ebon_crystals",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "career_ebon_crystals",
+          "type": "int",
+          "charset": ""
+        }
+      ],
+      "digest": "7f088881c72d07eb7f089b11e83ee866b230d6414bd432d28df589106f93d458",
+      "rowCount": 5
+    },
+    {
+      "table": "character_pet_info",
+      "where": "char_id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)",
+      "columns": [
+        {
+          "name": "char_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pet",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "petname",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "petpower",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "spell_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "hp",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "mana",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "size",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "taunting",
+          "type": "tinyint",
+          "charset": ""
+        }
+      ],
+      "digest": "c64f2ba6e8dac2357755b5ef5153207d71070950161c775d6451c656b0eb5e79",
+      "rowCount": 10
+    },
+    {
+      "table": "character_alternate_abilities",
+      "where": "id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "aa_id",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "aa_value",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "charges",
+          "type": "smallint",
+          "charset": ""
+        }
+      ],
+      "digest": "791960a51045563ba194397b0eba2c449455855bf42c6ba8ad60f4034c9eb8c4",
+      "rowCount": 70
+    },
+    {
+      "table": "character_stats_record",
+      "where": "character_id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)",
+      "columns": [
+        {
+          "name": "character_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "charset": "utf8mb4"
+        },
+        {
+          "name": "status",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "level",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "class",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "race",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "aa_points",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "hp",
+          "type": "bigint",
+          "charset": ""
+        },
+        {
+          "name": "mana",
+          "type": "bigint",
+          "charset": ""
+        },
+        {
+          "name": "endurance",
+          "type": "bigint",
+          "charset": ""
+        },
+        {
+          "name": "ac",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "strength",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "stamina",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "dexterity",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "agility",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "intelligence",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "wisdom",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "charisma",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "magic_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "fire_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "cold_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "poison_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "disease_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "corruption_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_strength",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_stamina",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_dexterity",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_agility",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_intelligence",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_wisdom",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_charisma",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_magic_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_fire_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_cold_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_poison_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_disease_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "heroic_corruption_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "haste",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "accuracy",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "attack",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "avoidance",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "clairvoyance",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "combat_effects",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "damage_shield_mitigation",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "damage_shield",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "dot_shielding",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "hp_regen",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "mana_regen",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "endurance_regen",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "shielding",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "spell_damage",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "spell_shielding",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "strikethrough",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "stun_resist",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "backstab",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "wind",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "brass",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "string",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "percussion",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "singing",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "baking",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "alchemy",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "tailoring",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "blacksmithing",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "fletching",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "brewing",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "jewelry",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pottery",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "research",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "alcohol",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "fishing",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "tinkering",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "charset": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "charset": ""
+        }
+      ],
+      "digest": "091724657625926d65911662fd1f9e841eebcb6950aa280c45a7806996786f5e",
+      "rowCount": 5
+    },
+    {
+      "table": "character_exp_modifiers",
+      "where": "character_id IN (119, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 131, 133, 134, 135, 137, 138, 139, 140, 142, 143, 144, 146, 147, 149)",
+      "columns": [
+        {
+          "name": "character_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "zone_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "instance_version",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "aa_modifier",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "exp_modifier",
+          "type": "float",
+          "charset": ""
+        }
+      ],
+      "digest": "0d22447c9ef9c9edca373ff22015a25280ae05fcbedc7249d60bf09c60e71cac",
+      "rowCount": 5
+    },
+    {
+      "table": "character_data",
+      "where": "id BETWEEN 118 AND 149",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "account_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "last_name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "title",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "suffix",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "zone_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "zone_instance",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "y",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "x",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "z",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "heading",
+          "type": "float",
+          "charset": ""
+        },
+        {
+          "name": "gender",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "race",
+          "type": "smallint",
+          "charset": ""
+        },
+        {
+          "name": "class",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "level",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "deity",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "birthday",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "last_login",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "time_played",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "level2",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "anon",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "gm",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "face",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "hair_color",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "hair_style",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "beard",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "beard_color",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "eye_color_1",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "eye_color_2",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "drakkin_heritage",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "drakkin_tattoo",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "drakkin_details",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ability_time_seconds",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "ability_number",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "ability_time_minutes",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "ability_time_hours",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "exp",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "exp_enabled",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "aa_points_spent",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "aa_exp",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "aa_points",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "group_leadership_exp",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "raid_leadership_exp",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "group_leadership_points",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "raid_leadership_points",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "points",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "cur_hp",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "mana",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "endurance",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "intoxication",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "str",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "sta",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "cha",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "dex",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "int",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "agi",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "wis",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "extra_haste",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "zone_change_count",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "toxicity",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "hunger_level",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "thirst_level",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ability_up",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ldon_points_guk",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ldon_points_mir",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ldon_points_mmc",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ldon_points_ruj",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ldon_points_tak",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ldon_points_available",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "tribute_time_remaining",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "career_tribute_points",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "tribute_points",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "tribute_active",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pvp_status",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "pvp_kills",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pvp_deaths",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pvp_current_points",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pvp_career_points",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pvp_best_kill_streak",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pvp_worst_death_streak",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pvp_current_kill_streak",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pvp2",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "pvp_type",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "show_helm",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "group_auto_consent",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "raid_auto_consent",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "guild_auto_consent",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "leadership_exp_on",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "RestTimer",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "air_remaining",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "autosplit_enabled",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "lfp",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "lfg",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "mailkey",
+          "type": "char",
+          "charset": "latin1"
+        },
+        {
+          "name": "xtargets",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "first_login",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ingame",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "e_aa_effects",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "e_percent_to_aa",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "e_expended_aa_spent",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "aa_points_spent_old",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "aa_points_old",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "e_last_invsnapshot",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "deleted_at",
+          "type": "datetime",
+          "charset": ""
+        },
+        {
+          "name": "illusion_block",
+          "type": "tinyint",
+          "charset": ""
+        }
+      ],
+      "digest": "ee319d46123f1d4f3bd3bfb3205b31fe06f0ba905010801d06c8298b91e9dea6",
+      "rowCount": 32
+    },
+    {
+      "table": "account",
+      "where": "id IN (86, 87, 88)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "charname",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "auto_login_charname",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "sharedplat",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "password",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "status",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ls_id",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "lsaccount_id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "gmspeed",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "invulnerable",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "flymode",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "ignore_tells",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "revoked",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "karma",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "minilogin_ip",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "hideme",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "rulesflag",
+          "type": "tinyint",
+          "charset": ""
+        },
+        {
+          "name": "suspendeduntil",
+          "type": "datetime",
+          "charset": ""
+        },
+        {
+          "name": "time_creation",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ban_reason",
+          "type": "text",
+          "charset": "latin1"
+        },
+        {
+          "name": "suspend_reason",
+          "type": "text",
+          "charset": "latin1"
+        },
+        {
+          "name": "crc_eqgame",
+          "type": "text",
+          "charset": "latin1"
+        },
+        {
+          "name": "crc_skillcaps",
+          "type": "text",
+          "charset": "latin1"
+        },
+        {
+          "name": "crc_basedata",
+          "type": "text",
+          "charset": "latin1"
+        }
+      ],
+      "digest": "294eb2425107da260f44f807da6d76b3a109ab57747e41fe0943965bdcbe1f52",
+      "rowCount": 3
+    },
+    {
+      "table": "account_ip",
+      "where": "accid IN (87, 88)",
+      "columns": [
+        {
+          "name": "accid",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "ip",
+          "type": "varchar",
+          "charset": "utf8"
+        },
+        {
+          "name": "count",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "lastused",
+          "type": "timestamp",
+          "charset": ""
+        }
+      ],
+      "digest": "074b7d839f2f795e30da0e5735ec3a668c6adf444919b1ab0a71ff4308fee922",
+      "rowCount": 2
+    },
+    {
+      "table": "login_accounts",
+      "where": "id IN (86, 87)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "charset": ""
+        },
+        {
+          "name": "account_name",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "account_password",
+          "type": "text",
+          "charset": "latin1"
+        },
+        {
+          "name": "account_email",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "source_loginserver",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "last_ip_address",
+          "type": "varchar",
+          "charset": "latin1"
+        },
+        {
+          "name": "last_login_date",
+          "type": "datetime",
+          "charset": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "charset": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "charset": ""
+        }
+      ],
+      "digest": "963a582988e1ba3fc971fdc5800cbfeaedd7afbf5a030b34c90a816fb7d29bfd",
+      "rowCount": 2
+    }
+  ],
+  "hostCopy": {
+    "folder": "/opt/eqemu/ledger/20261012-233442-measureBodySample",
+    "savedSHA256": "f572201e5274c97c18fe59671a5d8f43808ead854c16391ee375ab520ee71031",
+    "revertSHA256": "9b04c40f107cb7089af546fe64f578d7ba2d4aa5eceb0c7c1e14eb012a54cc45",
+    "because": "character_bind is a player, state, login or bot table"
+  }
+}

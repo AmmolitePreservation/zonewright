@@ -1,0 +1,1 @@
+SELECT ((SELECT COUNT(*) FROM inventory WHERE character_id IN (SELECT id FROM character_data WHERE name = 'Claudewright')) = 1 AND (SELECT COUNT(*) FROM inventory WHERE character_id IN (SELECT id FROM character_data WHERE name = 'Claudewright') AND slot_id = 14 AND item_id = 13002) = 1) AS applied;
